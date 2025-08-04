@@ -20,7 +20,7 @@ const Quiz = require('./models/Quiz');
 const QuizResult = require('./models/QuizResult');
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/take_quiz_now')
+mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/take_quiz_now')
 .then(() => {
   console.log('✅ MongoDB connected successfully!');
 })
@@ -79,7 +79,8 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     maxAge: 30 * 60 * 1000 // 30 minutes (reduced from 24 hours)
   },
-  name: 'takequiznow.sid'
+  name: 'takequiznow.sid',
+  store: new session.MemoryStore() // Explicitly set store for production
 }));
 
 // Session timeout middleware
@@ -1450,12 +1451,23 @@ app.get('/auth/google/callback', (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return res.redirect('/login?error=Google OAuth not configured');
   }
-  passport.authenticate('google', { failureRedirect: '/login' })(req, res, () => {
+  
+  passport.authenticate('google', { 
+    failureRedirect: '/login',
+    failureFlash: true
+  })(req, res, (err) => {
+    if (err) {
+      console.error('Google OAuth callback error:', err);
+      return res.redirect('/login?error=Authentication failed');
+    }
+    
     // Check if user exists and has a role
     if (!req.user) {
       console.error('User not found after Google OAuth authentication');
       return res.redirect('/login?error=Authentication failed');
     }
+    
+    console.log('User authenticated successfully:', req.user._id);
     
     if (!req.user.role) {
       return res.redirect('/select-role');
