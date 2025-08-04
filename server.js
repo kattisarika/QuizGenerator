@@ -1482,54 +1482,100 @@ app.get('/debug-user', async (req, res) => {
 // Temporary route to create admin (remove in production)
 app.get('/create-admin', async (req, res) => {
   try {
-    const adminUser = new User({
-      googleId: 'admin-' + Date.now(),
-      displayName: 'System Administrator',
-      email: 'skillonusers@gmail.com',
-      role: 'admin',
-      isApproved: true
-    });
-    
-    await adminUser.save();
-    res.send(`
-      <h2>Admin User Created Successfully!</h2>
-      <p><strong>Admin ID:</strong> ${adminUser._id}</p>
-      <p><strong>Email:</strong> ${adminUser.email}</p>
-      <p><strong>Name:</strong> ${adminUser.displayName}</p>
-      <br>
-      <p>You can now log in with Google and the system will recognize you as an admin.</p>
-      <a href="/">Go to Home</a>
-    `);
+    // Check if admin already exists for your email
+    const existingAdmin = await User.findOne({ email: 'sarika.katti@gmail.com' });
+    if (existingAdmin) {
+      existingAdmin.role = 'admin';
+      existingAdmin.isApproved = true;
+      await existingAdmin.save();
+      res.send(`
+        <h2>Admin User Updated Successfully!</h2>
+        <p><strong>Admin ID:</strong> ${existingAdmin._id}</p>
+        <p><strong>Email:</strong> ${existingAdmin.email}</p>
+        <p><strong>Name:</strong> ${existingAdmin.displayName}</p>
+        <p><strong>Role:</strong> ${existingAdmin.role}</p>
+        <br>
+        <p>You can now log in with Google and the system will recognize you as an admin.</p>
+        <a href="/login">Go to Login</a>
+      `);
+    } else {
+      // Create new admin user
+      const adminUser = new User({
+        googleId: 'admin-' + Date.now(),
+        displayName: 'System Administrator',
+        email: 'sarika.katti@gmail.com',
+        role: 'admin',
+        isApproved: true
+      });
+      
+      await adminUser.save();
+      res.send(`
+        <h2>Admin User Created Successfully!</h2>
+        <p><strong>Admin ID:</strong> ${adminUser._id}</p>
+        <p><strong>Email:</strong> ${adminUser.email}</p>
+        <p><strong>Name:</strong> ${adminUser.displayName}</p>
+        <br>
+        <p>You can now log in with Google and the system will recognize you as an admin.</p>
+        <a href="/login">Go to Login</a>
+      `);
+    }
   } catch (error) {
     console.error('Error creating admin:', error);
-    res.status(500).send('Error creating admin user');
+    res.status(500).send(`
+      <h2>Error Creating Admin</h2>
+      <p>Error: ${error.message}</p>
+      <a href="/login">Go to Login</a>
+    `);
   }
 });
 
 // Alternative route without hyphen
 app.get('/createadmin', async (req, res) => {
   try {
-    const adminUser = new User({
-      googleId: 'admin-' + Date.now(),
-      displayName: 'System Administrator',
-      email: 'skillonusers@gmail.com',
-      role: 'admin',
-      isApproved: true
-    });
-    
-    await adminUser.save();
-    res.send(`
-      <h2>Admin User Created Successfully!</h2>
-      <p><strong>Admin ID:</strong> ${adminUser._id}</p>
-      <p><strong>Email:</strong> ${adminUser.email}</p>
-      <p><strong>Name:</strong> ${adminUser.displayName}</p>
-      <br>
-      <p>You can now log in with Google and the system will recognize you as an admin.</p>
-      <a href="/">Go to Home</a>
-    `);
+    // Check if admin already exists for your email
+    const existingAdmin = await User.findOne({ email: 'sarika.katti@gmail.com' });
+    if (existingAdmin) {
+      existingAdmin.role = 'admin';
+      existingAdmin.isApproved = true;
+      await existingAdmin.save();
+      res.send(`
+        <h2>Admin User Updated Successfully!</h2>
+        <p><strong>Admin ID:</strong> ${existingAdmin._id}</p>
+        <p><strong>Email:</strong> ${existingAdmin.email}</p>
+        <p><strong>Name:</strong> ${existingAdmin.displayName}</p>
+        <p><strong>Role:</strong> ${existingAdmin.role}</p>
+        <br>
+        <p>You can now log in with Google and the system will recognize you as an admin.</p>
+        <a href="/login">Go to Login</a>
+      `);
+    } else {
+      // Create new admin user
+      const adminUser = new User({
+        googleId: 'admin-' + Date.now(),
+        displayName: 'System Administrator',
+        email: 'sarika.katti@gmail.com',
+        role: 'admin',
+        isApproved: true
+      });
+      
+      await adminUser.save();
+      res.send(`
+        <h2>Admin User Created Successfully!</h2>
+        <p><strong>Admin ID:</strong> ${adminUser._id}</p>
+        <p><strong>Email:</strong> ${adminUser.email}</p>
+        <p><strong>Name:</strong> ${adminUser.displayName}</p>
+        <br>
+        <p>You can now log in with Google and the system will recognize you as an admin.</p>
+        <a href="/login">Go to Login</a>
+      `);
+    }
   } catch (error) {
     console.error('Error creating admin:', error);
-    res.status(500).send('Error creating admin user');
+    res.status(500).send(`
+      <h2>Error Creating Admin</h2>
+      <p>Error: ${error.message}</p>
+      <a href="/login">Go to Login</a>
+    `);
   }
 });
 
