@@ -2,7 +2,6 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
@@ -11,15 +10,18 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 require('dotenv').config();
 
+// AWS S3 configuration
+const AWS = require('aws-sdk');
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: 'us-east-1' // or your preferred region
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// MongoDB Models
-const User = require('./models/User');
-const Quiz = require('./models/Quiz');
-const QuizResult = require('./models/QuizResult');
-
-// MongoDB Connection
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/take_quiz_now')
 .then(() => {
   console.log('✅ MongoDB connected successfully!');
@@ -28,24 +30,19 @@ mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://
   console.error('❌ MongoDB connection error:', err);
 });
 
+// Import models
+const User = require('./models/User');
+const Quiz = require('./models/Quiz');
+const QuizResult = require('./models/QuizResult');
+
 // Middleware
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
+// Multer configuration for file uploads (S3)
+const upload = multer({
+  storage: multer.memoryStorage(), // Store in memory temporarily
   fileFilter: function (req, file, cb) {
     const allowedTypes = ['.pdf', '.doc', '.docx'];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -59,6 +56,39 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   }
 });
+
+// Helper function to upload file to S3
+async function uploadToS3(file, folder = 'uploads') {
+  const params = {
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: `${folder}/${Date.now()}-${file.originalname}`,
+    Body: file.buffer,
+    ContentType: file.mimetype,
+    ACL: 'private'
+  };
+
+  try {
+    const result = await s3.upload(params).promise();
+    return result.Location;
+  } catch (error) {
+    console.error('Error uploading to S3:', error);
+    throw error;
+  }
+}
+
+// Helper function to delete file from S3
+async function deleteFromS3(key) {
+  const params = {
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: key
+  };
+
+  try {
+    await s3.deleteObject(params).promise();
+  } catch (error) {
+    console.error('Error deleting from S3:', error);
+  }
+}
 
 // View engine setup
 app.set('view engine', 'ejs');
@@ -201,15 +231,14 @@ passport.deserializeUser(async (id, done) => {
 });
 
 // Helper functions for file processing
-async function extractTextFromFile(filePath, originalName) {
+async function extractTextFromFile(fileBuffer, originalName) {
   const ext = path.extname(originalName).toLowerCase();
   
   if (ext === '.pdf') {
-    const dataBuffer = await fs.readFile(filePath);
-    const data = await pdfParse(dataBuffer);
+    const data = await pdfParse(fileBuffer);
     return data.text;
   } else if (ext === '.doc' || ext === '.docx') {
-    const result = await mammoth.extractRawText({ path: filePath });
+    const result = await mammoth.extractRawText({ buffer: fileBuffer });
     return result.value;
   } else {
     throw new Error('Unsupported file type');
@@ -688,7 +717,11 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       console.log('File mimetype:', questionFile.mimetype);
       
       try {
-        const questionText = await extractTextFromFile(questionFile.path, questionFile.originalname);
+        // Upload to S3 first
+        const questionFileUrl = await uploadToS3(questionFile, 'question-papers');
+        console.log('Question paper uploaded to S3:', questionFileUrl);
+        
+        const questionText = await extractTextFromFile(questionFile.buffer, questionFile.originalname);
         console.log('Extracted text length:', questionText.length);
         
         if (!questionText || questionText.trim().length === 0) {
@@ -745,7 +778,11 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       const answerFile = req.files.answerPaper[0];
       console.log('Processing answer file:', answerFile.originalname);
       
-      const answerText = await extractTextFromFile(answerFile.path, answerFile.originalname);
+      // Upload to S3 first
+      const answerFileUrl = await uploadToS3(answerFile, 'answer-papers');
+      console.log('Answer paper uploaded to S3:', answerFileUrl);
+      
+      const answerText = await extractTextFromFile(answerFile.buffer, answerFile.originalname);
       const answers = parseAnswersFromText(answerText);
       console.log('Parsed answers count:', answers.length);
       
@@ -772,18 +809,16 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       questions: extractedQuestions,
       createdBy: req.user._id,
       createdByName: req.user.displayName,
-      isApproved: false
+      isApproved: false,
+      questionPaperUrl: questionFileUrl, // Store S3 URL
+      answerPaperUrl: answerFileUrl || null // Store S3 URL if provided
     });
 
     await quiz.save();
     console.log('Quiz saved successfully with ID:', quiz._id);
-    
-    // Clean up uploaded files
-    if (req.files.questionPaper) {
-      await fs.remove(req.files.questionPaper[0].path);
-    }
-    if (req.files.answerPaper) {
-      await fs.remove(req.files.answerPaper[0].path);
+    console.log('Question paper stored at:', questionFileUrl);
+    if (answerFileUrl) {
+      console.log('Answer paper stored at:', answerFileUrl);
     }
 
     res.redirect('/teacher/dashboard');

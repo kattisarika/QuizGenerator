@@ -56,6 +56,14 @@ const quizSchema = new mongoose.Schema({
     type: String,
     enum: ['English', 'Science', 'Math']
   }],
+  questionPaperUrl: {
+    type: String,
+    default: null
+  },
+  answerPaperUrl: {
+    type: String,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
