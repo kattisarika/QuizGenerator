@@ -24,24 +24,24 @@ const PORT = process.env.PORT || 3000;
 // MongoDB connection with retry
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/take_quiz_now';
     console.log('Attempting to connect to MongoDB...');
     console.log('MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'Not Set');
     console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
-    console.log('Using URI:', mongoUri);
     console.log('NODE_ENV:', process.env.NODE_ENV);
     
-    if (!process.env.MONGO_URI && !process.env.MONGODB_URI) {
+    // Check if environment variables are set
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+    if (!mongoUri) {
       console.error('❌ No MongoDB URI found in environment variables!');
       console.error('Please set MONGO_URI or MONGODB_URI environment variable.');
+      console.error('Available env vars:', Object.keys(process.env).filter(key => key.includes('MONGO')));
       return;
     }
     
-    // Force use of the environment variable URI
-    const uriToUse = process.env.MONGO_URI || process.env.MONGODB_URI;
-    console.log('Connecting to:', uriToUse);
+    console.log('Connecting to MongoDB Atlas...');
+    console.log('URI (masked):', mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@'));
     
-    await mongoose.connect(uriToUse, {
+    await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       bufferMaxEntries: 0,
@@ -1968,6 +1968,13 @@ const checkConnectionAndStart = () => {
     setTimeout(checkConnectionAndStart, 2000);
   }
 };
+
+// Debug environment variables
+console.log('🔍 Environment Variables Debug:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('MONGO_URI exists:', !!process.env.MONGO_URI);
+console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
+console.log('All env vars with MONGO:', Object.keys(process.env).filter(key => key.includes('MONGO')));
 
 // Start the connection check process after a delay to allow MongoDB to connect
 setTimeout(checkConnectionAndStart, 3000); 
