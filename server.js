@@ -29,6 +29,7 @@ const connectDB = async () => {
     console.log('MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'Not Set');
     console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
     console.log('Using URI:', mongoUri);
+    console.log('NODE_ENV:', process.env.NODE_ENV);
     
     if (!process.env.MONGO_URI && !process.env.MONGODB_URI) {
       console.error('❌ No MongoDB URI found in environment variables!');
@@ -36,17 +37,28 @@ const connectDB = async () => {
       return;
     }
     
-    await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 10000,
+    // Force use of the environment variable URI
+    const uriToUse = process.env.MONGO_URI || process.env.MONGODB_URI;
+    console.log('Connecting to:', uriToUse);
+    
+    await mongoose.connect(uriToUse, {
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       bufferMaxEntries: 0,
       useNewUrlParser: true,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
+      maxPoolSize: 10,
+      serverApi: {
+        version: '1',
+        strict: true,
+        deprecationErrors: true,
+      }
     });
     console.log('✅ MongoDB connected successfully!');
   } catch (err) {
     console.error('❌ MongoDB connection error:', err);
     console.error('Error details:', err.message);
+    console.error('Full error:', err);
     // Retry connection after 5 seconds
     setTimeout(connectDB, 5000);
   }
@@ -191,6 +203,12 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         async function(accessToken, refreshToken, profile, cb) {
       try {
         console.log('Google OAuth authentication successful for:', profile.emails ? profile.emails[0].value : 'No email');
+        
+        // Check if MongoDB is connected
+        if (mongoose.connection.readyState !== 1) {
+          console.error('MongoDB not connected during authentication');
+          return cb(new Error('Database not connected'), null);
+        }
         
         // Check if user exists in database
         let user;
