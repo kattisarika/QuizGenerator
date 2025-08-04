@@ -787,7 +787,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       
       try {
         // Upload to S3 first
-        const questionFileUrl = await uploadToS3(questionFile, 'question-papers');
+        questionFileUrl = await uploadToS3(questionFile, 'question-papers');
         console.log('Question paper uploaded to S3:', questionFileUrl);
         
         const questionText = await extractTextFromFile(questionFile.buffer, questionFile.originalname);
@@ -848,7 +848,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       console.log('Processing answer file:', answerFile.originalname);
       
       // Upload to S3 first
-      const answerFileUrl = await uploadToS3(answerFile, 'answer-papers');
+      answerFileUrl = await uploadToS3(answerFile, 'answer-papers');
       console.log('Answer paper uploaded to S3:', answerFileUrl);
       
       const answerText = await extractTextFromFile(answerFile.buffer, answerFile.originalname);
