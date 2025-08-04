@@ -596,6 +596,12 @@ const requireRole = (roles) => {
       return res.redirect('/login');
     }
     
+    // Add null check for req.user
+    if (!req.user) {
+      console.error('User not found in requireRole middleware');
+      return res.redirect('/login?error=Authentication failed');
+    }
+    
     if (roles.includes(req.user.role)) {
       return next();
     }
@@ -627,6 +633,12 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/dashboard', isAuthenticated, (req, res) => {
+  // Add null check for req.user
+  if (!req.user) {
+    console.error('User not found in dashboard route');
+    return res.redirect('/login?error=Authentication failed');
+  }
+  
   // If user doesn't have a role, redirect to role selection
   if (!req.user.role) {
     return res.redirect('/select-role');
