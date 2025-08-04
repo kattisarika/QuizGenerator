@@ -980,10 +980,22 @@ app.get('/health', async (req, res) => {
     const dbState = mongoose.connection.readyState;
     const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
     
+    // Test MongoDB connection
+    let mongoTest = 'Not tested';
+    if (mongoose.connection.readyState === 1) {
+      try {
+        await mongoose.connection.db.admin().ping();
+        mongoTest = 'Connected and responding';
+      } catch (pingError) {
+        mongoTest = 'Connected but not responding';
+      }
+    }
+    
     res.json({
       status: 'ok',
       database: states[dbState],
       databaseState: dbState,
+      mongoTest: mongoTest,
       mongodbUri: process.env.MONGO_URI ? 'Set' : 'Not Set',
       mongoDbUri: process.env.MONGODB_URI ? 'Set' : 'Not Set',
       timestamp: new Date().toISOString()
@@ -1528,6 +1540,45 @@ app.get('/view-quiz/:quizId', isAuthenticated, async (req, res) => {
   }
 });
 
+// Simple test route to create admin (for debugging)
+app.get('/test-create-admin', async (req, res) => {
+  try {
+    // Check MongoDB connection
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(500).json({
+        error: 'MongoDB not connected',
+        state: mongoose.connection.readyState,
+        message: 'Database connection failed'
+      });
+    }
+    
+    // Create admin user
+    const adminUser = new User({
+      googleId: 'test-admin-' + Date.now(),
+      displayName: 'Test Admin',
+      email: 'sarika.katti@gmail.com',
+      role: 'admin',
+      isApproved: true
+    });
+    
+    await adminUser.save();
+    
+    res.json({
+      success: true,
+      message: 'Admin created successfully',
+      userId: adminUser._id,
+      mongoState: mongoose.connection.readyState
+    });
+  } catch (error) {
+    console.error('Error creating admin:', error);
+    res.status(500).json({
+      error: error.message,
+      mongoState: mongoose.connection.readyState,
+      stack: error.stack
+    });
+  }
+});
+
 // Route to make current user admin (for development)
 app.get('/make-admin', isAuthenticated, async (req, res) => {
   try {
@@ -1912,9 +1963,11 @@ const checkConnectionAndStart = () => {
     startServer();
   } else {
     console.log('⏳ Waiting for MongoDB connection...');
+    console.log('Current MongoDB state:', mongoose.connection.readyState);
+    console.log('MongoDB connection status:', mongoose.connection.readyState === 1 ? 'Connected' : 'Not Connected');
     setTimeout(checkConnectionAndStart, 2000);
   }
 };
 
-// Start the connection check process
-checkConnectionAndStart(); 
+// Start the connection check process after a delay to allow MongoDB to connect
+setTimeout(checkConnectionAndStart, 3000); 
