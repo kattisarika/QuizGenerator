@@ -1402,6 +1402,45 @@ app.get('/make-admin', isAuthenticated, async (req, res) => {
   }
 });
 
+// Test MongoDB connection
+app.get('/test-db', async (req, res) => {
+  try {
+    // Test database connection
+    const dbState = mongoose.connection.readyState;
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    
+    if (dbState === 1) { // Connected
+      // Test user count
+      const userCount = await User.countDocuments();
+      res.send(`
+        <h1>MongoDB Connection Test</h1>
+        <p>✅ Connection State: ${states[dbState]} (${dbState})</p>
+        <p>✅ Database connected successfully!</p>
+        <p>📊 Total Users: ${userCount}</p>
+        <hr>
+        <h2>Test Database Operations</h2>
+        <p>✅ User count query successful</p>
+        <p><a href="/login">Go to Login</a></p>
+      `);
+    } else {
+      res.send(`
+        <h1>MongoDB Connection Test</h1>
+        <p>❌ Connection State: ${states[dbState]} (${dbState})</p>
+        <p>❌ Database not connected</p>
+        <p>Please check MongoDB Atlas IP whitelist</p>
+        <p><a href="/login">Go to Login</a></p>
+      `);
+    }
+  } catch (error) {
+    res.send(`
+      <h1>MongoDB Connection Test</h1>
+      <p>❌ Error: ${error.message}</p>
+      <p>Please check MongoDB Atlas IP whitelist</p>
+      <p><a href="/login">Go to Login</a></p>
+    `);
+  }
+});
+
 // Temporary route to create admin (remove in production)
 app.get('/create-admin', async (req, res) => {
   try {
