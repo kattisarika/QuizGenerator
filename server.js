@@ -1441,6 +1441,44 @@ app.get('/test-db', async (req, res) => {
   }
 });
 
+// Debug user state
+app.get('/debug-user', async (req, res) => {
+  try {
+    const email = 'sarika.katti@gmail.com';
+    const user = await User.findOne({ email });
+    
+    if (user) {
+      res.send(`
+        <h1>User Debug Information</h1>
+        <p><strong>Email:</strong> ${user.email}</p>
+        <p><strong>Display Name:</strong> ${user.displayName}</p>
+        <p><strong>Role:</strong> ${user.role || 'NOT SET'}</p>
+        <p><strong>Is Approved:</strong> ${user.isApproved}</p>
+        <p><strong>Google ID:</strong> ${user.googleId}</p>
+        <p><strong>User ID:</strong> ${user._id}</p>
+        <hr>
+        <h2>Actions</h2>
+        <p><a href="/create-admin">Create Admin User</a></p>
+        <p><a href="/select-role">Select Role</a></p>
+        <p><a href="/login">Go to Login</a></p>
+      `);
+    } else {
+      res.send(`
+        <h1>User Debug Information</h1>
+        <p>❌ User not found with email: ${email}</p>
+        <p><a href="/create-admin">Create Admin User</a></p>
+        <p><a href="/login">Go to Login</a></p>
+      `);
+    }
+  } catch (error) {
+    res.send(`
+      <h1>User Debug Information</h1>
+      <p>❌ Error: ${error.message}</p>
+      <p><a href="/login">Go to Login</a></p>
+    `);
+  }
+});
+
 // Temporary route to create admin (remove in production)
 app.get('/create-admin', async (req, res) => {
   try {
