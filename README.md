@@ -226,6 +226,35 @@ Make sure to set these in production:
 - Set up proper logging and monitoring
 - Use environment-specific configurations
 
+### Heroku Deployment
+
+1. **Create Heroku app**
+   ```bash
+   heroku create your-app-name
+   ```
+
+2. **Set environment variables**
+   ```bash
+   heroku config:set NODE_ENV=production
+   heroku config:set SESSION_SECRET=your_strong_session_secret
+   heroku config:set MONGODB_URI=your_mongodb_atlas_uri
+   heroku config:set GOOGLE_CLIENT_ID=your_google_client_id
+   heroku config:set GOOGLE_CLIENT_SECRET=your_google_client_secret
+   heroku config:set BASE_URL=https://your-app-name.herokuapp.com
+   ```
+
+3. **Update Google OAuth settings**
+   - Go to Google Cloud Console
+   - Add your Heroku domain to authorized redirect URIs:
+     - `https://your-app-name.herokuapp.com/auth/google/callback`
+
+4. **Deploy to Heroku**
+   ```bash
+   git add .
+   git commit -m "Configure for Heroku deployment"
+   git push heroku main
+   ```
+
 ## 🤝 Contributing
 
 1. Fork the repository
