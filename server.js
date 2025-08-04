@@ -76,7 +76,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for now to fix session issues
     maxAge: 30 * 60 * 1000 // 30 minutes (reduced from 24 hours)
   },
   name: 'takequiznow.sid',
@@ -1680,6 +1680,8 @@ app.get('/auth/google/callback', (req, res) => {
     }
     
     console.log('User authenticated successfully:', req.user._id);
+    console.log('Session after authentication:', req.session);
+    console.log('req.isAuthenticated():', req.isAuthenticated());
     
     if (!req.user.role) {
       return res.redirect('/select-role');
