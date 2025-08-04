@@ -26,15 +26,27 @@ const connectDB = async () => {
   try {
     const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/take_quiz_now';
     console.log('Attempting to connect to MongoDB...');
-    console.log('MongoDB URI available:', !!mongoUri);
+    console.log('MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'Not Set');
+    console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
+    console.log('Using URI:', mongoUri);
+    
+    if (!process.env.MONGO_URI && !process.env.MONGODB_URI) {
+      console.error('❌ No MongoDB URI found in environment variables!');
+      console.error('Please set MONGO_URI or MONGODB_URI environment variable.');
+      return;
+    }
     
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
+      bufferMaxEntries: 0,
+      useNewUrlParser: true,
+      useUnifiedTopology: true
     });
     console.log('✅ MongoDB connected successfully!');
   } catch (err) {
     console.error('❌ MongoDB connection error:', err);
+    console.error('Error details:', err.message);
     // Retry connection after 5 seconds
     setTimeout(connectDB, 5000);
   }
@@ -181,7 +193,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         console.log('Google OAuth authentication successful for:', profile.emails ? profile.emails[0].value : 'No email');
         
         // Check if user exists in database
-        let user = await User.findOne({ googleId: profile.id });
+        let user;
+        try {
+          user = await User.findOne({ googleId: profile.id });
+        } catch (dbError) {
+          console.error('Database error during user lookup:', dbError);
+          return cb(new Error('Database connection failed during authentication'), null);
+        }
         
         if (!user) {
           // New user - default to student role
@@ -200,15 +218,24 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             user.isApproved = true;
           }
           
-          await user.save();
-          console.log('New user created successfully');
+          try {
+            await user.save();
+            console.log('New user created successfully');
+          } catch (saveError) {
+            console.error('Error saving new user:', saveError);
+            return cb(new Error('Failed to create user'), null);
+          }
         } else {
           console.log('Existing user found');
           // Existing user - check if they should be admin
           if (user.email === 'skillonusers@gmail.com' && user.role !== 'admin') {
             user.role = 'admin';
             user.isApproved = true;
-            await user.save();
+            try {
+              await user.save();
+            } catch (saveError) {
+              console.error('Error updating user role:', saveError);
+            }
           }
         }
         
@@ -1838,8 +1865,26 @@ app.post('/temp-login', (req, res) => {
   res.redirect('/dashboard');
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log('✅ Google OAuth is configured and ready!');
-  console.log('👥 Role-based system: Teachers, Students, and Admins');
-}); 
+// Start server with MongoDB connection check
+const startServer = () => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    console.log('✅ Google OAuth is configured and ready!');
+    console.log('👥 Role-based system: Teachers, Students, and Admins');
+    console.log(`🗄️  MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
+  });
+};
+
+// Wait for MongoDB connection before starting server
+const checkConnectionAndStart = () => {
+  if (mongoose.connection.readyState === 1) {
+    console.log('✅ MongoDB connected, starting server...');
+    startServer();
+  } else {
+    console.log('⏳ Waiting for MongoDB connection...');
+    setTimeout(checkConnectionAndStart, 2000);
+  }
+};
+
+// Start the connection check process
+checkConnectionAndStart(); 
