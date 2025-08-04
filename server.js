@@ -1410,6 +1410,33 @@ app.get('/create-admin', async (req, res) => {
   }
 });
 
+// Alternative route without hyphen
+app.get('/createadmin', async (req, res) => {
+  try {
+    const adminUser = new User({
+      googleId: 'admin-' + Date.now(),
+      displayName: 'System Administrator',
+      email: 'skillonusers@gmail.com',
+      role: 'admin',
+      isApproved: true
+    });
+    
+    await adminUser.save();
+    res.send(`
+      <h2>Admin User Created Successfully!</h2>
+      <p><strong>Admin ID:</strong> ${adminUser._id}</p>
+      <p><strong>Email:</strong> ${adminUser.email}</p>
+      <p><strong>Name:</strong> ${adminUser.displayName}</p>
+      <br>
+      <p>You can now log in with Google and the system will recognize you as an admin.</p>
+      <a href="/">Go to Home</a>
+    `);
+  } catch (error) {
+    console.error('Error creating admin:', error);
+    res.status(500).send('Error creating admin user');
+  }
+});
+
 // Admin approval routes
 app.post('/approve-teacher/:userId', isAuthenticated, requireRole(['admin']), async (req, res) => {
   try {
