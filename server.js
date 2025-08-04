@@ -21,14 +21,26 @@ const s3 = new AWS.S3({
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/take_quiz_now')
-.then(() => {
-  console.log('✅ MongoDB connected successfully!');
-})
-.catch((err) => {
-  console.error('❌ MongoDB connection error:', err);
-});
+// MongoDB connection with retry
+const connectDB = async () => {
+  try {
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/take_quiz_now';
+    console.log('Attempting to connect to MongoDB...');
+    console.log('MongoDB URI available:', !!mongoUri);
+    
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    console.log('✅ MongoDB connected successfully!');
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err);
+    // Retry connection after 5 seconds
+    setTimeout(connectDB, 5000);
+  }
+};
+
+connectDB();
 
 // Import models
 const User = require('./models/User');
@@ -203,7 +215,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         return cb(null, user);
       } catch (error) {
         console.error('Error in Google OAuth strategy:', error);
-        return cb(error, null);
+        // Return a more specific error
+        return cb(new Error('Database connection failed during authentication'), null);
       }
     }
   ));
@@ -902,6 +915,29 @@ app.get('/test-actual-answer', (req, res) => {
     originalText: actualAnswerText,
     parsedAnswers: answers
   });
+});
+
+// Health check route
+app.get('/health', async (req, res) => {
+  try {
+    const dbState = mongoose.connection.readyState;
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    
+    res.json({
+      status: 'ok',
+      database: states[dbState],
+      databaseState: dbState,
+      mongodbUri: process.env.MONGO_URI ? 'Set' : 'Not Set',
+      mongoDbUri: process.env.MONGODB_URI ? 'Set' : 'Not Set',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Route to view stored files
@@ -1726,7 +1762,8 @@ app.get('/auth/google/callback', (req, res) => {
     
     console.log('User authenticated successfully:', req.user._id);
     
-    if (!req.user.role) {
+    // Add null check for req.user.role
+    if (!req.user || !req.user.role) {
       return res.redirect('/select-role');
     }
     res.redirect('/dashboard');
