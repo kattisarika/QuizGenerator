@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <% if (typeof user !== 'undefined' && user) { %>
+                    <a href="/dashboard" class="nav-link">Dashboard</a>
+                    <a href="/logout" class="nav-link logout-btn">Logout</a>
+                <% } else { %>
+                    <a href="/login" class="nav-link">Login</a>
+                <% } %>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Welcome to Take Quiz Now!</h1>
+                <p class="hero-subtitle">Create, share, and take quizzes with ease</p>
+                
+                <% if (typeof user !== 'undefined' && user) { %>
+                    <div class="user-welcome">
+                        <p>Welcome back, <%= user.displayName %>!</p>
+                        <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+                    </div>
+                <% } else { %>
+                    <div class="cta-buttons">
+                        <a href="/login" class="btn btn-primary">Get Started</a>
+                        <a href="#features" class="btn btn-secondary">Learn More</a>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <section id="features" class="features-section">
+            <div class="container">
+                <h2 class="section-title">Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-edit feature-icon"></i>
+                        <h3>Create Quizzes</h3>
+                        <p>Easily create custom quizzes with multiple question types</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-share-alt feature-icon"></i>
+                        <h3>Share & Collaborate</h3>
+                        <p>Share your quizzes with others and collaborate on content</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-chart-bar feature-icon"></i>
+                        <h3>Analytics</h3>
+                        <p>Track performance and get insights from quiz results</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html> 

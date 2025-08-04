@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Result - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/student/dashboard" class="nav-link">Dashboard</a>
+                <a href="/available-quizzes" class="nav-link">Available Quizzes</a>
+                <a href="/my-results" class="nav-link">My Results</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="result-container">
+            <!-- Result Header -->
+            <div class="result-header">
+                <div class="result-title">
+                    <h1><i class="fas fa-trophy me-2"></i>Quiz Result</h1>
+                    <h2><%= result.quizTitle %></h2>
+                </div>
+                <div class="result-score">
+                    <div class="score-circle <%= result.percentage >= 80 ? 'excellent' : result.percentage >= 60 ? 'good' : result.percentage >= 40 ? 'average' : 'poor' %>">
+                        <span class="score-percentage"><%= result.percentage %>%</span>
+                        <span class="score-label">Score</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Summary -->
+            <div class="result-summary">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="summary-content">
+                            <h4>Correct Answers</h4>
+                            <p><%= result.correctAnswers %> of <%= result.totalQuestions %></p>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <i class="fas fa-star"></i>
+                        <div class="summary-content">
+                            <h4>Points Earned</h4>
+                            <p><%= result.score %> of <%= result.totalPoints %></p>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <i class="fas fa-clock"></i>
+                        <div class="summary-content">
+                            <h4>Time Taken</h4>
+                            <p><%= Math.floor(result.timeTaken / 60) %>m <%= result.timeTaken % 60 %>s</p>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <i class="fas fa-calendar"></i>
+                        <div class="summary-content">
+                            <h4>Completed</h4>
+                            <p><%= new Date(result.completedAt).toLocaleDateString() %></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Analysis -->
+            <div class="result-analysis">
+                <h3><i class="fas fa-chart-bar me-2"></i>Question Analysis</h3>
+                
+                <div class="questions-analysis">
+                    <% result.answers.forEach((answer, index) => { %>
+                        <div class="question-analysis <%= answer.isCorrect ? 'correct' : 'incorrect' %>">
+                            <div class="question-header">
+                                <h4>Question <%= answer.questionIndex + 1 %></h4>
+                                <span class="question-status">
+                                    <i class="fas fa-<%= answer.isCorrect ? 'check' : 'times' %>"></i>
+                                    <%= answer.isCorrect ? 'Correct' : 'Incorrect' %>
+                                </span>
+                            </div>
+                            
+                            <div class="answer-details">
+                                <div class="answer-item">
+                                    <strong>Your Answer:</strong>
+                                    <span class="<%= answer.isCorrect ? 'correct-answer' : 'incorrect-answer' %>">
+                                        <%= answer.selectedAnswer || 'Not answered' %>
+                                    </span>
+                                </div>
+                                
+                                <% if (!answer.isCorrect) { %>
+                                    <div class="answer-item">
+                                        <strong>Correct Answer:</strong>
+                                        <span class="correct-answer"><%= answer.correctAnswer %></span>
+                                    </div>
+                                <% } %>
+                                
+                                <div class="answer-item">
+                                    <strong>Points:</strong>
+                                    <span><%= answer.isCorrect ? answer.points : 0 %> / <%= answer.points %></span>
+                                </div>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            </div>
+
+            <!-- Performance Insights -->
+            <div class="performance-insights">
+                <h3><i class="fas fa-lightbulb me-2"></i>Performance Insights</h3>
+                
+                <div class="insights-grid">
+                    <% if (result.percentage >= 80) { %>
+                        <div class="insight-item excellent">
+                            <i class="fas fa-star"></i>
+                            <h4>Excellent Performance!</h4>
+                            <p>You demonstrated a strong understanding of the material. Keep up the great work!</p>
+                        </div>
+                    <% } else if (result.percentage >= 60) { %>
+                        <div class="insight-item good">
+                            <i class="fas fa-thumbs-up"></i>
+                            <h4>Good Performance</h4>
+                            <p>You have a solid grasp of the concepts. Consider reviewing the incorrect answers to improve further.</p>
+                        </div>
+                    <% } else if (result.percentage >= 40) { %>
+                        <div class="insight-item average">
+                            <i class="fas fa-info-circle"></i>
+                            <h4>Average Performance</h4>
+                            <p>You have some understanding but need more practice. Review the material and try again.</p>
+                        </div>
+                    <% } else { %>
+                        <div class="insight-item poor">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h4>Needs Improvement</h4>
+                            <p>You need to review the material more thoroughly. Consider studying the topics again.</p>
+                        </div>
+                    <% } %>
+                    
+                    <div class="insight-item">
+                        <i class="fas fa-clock"></i>
+                        <h4>Time Management</h4>
+                        <p>You completed the quiz in <%= Math.floor(result.timeTaken / 60) %> minutes and <%= result.timeTaken % 60 %> seconds.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="result-actions">
+                <a href="/available-quizzes" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Take Another Quiz
+                </a>
+                <a href="/my-results" class="btn btn-secondary">
+                    <i class="fas fa-list"></i> View All Results
+                </a>
+                <a href="/student/dashboard" class="btn btn-outline">
+                    <i class="fas fa-home"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html> 

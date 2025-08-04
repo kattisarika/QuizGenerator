@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= quiz.title %> - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/teacher/dashboard" class="nav-link">Dashboard</a>
+                <a href="/create-quiz" class="nav-link">Create Quiz</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="quiz-view-container">
+            <div class="quiz-header">
+                <div class="quiz-title-section">
+                    <h1><i class="fas fa-file-alt me-2"></i><%= quiz.title %></h1>
+                    <div class="quiz-meta">
+                        <span class="quiz-status <%= quiz.isApproved ? 'approved' : 'pending' %>">
+                            <i class="fas fa-<%= quiz.isApproved ? 'check-circle' : 'clock' %>"></i>
+                            <%= quiz.isApproved ? 'Approved' : 'Pending Approval' %>
+                        </span>
+                        <span class="quiz-date">
+                            <i class="fas fa-calendar"></i>
+                            Created: <%= new Date(quiz.createdAt).toLocaleDateString() %>
+                        </span>
+                        <span class="quiz-author">
+                            <i class="fas fa-user"></i>
+                            By: <%= quiz.createdByName %>
+                        </span>
+                    </div>
+                </div>
+                <div class="quiz-actions">
+                    <a href="/teacher/dashboard" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                    <button class="btn btn-primary" onclick="window.print()">
+                        <i class="fas fa-print"></i> Print Quiz
+                    </button>
+                </div>
+            </div>
+
+            <div class="quiz-content">
+                <div class="quiz-description">
+                    <h3><i class="fas fa-info-circle me-2"></i>Description</h3>
+                    <p><%= quiz.description %></p>
+                </div>
+
+                <div class="quiz-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-question-circle"></i>
+                        <span><strong><%= quiz.questions.length %></strong> Questions</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Estimated Time: <strong><%= Math.ceil(quiz.questions.length * 1.5) %></strong> minutes</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-star"></i>
+                        <span>Total Points: <strong><%= quiz.questions.reduce((sum, q) => sum + q.points, 0) %></strong></span>
+                    </div>
+                </div>
+
+                <div class="questions-section">
+                    <h3><i class="fas fa-list-ol me-2"></i>Questions</h3>
+                    <div class="questions-list">
+                        <% quiz.questions.forEach((question, index) => { %>
+                            <div class="question-card">
+                                <div class="question-header">
+                                    <h4>Question <%= index + 1 %></h4>
+                                    <span class="question-points"><%= question.points %> point<%= question.points !== 1 ? 's' : '' %></span>
+                                </div>
+                                <div class="question-content">
+                                    <p class="question-text"><%= question.question %></p>
+                                    
+                                    <div class="options-list">
+                                        <% question.options.forEach((option, optIndex) => { %>
+                                            <div class="option-item <%= option === question.correctAnswer ? 'correct-answer' : '' %>">
+                                                <span class="option-label"><%= String.fromCharCode(65 + optIndex) %>.</span>
+                                                <span class="option-text"><%= option %></span>
+                                                <% if (option === question.correctAnswer) { %>
+                                                    <i class="fas fa-check-circle correct-icon"></i>
+                                                <% } %>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                    
+                                    <div class="question-footer">
+                                        <span class="question-type">
+                                            <i class="fas fa-tag"></i>
+                                            <%= question.type.charAt(0).toUpperCase() + question.type.slice(1) %>
+                                        </span>
+                                        <% if (question.correctAnswer) { %>
+                                            <span class="correct-answer-label">
+                                                <i class="fas fa-check"></i>
+                                                Correct: <%= question.correctAnswer %>
+                                            </span>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html> 

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/admin/dashboard" class="nav-link">Dashboard</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <div class="user-info">
+                    <% if (user.photos && user.photos.length > 0) { %>
+                        <img src="<%= user.photos[0].value %>" alt="Profile" class="user-avatar">
+                    <% } else { %>
+                        <div class="user-avatar-placeholder">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                    <% } %>
+                    <div class="user-details">
+                        <h1>Welcome, <%= user.displayName %>!</h1>
+                        <p><%= user.email %></p>
+                        <span class="role-badge admin-badge">Administrator</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Pending Teachers</h3>
+                            <p class="stat-number"><%= pendingTeachers.length %></p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Pending Quizzes</h3>
+                            <p class="stat-number"><%= pendingQuizzes.length %></p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Total Users</h3>
+                            <p class="stat-number">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-sections">
+                    <!-- Pending Teachers Section -->
+                    <div class="admin-section">
+                        <h3>Pending Teacher Approvals</h3>
+                        <% if (pendingTeachers.length > 0) { %>
+                            <div class="pending-list">
+                                <% pendingTeachers.forEach(teacher => { %>
+                                    <div class="pending-item">
+                                        <div class="pending-user-info">
+                                            <div class="user-avatar-small">
+                                                <% if (teacher.photos && teacher.photos.length > 0) { %>
+                                                    <img src="<%= teacher.photos[0].value %>" alt="Profile">
+                                                <% } else { %>
+                                                    <i class="fas fa-user"></i>
+                                                <% } %>
+                                            </div>
+                                            <div class="user-details-small">
+                                                <h4><%= teacher.displayName %></h4>
+                                                <p><%= teacher.email %></p>
+                                                <span class="request-date">
+                                                    Requested: <%= new Date(teacher.createdAt).toLocaleDateString() %>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="pending-actions">
+                                            <form method="POST" action="/approve-teacher/<%= teacher.id %>" style="display: inline;">
+                                                <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                            </form>
+                                            <button class="btn btn-danger btn-sm">Reject</button>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <div class="empty-state">
+                                <i class="fas fa-check-circle"></i>
+                                <p>No pending teacher approvals</p>
+                            </div>
+                        <% } %>
+                    </div>
+
+                    <!-- Pending Quizzes Section -->
+                    <div class="admin-section">
+                        <h3>Pending Quiz Approvals</h3>
+                        <% if (pendingQuizzes.length > 0) { %>
+                            <div class="pending-list">
+                                <% pendingQuizzes.forEach(quiz => { %>
+                                    <div class="pending-item">
+                                        <div class="quiz-info">
+                                            <h4><%= quiz.title %></h4>
+                                            <p><%= quiz.description %></p>
+                                            <div class="quiz-meta">
+                                                <span class="quiz-teacher">By: <%= quiz.createdBy %></span>
+                                                <span class="quiz-date">
+                                                    Created: <%= new Date(quiz.createdAt).toLocaleDateString() %>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="pending-actions">
+                                            <form method="POST" action="/approve-quiz/<%= quiz.id %>" style="display: inline;">
+                                                <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                            </form>
+                                            <button class="btn btn-danger btn-sm">Reject</button>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <div class="empty-state">
+                                <i class="fas fa-check-circle"></i>
+                                <p>No pending quiz approvals</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <div class="action-cards">
+                    <div class="action-card">
+                        <h3>User Management</h3>
+                        <p>Manage all users in the system</p>
+                        <button class="btn btn-primary">Manage Users</button>
+                    </div>
+                    
+                    <div class="action-card">
+                        <h3>System Settings</h3>
+                        <p>Configure system-wide settings</p>
+                        <button class="btn btn-secondary">Settings</button>
+                    </div>
+                    
+                    <div class="action-card">
+                        <h3>Analytics</h3>
+                        <p>View system analytics and reports</p>
+                        <button class="btn btn-secondary">View Analytics</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+    
+    <!-- Session timeout management -->
+    <script src="/js/session-timeout.js"></script>
+</body>
+</html> 

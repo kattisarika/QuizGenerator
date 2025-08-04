@@ -1,0 +1,1514 @@
+const express = require('express');
+const session = require('express-session');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs-extra');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// MongoDB Models
+const User = require('./models/User');
+const Quiz = require('./models/Quiz');
+const QuizResult = require('./models/QuizResult');
+
+// MongoDB Connection
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/take_quiz_now')
+.then(() => {
+  console.log('✅ MongoDB connected successfully!');
+})
+.catch((err) => {
+  console.error('❌ MongoDB connection error:', err);
+});
+
+// Middleware
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(express.static('public'));
+
+// Multer configuration for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = ['.pdf', '.doc', '.docx'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF and DOC files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
+
+// View engine setup
+app.set('view engine', 'ejs');
+app.set('views', './views');
+
+// EJS layout configuration
+app.use((req, res, next) => {
+  res.locals.user = req.user;
+  next();
+});
+
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 30 * 60 * 1000 // 30 minutes (reduced from 24 hours)
+  },
+  name: 'takequiznow.sid'
+}));
+
+// Session timeout middleware
+app.use((req, res, next) => {
+  if (req.session && req.session.lastActivity) {
+    const now = Date.now();
+    const timeDiff = now - req.session.lastActivity;
+    const timeout = 30 * 60 * 1000; // 30 minutes timeout
+    
+    if (timeDiff > timeout) {
+      // Session expired, destroy it
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Error destroying session:', err);
+        }
+      });
+      
+      // Redirect to login with timeout message
+      if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        return res.status(401).json({ 
+          error: 'Session expired', 
+          message: 'Your session has expired due to inactivity. Please log in again.' 
+        });
+      } else {
+        return res.redirect('/login?timeout=true');
+      }
+    }
+  }
+  
+  // Update last activity time
+  if (req.session) {
+    req.session.lastActivity = Date.now();
+  }
+  
+  next();
+});
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport configuration
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "http://localhost:3000/auth/google/callback"
+    },
+        async function(accessToken, refreshToken, profile, cb) {
+      try {
+        // Check if user exists in database
+        let user = await User.findOne({ googleId: profile.id });
+        
+        if (!user) {
+          // New user - default to student role
+          user = new User({
+            googleId: profile.id,
+            displayName: profile.displayName,
+            email: profile.emails ? profile.emails[0].value : '',
+            photos: profile.photos,
+            role: 'student', // Default role
+            isApproved: false
+          });
+          
+          // Make specific email an admin (replace with your email)
+          if (user.email === 'skillonusers@gmail.com') {
+            user.role = 'admin';
+            user.isApproved = true;
+          }
+          
+          await user.save();
+        } else {
+          // Existing user - check if they should be admin
+          if (user.email === 'skillonusers@gmail.com' && user.role !== 'admin') {
+            user.role = 'admin';
+            user.isApproved = true;
+            await user.save();
+          }
+        }
+        
+        return cb(null, user);
+      } catch (error) {
+        return cb(error, null);
+      }
+    }
+  ));
+  console.log('✅ Google OAuth configured successfully!');
+} else {
+  console.log('⚠️  Google OAuth credentials not configured. Please set up GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file.');
+  console.log('📖 See README.md for setup instructions.');
+}
+
+passport.serializeUser((user, done) => {
+  done(null, user._id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (error) {
+    done(error, null);
+  }
+});
+
+// Helper functions for file processing
+async function extractTextFromFile(filePath, originalName) {
+  const ext = path.extname(originalName).toLowerCase();
+  
+  if (ext === '.pdf') {
+    const dataBuffer = await fs.readFile(filePath);
+    const data = await pdfParse(dataBuffer);
+    return data.text;
+  } else if (ext === '.doc' || ext === '.docx') {
+    const result = await mammoth.extractRawText({ path: filePath });
+    return result.value;
+  } else {
+    throw new Error('Unsupported file type');
+  }
+}
+
+function parseQuestionsFromText(text) {
+  const questions = [];
+  const lines = text.split('\n').filter(line => line.trim());
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Check if line starts with a number (question)
+    const questionMatch = trimmedLine.match(/^(\d+)[\.\)]\s*(.+)/);
+    if (questionMatch) {
+      const questionNumber = parseInt(questionMatch[1]);
+      const fullLine = questionMatch[2].trim();
+      
+      // Check if this line contains all 4 options by looking for the pattern: a) ... b) ... c) ... d) ...
+      const optionMatches = fullLine.match(/[a-d]\)/gi) || [];
+      
+      if (optionMatches.length >= 4) {
+        // Question with all 4 options on the same line
+        // Use a much simpler approach - split by option markers
+        const parts = fullLine.split(/\s+([a-d])[\.\)]\s*/i);
+        
+        if (parts.length >= 9) {
+          // We have: [question, a, opt1, b, opt2, c, opt3, d, opt4]
+          const question = {
+            question: parts[0].trim(),
+            type: 'multiple-choice',
+            options: [
+              parts[2].trim(), // Option A
+              parts[4].trim(), // Option B
+              parts[6].trim(), // Option C
+              parts[8].trim()  // Option D
+            ],
+            correctAnswer: '',
+            points: 1
+          };
+          
+          console.log(`Parsed question: "${question.question}"`);
+          console.log(`Options: [${question.options.join(', ')}]`);
+          
+          questions.push(question);
+        } else {
+          // Try a different approach - find each option individually
+          const question = {
+            question: '',
+            type: 'multiple-choice',
+            options: [],
+            correctAnswer: '',
+            points: 1
+          };
+          
+          // Find the question part (everything before the first option)
+          const firstOptionMatch = fullLine.match(/\s+([a-d])[\.\)]\s*/i);
+          if (firstOptionMatch) {
+            const firstOptionIndex = fullLine.indexOf(firstOptionMatch[0]);
+            question.question = fullLine.substring(0, firstOptionIndex).trim();
+          } else {
+            question.question = fullLine;
+          }
+          
+          // Extract each option using regex - FIXED VERSION
+          const optionRegex = /([a-d])[\.\)]\s*([^a-d)]+?)(?=\s+[a-d][\.\)]|$)/gi;
+          let match;
+          while ((match = optionRegex.exec(fullLine)) !== null) {
+            question.options.push(match[2].trim());
+          }
+          
+          // Ensure exactly 4 options
+          while (question.options.length < 4) {
+            question.options.push(`Option ${String.fromCharCode(65 + question.options.length)}`);
+          }
+          if (question.options.length > 4) {
+            question.options = question.options.slice(0, 4);
+          }
+          
+          console.log(`Parsed question (fallback): "${question.question}"`);
+          console.log(`Options: [${question.options.join(', ')}]`);
+          
+          questions.push(question);
+        }
+      } else {
+        // Just the question, options will come on separate lines
+        const question = {
+          question: fullLine,
+          type: 'multiple-choice',
+          options: [],
+          correctAnswer: '',
+          points: 1
+        };
+        
+        // Look for options on subsequent lines
+        let currentLineIndex = lines.indexOf(line);
+        for (let i = currentLineIndex + 1; i < lines.length; i++) {
+          const nextLine = lines[i].trim();
+          
+          // If we hit another question, stop
+          if (nextLine.match(/^(\d+)[\.\)]\s*(.+)/)) {
+            break;
+          }
+          
+          // Check for individual option
+          const optionMatch = nextLine.match(/^([a-d])[\.\)]\s*(.+)/i);
+          if (optionMatch) {
+            question.options.push(optionMatch[2].trim());
+          } else if (question.options.length === 0) {
+            // If no options yet, this might be part of the question
+            question.question += ' ' + nextLine;
+          } else {
+            // This might be continuation of the last option
+            if (question.options.length > 0) {
+              question.options[question.options.length - 1] += ' ' + nextLine;
+            }
+          }
+        }
+        
+        // Ensure exactly 4 options
+        while (question.options.length < 4) {
+          question.options.push(`Option ${String.fromCharCode(65 + question.options.length)}`);
+        }
+        if (question.options.length > 4) {
+          question.options = question.options.slice(0, 4);
+        }
+        
+        console.log(`Parsed question (separate): "${question.question}"`);
+        console.log(`Options: [${question.options.join(', ')}]`);
+        
+        questions.push(question);
+      }
+    }
+  }
+  
+  return questions;
+}
+
+// Helper: Split combined options from a single string using option markers
+function splitOptionsFromText(optionText) {
+  const parts = optionText.split(/(?=[a-dA-D]\))/); // Split before a), b), etc.
+  return parts.map(opt => opt.replace(/^[a-dA-D]\)\s*/, '').trim()).filter(opt => opt.length > 0);
+}
+
+// Helper function to ensure exactly 4 options
+function ensureFourOptions(question) {
+  console.log(`ensureFourOptions called for question with ${question.options.length} options:`, question.options);
+  
+  // If no options found, create default options
+  if (question.options.length === 0) {
+    question.options = ['Option A', 'Option B', 'Option C', 'Option D'];
+    console.log('No options found, created default options');
+    return;
+  }
+  
+  // If options contain one long string, try to split
+  if (
+    question.options.length === 1 &&
+    /a\)|b\)|c\)|d\)/i.test(question.options[0])
+  ) {
+    question.options = splitOptionsFromText(question.options[0]);
+    console.log('Split combined option string into:', question.options);
+  }
+  
+  // Loop through options to catch any that are still combined
+  for (let i = 0; i < question.options.length; i++) {
+    const option = question.options[i];
+    if (/([a-dA-D])\)/g.test(option) && option.match(/([a-dA-D])\)/g).length > 1) {
+      const split = splitOptionsFromText(option);
+      question.options.splice(i, 1, ...split);
+      console.log(`Split embedded options in option ${i}:`, split);
+    }
+  }
+  
+  // Clean up options
+  question.options = question.options.filter(option => option.trim().length > 0);
+  
+  // Always force exactly 4 options
+  while (question.options.length < 4) {
+    const newOption = `Option ${String.fromCharCode(65 + question.options.length)}`;
+    question.options.push(newOption);
+    console.log(`Added option: ${newOption}`);
+  }
+  
+  if (question.options.length > 4) {
+    question.options = question.options.slice(0, 4);
+    console.log('Trimmed options to 4:', question.options);
+  }
+  
+  console.log(`Final options count: ${question.options.length}, options:`, question.options);
+}
+
+function parseAnswersFromText(text) {
+  const answers = [];
+  const lines = text.split('\n').filter(line => line.trim());
+  
+  console.log('Parsing answer text:', text.substring(0, 200) + '...');
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    console.log('Processing answer line:', trimmedLine);
+    
+    // Handle quoted format like "1. B", "2. A", etc.
+    const quotedMatches = trimmedLine.match(/"(\d+)\.\s*([a-d])"/gi);
+    if (quotedMatches) {
+      quotedMatches.forEach(match => {
+        const answerMatch = match.match(/"(\d+)\.\s*([a-d])"/i);
+        if (answerMatch) {
+          const questionNumber = parseInt(answerMatch[1]);
+          const answer = answerMatch[2].toUpperCase();
+          console.log(`Found quoted answer: Question ${questionNumber} = ${answer}`);
+          answers.push({
+            questionNumber: questionNumber,
+            answer: answer
+          });
+        }
+      });
+      continue;
+    }
+    
+    // Try multiple formats for answer parsing
+    let answerMatch = trimmedLine.match(/^(\d+)[\.\)]\s*([a-d])/i);
+    if (!answerMatch) {
+      answerMatch = trimmedLine.match(/^(\d+)\s*[\.\)]?\s*([a-d])/i);
+    }
+    if (!answerMatch) {
+      answerMatch = trimmedLine.match(/^(\d+)\s*:\s*([a-d])/i);
+    }
+    if (!answerMatch) {
+      answerMatch = trimmedLine.match(/^(\d+)\s*-\s*([a-d])/i);
+    }
+    if (!answerMatch) {
+      answerMatch = trimmedLine.match(/^(\d+)\s+([a-d])/i);
+    }
+    if (!answerMatch) {
+      // Handle comma-separated format
+      answerMatch = trimmedLine.match(/(\d+)\.\s*([a-d])/gi);
+      if (answerMatch) {
+        answerMatch.forEach(match => {
+          const singleMatch = match.match(/(\d+)\.\s*([a-d])/i);
+          if (singleMatch) {
+            const questionNumber = parseInt(singleMatch[1]);
+            const answer = singleMatch[2].toUpperCase();
+            console.log(`Found comma-separated answer: Question ${questionNumber} = ${answer}`);
+            answers.push({
+              questionNumber: questionNumber,
+              answer: answer
+            });
+          }
+        });
+      }
+    }
+    
+    if (answerMatch && !Array.isArray(answerMatch)) {
+      const questionNumber = parseInt(answerMatch[1]);
+      const answer = answerMatch[2].toUpperCase();
+      console.log(`Found answer: Question ${questionNumber} = ${answer}`);
+      answers.push({
+        questionNumber: questionNumber,
+        answer: answer
+      });
+    }
+  }
+  
+  console.log('Total answers found:', answers.length);
+  return answers;
+}
+
+function mergeQuestionsWithAnswers(questions, answers) {
+  console.log('Merging questions with answers:', { questionsCount: questions.length, answersCount: answers.length });
+  
+  return questions.map((question, index) => {
+    const answer = answers.find(a => a.questionNumber === index + 1);
+    console.log(`Question ${index + 1}:`, { 
+      questionText: question.question.substring(0, 50) + '...',
+      optionsCount: question.options.length,
+      foundAnswer: answer ? answer.answer : 'none'
+    });
+    
+    if (answer && question.options.length > 0) {
+      const answerIndex = answer.answer.charCodeAt(0) - 65; // Convert A=0, B=1, etc.
+      console.log(`Answer index for ${answer.answer}: ${answerIndex}`);
+      
+      if (answerIndex >= 0 && answerIndex < question.options.length) {
+        question.correctAnswer = question.options[answerIndex];
+        console.log(`Set correct answer: ${question.correctAnswer}`);
+      } else {
+        console.log(`Invalid answer index: ${answerIndex} for options length: ${question.options.length}`);
+      }
+    }
+    
+    // If no answer key provided, set a default or leave empty
+    if (!question.correctAnswer) {
+      question.correctAnswer = question.options.length > 0 ? question.options[0] : '';
+      console.log(`No answer found, using default: ${question.correctAnswer}`);
+    }
+    
+    return question;
+  });
+}
+
+// Middleware to check if user is authenticated
+const isAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect('/login');
+};
+
+// Middleware to check user roles
+const requireRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.redirect('/login');
+    }
+    
+    if (roles.includes(req.user.role)) {
+      return next();
+    }
+    
+    res.status(403).render('error', { error: 'Access denied. You do not have permission to view this page.' });
+  };
+};
+
+// Middleware to check if teacher is approved
+const requireApprovedTeacher = (req, res, next) => {
+  if (req.user.role === 'teacher' && !req.user.isApproved) {
+    return res.render('pending-approval', { user: req.user });
+  }
+  next();
+};
+
+// Routes
+app.get('/', (req, res) => {
+  res.render('index', { user: req.user });
+});
+
+app.get('/login', (req, res) => {
+  if (req.isAuthenticated()) {
+    return res.redirect('/dashboard');
+  }
+  const error = req.query.error || null;
+  const timeout = req.query.timeout === 'true';
+  res.render('login', { error, timeout });
+});
+
+app.get('/dashboard', isAuthenticated, (req, res) => {
+  res.render('dashboard', { user: req.user });
+});
+
+// Role-specific dashboards
+app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const teacherQuizzes = await Quiz.find({ createdBy: req.user._id });
+    res.render('teacher-dashboard', { user: req.user, quizzes: teacherQuizzes });
+  } catch (error) {
+    console.error('Error fetching teacher quizzes:', error);
+    res.render('teacher-dashboard', { user: req.user, quizzes: [] });
+  }
+});
+
+app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const availableQuizzes = await Quiz.find({ isApproved: true });
+    res.render('student-dashboard', { user: req.user, quizzes: availableQuizzes });
+  } catch (error) {
+    console.error('Error fetching available quizzes:', error);
+    res.render('student-dashboard', { user: req.user, quizzes: [] });
+  }
+});
+
+app.get('/admin/dashboard', isAuthenticated, requireRole(['admin']), async (req, res) => {
+  try {
+    const pendingTeachers = await User.find({ role: 'teacher', isApproved: false });
+    const pendingQuizzes = await Quiz.find({ isApproved: false });
+    res.render('admin-dashboard', { user: req.user, pendingTeachers, pendingQuizzes });
+  } catch (error) {
+    console.error('Error fetching admin data:', error);
+    res.render('admin-dashboard', { user: req.user, pendingTeachers: [], pendingQuizzes: [] });
+  }
+});
+
+// Role selection page
+app.get('/select-role', isAuthenticated, (req, res) => {
+  res.render('select-role', { user: req.user });
+});
+
+app.post('/select-role', isAuthenticated, async (req, res) => {
+  try {
+    const { role } = req.body;
+
+    if (['student', 'teacher'].includes(role)) {
+      req.user.role = role;
+      
+      if (role === 'teacher') {
+        req.user.isApproved = false; // Teachers need approval
+      } else {
+        req.user.isApproved = true; // Students are auto-approved
+      }
+
+      await req.user.save();
+      res.redirect('/dashboard');
+    } else {
+      res.redirect('/select-role');
+    }
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.redirect('/select-role');
+  }
+});
+
+// Quiz management routes
+app.get('/create-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('create-quiz', { user: req.user });
+});
+
+app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, upload.fields([
+  { name: 'questionPaper', maxCount: 1 },
+  { name: 'answerPaper', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    const { title, description, gradeLevel, subjects } = req.body;
+    let extractedQuestions = [];
+
+    // Debug: Log all form data
+    console.log('Received form data:', req.body);
+    console.log('Files received:', req.files);
+    
+    // Validate grade level and subjects
+    if (!gradeLevel) {
+      console.log('Validation error: Grade level is missing');
+      return res.status(400).send('Grade level is required');
+    }
+    
+    console.log('Grade level received:', gradeLevel);
+    console.log('Subject received:', subjects);
+    console.log('Subject type:', typeof subjects);
+    
+    if (!subjects) {
+      console.log('Validation error: No subject selected');
+      console.log('Subject value:', subjects);
+      return res.status(400).send('Please select a subject');
+    }
+
+    console.log('Form validation passed:', { gradeLevel, subjects });
+
+    console.log('Creating quiz:', { title, description, gradeLevel, subjects });
+
+    console.log('Creating quiz:', { title, description });
+
+    // Process question paper
+    if (req.files.questionPaper && req.files.questionPaper[0]) {
+      const questionFile = req.files.questionPaper[0];
+      console.log('Processing question file:', questionFile.originalname);
+      console.log('File size:', questionFile.size, 'bytes');
+      console.log('File mimetype:', questionFile.mimetype);
+      
+      try {
+        const questionText = await extractTextFromFile(questionFile.path, questionFile.originalname);
+        console.log('Extracted text length:', questionText.length);
+        
+        if (!questionText || questionText.trim().length === 0) {
+          console.log('Error: No text extracted from question file');
+          return res.status(400).send('Could not extract text from the uploaded question paper. Please ensure the file is not corrupted and contains readable text.');
+        }
+        
+        extractedQuestions = parseQuestionsFromText(questionText);
+        console.log('Parsed questions count:', extractedQuestions.length);
+        
+        if (extractedQuestions.length === 0) {
+          console.log('Error: No questions parsed from text');
+          return res.status(400).send('No questions could be parsed from the uploaded file. Please ensure the question paper follows the required format with numbered questions and multiple choice options.');
+        }
+      } catch (error) {
+        console.error('Error processing question file:', error);
+        return res.status(400).send('Error processing the question paper. Please ensure the file is in a supported format (PDF, DOC, DOCX) and contains readable text.');
+      }
+      
+      // Debug: Log the first question's options
+      if (extractedQuestions.length > 0) {
+        console.log('First question options count:', extractedQuestions[0].options.length);
+        console.log('First question options:', extractedQuestions[0].options);
+        
+              // Force ensure 4 options for all questions
+      extractedQuestions.forEach((question, index) => {
+        console.log(`Question ${index + 1} before fix:`, question.options.length, 'options');
+        console.log(`Question ${index + 1} original options:`, question.options);
+        
+        // AGGRESSIVE FIX: Force exactly 4 options
+        if (question.options.length < 4) {
+          while (question.options.length < 4) {
+            const newOption = `Option ${String.fromCharCode(65 + question.options.length)}`;
+            question.options.push(newOption);
+            console.log(`Question ${index + 1} added option: ${newOption}`);
+          }
+        } else if (question.options.length > 4) {
+          question.options = question.options.slice(0, 4);
+          console.log(`Question ${index + 1} trimmed to 4 options`);
+        }
+        
+        ensureFourOptions(question);
+        console.log(`Question ${index + 1} after fix:`, question.options.length, 'options');
+        console.log(`Question ${index + 1} final options:`, question.options);
+      });
+      }
+    } else {
+      console.log('No question paper uploaded');
+      return res.status(400).send('Question paper is required');
+    }
+
+    // Process answer paper if provided
+    if (req.files.answerPaper && req.files.answerPaper[0]) {
+      const answerFile = req.files.answerPaper[0];
+      console.log('Processing answer file:', answerFile.originalname);
+      
+      const answerText = await extractTextFromFile(answerFile.path, answerFile.originalname);
+      const answers = parseAnswersFromText(answerText);
+      console.log('Parsed answers count:', answers.length);
+      
+      // Merge answers with questions
+      extractedQuestions = mergeQuestionsWithAnswers(extractedQuestions, answers);
+    }
+
+    // Ensure all questions have valid structure
+    extractedQuestions = extractedQuestions.map((q, index) => ({
+      question: q.question || `Question ${index + 1}`,
+      type: 'multiple-choice',
+      options: q.options && q.options.length > 0 ? q.options : ['Option A', 'Option B', 'Option C', 'Option D'],
+      correctAnswer: q.correctAnswer || (q.options && q.options.length > 0 ? q.options[0] : ''),
+      points: 1
+    }));
+
+    console.log('Final questions to save:', extractedQuestions.length);
+
+    const quiz = new Quiz({
+      title,
+      description,
+      gradeLevel,
+      subjects: [subjects], // Convert single subject to array for database
+      questions: extractedQuestions,
+      createdBy: req.user._id,
+      createdByName: req.user.displayName,
+      isApproved: false
+    });
+
+    await quiz.save();
+    console.log('Quiz saved successfully with ID:', quiz._id);
+    
+    // Clean up uploaded files
+    if (req.files.questionPaper) {
+      await fs.remove(req.files.questionPaper[0].path);
+    }
+    if (req.files.answerPaper) {
+      await fs.remove(req.files.answerPaper[0].path);
+    }
+
+    res.redirect('/teacher/dashboard');
+  } catch (error) {
+    console.error('Error creating quiz:', error);
+    res.status(500).send(`Error creating quiz: ${error.message}`);
+  }
+});
+
+
+
+// Route to check current user status
+app.get('/check-user', isAuthenticated, async (req, res) => {
+  try {
+    res.send(`
+      <h2>Current User Status</h2>
+      <p><strong>Email:</strong> ${req.user.email}</p>
+      <p><strong>Name:</strong> ${req.user.displayName}</p>
+      <p><strong>Role:</strong> ${req.user.role}</p>
+      <p><strong>Approved:</strong> ${req.user.isApproved ? 'Yes' : 'No'}</p>
+      <p><strong>User ID:</strong> ${req.user._id}</p>
+      <br>
+      <a href="/dashboard">Go to Dashboard</a>
+      <a href="/make-admin">Make Admin</a>
+    `);
+  } catch (error) {
+    res.status(500).send('Error checking user status');
+  }
+});
+
+// Test route for question parsing
+app.get('/test-parsing', (req, res) => {
+  const sampleText = `1. What is the capital of France?
+A. London
+B. Paris
+C. Berlin
+D. Madrid
+
+2. Which planet is known as the Red Planet?
+A. Venus
+B. Mars
+C. Jupiter
+D. Saturn`;
+
+  const questions = parseQuestionsFromText(sampleText);
+  res.json({
+    originalText: sampleText,
+    parsedQuestions: questions
+  });
+});
+
+// Test route for answer parsing
+app.get('/test-answer-parsing', (req, res) => {
+  const sampleAnswerText = `1. B
+2. B
+3. C
+4. A
+5. D`;
+
+  const answers = parseAnswersFromText(sampleAnswerText);
+  res.json({
+    originalText: sampleAnswerText,
+    parsedAnswers: answers
+  });
+});
+
+// Test route for actual answer format
+app.get('/test-actual-answer', (req, res) => {
+  const actualAnswerText = `Answer Key
+"1. B", "2. A","3. b",
+"4. A",
+"5. d",
+"6. b",
+"7. b",
+"8. c",
+"9. b",
+"10. b"`;
+
+  const answers = parseAnswersFromText(actualAnswerText);
+  res.json({
+    originalText: actualAnswerText,
+    parsedAnswers: answers
+  });
+});
+
+// Test route for complete flow
+app.get('/test-complete-flow', (req, res) => {
+  const sampleQuestionText = `1. What is the capital of France?
+A. London
+B. Paris
+C. Berlin
+D. Madrid
+
+2. Which planet is known as the Red Planet?
+A. Venus
+B. Mars
+C. Jupiter
+D. Saturn`;
+
+  const sampleAnswerText = `1. B
+2. B`;
+
+  const questions = parseQuestionsFromText(sampleQuestionText);
+  const answers = parseAnswersFromText(sampleAnswerText);
+  const mergedQuestions = mergeQuestionsWithAnswers(questions, answers);
+
+  res.json({
+    questions: questions,
+    answers: answers,
+    mergedQuestions: mergedQuestions
+  });
+});
+
+// Test route for actual format flow
+app.get('/test-actual-flow', (req, res) => {
+  const sampleQuestionText = `1. What is 456 + 287?
+a) 733 b) 743 c) 643 d) 753
+
+2. Round 3,847 to the nearest hundred.
+a) 3,800 b) 3,900 c) 4,000 d) 3,850`;
+
+  const actualAnswerText = `Answer Key
+"1. B", "2. A"`;
+
+  const questions = parseQuestionsFromText(sampleQuestionText);
+  const answers = parseAnswersFromText(actualAnswerText);
+  const mergedQuestions = mergeQuestionsWithAnswers(questions, answers);
+
+  res.json({
+    questions: questions,
+    answers: answers,
+    mergedQuestions: mergedQuestions
+  });
+});
+
+// Route to delete a quiz
+app.delete('/delete-quiz/:quizId', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    
+    if (!quiz) {
+      return res.status(404).json({ success: false, message: 'Quiz not found' });
+    }
+    
+    // Check if the teacher owns this quiz
+    if (quiz.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'You can only delete your own quizzes' });
+    }
+    
+    await Quiz.findByIdAndDelete(req.params.quizId);
+    
+    res.json({ success: true, message: 'Quiz deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting quiz:', error);
+    res.status(500).json({ success: false, message: 'Error deleting quiz' });
+  }
+});
+
+// Route to update student profile (grade level and subjects)
+app.post('/update-student-profile', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const { gradeLevel, subjects } = req.body;
+    
+    // Validate grade level
+    const validGradeLevels = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
+    if (gradeLevel && !validGradeLevels.includes(gradeLevel)) {
+      return res.status(400).json({ success: false, message: 'Invalid grade level' });
+    }
+    
+    // Validate subjects
+    const validSubjects = ['English', 'Science', 'Math'];
+    if (subjects && (!Array.isArray(subjects) || !subjects.every(subject => validSubjects.includes(subject)))) {
+      return res.status(400).json({ success: false, message: 'Invalid subjects' });
+    }
+    
+    // Update user profile
+    console.log('Updating student profile:', {
+      userId: req.user._id,
+      gradeLevel: gradeLevel,
+      subjects: subjects
+    });
+    
+    const updatedUser = await User.findByIdAndUpdate(req.user._id, {
+      gradeLevel: gradeLevel || null,
+      subjects: subjects || []
+    }, { new: true });
+    
+    console.log('Profile updated successfully:', {
+      userId: updatedUser._id,
+      gradeLevel: updatedUser.gradeLevel,
+      subjects: updatedUser.subjects
+    });
+    
+    res.json({ success: true, message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Error updating student profile:', error);
+    res.status(500).json({ success: false, message: 'Error updating profile' });
+  }
+});
+
+// Route to get student profile data
+app.get('/student-profile', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    res.json({
+      gradeLevel: user.gradeLevel,
+      subjects: user.subjects || []
+    });
+  } catch (error) {
+    console.error('Error fetching student profile:', error);
+    res.status(500).json({ success: false, message: 'Error fetching profile' });
+  }
+});
+
+// Temporary route to test quiz filtering (for debugging)
+app.get('/test-quiz-filter', async (req, res) => {
+  try {
+    // Simulate a student with 4th grade profile
+    const filter = { 
+      isApproved: true,
+      gradeLevel: '4th grade',
+      subjects: { $in: ['Math'] }
+    };
+    
+    console.log('Test filter:', filter);
+    
+    const quizzes = await Quiz.find(filter).select('title gradeLevel subjects');
+    console.log('Found quizzes:', quizzes);
+    
+    res.json({
+      filter: filter,
+      quizzes: quizzes,
+      count: quizzes.length
+    });
+  } catch (error) {
+    console.error('Error testing filter:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Route to view available quizzes for students
+app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    // Get student's profile to filter quizzes
+    const student = await User.findById(req.user._id);
+    
+    // Build filter based on student's grade level and subjects
+    const filter = { isApproved: true };
+    
+    if (student.gradeLevel) {
+      filter.gradeLevel = student.gradeLevel;
+    }
+    
+    if (student.subjects && student.subjects.length > 0) {
+      filter.subjects = { $in: student.subjects };
+    }
+    
+    console.log('Student profile:', {
+      gradeLevel: student.gradeLevel,
+      subjects: student.subjects
+    });
+    
+    console.log('Quiz filter:', filter);
+    
+    const approvedQuizzes = await Quiz.find(filter).populate('createdBy');
+    
+    console.log('Found quizzes matching filter:', approvedQuizzes.length);
+    console.log('Quizzes found:', approvedQuizzes.map(q => ({ title: q.title, gradeLevel: q.gradeLevel, subjects: q.subjects })));
+    
+    // Get the student's quiz results to determine which quizzes they've taken
+    const studentResults = await QuizResult.find({ 
+      student: req.user._id 
+    }).select('quiz score percentage timeTaken createdAt');
+    
+    // Create a map of quiz IDs and their attempt counts
+    const quizAttempts = {};
+    studentResults.forEach(result => {
+      const quizId = result.quiz.toString();
+      quizAttempts[quizId] = (quizAttempts[quizId] || 0) + 1;
+    });
+    
+    res.render('available-quizzes', { 
+      quizzes: approvedQuizzes.map(quiz => {
+        const quizId = quiz._id.toString();
+        const attemptCount = quizAttempts[quizId] || 0;
+        const isTaken = attemptCount > 0;
+        const canRetake = attemptCount < 3;
+        const previousResult = isTaken ? studentResults.find(result => result.quiz.toString() === quizId) : null;
+        
+        return {
+          ...quiz.toObject(),
+          createdByName: quiz.createdBy.name,
+          isTaken: isTaken,
+          attemptCount: attemptCount,
+          canRetake: canRetake,
+          previousScore: previousResult ? previousResult.percentage : null,
+          previousTime: previousResult ? previousResult.timeTaken : null
+        };
+      }), 
+      user: req.user 
+    });
+  } catch (error) {
+    console.error('Error fetching available quizzes:', error);
+    res.status(500).send('Error fetching quizzes');
+  }
+});
+
+// Route to start taking a quiz
+app.get('/take-quiz/:quizId', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (!quiz) {
+      return res.status(404).send('Quiz not found');
+    }
+    
+    if (!quiz.isApproved) {
+      return res.status(403).send('This quiz is not yet approved');
+    }
+    
+    // Check if student has already taken this quiz and count attempts
+    const existingResults = await QuizResult.find({
+      student: req.user._id,
+      quiz: quiz._id
+    });
+    
+    const attemptCount = existingResults.length;
+    
+    // Check if student has reached the retake limit (3 attempts)
+    if (attemptCount >= 3) {
+      return res.status(403).render('error', {
+        error: 'Maximum attempts reached',
+        message: `You have already taken this quiz ${attemptCount} times. The maximum allowed attempts is 3.`,
+        user: req.user
+      });
+    }
+    
+    res.render('take-quiz', { quiz, user: req.user });
+  } catch (error) {
+    console.error('Error starting quiz:', error);
+    res.status(500).send('Error starting quiz');
+  }
+});
+
+// Route to submit quiz answers
+app.post('/submit-quiz/:quizId', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (!quiz) {
+      return res.status(404).json({ success: false, message: 'Quiz not found' });
+    }
+    
+    const { answers, timeTaken } = req.body;
+    const answersArray = Array.isArray(answers) ? answers : [];
+    
+    // Calculate results
+    let correctAnswers = 0;
+    let totalPoints = 0;
+    const processedAnswers = [];
+    
+    quiz.questions.forEach((question, index) => {
+      // Extract selectedAnswer properly from the answers array
+      let selectedAnswer = '';
+      if (answersArray[index] && typeof answersArray[index] === 'object') {
+        selectedAnswer = answersArray[index].selectedAnswer || '';
+      } else if (typeof answersArray[index] === 'string') {
+        selectedAnswer = answersArray[index];
+      }
+      
+      const isCorrect = selectedAnswer === question.correctAnswer;
+      
+      if (isCorrect) {
+        correctAnswers++;
+        totalPoints += question.points;
+      }
+      
+      processedAnswers.push({
+        questionIndex: index,
+        selectedAnswer: selectedAnswer,
+        correctAnswer: question.correctAnswer,
+        isCorrect: isCorrect,
+        points: question.points
+      });
+    });
+    
+    const score = totalPoints;
+    const percentage = Math.round((correctAnswers / quiz.questions.length) * 100);
+    
+    // Save quiz result
+    const quizResult = new QuizResult({
+      student: req.user._id,
+      studentName: req.user.displayName,
+      quiz: quiz._id,
+      quizTitle: quiz.title,
+      answers: processedAnswers,
+      totalQuestions: quiz.questions.length,
+      correctAnswers: correctAnswers,
+      totalPoints: quiz.questions.reduce((sum, q) => sum + q.points, 0),
+      score: score,
+      percentage: percentage,
+      timeTaken: timeTaken || 0,
+      completedAt: new Date()
+    });
+    
+    await quizResult.save();
+    
+    res.json({ 
+      success: true, 
+      resultId: quizResult._id,
+      score: score,
+      percentage: percentage,
+      correctAnswers: correctAnswers,
+      totalQuestions: quiz.questions.length
+    });
+  } catch (error) {
+    console.error('Error submitting quiz:', error);
+    res.status(500).json({ success: false, message: 'Error submitting quiz' });
+  }
+});
+
+// Route to view quiz result
+app.get('/quiz-result/:resultId', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const result = await QuizResult.findById(req.params.resultId)
+      .populate('quiz')
+      .populate('student');
+    
+    if (!result) {
+      return res.status(404).send('Result not found');
+    }
+    
+    // Check if the student owns this result
+    if (result.student._id.toString() !== req.user._id.toString()) {
+      return res.status(403).send('Access denied');
+    }
+    
+    res.render('quiz-result', { result, user: req.user });
+  } catch (error) {
+    console.error('Error viewing quiz result:', error);
+    res.status(500).send('Error viewing result');
+  }
+});
+
+// Route to fix existing quiz options
+app.post('/fix-quiz-options/:quizId', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    // Check if the teacher owns this quiz
+    if (quiz.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only fix your own quizzes' });
+    }
+    
+    // Fix each question to have exactly 4 options
+    quiz.questions.forEach((question, index) => {
+      console.log(`Fixing question ${index + 1}: ${question.options.length} options`);
+      console.log(`Question ${index + 1} original options:`, question.options);
+      
+      // AGGRESSIVE FIX: Force exactly 4 options
+      if (question.options.length < 4) {
+        while (question.options.length < 4) {
+          const newOption = `Option ${String.fromCharCode(65 + question.options.length)}`;
+          question.options.push(newOption);
+          console.log(`Question ${index + 1} added option: ${newOption}`);
+        }
+      } else if (question.options.length > 4) {
+        question.options = question.options.slice(0, 4);
+        console.log(`Question ${index + 1} trimmed to 4 options`);
+      }
+      
+      console.log(`Question ${index + 1} after fix: ${question.options.length} options`);
+      console.log(`Question ${index + 1} final options:`, question.options);
+    });
+    
+    await quiz.save();
+    res.json({ 
+      success: true, 
+      message: 'Quiz options fixed to 4 options per question',
+      quizId: quiz._id 
+    });
+  } catch (error) {
+    console.error('Error fixing quiz options:', error);
+    res.status(500).json({ error: 'Error fixing quiz options' });
+  }
+});
+
+// Route to recreate quiz with fixed parsing
+app.post('/recreate-quiz/:quizId', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+  try {
+    const originalQuiz = await Quiz.findById(req.params.quizId);
+    if (!originalQuiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    // Check if the teacher owns this quiz
+    if (originalQuiz.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only recreate your own quizzes' });
+    }
+    
+    // Create a new quiz with the same title and description
+    const newQuiz = new Quiz({
+      title: originalQuiz.title + ' (Updated)',
+      description: originalQuiz.description,
+      createdBy: req.user._id,
+      createdByName: req.user.displayName,
+      isApproved: false, // New quiz needs approval
+      questions: originalQuiz.questions.map(q => ({
+        ...q,
+        options: q.options.length < 4 ? 
+          [...q.options, ...Array(4 - q.options.length).fill().map((_, i) => 
+            `Option ${String.fromCharCode(65 + q.options.length + i)}`
+          )] : 
+          q.options.slice(0, 4)
+      }))
+    });
+    
+    await newQuiz.save();
+    res.json({ 
+      success: true, 
+      message: 'Quiz recreated with 4 options per question',
+      newQuizId: newQuiz._id 
+    });
+  } catch (error) {
+    console.error('Error recreating quiz:', error);
+    res.status(500).json({ error: 'Error recreating quiz' });
+  }
+});
+
+// Debug route to check quiz data
+app.get('/debug-quiz/:quizId', isAuthenticated, async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    res.json({
+      title: quiz.title,
+      questionsCount: quiz.questions.length,
+      questions: quiz.questions.map((q, index) => ({
+        questionNumber: index + 1,
+        question: q.question,
+        optionsCount: q.options.length,
+        options: q.options,
+        correctAnswer: q.correctAnswer
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching quiz debug info:', error);
+    res.status(500).json({ error: 'Error fetching quiz info' });
+  }
+});
+
+// Route to view student's quiz history
+app.get('/my-results', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const results = await QuizResult.find({ student: req.user._id })
+      .populate('quiz')
+      .sort({ createdAt: -1 });
+    
+    res.render('my-results', { results, user: req.user });
+  } catch (error) {
+    console.error('Error fetching results:', error);
+    res.status(500).send('Error fetching results');
+  }
+});
+
+// Route to view quiz questions in database
+app.get('/view-quiz/:quizId', isAuthenticated, async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId).populate('createdBy');
+    if (!quiz) {
+      return res.status(404).send('Quiz not found');
+    }
+    
+    res.render('view-quiz', { quiz });
+  } catch (error) {
+    console.error('Error viewing quiz:', error);
+    res.status(500).send('Error viewing quiz');
+  }
+});
+
+// Route to make current user admin (for development)
+app.get('/make-admin', isAuthenticated, async (req, res) => {
+  try {
+    if (req.user.email === 'skillonusers@gmail.com') {
+      req.user.role = 'admin';
+      req.user.isApproved = true;
+      await req.user.save();
+      res.send(`
+        <h2>✅ You are now an Admin!</h2>
+        <p><strong>Email:</strong> ${req.user.email}</p>
+        <p><strong>Name:</strong> ${req.user.displayName}</p>
+        <br>
+        <p>You can now access the admin dashboard.</p>
+        <a href="/admin/dashboard">Go to Admin Dashboard</a>
+      `);
+    } else {
+      res.send(`
+        <h2>❌ Access Denied</h2>
+        <p>Only skillonusers@gmail.com can become admin.</p>
+        <a href="/dashboard">Go to Dashboard</a>
+      `);
+    }
+  } catch (error) {
+    console.error('Error making user admin:', error);
+    res.status(500).send('Error making user admin');
+  }
+});
+
+// Temporary route to create admin (remove in production)
+app.get('/create-admin', async (req, res) => {
+  try {
+    const adminUser = new User({
+      googleId: 'admin-' + Date.now(),
+      displayName: 'System Administrator',
+      email: 'skillonusers@gmail.com',
+      role: 'admin',
+      isApproved: true
+    });
+    
+    await adminUser.save();
+    res.send(`
+      <h2>Admin User Created Successfully!</h2>
+      <p><strong>Admin ID:</strong> ${adminUser._id}</p>
+      <p><strong>Email:</strong> ${adminUser.email}</p>
+      <p><strong>Name:</strong> ${adminUser.displayName}</p>
+      <br>
+      <p>You can now log in with Google and the system will recognize you as an admin.</p>
+      <a href="/">Go to Home</a>
+    `);
+  } catch (error) {
+    console.error('Error creating admin:', error);
+    res.status(500).send('Error creating admin user');
+  }
+});
+
+// Admin approval routes
+app.post('/approve-teacher/:userId', isAuthenticated, requireRole(['admin']), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (user && user.role === 'teacher') {
+      user.isApproved = true;
+      await user.save();
+    }
+    res.redirect('/admin/dashboard');
+  } catch (error) {
+    console.error('Error approving teacher:', error);
+    res.redirect('/admin/dashboard');
+  }
+});
+
+app.post('/approve-quiz/:quizId', isAuthenticated, requireRole(['admin']), async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (quiz) {
+      quiz.isApproved = true;
+      await quiz.save();
+    }
+    res.redirect('/admin/dashboard');
+  } catch (error) {
+    console.error('Error approving quiz:', error);
+    res.redirect('/admin/dashboard');
+  }
+});
+
+// Google OAuth routes
+app.get('/auth/google', (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.redirect('/login?error=Google OAuth not configured');
+  }
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res);
+});
+
+app.get('/auth/google/callback', (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.redirect('/login?error=Google OAuth not configured');
+  }
+  passport.authenticate('google', { failureRedirect: '/login' })(req, res, () => {
+    // Check if user needs to select role
+    if (!req.user.role) {
+      return res.redirect('/select-role');
+    }
+    res.redirect('/dashboard');
+  });
+});
+
+// API routes for session management
+app.post('/api/activity-update', isAuthenticated, (req, res) => {
+  // Update session last activity
+  if (req.session) {
+    req.session.lastActivity = Date.now();
+  }
+  res.json({ success: true });
+});
+
+app.post('/api/extend-session', isAuthenticated, (req, res) => {
+  // Extend session by updating last activity
+  if (req.session) {
+    req.session.lastActivity = Date.now();
+  }
+  res.json({ success: true, message: 'Session extended' });
+});
+
+// Logout route with timeout parameter
+app.get('/logout', (req, res) => {
+  const timeout = req.query.timeout === 'true';
+  req.logout((err) => {
+    if (err) {
+      console.error('Logout error:', err);
+    }
+    if (timeout) {
+      res.redirect('/login?timeout=true');
+    } else {
+      res.redirect('/');
+    }
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).render('error', { error: 'Something went wrong!' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).render('error', { error: 'Page not found!' });
+});
+
+// Temporary login route for testing (remove this in production)
+app.get('/temp-login', (req, res) => {
+  res.render('temp-login', { error: null });
+});
+
+app.post('/temp-login', (req, res) => {
+  const { email, role } = req.body;
+  
+  if (!email || !role) {
+    return res.render('temp-login', { error: 'Please provide email and role' });
+  }
+  
+  // Create a temporary user session
+  req.session.user = {
+    _id: 'temp-' + Date.now(),
+    displayName: email.split('@')[0],
+    email: email,
+    role: role,
+    isApproved: role === 'student' ? true : false,
+    photos: []
+  };
+  
+  res.redirect('/dashboard');
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  console.log('✅ Google OAuth is configured and ready!');
+  console.log('👥 Role-based system: Teachers, Students, and Admins');
+}); 

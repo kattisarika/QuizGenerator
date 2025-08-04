@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <div class="user-info">
+                    <% if (user.photos && user.photos.length > 0) { %>
+                        <img src="<%= user.photos[0].value %>" alt="Profile" class="user-avatar">
+                    <% } else { %>
+                        <div class="user-avatar-placeholder">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    <% } %>
+                    <div class="user-details">
+                        <h1>Welcome, <%= user.displayName %>!</h1>
+                        <p><%= user.email %></p>
+                        <span class="role-badge <%= user.role %>-badge"><%= user.role.charAt(0).toUpperCase() + user.role.slice(1) %></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-content">
+                <div class="role-redirect-section">
+                    <h2>Redirecting to your dashboard...</h2>
+                    <p>Please wait while we redirect you to your role-specific dashboard.</p>
+                    
+                    <div class="role-actions">
+                        <% if (user.role === 'student') { %>
+                            <a href="/student/dashboard" class="btn btn-primary">Go to Student Dashboard</a>
+                        <% } else if (user.role === 'teacher') { %>
+                            <% if (user.isApproved) { %>
+                                <a href="/teacher/dashboard" class="btn btn-primary">Go to Teacher Dashboard</a>
+                            <% } else { %>
+                                <div class="pending-notice">
+                                    <i class="fas fa-clock"></i>
+                                    <p>Your teacher account is pending approval. You'll be notified once approved.</p>
+                                </div>
+                            <% } %>
+                        <% } else if (user.role === 'admin') { %>
+                            <a href="/admin/dashboard" class="btn btn-primary">Go to Admin Dashboard</a>
+                        <% } %>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="action-cards">
+                        <div class="action-card">
+                            <h3>Change Role</h3>
+                            <p>Switch to a different role</p>
+                            <a href="/select-role" class="btn btn-secondary">Change Role</a>
+                        </div>
+                        
+                        <div class="action-card">
+                            <h3>Profile</h3>
+                            <p>View and edit your profile</p>
+                            <button class="btn btn-secondary">View Profile</button>
+                        </div>
+                        
+                        <div class="action-card">
+                            <h3>Settings</h3>
+                            <p>Manage your account settings</p>
+                            <button class="btn btn-secondary">Settings</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-redirect based on role
+        document.addEventListener('DOMContentLoaded', function() {
+            const userRole = '<%= user.role %>';
+            const isApproved = <%= user.isApproved %>;
+            
+            if (userRole === 'student') {
+                window.location.href = '/student/dashboard';
+            } else if (userRole === 'teacher' && isApproved) {
+                window.location.href = '/teacher/dashboard';
+            } else if (userRole === 'admin') {
+                window.location.href = '/admin/dashboard';
+            }
+        });
+    </script>
+    
+    <!-- Session timeout management -->
+    <script src="/js/session-timeout.js"></script>
+</body>
+</html> 

@@ -1,0 +1,37 @@
+{
+  "name": "take-quiz-now",
+  "version": "1.0.0",
+  "description": "Login system with Google OAuth for Take Quiz Now!",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "setup": "node setup.js",
+    "setup-db": "node setup-db.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "fs-extra": "^11.3.0",
+    "mammoth": "^1.9.1",
+    "mongoose": "^8.17.0",
+    "multer": "^2.0.2",
+    "passport": "^0.6.0",
+    "passport-google-oauth20": "^2.0.0",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "login",
+    "google-oauth",
+    "nodejs",
+    "ejs"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Take Quiz - <%= quiz.title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/student/dashboard" class="nav-link">Dashboard</a>
+                <a href="/available-quizzes" class="nav-link">Browse Quizzes</a>
+                <a href="/my-results" class="nav-link">My Results</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="quiz-taking-container">
+            <div class="quiz-header">
+                <div class="quiz-info">
+                    <h1><%= quiz.title %></h1>
+                    <p><%= quiz.description %></p>
+                </div>
+                
+                <div class="quiz-timer">
+                    <div class="timer-display">
+                        <i class="fas fa-clock"></i>
+                        <span id="timer">00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-info">
+                <span id="current-question">Question 1 of <%= quiz.questions.length %></span>
+            </div>
+
+            <div class="quiz-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+            </div>
+
+            <div class="quiz-content">
+                <form id="quiz-form">
+                    <div id="questions-container">
+                        <% quiz.questions.forEach((question, index) => { %>
+                            <div class="question-container" id="question-<%= index %>" style="display: <%= index === 0 ? 'block' : 'none' %>;">
+                                <div class="question-header">
+                                    <h3>Question <%= index + 1 %></h3>
+                                    <span class="question-points"><%= question.points %> point<%= question.points !== 1 ? 's' : '' %></span>
+                                </div>
+                                
+                                <div class="question-text">
+                                    <%= question.question %>
+                                </div>
+                                
+                                <div class="options-list">
+                                    <% question.options.forEach((option, optionIndex) => { %>
+                                        <div class="option-item">
+                                            <input type="radio" 
+                                                   id="q<%= index %>-opt<%= optionIndex %>" 
+                                                   name="question-<%= index %>" 
+                                                   value="<%= option %>"
+                                                   data-question="<%= index %>"
+                                                   data-option="<%= optionIndex %>">
+                                            <label for="q<%= index %>-opt<%= optionIndex %>" class="option-label">
+                                                <%= String.fromCharCode(65 + optionIndex) %>)
+                                            </label>
+                                            <span class="option-text"><%= option %></span>
+                                        </div>
+                                    <% }); %>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+
+                    <div class="quiz-navigation">
+                        <div class="nav-buttons">
+                            <button type="button" id="prev-btn" class="btn btn-secondary" onclick="previousQuestion()" disabled>
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </button>
+                            
+                            <button type="button" id="next-btn" class="btn btn-primary" onclick="nextQuestion()">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </button>
+                            
+                            <button type="submit" id="submit-btn" class="btn btn-success" style="display: none;">
+                                <i class="fas fa-check"></i> Submit Quiz
+                            </button>
+                        </div>
+                        
+                        <div class="question-indicators">
+                            <% quiz.questions.forEach((question, index) => { %>
+                                <div class="question-indicator <%= index === 0 ? 'active' : '' %>" 
+                                     onclick="goToQuestion(<%= index %>)" 
+                                     id="indicator-<%= index %>">
+                                    <%= index + 1 %>
+                                </div>
+                            <% }); %>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentQuestion = 0;
+        let answers = {};
+        let startTime = Date.now();
+        let timerInterval;
+        const totalQuestions = <%= quiz.questions.length %>;
+        const quizId = '<%= quiz._id %>';
+
+        // Initialize quiz
+        document.addEventListener('DOMContentLoaded', function() {
+            startTimer();
+            updateProgress();
+        });
+
+        function startTimer() {
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateProgress() {
+            const progress = ((currentQuestion + 1) / totalQuestions) * 100;
+            document.getElementById('progress-fill').style.width = progress + '%';
+            document.getElementById('current-question').textContent = 
+                `Question ${currentQuestion + 1} of ${totalQuestions}`;
+        }
+
+        function showQuestion(index) {
+            // Hide all questions
+            document.querySelectorAll('.question-container').forEach(q => q.style.display = 'none');
+            
+            // Show current question
+            document.getElementById(`question-${index}`).style.display = 'block';
+            
+            // Update indicators
+            document.querySelectorAll('.question-indicator').forEach(ind => ind.classList.remove('active'));
+            document.getElementById(`indicator-${index}`).classList.add('active');
+            
+            // Update navigation buttons
+            document.getElementById('prev-btn').disabled = index === 0;
+            
+            if (index === totalQuestions - 1) {
+                document.getElementById('next-btn').style.display = 'none';
+                document.getElementById('submit-btn').style.display = 'inline-block';
+            } else {
+                document.getElementById('next-btn').style.display = 'inline-block';
+                document.getElementById('submit-btn').style.display = 'none';
+            }
+            
+            updateProgress();
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < totalQuestions - 1) {
+                currentQuestion++;
+                showQuestion(currentQuestion);
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                showQuestion(currentQuestion);
+            }
+        }
+
+        function goToQuestion(index) {
+            currentQuestion = index;
+            showQuestion(currentQuestion);
+        }
+
+        // Track answers
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'radio') {
+                const questionIndex = parseInt(e.target.dataset.question);
+                const optionIndex = parseInt(e.target.dataset.option);
+                const selectedAnswer = e.target.value;
+                
+                answers[questionIndex] = {
+                    selectedAnswer: selectedAnswer,
+                    optionIndex: optionIndex
+                };
+                
+                // Mark indicator as answered
+                document.getElementById(`indicator-${questionIndex}`).classList.add('answered');
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('quiz-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+            
+            // Collect all answers
+            const answersArray = [];
+            for (let i = 0; i < totalQuestions; i++) {
+                if (answers[i]) {
+                    answersArray.push({
+                        questionIndex: i,
+                        selectedAnswer: answers[i].selectedAnswer
+                    });
+                } else {
+                    answersArray.push({
+                        questionIndex: i,
+                        selectedAnswer: ''
+                    });
+                }
+            }
+            
+            // Submit quiz
+            fetch(`/submit-quiz/${quizId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    answers: answersArray,
+                    timeTaken: timeTaken
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = `/quiz-result/${data.resultId}`;
+                } else {
+                    alert('Error submitting quiz: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting quiz. Please try again.');
+            });
+        });
+
+        // Warn before leaving page
+        window.addEventListener('beforeunload', function(e) {
+            e.preventDefault();
+            e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
+        });
+    </script>
+    
+    <!-- Session timeout management -->
+    <script src="/js/session-timeout.js"></script>
+</body>
+</html> 

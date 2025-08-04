@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Approval - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="pending-approval-container">
+            <div class="pending-approval-card">
+                <div class="pending-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                
+                <h1 class="pending-title">Account Pending Approval</h1>
+                <p class="pending-subtitle">Hello <%= user.displayName %>, your teacher account is currently under review.</p>
+                
+                <div class="pending-details">
+                    <div class="detail-item">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Your account will be reviewed by an administrator</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>You'll be notified once your account is approved</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-calendar"></i>
+                        <span>Review typically takes 1-2 business days</span>
+                    </div>
+                </div>
+
+                <div class="pending-actions">
+                    <a href="/" class="btn btn-secondary">Go Home</a>
+                    <a href="/logout" class="btn btn-primary">Logout</a>
+                </div>
+
+                <div class="pending-note">
+                    <p><strong>Note:</strong> Once approved, you'll be able to create and manage quizzes for your students.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html> 

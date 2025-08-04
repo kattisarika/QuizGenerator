@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/student/dashboard" class="nav-link">Dashboard</a>
+                <a href="#" class="nav-link" onclick="openStudentProfile()">Student Grade Level</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <div class="user-info">
+                    <% if (user.photos && user.photos.length > 0) { %>
+                        <img src="<%= user.photos[0].value %>" alt="Profile" class="user-avatar">
+                    <% } else { %>
+                        <div class="user-avatar-placeholder">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                    <% } %>
+                    <div class="user-details">
+                        <h1>Welcome, <%= user.displayName %>!</h1>
+                        <p><%= user.email %></p>
+                        <span class="role-badge student-badge">Student</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Available Quizzes</h3>
+                            <p class="stat-number"><%= quizzes.length %></p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Completed</h3>
+                            <p class="stat-number">0</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Average Score</h3>
+                            <p class="stat-number">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-cards">
+                    <div class="action-card">
+                        <h3>Take a Quiz</h3>
+                        <p>Browse and take available quizzes</p>
+                        <a href="/available-quizzes" class="btn btn-primary">Browse Quizzes</a>
+                    </div>
+                    
+                    <div class="action-card">
+                        <h3>My Results</h3>
+                        <p>View your quiz results and progress</p>
+                        <a href="/my-results" class="btn btn-secondary">View Results</a>
+                    </div>
+                    
+                    <div class="action-card">
+                        <h3>Progress</h3>
+                        <p>Track your learning progress</p>
+                        <button class="btn btn-secondary">View Progress</button>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h3>Available Quizzes</h3>
+                    <% if (quizzes.length > 0) { %>
+                        <div class="quiz-list">
+                            <% quizzes.forEach(quiz => { %>
+                                <div class="quiz-item">
+                                    <div class="quiz-icon">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <div class="quiz-content">
+                                        <h4><%= quiz.title %></h4>
+                                        <p><%= quiz.description %></p>
+                                        <div class="quiz-meta">
+                                            <span class="quiz-teacher">By: <%= quiz.createdBy %></span>
+                                            <span class="quiz-date">
+                                                <%= new Date(quiz.createdAt).toLocaleDateString() %>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="quiz-actions">
+                                        <button class="btn btn-primary btn-sm">Take Quiz</button>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } else { %>
+                        <div class="empty-state">
+                            <i class="fas fa-file-alt"></i>
+                            <p>No quizzes available at the moment. Check back later!</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Student Profile Modal -->
+    <div id="studentProfileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-graduate me-2"></i>Student Profile</h2>
+                <span class="close" onclick="closeStudentProfile()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="studentProfileForm">
+                    <div class="form-group">
+                        <label for="gradeLevel">Grade Level:</label>
+                        <select id="gradeLevel" name="gradeLevel" required>
+                            <option value="">Select Grade Level</option>
+                            <option value="1st grade">1st Grade</option>
+                            <option value="2nd grade">2nd Grade</option>
+                            <option value="3rd grade">3rd Grade</option>
+                            <option value="4th grade">4th Grade</option>
+                            <option value="5th grade">5th Grade</option>
+                            <option value="6th grade">6th Grade</option>
+                            <option value="7th grade">7th Grade</option>
+                            <option value="8th grade">8th Grade</option>
+                            <option value="9th grade">9th Grade</option>
+                            <option value="10th grade">10th Grade</option>
+                            <option value="11th grade">11th Grade</option>
+                            <option value="12th grade">12th Grade</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Subjects:</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="subjectEnglish" name="subjects" value="English">
+                                <label for="subjectEnglish">English</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="subjectScience" name="subjects" value="Science">
+                                <label for="subjectScience">Science</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="subjectMath" name="subjects" value="Math">
+                                <label for="subjectMath">Math</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Profile</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeStudentProfile()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Student Profile Modal Functions
+        function openStudentProfile() {
+            document.getElementById('studentProfileModal').style.display = 'block';
+            loadStudentProfile();
+        }
+        
+        function closeStudentProfile() {
+            document.getElementById('studentProfileModal').style.display = 'none';
+        }
+        
+        function loadStudentProfile() {
+            fetch('/student-profile')
+                .then(response => response.json())
+                .then(data => {
+                    // Set grade level
+                    const gradeSelect = document.getElementById('gradeLevel');
+                    gradeSelect.value = data.gradeLevel || '';
+                    
+                    // Set subjects
+                    const subjectCheckboxes = document.querySelectorAll('input[name="subjects"]');
+                    subjectCheckboxes.forEach(checkbox => {
+                        checkbox.checked = data.subjects.includes(checkbox.value);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading student profile:', error);
+                });
+        }
+        
+        // Handle form submission
+        document.getElementById('studentProfileForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const gradeLevel = document.getElementById('gradeLevel').value;
+            const subjectCheckboxes = document.querySelectorAll('input[name="subjects"]:checked');
+            const subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
+            
+            fetch('/update-student-profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    gradeLevel: gradeLevel,
+                    subjects: subjects
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Profile updated successfully!', 'success');
+                    closeStudentProfile();
+                } else {
+                    showNotification('Error updating profile: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating profile:', error);
+                showNotification('Error updating profile', 'error');
+            });
+        });
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('studentProfileModal');
+            if (event.target === modal) {
+                closeStudentProfile();
+            }
+        }
+        
+        // Notification function
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Remove notification after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+    </script>
+    
+    <!-- Session timeout management -->
+    <script src="/js/session-timeout.js"></script>
+</body>
+</html> 

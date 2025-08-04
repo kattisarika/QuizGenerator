@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/teacher/dashboard" class="nav-link">Dashboard</a>
+                <a href="/create-quiz" class="nav-link">Create Quiz</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <div class="user-info">
+                    <% if (user.photos && user.photos.length > 0) { %>
+                        <img src="<%= user.photos[0].value %>" alt="Profile" class="user-avatar">
+                    <% } else { %>
+                        <div class="user-avatar-placeholder">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                    <% } %>
+                    <div class="user-details">
+                        <h1>Welcome, <%= user.displayName %>!</h1>
+                        <p><%= user.email %></p>
+                        <span class="role-badge teacher-badge">Teacher</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Total Quizzes</h3>
+                            <p class="stat-number"><%= quizzes.length %></p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Approved Quizzes</h3>
+                            <p class="stat-number"><%= quizzes.filter(q => q.isApproved).length %></p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Pending Approval</h3>
+                            <p class="stat-number"><%= quizzes.filter(q => !q.isApproved).length %></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-cards">
+                    <div class="action-card">
+                        <h3>Create New Quiz</h3>
+                        <p>Design a new quiz with multiple question types</p>
+                        <a href="/create-quiz" class="btn btn-primary">Create Quiz</a>
+                    </div>
+                    
+                    <div class="action-card">
+                        <h3>My Quizzes</h3>
+                        <p>View and manage your existing quizzes</p>
+                        <button class="btn btn-secondary" onclick="showQuizModal()">View Quizzes</button>
+                    </div>
+                    
+                    <div class="action-card">
+                        <h3>Student Results</h3>
+                        <p>Review student performance and analytics</p>
+                        <button class="btn btn-secondary">View Results</button>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h3>Recent Quizzes</h3>
+                    <% if (quizzes.length > 0) { %>
+                        <div class="quiz-list">
+                            <% quizzes.forEach(quiz => { %>
+                                <div class="quiz-item" data-quiz-id="<%= quiz._id %>">
+                                    <div class="quiz-icon">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <div class="quiz-content">
+                                        <h4><%= quiz.title %></h4>
+                                        <p><%= quiz.description %></p>
+                                        <div class="quiz-meta">
+                                            <span class="quiz-status <%= quiz.isApproved ? 'approved' : 'pending' %>">
+                                                <%= quiz.isApproved ? 'Approved' : 'Pending Approval' %>
+                                            </span>
+                                            <span class="quiz-date">
+                                                <%= new Date(quiz.createdAt).toLocaleDateString() %>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="quiz-actions">
+                                        <a href="/view-quiz/<%= quiz._id %>" class="btn btn-sm btn-secondary" title="View Quiz">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-warning fix-options-btn" title="Fix Options" data-quiz-id="<%= quiz._id %>">
+                                            <i class="fas fa-wrench"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger delete-quiz-btn" title="Delete Quiz" data-quiz-id="<%= quiz._id %>">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } else { %>
+                        <div class="empty-state">
+                            <i class="fas fa-file-alt"></i>
+                            <p>No quizzes created yet. Start by creating your first quiz!</p>
+                            <a href="/create-quiz" class="btn btn-primary">Create Your First Quiz</a>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Quiz Modal -->
+    <div id="quizModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-alt me-2"></i>My Quizzes</h2>
+                <span class="close" onclick="closeQuizModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="quiz-filters">
+                    <button class="filter-btn active" data-filter="all">All Quizzes</button>
+                    <button class="filter-btn" data-filter="approved">Approved</button>
+                    <button class="filter-btn" data-filter="pending">Pending</button>
+                </div>
+                <div id="quizModalList" class="quiz-modal-list">
+                    <!-- Quizzes will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Quiz data from server
+        const quizData = <%- JSON.stringify(quizzes) %>;
+        
+        // Modal functionality
+        function showQuizModal() {
+            document.getElementById('quizModal').style.display = 'block';
+            loadQuizModal();
+        }
+        
+        function closeQuizModal() {
+            document.getElementById('quizModal').style.display = 'none';
+        }
+        
+        function loadQuizModal() {
+            const quizList = document.getElementById('quizModalList');
+            quizList.innerHTML = '';
+            
+            quizData.forEach(quiz => {
+                const quizCard = createQuizCard(quiz);
+                quizList.appendChild(quizCard);
+            });
+        }
+        
+        function createQuizCard(quiz) {
+            const card = document.createElement('div');
+            card.className = 'quiz-modal-card';
+            card.innerHTML = `
+                <div class="quiz-card-header">
+                    <div class="quiz-card-title">
+                        <h3>${quiz.title}</h3>
+                        <span class="quiz-status ${quiz.isApproved ? 'approved' : 'pending'}">
+                            ${quiz.isApproved ? 'Approved' : 'Pending Approval'}
+                        </span>
+                    </div>
+                    <div class="quiz-card-actions">
+                        <button class="btn btn-sm btn-primary" onclick="viewQuizDetails('${quiz._id}')">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteQuizFromModal('${quiz._id}', this)">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                <div class="quiz-card-content">
+                    <p><strong>Description:</strong> ${quiz.description}</p>
+                    <p><strong>Questions:</strong> ${quiz.questions.length}</p>
+                    <p><strong>Created:</strong> ${new Date(quiz.createdAt).toLocaleDateString()}</p>
+                </div>
+            `;
+            return card;
+        }
+        
+        function viewQuizDetails(quizId) {
+            window.open(`/view-quiz/${quizId}`, '_blank');
+        }
+        
+        function deleteQuizFromModal(quizId, button) {
+            const quizCard = button.closest('.quiz-modal-card');
+            const quizTitle = quizCard.querySelector('h3').textContent;
+            
+            if (confirm(`Are you sure you want to delete "${quizTitle}"? This action cannot be undone.`)) {
+                fetch(`/delete-quiz/${quizId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Quiz deleted successfully!', 'success');
+                        quizCard.remove();
+                        updateStats();
+                    } else {
+                        showNotification(data.message || 'Error deleting quiz', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error deleting quiz', 'error');
+                });
+            }
+        }
+        
+        // Filter functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    const filter = this.getAttribute('data-filter');
+                    filterQuizzes(filter);
+                });
+            });
+        });
+        
+        function filterQuizzes(filter) {
+            const quizCards = document.querySelectorAll('.quiz-modal-card');
+            
+            quizCards.forEach(card => {
+                const status = card.querySelector('.quiz-status').textContent.trim();
+                
+                if (filter === 'all') {
+                    card.style.display = 'block';
+                } else if (filter === 'approved' && status === 'Approved') {
+                    card.style.display = 'block';
+                } else if (filter === 'pending' && status === 'Pending Approval') {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('quizModal');
+            if (event.target === modal) {
+                closeQuizModal();
+            }
+        }
+        
+        // Fix options functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const fixButtons = document.querySelectorAll('.fix-options-btn');
+            
+            fixButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const quizId = this.getAttribute('data-quiz-id');
+                    const quizItem = this.closest('.quiz-item');
+                    const quizTitle = quizItem.querySelector('h4').textContent;
+                    
+                    if (confirm(`Are you sure you want to fix the options for "${quizTitle}"? This will ensure all questions have exactly 4 options.`)) {
+                        fixQuizOptions(quizId, quizItem);
+                    }
+                });
+            });
+            
+            function fixQuizOptions(quizId, quizItem) {
+                fetch(`/fix-quiz-options/${quizId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Quiz options fixed successfully!', 'success');
+                        // Reload the page to show updated quiz
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showNotification(data.error || 'Error fixing quiz options', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error fixing quiz options', 'error');
+                });
+            }
+            
+            // Delete quiz functionality
+            const deleteButtons = document.querySelectorAll('.delete-quiz-btn');
+            
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const quizId = this.getAttribute('data-quiz-id');
+                    const quizItem = this.closest('.quiz-item');
+                    const quizTitle = quizItem.querySelector('h4').textContent;
+                    
+                    if (confirm(`Are you sure you want to delete "${quizTitle}"? This action cannot be undone.`)) {
+                        deleteQuiz(quizId, quizItem);
+                    }
+                });
+            });
+            
+            function deleteQuiz(quizId, quizItem) {
+                fetch(`/delete-quiz/${quizId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        showNotification('Quiz deleted successfully!', 'success');
+                        
+                        // Remove the quiz item from the DOM
+                        quizItem.style.opacity = '0';
+                        quizItem.style.transform = 'translateX(-100%)';
+                        setTimeout(() => {
+                            quizItem.remove();
+                            
+                            // Update the stats
+                            updateStats();
+                        }, 300);
+                    } else {
+                        showNotification(data.message || 'Error deleting quiz', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error deleting quiz', 'error');
+                });
+            }
+            
+            function showNotification(message, type) {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                    <span>${message}</span>
+                `;
+                
+                // Add to page
+                document.body.appendChild(notification);
+                
+                // Show notification
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 100);
+                
+                // Remove notification after 3 seconds
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }, 3000);
+            }
+            
+            function updateStats() {
+                const quizItems = document.querySelectorAll('.quiz-item');
+                const totalQuizzes = quizItems.length;
+                const approvedQuizzes = Array.from(quizItems).filter(item => 
+                    item.querySelector('.quiz-status').classList.contains('approved')
+                ).length;
+                const pendingQuizzes = totalQuizzes - approvedQuizzes;
+                
+                // Update stat numbers
+                const statNumbers = document.querySelectorAll('.stat-number');
+                if (statNumbers.length >= 3) {
+                    statNumbers[0].textContent = totalQuizzes;
+                    statNumbers[1].textContent = approvedQuizzes;
+                    statNumbers[2].textContent = pendingQuizzes;
+                }
+            }
+        });
+    </script>
+    
+    <!-- Session timeout management -->
+    <script src="/js/session-timeout.js"></script>
+</body>
+</html> 

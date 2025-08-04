@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Role - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="role-selection-container">
+            <div class="role-selection-card">
+                <div class="role-header">
+                    <h1 class="role-title">Welcome, <%= user.displayName %>!</h1>
+                    <p class="role-subtitle">Please select your role to continue</p>
+                </div>
+
+                <div class="role-options">
+                    <form method="POST" action="/select-role" class="role-form">
+                        <div class="role-option">
+                            <input type="radio" id="student" name="role" value="student" class="role-radio">
+                            <label for="student" class="role-label">
+                                <div class="role-icon">
+                                    <i class="fas fa-user-graduate"></i>
+                                </div>
+                                <div class="role-content">
+                                    <h3>Student</h3>
+                                    <p>Take quizzes and track your progress</p>
+                                    <ul>
+                                        <li>Access approved quizzes</li>
+                                        <li>Track your scores</li>
+                                        <li>View your progress</li>
+                                    </ul>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="role-option">
+                            <input type="radio" id="teacher" name="role" value="teacher" class="role-radio">
+                            <label for="teacher" class="role-label">
+                                <div class="role-icon">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                </div>
+                                <div class="role-content">
+                                    <h3>Teacher</h3>
+                                    <p>Create and manage quizzes</p>
+                                    <ul>
+                                        <li>Create custom quizzes</li>
+                                        <li>Review student results</li>
+                                        <li>Manage quiz content</li>
+                                        <li><em>Requires admin approval</em></li>
+                                    </ul>
+                                </div>
+                            </label>
+                        </div>
+
+
+
+                        <button type="submit" class="btn btn-primary btn-full">Continue</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+
+
+</body>
+</html> 
