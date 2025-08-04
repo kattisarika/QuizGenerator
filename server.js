@@ -564,6 +564,25 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/dashboard', isAuthenticated, (req, res) => {
+  // If user doesn't have a role, redirect to role selection
+  if (!req.user.role) {
+    return res.redirect('/select-role');
+  }
+  
+  // Auto-redirect based on role
+  if (req.user.role === 'student') {
+    return res.redirect('/student/dashboard');
+  } else if (req.user.role === 'teacher') {
+    if (req.user.isApproved) {
+      return res.redirect('/teacher/dashboard');
+    } else {
+      return res.render('pending-approval', { user: req.user });
+    }
+  } else if (req.user.role === 'admin') {
+    return res.redirect('/admin/dashboard');
+  }
+  
+  // Fallback to dashboard template
   res.render('dashboard', { user: req.user });
 });
 
