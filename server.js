@@ -904,6 +904,38 @@ app.get('/test-actual-answer', (req, res) => {
   });
 });
 
+// Route to view stored files
+app.get('/view-files/:quizId', isAuthenticated, async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (!quiz) {
+      return res.status(404).send('Quiz not found');
+    }
+
+    res.send(`
+      <h1>Files for Quiz: ${quiz.title}</h1>
+      <hr>
+      <h2>Question Paper</h2>
+      ${quiz.questionPaperUrl ? 
+        `<p><a href="${quiz.questionPaperUrl}" target="_blank">View Question Paper</a></p>` : 
+        '<p>No question paper stored</p>'
+      }
+      
+      <h2>Answer Paper</h2>
+      ${quiz.answerPaperUrl ? 
+        `<p><a href="${quiz.answerPaperUrl}" target="_blank">View Answer Paper</a></p>` : 
+        '<p>No answer paper stored</p>'
+      }
+      
+      <hr>
+      <p><a href="/teacher/dashboard">Back to Dashboard</a></p>
+    `);
+  } catch (error) {
+    console.error('Error viewing files:', error);
+    res.status(500).send('Error viewing files');
+  }
+});
+
 // Test route for complete flow
 app.get('/test-complete-flow', (req, res) => {
   const sampleQuestionText = `1. What is the capital of France?
