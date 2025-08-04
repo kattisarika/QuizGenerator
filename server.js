@@ -135,10 +135,17 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     },
         async function(accessToken, refreshToken, profile, cb) {
       try {
+        console.log('Google OAuth profile:', {
+          id: profile.id,
+          displayName: profile.displayName,
+          email: profile.emails ? profile.emails[0].value : 'No email'
+        });
+        
         // Check if user exists in database
         let user = await User.findOne({ googleId: profile.id });
         
         if (!user) {
+          console.log('Creating new user for Google ID:', profile.id);
           // New user - default to student role
           user = new User({
             googleId: profile.id,
@@ -156,7 +163,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           }
           
           await user.save();
+          console.log('New user created successfully:', user._id);
         } else {
+          console.log('Existing user found:', user._id);
           // Existing user - check if they should be admin
           if (user.email === 'skillonusers@gmail.com' && user.role !== 'admin') {
             user.role = 'admin';
@@ -167,6 +176,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         
         return cb(null, user);
       } catch (error) {
+        console.error('Error in Google OAuth strategy:', error);
         return cb(error, null);
       }
     }
@@ -184,8 +194,13 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await User.findById(id);
+    if (!user) {
+      console.log('User not found during deserialization:', id);
+      return done(null, null);
+    }
     done(null, user);
   } catch (error) {
+    console.error('Error during user deserialization:', error);
     done(error, null);
   }
 });
@@ -1436,7 +1451,12 @@ app.get('/auth/google/callback', (req, res) => {
     return res.redirect('/login?error=Google OAuth not configured');
   }
   passport.authenticate('google', { failureRedirect: '/login' })(req, res, () => {
-    // Check if user needs to select role
+    // Check if user exists and has a role
+    if (!req.user) {
+      console.error('User not found after Google OAuth authentication');
+      return res.redirect('/login?error=Authentication failed');
+    }
+    
     if (!req.user.role) {
       return res.redirect('/select-role');
     }
