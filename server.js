@@ -749,6 +749,8 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
   try {
     const { title, description, gradeLevel, subjects } = req.body;
     let extractedQuestions = [];
+    let questionFileUrl = null;
+    let answerFileUrl = null;
 
     // Debug: Log all form data
     console.log('Received form data:', req.body);
