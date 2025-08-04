@@ -1441,6 +1441,18 @@ app.get('/test-db', async (req, res) => {
   }
 });
 
+// Simple test route
+app.get('/test', (req, res) => {
+  res.send(`
+    <h1>Server is Working!</h1>
+    <p>✅ Server is responding</p>
+    <p>✅ Routes are working</p>
+    <p><a href="/debug-user">Check User State</a></p>
+    <p><a href="/test-db">Check Database</a></p>
+    <p><a href="/create-admin">Create Admin</a></p>
+  `);
+});
+
 // Debug user state
 app.get('/debug-user', async (req, res) => {
   try {
