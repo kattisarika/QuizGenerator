@@ -520,9 +520,15 @@ function mergeQuestionsWithAnswers(questions, answers) {
 
 // Middleware to check if user is authenticated
 const isAuthenticated = (req, res, next) => {
+  console.log('isAuthenticated middleware called');
+  console.log('req.isAuthenticated():', req.isAuthenticated());
+  console.log('req.user:', req.user);
+  
   if (req.isAuthenticated()) {
+    console.log('User is authenticated, proceeding');
     return next();
   }
+  console.log('User not authenticated, redirecting to login');
   res.redirect('/login');
 };
 
@@ -564,24 +570,35 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/dashboard', isAuthenticated, (req, res) => {
+  console.log('Dashboard route accessed');
+  console.log('User:', req.user);
+  console.log('User role:', req.user.role);
+  console.log('User isApproved:', req.user.isApproved);
+  
   // If user doesn't have a role, redirect to role selection
   if (!req.user.role) {
+    console.log('No role found, redirecting to select-role');
     return res.redirect('/select-role');
   }
   
   // Auto-redirect based on role
   if (req.user.role === 'student') {
+    console.log('Redirecting to student dashboard');
     return res.redirect('/student/dashboard');
   } else if (req.user.role === 'teacher') {
     if (req.user.isApproved) {
+      console.log('Redirecting to teacher dashboard');
       return res.redirect('/teacher/dashboard');
     } else {
+      console.log('Teacher not approved, showing pending page');
       return res.render('pending-approval', { user: req.user });
     }
   } else if (req.user.role === 'admin') {
+    console.log('Redirecting to admin dashboard');
     return res.redirect('/admin/dashboard');
   }
   
+  console.log('Fallback to dashboard template');
   // Fallback to dashboard template
   res.render('dashboard', { user: req.user });
 });
@@ -1450,6 +1467,20 @@ app.get('/test', (req, res) => {
     <p><a href="/debug-user">Check User State</a></p>
     <p><a href="/test-db">Check Database</a></p>
     <p><a href="/create-admin">Create Admin</a></p>
+  `);
+});
+
+// Test session state
+app.get('/test-session', (req, res) => {
+  res.send(`
+    <h1>Session Test</h1>
+    <p><strong>req.isAuthenticated():</strong> ${req.isAuthenticated()}</p>
+    <p><strong>req.user:</strong> ${req.user ? JSON.stringify(req.user, null, 2) : 'null'}</p>
+    <p><strong>Session ID:</strong> ${req.sessionID || 'No session'}</p>
+    <p><strong>Session:</strong> ${JSON.stringify(req.session, null, 2)}</p>
+    <hr>
+    <p><a href="/login">Go to Login</a></p>
+    <p><a href="/dashboard">Go to Dashboard</a></p>
   `);
 });
 
