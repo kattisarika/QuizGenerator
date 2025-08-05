@@ -121,10 +121,7 @@
             </div>
             <div class="modal-body">
                 <div class="viewer-tabs">
-                    <button class="tab-btn active" onclick="switchViewer('direct')">Direct View</button>
-                    <button class="tab-btn" onclick="switchViewer('microsoft')">Microsoft Office Online</button>
-                    <button class="tab-btn" onclick="switchViewer('google')">Google Docs Viewer</button>
-                    <button class="tab-btn" onclick="switchViewer('pdf')">PDF View</button>
+                    <button class="tab-btn active" onclick="switchViewer('direct')">View File</button>
                 </div>
                 <div id="viewerContainer" class="viewer-container">
                     <div id="loadingMessage" class="loading-message">
@@ -141,9 +138,6 @@
                         </div>
                     </div>
                     <iframe id="directViewer" class="viewer-iframe" src="https://skillons.herokuapp.com/public-file/<%= content._id %>" style="display: block;" onload="hideLoading()" onerror="showError()" sandbox="allow-scripts allow-same-origin allow-forms" allowfullscreen></iframe>
-                    <iframe id="microsoftViewer" class="viewer-iframe" src="https://view.officeapps.live.com/op/embed.aspx?src=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>&wdStartOn=1" style="display: none;" onload="hideLoading()" onerror="showError()" sandbox="allow-scripts allow-same-origin allow-forms" allowfullscreen></iframe>
-                    <iframe id="googleViewer" class="viewer-iframe" src="https://docs.google.com/viewer?url=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>&embedded=true&chrome=false" style="display: none;" onload="hideLoading()" onerror="showError()" sandbox="allow-scripts allow-same-origin allow-forms" allowfullscreen></iframe>
-                    <iframe id="pdfViewer" class="viewer-iframe" src="https://skillons.herokuapp.com/public-file/<%= content._id %>" style="display: none;" onload="hideLoading()" onerror="showError()" sandbox="allow-scripts allow-same-origin allow-forms" allowfullscreen></iframe>
                 </div>
             </div>
         </div>
@@ -169,11 +163,9 @@
             document.getElementById('embeddedViewerModal').style.display = 'none';
             document.body.style.overflow = 'auto';
             
-            // Reset viewers
+            // Reset viewer
             document.getElementById('loadingMessage').style.display = 'none';
-            document.getElementById('googleViewer').style.display = 'none';
-            document.getElementById('microsoftViewer').style.display = 'none';
-            document.getElementById('pdfViewer').style.display = 'none';
+            document.getElementById('directViewer').style.display = 'block';
         }
 
         function hideLoading() {
@@ -187,48 +179,17 @@
         }
 
         function retryViewer() {
-            const currentViewer = document.querySelector('.tab-btn.active');
-            if (currentViewer) {
-                switchViewer(currentViewer.textContent.toLowerCase().includes('google') ? 'google' : 
-                           currentViewer.textContent.toLowerCase().includes('microsoft') ? 'microsoft' : 'pdf');
-            }
+            // Simply reload the direct viewer
+            const iframe = document.getElementById('directViewer');
+            iframe.src = iframe.src;
+            document.getElementById('loadingMessage').style.display = 'flex';
+            document.getElementById('errorMessage').style.display = 'none';
         }
 
         function switchViewer(type) {
-            // Show loading message and hide error
-            document.getElementById('loadingMessage').style.display = 'flex';
-            document.getElementById('errorMessage').style.display = 'none';
-            
-            // Hide all viewers
-            document.getElementById('directViewer').style.display = 'none';
-            document.getElementById('googleViewer').style.display = 'none';
-            document.getElementById('microsoftViewer').style.display = 'none';
-            document.getElementById('pdfViewer').style.display = 'none';
-            
-            // Remove active class from all tabs
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            
-            // Show selected viewer and activate tab
-            if (type === 'direct') {
-                document.getElementById('directViewer').style.display = 'block';
-                event.target.classList.add('active');
-            } else if (type === 'google') {
-                document.getElementById('googleViewer').style.display = 'block';
-                event.target.classList.add('active');
-            } else if (type === 'microsoft') {
-                document.getElementById('microsoftViewer').style.display = 'block';
-                event.target.classList.add('active');
-            } else if (type === 'pdf') {
-                document.getElementById('pdfViewer').style.display = 'block';
-                event.target.classList.add('active');
-            }
-
-            // Set timeout to show error if loading takes too long
-            setTimeout(function() {
-                if (document.getElementById('loadingMessage').style.display === 'flex') {
-                    showError();
-                }
-            }, 15000); // 15 second timeout
+            // Since we only have one viewer now, just ensure it's visible
+            document.getElementById('directViewer').style.display = 'block';
+            document.querySelector('.tab-btn').classList.add('active');
         }
 
         // Close modal when clicking outside
