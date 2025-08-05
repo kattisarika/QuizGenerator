@@ -614,13 +614,9 @@ const requireRole = (roles) => {
       return res.redirect('/login?error=Authentication failed');
     }
     
-    console.log('requireRole check - User role:', req.user.role, 'Required roles:', roles);
-    
     if (roles.includes(req.user.role)) {
       return next();
     }
-    
-    console.log('Access denied - User role:', req.user.role, 'Required roles:', roles);
     res.status(403).render('error', { error: 'Access denied. You do not have permission to view this page.' });
   };
 };
@@ -695,108 +691,10 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
 
 
 
-// Debug route to check current user
-app.get('/debug-user', isAuthenticated, (req, res) => {
-  res.json({
-    user: req.user ? {
-      email: req.user.email,
-      role: req.user.role,
-      isApproved: req.user.isApproved,
-      displayName: req.user.displayName
-    } : 'No user found'
-  });
-});
 
-// Route to set user role to student (for testing)
-app.post('/set-role-student', isAuthenticated, async (req, res) => {
-  try {
-    req.user.role = 'student';
-    req.user.isApproved = true;
-    await req.user.save();
-    res.json({ success: true, message: 'Role set to student' });
-  } catch (error) {
-    console.error('Error setting role:', error);
-    res.status(500).json({ success: false, message: 'Error setting role' });
-  }
-});
 
-// Test route for study material without authentication
-app.get('/test-study-material', async (req, res) => {
-  try {
-    const studyMaterial = await Content.find({ isApproved: true })
-      .populate('createdBy', 'displayName')
-      .sort({ createdAt: -1 });
-    
-    res.json({
-      success: true,
-      studyMaterial: studyMaterial.map(sm => ({
-        title: sm.title,
-        description: sm.description,
-        category: sm.category,
-        createdBy: sm.createdByName,
-        fileUrl: sm.fileUrl,
-        downloads: sm.downloads
-      }))
-    });
-  } catch (error) {
-    console.error('Error fetching study material:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Test route to download file directly (no auth required)
-app.get('/test-download/:contentId', async (req, res) => {
-  try {
-    const { contentId } = req.params;
-    
-    const content = await Content.findById(contentId);
-    if (!content) {
-      return res.status(404).send('Content not found');
-    }
-    
-    console.log('Attempting to download:', content.fileUrl);
-    
-    // Try to fetch the file directly from S3
-    const AWS = require('aws-sdk');
-    const s3 = new AWS.S3({
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      region: process.env.AWS_REGION || 'us-east-1'
-    });
-    
-    // Extract the key from the URL
-    const urlParts = content.fileUrl.split('/');
-    const key = urlParts.slice(-2).join('/');
-    
-    console.log('S3 Key:', key);
-    console.log('S3 Bucket:', process.env.AWS_S3_BUCKET || 'skillon-test');
-    
-    const params = {
-      Bucket: process.env.AWS_S3_BUCKET || 'skillon-test',
-      Key: key
-    };
-    
-    const fileObject = await s3.getObject(params).promise();
-    
-    // Set appropriate headers
-    res.setHeader('Content-Type', content.fileType);
-    res.setHeader('Content-Disposition', `attachment; filename="${content.fileName}"`);
-    res.setHeader('Content-Length', fileObject.ContentLength);
-    
-    // Send the file
-    res.send(fileObject.Body);
-    
-  } catch (error) {
-    console.error('Error downloading file:', error);
-    res.status(500).send('Error downloading file: ' + error.message);
-  }
-});
-
-// Route for student study material page (temporarily removed role requirement for debugging)
-app.get('/student/study-material', isAuthenticated, async (req, res) => {
-  console.log('Student study material route accessed');
-  console.log('User:', req.user ? req.user.email : 'No user');
-  console.log('User role:', req.user ? req.user.role : 'No role');
+// Route for student study material page
+app.get('/student/study-material', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
     // Get all approved content, optionally filtered by student's grade level and subjects
     let query = { isApproved: true };
