@@ -67,6 +67,7 @@ connectDB();
 const User = require('./models/User');
 const Quiz = require('./models/Quiz');
 const QuizResult = require('./models/QuizResult');
+const Content = require('./models/Content');
 
 // Middleware
 app.use(express.json());
@@ -77,12 +78,12 @@ app.use(express.static('public'));
 const upload = multer({
   storage: multer.memoryStorage(), // Store in memory temporarily
   fileFilter: function (req, file, cb) {
-    const allowedTypes = ['.pdf', '.doc', '.docx'];
+    const allowedTypes = ['.pdf', '.doc', '.docx', '.ppt', '.pptx'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedTypes.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF and DOC files are allowed!'), false);
+      cb(new Error('Only PDF, DOC, DOCX, PPT, and PPTX files are allowed!'), false);
     }
   },
   limits: {
@@ -1025,6 +1026,89 @@ app.get('/quiz-results/:quizId', isAuthenticated, requireRole(['teacher']), requ
   } catch (error) {
     console.error('Error fetching quiz results:', error);
     res.status(500).send('Error fetching quiz results');
+  }
+});
+
+// Route for teacher's post content page
+app.get('/teacher/post-content', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    // Get all content posted by this teacher
+    const teacherContent = await Content.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
+    
+    res.render('teacher-post-content', { 
+      user: req.user, 
+      content: teacherContent
+    });
+  } catch (error) {
+    console.error('Error fetching teacher content:', error);
+    res.render('teacher-post-content', { 
+      user: req.user, 
+      content: []
+    });
+  }
+});
+
+// Route for posting new content
+app.post('/teacher/post-content', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, upload.single('contentFile'), async (req, res) => {
+  try {
+    const { title, description, category } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).send('Please upload a file');
+    }
+    
+    // Upload file to S3
+    const fileUrl = await uploadToS3(req.file, 'content');
+    
+    // Create new content
+    const content = new Content({
+      title,
+      description,
+      category,
+      fileUrl,
+      fileName: req.file.originalname,
+      fileType: req.file.mimetype,
+      fileSize: req.file.size,
+      createdBy: req.user._id,
+      createdByName: req.user.displayName
+    });
+    
+    await content.save();
+    
+    res.redirect('/teacher/post-content');
+  } catch (error) {
+    console.error('Error posting content:', error);
+    res.status(500).send('Error posting content');
+  }
+});
+
+// Route for deleting content
+app.delete('/teacher/delete-content/:contentId', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    
+    // Verify the content belongs to this teacher
+    const content = await Content.findOne({ _id: contentId, createdBy: req.user._id });
+    if (!content) {
+      return res.status(404).json({ success: false, message: 'Content not found or access denied' });
+    }
+    
+    // Delete from S3
+    if (content.fileUrl) {
+      try {
+        await deleteFromS3(content.fileUrl);
+      } catch (s3Error) {
+        console.error('Error deleting from S3:', s3Error);
+      }
+    }
+    
+    // Delete from database
+    await Content.findByIdAndDelete(contentId);
+    
+    res.json({ success: true, message: 'Content deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting content:', error);
+    res.status(500).json({ success: false, message: 'Error deleting content' });
   }
 });
 
