@@ -51,14 +51,14 @@
 
                         <div class="option-card">
                             <div class="option-icon">
-                                <i class="fas fa-external-link-alt"></i>
+                                <i class="fas fa-eye"></i>
                             </div>
                             <div class="option-content">
-                                <h3>Open in Browser</h3>
-                                <p>Try to open the file directly in your browser (may not work in all browsers)</p>
-                                <a href="/student/download-content/<%= content._id %>" class="btn btn-secondary" target="_blank">
-                                    <i class="fas fa-external-link-alt"></i> Open in Browser
-                                </a>
+                                <h3>View in Browser</h3>
+                                <p>View the presentation directly in your browser using embedded viewers</p>
+                                <button onclick="openEmbeddedViewer()" class="btn btn-primary">
+                                    <i class="fas fa-eye"></i> View in Browser
+                                </button>
                             </div>
                         </div>
 
@@ -112,10 +112,76 @@
         </div>
     </main>
 
+    <!-- Embedded Viewer Modal -->
+    <div id="embeddedViewerModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><%= content.title %></h2>
+                <span class="close" onclick="closeEmbeddedViewer()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="viewer-tabs">
+                    <button class="tab-btn active" onclick="switchViewer('google')">Google Docs Viewer</button>
+                    <button class="tab-btn" onclick="switchViewer('microsoft')">Microsoft Office Online</button>
+                    <button class="tab-btn" onclick="switchViewer('pdf')">PDF Viewer</button>
+                </div>
+                <div id="viewerContainer" class="viewer-container">
+                    <iframe id="googleViewer" class="viewer-iframe" src="https://docs.google.com/viewer?url=<%= encodeURIComponent(content.fileUrl) %>&embedded=true" style="display: block;"></iframe>
+                    <iframe id="microsoftViewer" class="viewer-iframe" src="https://view.officeapps.live.com/op/embed.aspx?src=<%= encodeURIComponent(content.fileUrl) %>" style="display: none;"></iframe>
+                    <div id="pdfViewer" class="viewer-iframe" style="display: none;">
+                        <p>PDF viewer will be available if the file is converted to PDF format.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer class="footer">
         <div class="footer-content">
             <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
         </div>
     </footer>
+
+    <script>
+        function openEmbeddedViewer() {
+            document.getElementById('embeddedViewerModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeEmbeddedViewer() {
+            document.getElementById('embeddedViewerModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function switchViewer(type) {
+            // Hide all viewers
+            document.getElementById('googleViewer').style.display = 'none';
+            document.getElementById('microsoftViewer').style.display = 'none';
+            document.getElementById('pdfViewer').style.display = 'none';
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected viewer and activate tab
+            if (type === 'google') {
+                document.getElementById('googleViewer').style.display = 'block';
+                event.target.classList.add('active');
+            } else if (type === 'microsoft') {
+                document.getElementById('microsoftViewer').style.display = 'block';
+                event.target.classList.add('active');
+            } else if (type === 'pdf') {
+                document.getElementById('pdfViewer').style.display = 'block';
+                event.target.classList.add('active');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('embeddedViewerModal');
+            if (event.target === modal) {
+                closeEmbeddedViewer();
+            }
+        }
+    </script>
 </body>
 </html> 

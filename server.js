@@ -760,6 +760,18 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
       });
     }
     
+    // For DOC/DOCX files, also use the viewer
+    const isWordDoc = content.fileType.includes('word') || 
+                      content.fileName.toLowerCase().includes('.doc') ||
+                      content.fileName.toLowerCase().includes('.docx');
+    
+    if (isWordDoc) {
+      return res.render('powerpoint-viewer', {
+        user: req.user,
+        content: content
+      });
+    }
+    
     // For other files (PDF, DOC, etc.), fetch from S3 and serve
     try {
       const AWS = require('aws-sdk');
