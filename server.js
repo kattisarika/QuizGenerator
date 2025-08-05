@@ -744,7 +744,20 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
     content.views += 1;
     await content.save();
     
-    // Fetch the file from S3 and serve it for viewing
+    // Check if it's a PowerPoint file
+    const isPowerPoint = content.fileType.includes('powerpoint') || 
+                        content.fileName.toLowerCase().includes('.ppt') ||
+                        content.fileName.toLowerCase().includes('.pptx');
+    
+    if (isPowerPoint) {
+      // For PowerPoint files, redirect to a viewer or download
+      return res.render('powerpoint-viewer', {
+        user: req.user,
+        content: content
+      });
+    }
+    
+    // For other files (PDF, DOC, etc.), fetch from S3 and serve
     try {
       const AWS = require('aws-sdk');
       const s3 = new AWS.S3({

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View PowerPoint - <%= content.title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/student/dashboard" class="nav-link">Dashboard</a>
+                <a href="/student/study-material" class="nav-link">View Study Material</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="powerpoint-viewer-section">
+                <div class="viewer-header">
+                    <h1><i class="fas fa-file-powerpoint me-2"></i><%= content.title %></h1>
+                    <p class="file-info">
+                        <i class="fas fa-file-powerpoint"></i>
+                        <%= content.fileName %> • <%= (content.fileSize / 1024 / 1024).toFixed(1) %> MB
+                    </p>
+                </div>
+
+                <div class="viewer-content">
+                    <div class="viewer-options">
+                        <div class="option-card">
+                            <div class="option-icon">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="option-content">
+                                <h3>Download & View</h3>
+                                <p>Download the PowerPoint file and open it with Microsoft PowerPoint or similar software</p>
+                                <a href="/student/download-content/<%= content._id %>" class="btn btn-primary">
+                                    <i class="fas fa-download"></i> Download PowerPoint
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="option-card">
+                            <div class="option-icon">
+                                <i class="fas fa-external-link-alt"></i>
+                            </div>
+                            <div class="option-content">
+                                <h3>Open in Browser</h3>
+                                <p>Try to open the file directly in your browser (may not work in all browsers)</p>
+                                <a href="<%= content.fileUrl %>" class="btn btn-secondary" target="_blank">
+                                    <i class="fas fa-external-link-alt"></i> Open in Browser
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="option-card">
+                            <div class="option-icon">
+                                <i class="fas fa-google"></i>
+                            </div>
+                            <div class="option-content">
+                                <h3>Google Slides</h3>
+                                <p>Upload to Google Slides for online viewing and editing</p>
+                                <a href="https://slides.google.com" class="btn btn-success" target="_blank">
+                                    <i class="fas fa-google"></i> Open Google Slides
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="option-card">
+                            <div class="option-icon">
+                                <i class="fas fa-microsoft"></i>
+                            </div>
+                            <div class="option-content">
+                                <h3>Microsoft Office Online</h3>
+                                <p>View and edit in Microsoft Office Online</p>
+                                <a href="https://office.live.com/start/PowerPoint.aspx" class="btn btn-info" target="_blank">
+                                    <i class="fas fa-microsoft"></i> Office Online
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="viewer-info">
+                        <h3><i class="fas fa-info-circle me-2"></i>About PowerPoint Files</h3>
+                        <p>PowerPoint presentations (.ppt, .pptx) cannot be viewed directly in most web browsers. To view this presentation, you can:</p>
+                        <ul>
+                            <li><strong>Download the file</strong> and open it with Microsoft PowerPoint, Google Slides, or similar software</li>
+                            <li><strong>Use online viewers</strong> like Google Slides or Microsoft Office Online</li>
+                            <li><strong>Convert to PDF</strong> if you have PowerPoint installed (File → Export → Create PDF)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="viewer-actions">
+                    <a href="/student/study-material" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Study Material
+                    </a>
+                    <a href="/student/download-content/<%= content._id %>" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Download File
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html> 
