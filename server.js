@@ -680,10 +680,39 @@ app.get('/dashboard', isAuthenticated, (req, res) => {
 app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const teacherQuizzes = await Quiz.find({ createdBy: req.user._id });
-    res.render('teacher-dashboard', { user: req.user, quizzes: teacherQuizzes });
+    
+    // Fetch student results for all teacher's quizzes
+    const quizIds = teacherQuizzes.map(quiz => quiz._id);
+    const studentResults = await QuizResult.find({ quiz: { $in: quizIds } })
+      .populate('student', 'displayName email')
+      .populate('quiz', 'title')
+      .sort({ completedAt: -1 });
+    
+    // Calculate summary statistics
+    const totalAttempts = studentResults.length;
+    const uniqueStudents = new Set(studentResults.map(result => result.student._id.toString())).size;
+    const averageScore = totalAttempts > 0 
+      ? Math.round(studentResults.reduce((sum, result) => sum + result.percentage, 0) / totalAttempts)
+      : 0;
+    
+    res.render('teacher-dashboard', { 
+      user: req.user, 
+      quizzes: teacherQuizzes,
+      studentResults,
+      totalAttempts,
+      uniqueStudents,
+      averageScore
+    });
   } catch (error) {
-    console.error('Error fetching teacher quizzes:', error);
-    res.render('teacher-dashboard', { user: req.user, quizzes: [] });
+    console.error('Error fetching teacher dashboard data:', error);
+    res.render('teacher-dashboard', { 
+      user: req.user, 
+      quizzes: [],
+      studentResults: [],
+      totalAttempts: 0,
+      uniqueStudents: 0,
+      averageScore: 0
+    });
   }
 });
 
@@ -993,6 +1022,33 @@ app.get('/test-actual-answer', (req, res) => {
     originalText: actualAnswerText,
     parsedAnswers: answers
   });
+});
+
+// Route to view student results for a specific quiz
+app.get('/quiz-results/:quizId', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    
+    // Verify the quiz belongs to this teacher
+    const quiz = await Quiz.findOne({ _id: quizId, createdBy: req.user._id });
+    if (!quiz) {
+      return res.status(404).send('Quiz not found or access denied');
+    }
+    
+    // Fetch all results for this quiz
+    const results = await QuizResult.find({ quiz: quizId })
+      .populate('student', 'displayName email')
+      .sort({ completedAt: -1 });
+    
+    res.render('quiz-results', { 
+      user: req.user, 
+      quiz, 
+      results 
+    });
+  } catch (error) {
+    console.error('Error fetching quiz results:', error);
+    res.status(500).send('Error fetching quiz results');
+  }
 });
 
 // Debug route to check quiz results for a specific student

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Results - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/teacher/dashboard" class="nav-link">Dashboard</a>
+                <a href="/create-quiz" class="nav-link">Create Quiz</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1><i class="fas fa-chart-bar me-2"></i>Quiz Results</h1>
+                <a href="/teacher/dashboard" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <div class="quiz-info-card">
+                <h2><%= quiz.title %></h2>
+                <p><%= quiz.description %></p>
+                <div class="quiz-meta">
+                    <span class="quiz-status <%= quiz.isApproved ? 'approved' : 'pending' %>">
+                        <%= quiz.isApproved ? 'Approved' : 'Pending Approval' %>
+                    </span>
+                    <span class="quiz-date">
+                        Created: <%= new Date(quiz.createdAt).toLocaleDateString() %>
+                    </span>
+                </div>
+            </div>
+
+            <div class="results-summary">
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-users"></i>
+                        <div>
+                            <h3>Total Attempts</h3>
+                            <p><%= results.length %></p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-user-graduate"></i>
+                        <div>
+                            <h3>Unique Students</h3>
+                            <p><%= new Set(results.map(r => r.student._id.toString())).size %></p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-chart-line"></i>
+                        <div>
+                            <h3>Average Score</h3>
+                            <p><%= results.length > 0 ? Math.round(results.reduce((sum, r) => sum + r.percentage, 0) / results.length) : 0 %>%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-section">
+                <h3>Student Results</h3>
+                <% if (results.length > 0) { %>
+                    <div class="results-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>Email</th>
+                                    <th>Score</th>
+                                    <th>Percentage</th>
+                                    <th>Time Taken</th>
+                                    <th>Completed</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% results.forEach(result => { %>
+                                    <tr>
+                                        <td><%= result.student.displayName %></td>
+                                        <td><%= result.student.email %></td>
+                                        <td><%= result.score %>/<%= result.totalQuestions %></td>
+                                        <td>
+                                            <span class="score-badge <%= result.percentage >= 80 ? 'excellent' : result.percentage >= 60 ? 'good' : 'needs-improvement' %>">
+                                                <%= result.percentage %>%
+                                            </span>
+                                        </td>
+                                        <td><%= Math.floor(result.timeTaken / 60) %>m <%= result.timeTaken % 60 %>s</td>
+                                        <td><%= new Date(result.completedAt).toLocaleDateString() %></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info" onclick="viewResultDetails('<%= result._id %>')" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="empty-state">
+                        <i class="fas fa-user-graduate"></i>
+                        <p>No students have taken this quiz yet.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function viewResultDetails(resultId) {
+            // This could open a modal or redirect to a detailed result view
+            alert('Detailed result view functionality coming soon!');
+        }
+    </script>
+</body>
+</html> 
