@@ -3946,6 +3946,26 @@ body {
     background: white;
 }
 
+.loading-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.loading-message i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #007bff;
+}
+
+.loading-message p {
+    margin: 0;
+}
+
 /* Responsive Design for PowerPoint Viewer */
 @media (max-width: 768px) {
     .viewer-options {

@@ -121,14 +121,18 @@
             </div>
             <div class="modal-body">
                 <div class="viewer-tabs">
-                    <button class="tab-btn active" onclick="switchViewer('google')">Google Docs Viewer</button>
-                    <button class="tab-btn" onclick="switchViewer('microsoft')">Microsoft Office Online</button>
-                    <button class="tab-btn" onclick="switchViewer('pdf')">PDF Viewer</button>
+                    <button class="tab-btn active" onclick="switchViewer('microsoft')">Microsoft Office Online</button>
+                    <button class="tab-btn" onclick="switchViewer('google')">Google Docs Viewer</button>
+                    <button class="tab-btn" onclick="switchViewer('pdf')">Direct PDF View</button>
                 </div>
                 <div id="viewerContainer" class="viewer-container">
-                    <iframe id="googleViewer" class="viewer-iframe" src="https://docs.google.com/viewer?url=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>&embedded=true" style="display: block;"></iframe>
-                    <iframe id="microsoftViewer" class="viewer-iframe" src="https://view.officeapps.live.com/op/embed.aspx?src=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>" style="display: none;"></iframe>
-                    <iframe id="pdfViewer" class="viewer-iframe" src="https://skillons.herokuapp.com/public-file/<%= content._id %>" style="display: none;"></iframe>
+                    <div id="loadingMessage" class="loading-message">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading viewer...</p>
+                    </div>
+                    <iframe id="microsoftViewer" class="viewer-iframe" src="https://view.officeapps.live.com/op/embed.aspx?src=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>&wdStartOn=1" style="display: none;" onload="hideLoading()" sandbox="allow-scripts allow-same-origin allow-forms" allowfullscreen></iframe>
+                    <iframe id="googleViewer" class="viewer-iframe" src="https://docs.google.com/viewer?url=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>&embedded=true&chrome=false" style="display: none;" onload="hideLoading()" sandbox="allow-scripts allow-same-origin allow-forms" allowfullscreen></iframe>
+                    <iframe id="pdfViewer" class="viewer-iframe" src="https://skillons.herokuapp.com/public-file/<%= content._id %>" style="display: none;" onload="hideLoading()" sandbox="allow-scripts allow-same-origin allow-forms" allowfullscreen></iframe>
                 </div>
             </div>
         </div>
@@ -144,14 +148,31 @@
         function openEmbeddedViewer() {
             document.getElementById('embeddedViewerModal').style.display = 'block';
             document.body.style.overflow = 'hidden';
+            
+            // Show loading message and start with Microsoft viewer
+            document.getElementById('loadingMessage').style.display = 'flex';
+            document.getElementById('microsoftViewer').style.display = 'block';
         }
 
         function closeEmbeddedViewer() {
             document.getElementById('embeddedViewerModal').style.display = 'none';
             document.body.style.overflow = 'auto';
+            
+            // Reset viewers
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('googleViewer').style.display = 'none';
+            document.getElementById('microsoftViewer').style.display = 'none';
+            document.getElementById('pdfViewer').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingMessage').style.display = 'none';
         }
 
         function switchViewer(type) {
+            // Show loading message
+            document.getElementById('loadingMessage').style.display = 'flex';
+            
             // Hide all viewers
             document.getElementById('googleViewer').style.display = 'none';
             document.getElementById('microsoftViewer').style.display = 'none';
@@ -180,6 +201,15 @@
                 closeEmbeddedViewer();
             }
         }
+
+        // Prevent iframe from opening new windows
+        window.addEventListener('message', function(event) {
+            // Block any attempts to open new windows from iframes
+            if (event.data && event.data.type === 'openWindow') {
+                event.preventDefault();
+                return false;
+            }
+        });
     </script>
 </body>
 </html> 
