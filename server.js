@@ -744,6 +744,54 @@ app.get('/test-study-material', async (req, res) => {
   }
 });
 
+// Test route to download file directly (no auth required)
+app.get('/test-download/:contentId', async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    
+    const content = await Content.findById(contentId);
+    if (!content) {
+      return res.status(404).send('Content not found');
+    }
+    
+    console.log('Attempting to download:', content.fileUrl);
+    
+    // Try to fetch the file directly from S3
+    const AWS = require('aws-sdk');
+    const s3 = new AWS.S3({
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      region: process.env.AWS_REGION || 'us-east-1'
+    });
+    
+    // Extract the key from the URL
+    const urlParts = content.fileUrl.split('/');
+    const key = urlParts.slice(-2).join('/');
+    
+    console.log('S3 Key:', key);
+    console.log('S3 Bucket:', process.env.AWS_S3_BUCKET || 'skillon-test');
+    
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET || 'skillon-test',
+      Key: key
+    };
+    
+    const fileObject = await s3.getObject(params).promise();
+    
+    // Set appropriate headers
+    res.setHeader('Content-Type', content.fileType);
+    res.setHeader('Content-Disposition', `attachment; filename="${content.fileName}"`);
+    res.setHeader('Content-Length', fileObject.ContentLength);
+    
+    // Send the file
+    res.send(fileObject.Body);
+    
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    res.status(500).send('Error downloading file: ' + error.message);
+  }
+});
+
 // Route for student study material page (temporarily removed role requirement for debugging)
 app.get('/student/study-material', isAuthenticated, async (req, res) => {
   console.log('Student study material route accessed');
@@ -791,8 +839,39 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
     content.downloads += 1;
     await content.save();
     
-    // Redirect to the file URL
-    res.redirect(content.fileUrl);
+    // Instead of redirecting, fetch the file and serve it
+    try {
+      const AWS = require('aws-sdk');
+      const s3 = new AWS.S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION || 'us-east-1'
+      });
+      
+      // Extract the key from the URL
+      const urlParts = content.fileUrl.split('/');
+      const key = urlParts.slice(-2).join('/'); // Get the last two parts (folder/filename)
+      
+      const params = {
+        Bucket: process.env.AWS_S3_BUCKET || 'skillon-test',
+        Key: key
+      };
+      
+      const fileObject = await s3.getObject(params).promise();
+      
+      // Set appropriate headers
+      res.setHeader('Content-Type', content.fileType);
+      res.setHeader('Content-Disposition', `attachment; filename="${content.fileName}"`);
+      res.setHeader('Content-Length', fileObject.ContentLength);
+      
+      // Send the file
+      res.send(fileObject.Body);
+      
+    } catch (s3Error) {
+      console.error('S3 error:', s3Error);
+      // Fallback to redirect if S3 access fails
+      res.redirect(content.fileUrl);
+    }
   } catch (error) {
     console.error('Error downloading content:', error);
     res.status(500).send('Error downloading content');
