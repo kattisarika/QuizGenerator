@@ -208,17 +208,29 @@
         }
         
         function loadStudentProfile() {
+            console.log('Loading student profile...');
             fetch('/student-profile')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch profile');
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Profile data received:', data);
+                    
                     // Set grade level
                     const gradeSelect = document.getElementById('gradeLevel');
-                    gradeSelect.value = data.gradeLevel || '';
+                    if (gradeSelect) {
+                        gradeSelect.value = data.gradeLevel || '';
+                        console.log('Set grade level to:', data.gradeLevel);
+                    }
                     
                     // Set subjects
                     const subjectCheckboxes = document.querySelectorAll('input[name="subjects"]');
                     subjectCheckboxes.forEach(checkbox => {
                         checkbox.checked = data.subjects.includes(checkbox.value);
+                        console.log('Set subject', checkbox.value, 'to:', data.subjects.includes(checkbox.value));
                     });
                 })
                 .catch(error => {
@@ -234,6 +246,8 @@
             const subjectCheckboxes = document.querySelectorAll('input[name="subjects"]:checked');
             const subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
             
+            console.log('Submitting profile update:', { gradeLevel, subjects });
+            
             fetch('/update-student-profile', {
                 method: 'POST',
                 headers: {
@@ -244,11 +258,21 @@
                     subjects: subjects
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update profile');
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Profile update response:', data);
                 if (data.success) {
                     showNotification('Profile updated successfully!', 'success');
                     closeStudentProfile();
+                    // Reload the page to reflect changes
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 } else {
                     showNotification('Error updating profile: ' + data.message, 'error');
                 }

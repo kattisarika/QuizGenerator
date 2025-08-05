@@ -1743,7 +1743,17 @@ app.post('/update-student-profile', isAuthenticated, requireRole(['student']), a
     
     console.log('Update data:', updateData);
     
-    const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
+    // Use findOneAndUpdate instead of findByIdAndUpdate for better error handling
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: req.user._id },
+      updateData,
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedUser) {
+      console.error('User not found for update');
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
     
     console.log('Profile updated successfully:', {
       userId: updatedUser._id,
@@ -1766,6 +1776,11 @@ app.get('/student-profile', isAuthenticated, requireRole(['student']), async (re
     console.log('User role:', req.user.role);
     
     const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      console.error('User not found');
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
     
     console.log('Found user:', {
       _id: user._id,
