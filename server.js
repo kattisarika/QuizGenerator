@@ -113,18 +113,21 @@ async function uploadToS3(file, folder = 'uploads') {
 // Helper function to delete file from S3
 async function deleteFromS3(fileUrl) {
   try {
-    // Extract the key from the URL
+    // Extract the key from the URL and handle URL encoding
     const urlParts = fileUrl.split('/');
     const key = urlParts.slice(-2).join('/'); // Get the last two parts (folder/filename)
     
+    // Decode URL-encoded characters in the key
+    const decodedKey = decodeURIComponent(key);
+    
     const params = {
       Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
-      Key: key
+      Key: decodedKey
     };
 
     console.log('Deleting from S3:', params);
     await s3.deleteObject(params).promise();
-    console.log('Successfully deleted from S3:', key);
+    console.log('Successfully deleted from S3:', decodedKey);
   } catch (error) {
     console.error('Error deleting from S3:', error);
     throw error;
@@ -766,17 +769,21 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
         region: process.env.AWS_REGION || 'us-east-1'
       });
       
-          // Extract the key from the URL
+          // Extract the key from the URL and handle URL encoding
     const urlParts = content.fileUrl.split('/');
     const key = urlParts.slice(-2).join('/');
     
+    // Decode URL-encoded characters in the key
+    const decodedKey = decodeURIComponent(key);
+    
     console.log('Content fileUrl:', content.fileUrl);
     console.log('Extracted key:', key);
+    console.log('Decoded key:', decodedKey);
     console.log('Bucket name:', process.env.AWS_BUCKET_NAME);
     
     const params = {
       Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
-      Key: key
+      Key: decodedKey
     };
     
     console.log('S3 params:', params);
@@ -848,17 +855,21 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
         region: process.env.AWS_REGION || 'us-east-1'
       });
       
-      // Extract the key from the URL
+      // Extract the key from the URL and handle URL encoding
       const urlParts = content.fileUrl.split('/');
       const key = urlParts.slice(-2).join('/'); // Get the last two parts (folder/filename)
       
+      // Decode URL-encoded characters in the key
+      const decodedKey = decodeURIComponent(key);
+      
       console.log('Download - Content fileUrl:', content.fileUrl);
       console.log('Download - Extracted key:', key);
+      console.log('Download - Decoded key:', decodedKey);
       console.log('Download - Bucket name:', process.env.AWS_BUCKET_NAME);
       
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
-        Key: key
+        Key: decodedKey
       };
       
       console.log('Download - S3 params:', params);
