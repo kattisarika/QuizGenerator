@@ -60,7 +60,7 @@
                         </div>
                         <div class="stat-info">
                             <h3>Completed</h3>
-                            <p class="stat-number">0</p>
+                            <p class="stat-number"><%= completedCount %></p>
                         </div>
                     </div>
                     
@@ -70,7 +70,7 @@
                         </div>
                         <div class="stat-info">
                             <h3>Average Score</h3>
-                            <p class="stat-number">--</p>
+                            <p class="stat-number"><%= averageScore > 0 ? averageScore + '%' : '--' %></p>
                         </div>
                     </div>
                 </div>

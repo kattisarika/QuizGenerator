@@ -690,10 +690,32 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
 app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
     const availableQuizzes = await Quiz.find({ isApproved: true });
-    res.render('student-dashboard', { user: req.user, quizzes: availableQuizzes });
+    
+    // Fetch student's quiz results
+    const quizResults = await QuizResult.find({ student: req.user._id });
+    const completedCount = quizResults.length;
+    
+    // Calculate average score
+    let averageScore = 0;
+    if (completedCount > 0) {
+      const totalScore = quizResults.reduce((sum, result) => sum + result.percentage, 0);
+      averageScore = Math.round(totalScore / completedCount);
+    }
+    
+    res.render('student-dashboard', { 
+      user: req.user, 
+      quizzes: availableQuizzes,
+      completedCount,
+      averageScore
+    });
   } catch (error) {
-    console.error('Error fetching available quizzes:', error);
-    res.render('student-dashboard', { user: req.user, quizzes: [] });
+    console.error('Error fetching student dashboard data:', error);
+    res.render('student-dashboard', { 
+      user: req.user, 
+      quizzes: [],
+      completedCount: 0,
+      averageScore: 0
+    });
   }
 });
 
