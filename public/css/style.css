@@ -3201,6 +3201,12 @@ body {
     font-weight: 600;
 }
 
+/* Bootstrap-style nav-link active state */
+.navbar-nav .nav-link.active {
+    color: #667eea !important;
+    font-weight: 600;
+}
+
 /* Responsive Design for Quiz Results */
 @media (max-width: 768px) {
     .quiz-results-grid {
