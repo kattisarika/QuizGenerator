@@ -131,14 +131,7 @@
                             <p class="file-size"><%= (content.fileSize / 1024 / 1024).toFixed(1) %> MB</p>
                         </div>
                         <div class="viewer-options">
-                            <div class="viewer-option">
-                                <h4>Download & View</h4>
-                                <p>Download the file and open it with the appropriate application</p>
-                                <a href="/student/download-content/<%= content._id %>" class="btn btn-primary">
-                                    <i class="fas fa-download"></i> Download File
-                                </a>
-                            </div>
-                            <div class="viewer-option">
+                            <div class="viewer-option full-width">
                                 <h4>View Online</h4>
                                 <p>View in embedded online viewers</p>
                                 <div class="viewer-tabs">

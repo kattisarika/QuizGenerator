@@ -3863,9 +3863,9 @@ body {
 .modal-content {
     background-color: white;
     border-radius: 12px;
-    width: 90%;
-    height: 90%;
-    max-width: 1200px;
+    width: 95%;
+    height: 95%;
+    max-width: 1400px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -3978,8 +3978,8 @@ body {
 }
 
 .viewer-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 20px;
 }
 
@@ -3988,6 +3988,10 @@ body {
     border-radius: 8px;
     padding: 20px;
     border: 1px solid #e9ecef;
+}
+
+.viewer-option.full-width {
+    width: 100%;
 }
 
 .viewer-option h4 {
@@ -4019,7 +4023,7 @@ body {
 
 .viewer-iframe {
     width: 100%;
-    height: 500px;
+    height: 600px;
     border: 1px solid #e9ecef;
     border-radius: 4px;
     background: white;
