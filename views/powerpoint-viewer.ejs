@@ -140,14 +140,14 @@
                             </div>
                             <div class="viewer-option">
                                 <h4>View Online</h4>
-                                <p>Open in external online viewers</p>
-                                <div class="external-viewers">
-                                    <a href="https://view.officeapps.live.com/op/embed.aspx?src=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>" target="_blank" class="btn btn-secondary">
-                                        <i class="fas fa-microsoft"></i> Microsoft Office Online
-                                    </a>
-                                    <a href="https://docs.google.com/viewer?url=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>&embedded=true" target="_blank" class="btn btn-secondary">
-                                        <i class="fas fa-google"></i> Google Docs Viewer
-                                    </a>
+                                <p>View in embedded online viewers</p>
+                                <div class="viewer-tabs">
+                                    <button class="tab-btn active" onclick="switchViewer('microsoft')">Microsoft Office Online</button>
+                                    <button class="tab-btn" onclick="switchViewer('google')">Google Docs Viewer</button>
+                                </div>
+                                <div class="embedded-viewers">
+                                    <iframe id="microsoftViewer" class="viewer-iframe" src="https://view.officeapps.live.com/op/embed.aspx?src=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>&wdStartOn=1" style="display: block;"></iframe>
+                                    <iframe id="googleViewer" class="viewer-iframe" src="https://docs.google.com/viewer?url=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>&embedded=true&chrome=false" style="display: none;"></iframe>
                                 </div>
                             </div>
                         </div>
@@ -172,6 +172,24 @@
         function closeEmbeddedViewer() {
             document.getElementById('embeddedViewerModal').style.display = 'none';
             document.body.style.overflow = 'auto';
+        }
+
+        function switchViewer(type) {
+            // Hide all viewers
+            document.getElementById('microsoftViewer').style.display = 'none';
+            document.getElementById('googleViewer').style.display = 'none';
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected viewer and activate tab
+            if (type === 'microsoft') {
+                document.getElementById('microsoftViewer').style.display = 'block';
+                event.target.classList.add('active');
+            } else if (type === 'google') {
+                document.getElementById('googleViewer').style.display = 'block';
+                event.target.classList.add('active');
+            }
         }
 
         // Close modal when clicking outside

@@ -4013,12 +4013,45 @@ body {
     justify-content: flex-start;
 }
 
+.embedded-viewers {
+    margin-top: 15px;
+}
+
 .viewer-iframe {
     width: 100%;
-    height: 400px;
+    height: 500px;
     border: 1px solid #e9ecef;
     border-radius: 4px;
-    margin-top: 10px;
+    background: white;
+}
+
+.viewer-tabs {
+    display: flex;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.viewer-tabs .tab-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #666;
+    transition: all 0.3s;
+    border-radius: 4px;
+}
+
+.viewer-tabs .tab-btn:hover {
+    background: #e9ecef;
+    color: #333;
+}
+
+.viewer-tabs .tab-btn.active {
+    color: #007bff;
+    background: white;
+    font-weight: 500;
 }
 
 /* Responsive Design for PowerPoint Viewer */
