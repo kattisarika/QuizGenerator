@@ -3996,6 +3996,79 @@ body {
     justify-content: center;
 }
 
+/* File Viewer Styles */
+.file-viewer {
+    padding: 20px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.file-info {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.file-info h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.file-info p {
+    color: #666;
+    margin: 5px 0;
+}
+
+.file-size {
+    font-size: 0.9rem;
+    color: #999;
+}
+
+.viewer-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.viewer-option {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.viewer-option h4 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.viewer-option p {
+    color: #666;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.external-viewers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.external-viewers .btn {
+    text-align: left;
+    justify-content: flex-start;
+}
+
+.viewer-iframe {
+    width: 100%;
+    height: 400px;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
 /* Responsive Design for PowerPoint Viewer */
 @media (max-width: 768px) {
     .viewer-options {
