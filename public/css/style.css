@@ -3946,55 +3946,7 @@ body {
     background: white;
 }
 
-.loading-message {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: #666;
-    font-size: 1.1rem;
-}
 
-.loading-message i {
-    font-size: 2rem;
-    margin-bottom: 10px;
-    color: #007bff;
-}
-
-.loading-message p {
-    margin: 0;
-}
-
-.error-message {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: #dc3545;
-    font-size: 1.1rem;
-    text-align: center;
-    padding: 20px;
-}
-
-.error-message i {
-    font-size: 3rem;
-    margin-bottom: 15px;
-    color: #dc3545;
-}
-
-.error-message p {
-    margin: 0 0 20px 0;
-    color: #666;
-}
-
-.error-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
 
 /* File Viewer Styles */
 .file-viewer {

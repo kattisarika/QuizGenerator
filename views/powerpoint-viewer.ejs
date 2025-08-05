@@ -124,31 +124,13 @@
                     <button class="tab-btn active" onclick="switchViewer('direct')">View File</button>
                 </div>
                 <div id="viewerContainer" class="viewer-container">
-                    <div id="loadingMessage" class="loading-message">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>Loading viewer...</p>
-                        <button onclick="retryViewer()" class="btn btn-secondary btn-sm" style="margin-top: 10px;">Retry</button>
-                    </div>
-                    <div id="errorMessage" class="error-message" style="display: none;">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <p>Unable to load viewer. The file may not be compatible with online viewers.</p>
-                        <div class="error-actions">
-                            <a href="/student/download-content/<%= content._id %>" class="btn btn-primary">Download File</a>
-                            <button onclick="retryViewer()" class="btn btn-secondary">Try Again</button>
-                        </div>
-                    </div>
-                    <div id="fileViewer" class="file-viewer" style="display: none;">
+                    <div id="fileViewer" class="file-viewer">
                         <div class="file-info">
                             <h3><%= content.title %></h3>
                             <p><i class="fas fa-file-<%= content.fileName.toLowerCase().includes('.pdf') ? 'pdf' : content.fileName.toLowerCase().includes('.ppt') ? 'powerpoint' : 'word' %>"></i> <%= content.fileName %></p>
                             <p class="file-size"><%= (content.fileSize / 1024 / 1024).toFixed(1) %> MB</p>
                         </div>
                         <div class="viewer-options">
-                            <div class="viewer-option">
-                                <h4>View in Browser</h4>
-                                <p>Try to view the file directly in your browser (works best for PDFs)</p>
-                                <iframe id="directViewer" class="viewer-iframe" src="https://skillons.herokuapp.com/public-file/<%= content._id %>" onload="hideLoading()" onerror="showError()" sandbox="allow-scripts allow-same-origin allow-forms" allowfullscreen></iframe>
-                            </div>
                             <div class="viewer-option">
                                 <h4>Download & View</h4>
                                 <p>Download the file and open it with the appropriate application</p>
@@ -157,7 +139,7 @@
                                 </a>
                             </div>
                             <div class="viewer-option">
-                                <h4>External Viewers</h4>
+                                <h4>View Online</h4>
                                 <p>Open in external online viewers</p>
                                 <div class="external-viewers">
                                     <a href="https://view.officeapps.live.com/op/embed.aspx?src=<%= encodeURIComponent('https://skillons.herokuapp.com/public-file/' + content._id) %>" target="_blank" class="btn btn-secondary">
@@ -185,48 +167,11 @@
         function openEmbeddedViewer() {
             document.getElementById('embeddedViewerModal').style.display = 'block';
             document.body.style.overflow = 'hidden';
-            
-            // Show loading message briefly, then show file viewer
-            document.getElementById('loadingMessage').style.display = 'flex';
-            setTimeout(function() {
-                document.getElementById('loadingMessage').style.display = 'none';
-                document.getElementById('fileViewer').style.display = 'block';
-            }, 1000);
         }
 
         function closeEmbeddedViewer() {
             document.getElementById('embeddedViewerModal').style.display = 'none';
             document.body.style.overflow = 'auto';
-            
-            // Reset viewer
-            document.getElementById('loadingMessage').style.display = 'none';
-            document.getElementById('fileViewer').style.display = 'none';
-        }
-
-        function hideLoading() {
-            document.getElementById('loadingMessage').style.display = 'none';
-            document.getElementById('errorMessage').style.display = 'none';
-        }
-
-        function showError() {
-            document.getElementById('loadingMessage').style.display = 'none';
-            document.getElementById('errorMessage').style.display = 'flex';
-        }
-
-        function retryViewer() {
-            // Reload the file viewer
-            document.getElementById('fileViewer').style.display = 'none';
-            document.getElementById('loadingMessage').style.display = 'flex';
-            setTimeout(function() {
-                document.getElementById('loadingMessage').style.display = 'none';
-                document.getElementById('fileViewer').style.display = 'block';
-            }, 1000);
-        }
-
-        function switchViewer(type) {
-            // Since we only have one viewer now, just ensure it's visible
-            document.getElementById('fileViewer').style.display = 'block';
-            document.querySelector('.tab-btn').classList.add('active');
         }
 
         // Close modal when clicking outside
