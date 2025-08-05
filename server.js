@@ -766,16 +766,22 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
         region: process.env.AWS_REGION || 'us-east-1'
       });
       
-      // Extract the key from the URL
-      const urlParts = content.fileUrl.split('/');
-      const key = urlParts.slice(-2).join('/');
-      
-      const params = {
-        Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
-        Key: key
-      };
-      
-      const fileObject = await s3.getObject(params).promise();
+          // Extract the key from the URL
+    const urlParts = content.fileUrl.split('/');
+    const key = urlParts.slice(-2).join('/');
+    
+    console.log('Content fileUrl:', content.fileUrl);
+    console.log('Extracted key:', key);
+    console.log('Bucket name:', process.env.AWS_BUCKET_NAME);
+    
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
+      Key: key
+    };
+    
+    console.log('S3 params:', params);
+    
+    const fileObject = await s3.getObject(params).promise();
       
       // Set appropriate headers for viewing (not downloading)
       res.setHeader('Content-Type', content.fileType);
@@ -793,6 +799,24 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
   } catch (error) {
     console.error('Error viewing content:', error);
     res.status(500).send('Error viewing content');
+  }
+});
+
+// Debug route to check content URLs
+app.get('/debug-content-urls', isAuthenticated, requireRole(['admin']), async (req, res) => {
+  try {
+    const contents = await Content.find({});
+    res.json({
+      contents: contents.map(c => ({
+        id: c._id,
+        title: c.title,
+        fileName: c.fileName,
+        fileUrl: c.fileUrl,
+        fileType: c.fileType
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -828,10 +852,16 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
       const urlParts = content.fileUrl.split('/');
       const key = urlParts.slice(-2).join('/'); // Get the last two parts (folder/filename)
       
+      console.log('Download - Content fileUrl:', content.fileUrl);
+      console.log('Download - Extracted key:', key);
+      console.log('Download - Bucket name:', process.env.AWS_BUCKET_NAME);
+      
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
         Key: key
       };
+      
+      console.log('Download - S3 params:', params);
       
       const fileObject = await s3.getObject(params).promise();
       
