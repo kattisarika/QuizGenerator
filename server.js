@@ -995,6 +995,41 @@ app.get('/test-actual-answer', (req, res) => {
   });
 });
 
+// Debug route to check quiz results for a specific student
+app.get('/debug-student-results/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    // Find the student by email
+    const student = await User.findOne({ email: email });
+    if (!student) {
+      return res.json({ error: 'Student not found', email });
+    }
+    
+    // Find all quiz results for this student
+    const quizResults = await QuizResult.find({ student: student._id });
+    
+    res.json({
+      student: {
+        id: student._id,
+        email: student.email,
+        name: student.displayName
+      },
+      quizResultsCount: quizResults.length,
+      quizResults: quizResults.map(result => ({
+        id: result._id,
+        quizTitle: result.quizTitle,
+        score: result.score,
+        percentage: result.percentage,
+        completedAt: result.completedAt
+      }))
+    });
+  } catch (error) {
+    console.error('Error debugging student results:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Health check route
 app.get('/health', async (req, res) => {
   try {
