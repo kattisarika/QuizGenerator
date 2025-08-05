@@ -1051,6 +1051,49 @@ app.get('/quiz-results/:quizId', isAuthenticated, requireRole(['teacher']), requ
   }
 });
 
+// Route for teacher's student results overview page
+app.get('/teacher/student-results', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    // Get all quizzes created by this teacher
+    const teacherQuizzes = await Quiz.find({ createdBy: req.user._id });
+    const quizIds = teacherQuizzes.map(quiz => quiz._id);
+    
+    // Fetch all student results for teacher's quizzes
+    const allResults = await QuizResult.find({ quiz: { $in: quizIds } })
+      .populate('student', 'displayName email')
+      .populate('quiz', 'title')
+      .sort({ completedAt: -1 });
+    
+    // Group results by quiz
+    const resultsByQuiz = {};
+    teacherQuizzes.forEach(quiz => {
+      resultsByQuiz[quiz._id] = {
+        quiz: quiz,
+        results: allResults.filter(result => result.quiz._id.toString() === quiz._id.toString())
+      };
+    });
+    
+    // Calculate overall statistics
+    const totalAttempts = allResults.length;
+    const uniqueStudents = new Set(allResults.map(result => result.student._id.toString())).size;
+    const averageScore = totalAttempts > 0 
+      ? Math.round(allResults.reduce((sum, result) => sum + result.percentage, 0) / totalAttempts)
+      : 0;
+    
+    res.render('teacher-student-results', { 
+      user: req.user, 
+      resultsByQuiz,
+      totalAttempts,
+      uniqueStudents,
+      averageScore,
+      allResults
+    });
+  } catch (error) {
+    console.error('Error fetching teacher student results:', error);
+    res.status(500).send('Error fetching student results');
+  }
+});
+
 // Debug route to check quiz results for a specific student
 app.get('/debug-student-results/:email', async (req, res) => {
   try {

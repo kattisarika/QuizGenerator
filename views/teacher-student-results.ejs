@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Results - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/teacher/dashboard" class="nav-link">Dashboard</a>
+                <a href="/create-quiz" class="nav-link">Create Quiz</a>
+                <a href="/teacher/student-results" class="nav-link active">Student Results</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1><i class="fas fa-chart-bar me-2"></i>Student Results Overview</h1>
+                <a href="/teacher/dashboard" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <div class="results-summary">
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-users"></i>
+                        <div>
+                            <h3>Total Attempts</h3>
+                            <p><%= totalAttempts %></p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-user-graduate"></i>
+                        <div>
+                            <h3>Unique Students</h3>
+                            <p><%= uniqueStudents %></p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-chart-line"></i>
+                        <div>
+                            <h3>Average Score</h3>
+                            <p><%= averageScore %>%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-section">
+                <h3>All Student Results</h3>
+                <% if (allResults && allResults.length > 0) { %>
+                    <div class="results-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>Email</th>
+                                    <th>Quiz</th>
+                                    <th>Score</th>
+                                    <th>Percentage</th>
+                                    <th>Time Taken</th>
+                                    <th>Completed</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% allResults.forEach(result => { %>
+                                    <tr>
+                                        <td><%= result.student.displayName %></td>
+                                        <td><%= result.student.email %></td>
+                                        <td><%= result.quiz.title %></td>
+                                        <td><%= result.score %>/<%= result.totalQuestions %></td>
+                                        <td>
+                                            <span class="score-badge <%= result.percentage >= 80 ? 'excellent' : result.percentage >= 60 ? 'good' : 'needs-improvement' %>">
+                                                <%= result.percentage %>%
+                                            </span>
+                                        </td>
+                                        <td><%= Math.floor(result.timeTaken / 60) %>m <%= result.timeTaken % 60 %>s</td>
+                                        <td><%= new Date(result.completedAt).toLocaleDateString() %></td>
+                                        <td>
+                                            <a href="/quiz-results/<%= result.quiz._id %>" class="btn btn-sm btn-info" title="View Quiz Results">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="empty-state">
+                        <i class="fas fa-user-graduate"></i>
+                        <p>No student results found. Students need to take your quizzes to see results here.</p>
+                    </div>
+                <% } %>
+            </div>
+
+            <div class="quiz-results-section">
+                <h3>Results by Quiz</h3>
+                <% if (Object.keys(resultsByQuiz).length > 0) { %>
+                    <div class="quiz-results-grid">
+                        <% Object.values(resultsByQuiz).forEach(quizData => { %>
+                            <div class="quiz-result-card">
+                                <div class="quiz-result-header">
+                                    <h4><%= quizData.quiz.title %></h4>
+                                    <span class="quiz-status <%= quizData.quiz.isApproved ? 'approved' : 'pending' %>">
+                                        <%= quizData.quiz.isApproved ? 'Approved' : 'Pending Approval' %>
+                                    </span>
+                                </div>
+                                <div class="quiz-result-stats">
+                                    <div class="mini-stat">
+                                        <i class="fas fa-users"></i>
+                                        <span><%= quizData.results.length %> attempts</span>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <i class="fas fa-user-graduate"></i>
+                                        <span><%= new Set(quizData.results.map(r => r.student._id.toString())).size %> students</span>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>
+                                            <%= quizData.results.length > 0 
+                                                ? Math.round(quizData.results.reduce((sum, r) => sum + r.percentage, 0) / quizData.results.length) 
+                                                : 0 %>% avg
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="quiz-result-actions">
+                                    <a href="/quiz-results/<%= quizData.quiz._id %>" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-chart-bar"></i> View Details
+                                    </a>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <p>No quizzes created yet. Create your first quiz to start collecting student results.</p>
+                        <a href="/create-quiz" class="btn btn-primary">Create Quiz</a>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html> 
