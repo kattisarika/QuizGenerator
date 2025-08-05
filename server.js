@@ -720,6 +720,30 @@ app.post('/set-role-student', isAuthenticated, async (req, res) => {
   }
 });
 
+// Test route for study material without authentication
+app.get('/test-study-material', async (req, res) => {
+  try {
+    const studyMaterial = await Content.find({ isApproved: true })
+      .populate('createdBy', 'displayName')
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      studyMaterial: studyMaterial.map(sm => ({
+        title: sm.title,
+        description: sm.description,
+        category: sm.category,
+        createdBy: sm.createdByName,
+        fileUrl: sm.fileUrl,
+        downloads: sm.downloads
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching study material:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Route for student study material page (temporarily removed role requirement for debugging)
 app.get('/student/study-material', isAuthenticated, async (req, res) => {
   console.log('Student study material route accessed');
