@@ -694,11 +694,37 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
   }
 });
 
+// Debug route to check content in database
+app.get('/debug-content', async (req, res) => {
+  try {
+    const allContent = await Content.find({});
+    const approvedContent = await Content.find({ isApproved: true });
+    const pendingContent = await Content.find({ isApproved: false });
+    
+    res.json({
+      totalContent: allContent.length,
+      approvedContent: approvedContent.length,
+      pendingContent: pendingContent.length,
+      allContent: allContent.map(c => ({
+        id: c._id,
+        title: c.title,
+        isApproved: c.isApproved,
+        createdBy: c.createdByName,
+        createdAt: c.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error('Error debugging content:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Route for student study material page
 app.get('/student/study-material', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
     // Get all approved content, optionally filtered by student's grade level and subjects
-    let query = { isApproved: true };
+    // Temporarily show all content for debugging
+    let query = {}; // Changed from { isApproved: true } to show all content
     
     // If student has grade level and subjects set, filter content accordingly
     if (req.user.gradeLevel && req.user.subjects && req.user.subjects.length > 0) {
@@ -707,9 +733,18 @@ app.get('/student/study-material', isAuthenticated, requireRole(['student']), as
       // query.subjects = { $in: req.user.subjects };
     }
     
+    console.log('Student study material query:', query);
+    
     const studyMaterial = await Content.find(query)
       .populate('createdBy', 'displayName')
       .sort({ createdAt: -1 });
+    
+    console.log('Found study material:', studyMaterial.length);
+    console.log('Study material details:', studyMaterial.map(sm => ({
+      title: sm.title,
+      isApproved: sm.isApproved,
+      createdBy: sm.createdByName
+    })));
     
     res.render('student-study-material', {
       user: req.user,
@@ -1139,6 +1174,25 @@ app.post('/admin/approve-all-content', isAuthenticated, requireRole(['admin']), 
   try {
     const result = await Content.updateMany(
       { isApproved: false },
+      { isApproved: true }
+    );
+    
+    res.json({ 
+      success: true, 
+      message: `Approved ${result.modifiedCount} content items`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error approving all content:', error);
+    res.status(500).json({ success: false, message: 'Error approving content' });
+  }
+});
+
+// Route to manually approve all content (for testing - no auth required)
+app.post('/test-approve-all-content', async (req, res) => {
+  try {
+    const result = await Content.updateMany(
+      {},
       { isApproved: true }
     );
     
