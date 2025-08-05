@@ -198,6 +198,7 @@
     <script>
         // Student Profile Modal Functions
         function openStudentProfile() {
+            console.log('Opening student profile modal from dashboard');
             document.getElementById('studentProfileModal').style.display = 'block';
             loadStudentProfile();
         }
@@ -296,5 +297,20 @@
     
     <!-- Session timeout management -->
     <script src="/js/session-timeout.js"></script>
+    
+    <script>
+        // Debug: Check if modal is being opened automatically
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Student dashboard page loaded');
+            console.log('User grade level:', '<%= user.gradeLevel || "Not Set" %>');
+            console.log('User subjects:', '<%= (user.subjects || []).join(", ") || "Not Set" %>');
+            
+            // Check if modal is visible
+            const modal = document.getElementById('studentProfileModal');
+            if (modal && modal.style.display === 'block') {
+                console.log('Modal is already visible on page load!');
+            }
+        });
+    </script>
 </body>
 </html> 

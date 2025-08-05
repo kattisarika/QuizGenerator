@@ -1706,17 +1706,26 @@ app.delete('/delete-quiz/:quizId', isAuthenticated, requireRole(['teacher']), as
 // Route to update student profile (grade level and subjects)
 app.post('/update-student-profile', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
+    console.log('=== STUDENT PROFILE UPDATE DEBUG ===');
+    console.log('Request body:', req.body);
+    console.log('User ID:', req.user._id);
+    console.log('User role:', req.user.role);
+    
     const { gradeLevel, subjects } = req.body;
+    
+    console.log('Extracted data:', { gradeLevel, subjects });
     
     // Validate grade level
     const validGradeLevels = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
     if (gradeLevel && !validGradeLevels.includes(gradeLevel)) {
+      console.log('Invalid grade level:', gradeLevel);
       return res.status(400).json({ success: false, message: 'Invalid grade level' });
     }
     
     // Validate subjects
     const validSubjects = ['English', 'Science', 'Math'];
     if (subjects && (!Array.isArray(subjects) || !subjects.every(subject => validSubjects.includes(subject)))) {
+      console.log('Invalid subjects:', subjects);
       return res.status(400).json({ success: false, message: 'Invalid subjects' });
     }
     
@@ -1727,10 +1736,14 @@ app.post('/update-student-profile', isAuthenticated, requireRole(['student']), a
       subjects: subjects
     });
     
-    const updatedUser = await User.findByIdAndUpdate(req.user._id, {
+    const updateData = {
       gradeLevel: gradeLevel || null,
       subjects: subjects || []
-    }, { new: true });
+    };
+    
+    console.log('Update data:', updateData);
+    
+    const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
     
     console.log('Profile updated successfully:', {
       userId: updatedUser._id,
@@ -1748,7 +1761,18 @@ app.post('/update-student-profile', isAuthenticated, requireRole(['student']), a
 // Route to get student profile data
 app.get('/student-profile', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
+    console.log('=== STUDENT PROFILE FETCH DEBUG ===');
+    console.log('User ID:', req.user._id);
+    console.log('User role:', req.user.role);
+    
     const user = await User.findById(req.user._id);
+    
+    console.log('Found user:', {
+      _id: user._id,
+      gradeLevel: user.gradeLevel,
+      subjects: user.subjects
+    });
+    
     res.json({
       gradeLevel: user.gradeLevel,
       subjects: user.subjects || []
