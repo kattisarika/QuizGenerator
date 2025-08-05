@@ -694,6 +694,58 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
   }
 });
 
+// Route for student study material page
+app.get('/student/study-material', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    // Get all approved content, optionally filtered by student's grade level and subjects
+    let query = { isApproved: true };
+    
+    // If student has grade level and subjects set, filter content accordingly
+    if (req.user.gradeLevel && req.user.subjects && req.user.subjects.length > 0) {
+      // For now, show all content but we can add filtering later
+      // query.gradeLevel = req.user.gradeLevel;
+      // query.subjects = { $in: req.user.subjects };
+    }
+    
+    const studyMaterial = await Content.find(query)
+      .populate('createdBy', 'displayName')
+      .sort({ createdAt: -1 });
+    
+    res.render('student-study-material', {
+      user: req.user,
+      studyMaterial
+    });
+  } catch (error) {
+    console.error('Error fetching study material:', error);
+    res.render('student-study-material', {
+      user: req.user,
+      studyMaterial: []
+    });
+  }
+});
+
+// Route for downloading content (increment download count)
+app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    
+    const content = await Content.findById(contentId);
+    if (!content) {
+      return res.status(404).send('Content not found');
+    }
+    
+    // Increment download count
+    content.downloads += 1;
+    await content.save();
+    
+    // Redirect to the file URL
+    res.redirect(content.fileUrl);
+  } catch (error) {
+    console.error('Error downloading content:', error);
+    res.status(500).send('Error downloading content');
+  }
+});
+
 app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
     const availableQuizzes = await Quiz.find({ isApproved: true });

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Material - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/student/dashboard" class="nav-link">Dashboard</a>
+                <a href="/available-quizzes" class="nav-link">Browse Quizzes</a>
+                <a href="/student/study-material" class="nav-link active">View Study Material</a>
+                <a href="/my-results" class="nav-link">My Results</a>
+                <a href="#" class="nav-link" onclick="openStudentProfile()">Student Grade Level</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1><i class="fas fa-book me-2"></i>Study Material</h1>
+                <a href="/student/dashboard" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <div class="study-material-section">
+                <div class="material-filters">
+                    <div class="filter-group">
+                        <label for="categoryFilter">Filter by Category:</label>
+                        <select id="categoryFilter" class="form-control" onchange="filterMaterial()">
+                            <option value="">All Categories</option>
+                            <option value="Lecture Notes">Lecture Notes</option>
+                            <option value="Study Material">Study Material</option>
+                            <option value="Assignment">Assignment</option>
+                            <option value="Reference">Reference</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sortBy">Sort by:</label>
+                        <select id="sortBy" class="form-control" onchange="sortMaterial()">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="downloads">Most Downloads</option>
+                            <option value="title">Title A-Z</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="material-grid" id="materialGrid">
+                    <% if (studyMaterial && studyMaterial.length > 0) { %>
+                        <% studyMaterial.forEach(item => { %>
+                            <div class="material-card" data-category="<%= item.category %>" data-date="<%= item.createdAt %>" data-downloads="<%= item.downloads %>" data-title="<%= item.title.toLowerCase() %>">
+                                <div class="material-icon">
+                                    <% if (item.fileType.includes('pdf')) { %>
+                                        <i class="fas fa-file-pdf"></i>
+                                    <% } else if (item.fileType.includes('powerpoint') || item.fileName.includes('.ppt')) { %>
+                                        <i class="fas fa-file-powerpoint"></i>
+                                    <% } else if (item.fileType.includes('word') || item.fileName.includes('.doc')) { %>
+                                        <i class="fas fa-file-word"></i>
+                                    <% } else { %>
+                                        <i class="fas fa-file"></i>
+                                    <% } %>
+                                </div>
+                                <div class="material-info">
+                                    <h4><%= item.title %></h4>
+                                    <p><%= item.description %></p>
+                                    <div class="material-meta">
+                                        <span class="material-category"><%= item.category %></span>
+                                        <span class="material-teacher">By: <%= item.createdByName %></span>
+                                        <span class="material-date"><%= new Date(item.createdAt).toLocaleDateString() %></span>
+                                    </div>
+                                    <div class="material-stats">
+                                        <span class="stat-item">
+                                            <i class="fas fa-download"></i>
+                                            <%= item.downloads %> downloads
+                                        </span>
+                                        <span class="stat-item">
+                                            <i class="fas fa-eye"></i>
+                                            <%= item.views %> views
+                                        </span>
+                                        <span class="stat-item">
+                                            <i class="fas fa-file"></i>
+                                            <%= (item.fileSize / 1024 / 1024).toFixed(1) %> MB
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="material-actions">
+                                    <a href="/student/download-content/<%= item._id %>" class="btn btn-primary" target="_blank">
+                                        <i class="fas fa-download"></i> Download
+                                    </a>
+                                    <button class="btn btn-secondary" onclick="previewMaterial('<%= item.fileUrl %>', '<%= item.title %>')">
+                                        <i class="fas fa-eye"></i> Preview
+                                    </button>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="empty-state">
+                            <i class="fas fa-book-open"></i>
+                            <h3>No Study Material Available</h3>
+                            <p>Teachers haven't posted any study material yet. Check back later!</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="previewTitle">Material Preview</h3>
+                <span class="close" onclick="closePreviewModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <iframe id="previewFrame" src="" width="100%" height="500px"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="downloadFromPreview()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button class="btn btn-secondary" onclick="closePreviewModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentPreviewUrl = '';
+
+        function filterMaterial() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const materialCards = document.querySelectorAll('.material-card');
+            
+            materialCards.forEach(card => {
+                const cardCategory = card.getAttribute('data-category');
+                if (!categoryFilter || cardCategory === categoryFilter) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function sortMaterial() {
+            const sortBy = document.getElementById('sortBy').value;
+            const materialGrid = document.getElementById('materialGrid');
+            const materialCards = Array.from(document.querySelectorAll('.material-card'));
+            
+            materialCards.sort((a, b) => {
+                switch (sortBy) {
+                    case 'newest':
+                        return new Date(b.getAttribute('data-date')) - new Date(a.getAttribute('data-date'));
+                    case 'oldest':
+                        return new Date(a.getAttribute('data-date')) - new Date(b.getAttribute('data-date'));
+                    case 'downloads':
+                        return parseInt(b.getAttribute('data-downloads')) - parseInt(a.getAttribute('data-downloads'));
+                    case 'title':
+                        return a.getAttribute('data-title').localeCompare(b.getAttribute('data-title'));
+                    default:
+                        return 0;
+                }
+            });
+            
+            materialCards.forEach(card => materialGrid.appendChild(card));
+        }
+
+        function previewMaterial(fileUrl, title) {
+            currentPreviewUrl = fileUrl;
+            document.getElementById('previewTitle').textContent = title;
+            document.getElementById('previewFrame').src = fileUrl;
+            document.getElementById('previewModal').style.display = 'block';
+        }
+
+        function closePreviewModal() {
+            document.getElementById('previewModal').style.display = 'none';
+            document.getElementById('previewFrame').src = '';
+            currentPreviewUrl = '';
+        }
+
+        function downloadFromPreview() {
+            if (currentPreviewUrl) {
+                window.open(currentPreviewUrl, '_blank');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('previewModal');
+            if (event.target === modal) {
+                closePreviewModal();
+            }
+        }
+
+        // Student profile modal functions (if they exist)
+        function openStudentProfile() {
+            // This function should be defined in the main dashboard
+            console.log('Student profile modal should be opened');
+        }
+    </script>
+</body>
+</html> 
