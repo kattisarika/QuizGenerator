@@ -810,6 +810,11 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
     content.downloads += 1;
     await content.save();
     
+    // Check if it's a PowerPoint file and user wants to view in browser
+    const isPowerPoint = content.fileType.includes('powerpoint') || 
+                        content.fileName.toLowerCase().includes('.ppt') ||
+                        content.fileName.toLowerCase().includes('.pptx');
+    
     // Instead of redirecting, fetch the file and serve it
     try {
       const AWS = require('aws-sdk');
@@ -830,10 +835,17 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
       
       const fileObject = await s3.getObject(params).promise();
       
-      // Set appropriate headers
-      res.setHeader('Content-Type', content.fileType);
-      res.setHeader('Content-Disposition', `attachment; filename="${content.fileName}"`);
-      res.setHeader('Content-Length', fileObject.ContentLength);
+      // For PowerPoint files, try to serve with inline disposition for browser viewing
+      if (isPowerPoint) {
+        res.setHeader('Content-Type', content.fileType);
+        res.setHeader('Content-Disposition', 'inline'); // Try inline for browser viewing
+        res.setHeader('Content-Length', fileObject.ContentLength);
+      } else {
+        // For other files, serve as download
+        res.setHeader('Content-Type', content.fileType);
+        res.setHeader('Content-Disposition', `attachment; filename="${content.fileName}"`);
+        res.setHeader('Content-Length', fileObject.ContentLength);
+      }
       
       // Send the file
       res.send(fileObject.Body);
