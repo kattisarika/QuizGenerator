@@ -680,38 +680,15 @@ app.get('/dashboard', isAuthenticated, (req, res) => {
 app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const teacherQuizzes = await Quiz.find({ createdBy: req.user._id });
-    
-    // Fetch student results for all teacher's quizzes
-    const quizIds = teacherQuizzes.map(quiz => quiz._id);
-    const studentResults = await QuizResult.find({ quiz: { $in: quizIds } })
-      .populate('student', 'displayName email')
-      .populate('quiz', 'title')
-      .sort({ completedAt: -1 });
-    
-    // Calculate summary statistics
-    const totalAttempts = studentResults.length;
-    const uniqueStudents = new Set(studentResults.map(result => result.student._id.toString())).size;
-    const averageScore = totalAttempts > 0 
-      ? Math.round(studentResults.reduce((sum, result) => sum + result.percentage, 0) / totalAttempts)
-      : 0;
-    
     res.render('teacher-dashboard', { 
       user: req.user, 
-      quizzes: teacherQuizzes,
-      studentResults,
-      totalAttempts,
-      uniqueStudents,
-      averageScore
+      quizzes: teacherQuizzes
     });
   } catch (error) {
-    console.error('Error fetching teacher dashboard data:', error);
+    console.error('Error fetching teacher quizzes:', error);
     res.render('teacher-dashboard', { 
       user: req.user, 
-      quizzes: [],
-      studentResults: [],
-      totalAttempts: 0,
-      uniqueStudents: 0,
-      averageScore: 0
+      quizzes: []
     });
   }
 });

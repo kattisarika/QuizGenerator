@@ -67,31 +67,11 @@
                     
                     <div class="stat-card">
                         <div class="stat-icon">
-                            <i class="fas fa-users"></i>
+                            <i class="fas fa-clock"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>Total Attempts</h3>
-                            <p class="stat-number"><%= totalAttempts %></p>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3>Unique Students</h3>
-                            <p class="stat-number"><%= uniqueStudents %></p>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3>Average Score</h3>
-                            <p class="stat-number"><%= averageScore %>%</p>
+                            <h3>Pending Approval</h3>
+                            <p class="stat-number"><%= quizzes.filter(q => !q.isApproved).length %></p>
                         </div>
                     </div>
                 </div>
@@ -112,7 +92,7 @@
                     <div class="action-card">
                         <h3>Student Results</h3>
                         <p>Review student performance and analytics</p>
-                        <button class="btn btn-secondary" onclick="showStudentResults()">View Results</button>
+                        <a href="/teacher/student-results" class="btn btn-secondary">View Results</a>
                     </div>
                 </div>
 
@@ -163,42 +143,7 @@
                     <% } %>
                 </div>
 
-                <div class="recent-activity" id="recentResultsSection" style="display: none;">
-                    <h3>Recent Student Results</h3>
-                    <% if (studentResults && studentResults.length > 0) { %>
-                        <div class="results-list">
-                            <% studentResults.slice(0, 10).forEach(result => { %>
-                                <div class="result-item">
-                                    <div class="result-icon">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                    <div class="result-content">
-                                        <h4><%= result.student.displayName %></h4>
-                                        <p><strong>Quiz:</strong> <%= result.quiz.title %></p>
-                                        <div class="result-meta">
-                                            <span class="result-score <%= result.percentage >= 80 ? 'excellent' : result.percentage >= 60 ? 'good' : 'needs-improvement' %>">
-                                                Score: <%= result.percentage %>%
-                                            </span>
-                                            <span class="result-date">
-                                                <%= new Date(result.completedAt).toLocaleDateString() %>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="result-actions">
-                                        <a href="/quiz-results/<%= result.quiz._id %>" class="btn btn-sm btn-info" title="View All Results">
-                                            <i class="fas fa-chart-bar"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            <% }); %>
-                        </div>
-                    <% } else { %>
-                        <div class="empty-state">
-                            <i class="fas fa-user-graduate"></i>
-                            <p>No student results yet. Students need to take your quizzes to see results here.</p>
-                        </div>
-                    <% } %>
-                </div>
+
             </div>
         </div>
     </main>
@@ -314,16 +259,7 @@
             }
         }
         
-        function showStudentResults() {
-            // Show recent student results in a modal or redirect to a results page
-            if (document.getElementById('studentResultsModal')) {
-                document.getElementById('studentResultsModal').style.display = 'block';
-            } else {
-                // If no modal, show the results in the recent activity section
-                document.getElementById('recentResultsSection').style.display = 'block';
-                document.getElementById('recentQuizzesSection').style.display = 'none';
-            }
-        }
+
         
         // Filter functionality
         document.addEventListener('DOMContentLoaded', function() {
