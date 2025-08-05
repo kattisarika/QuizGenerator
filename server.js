@@ -839,6 +839,56 @@ app.get('/debug-content-urls', isAuthenticated, requireRole(['admin']), async (r
   }
 });
 
+// Public route for serving files to external viewers (no authentication required)
+app.get('/public-file/:contentId', async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    
+    const content = await Content.findById(contentId);
+    if (!content) {
+      return res.status(404).send('Content not found');
+    }
+    
+    // Fetch the file from S3 and serve it publicly
+    try {
+      const AWS = require('aws-sdk');
+      const s3 = new AWS.S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION || 'us-east-1'
+      });
+      
+      // Extract the key from the URL and handle URL encoding
+      const urlParts = content.fileUrl.split('/');
+      const key = urlParts.slice(-2).join('/');
+      const decodedKey = decodeURIComponent(key);
+      
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
+        Key: decodedKey
+      };
+      
+      const fileObject = await s3.getObject(params).promise();
+      
+      // Set appropriate headers for public viewing
+      res.setHeader('Content-Type', content.fileType);
+      res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('Content-Length', fileObject.ContentLength);
+      res.setHeader('Access-Control-Allow-Origin', '*'); // Allow cross-origin access
+      
+      // Send the file
+      res.send(fileObject.Body);
+      
+    } catch (s3Error) {
+      console.error('S3 error in public route:', s3Error);
+      res.status(500).send('Error serving file');
+    }
+  } catch (error) {
+    console.error('Error in public file route:', error);
+    res.status(500).send('Error serving file');
+  }
+});
+
 // Route for downloading content (increment download count)
 app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
