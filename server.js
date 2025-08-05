@@ -608,20 +608,19 @@ const isAuthenticated = (req, res, next) => {
 // Middleware to check user roles
 const requireRole = (roles) => {
   return (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.redirect('/login');
-    }
-    
     // Add null check for req.user
     if (!req.user) {
       console.error('User not found in requireRole middleware');
       return res.redirect('/login?error=Authentication failed');
     }
     
+    console.log('requireRole check - User role:', req.user.role, 'Required roles:', roles);
+    
     if (roles.includes(req.user.role)) {
       return next();
     }
     
+    console.log('Access denied - User role:', req.user.role, 'Required roles:', roles);
     res.status(403).render('error', { error: 'Access denied. You do not have permission to view this page.' });
   };
 };
@@ -698,6 +697,9 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
 
 // Route for student study material page
 app.get('/student/study-material', isAuthenticated, requireRole(['student']), async (req, res) => {
+  console.log('Student study material route accessed');
+  console.log('User:', req.user ? req.user.email : 'No user');
+  console.log('User role:', req.user ? req.user.role : 'No role');
   try {
     // Get all approved content, optionally filtered by student's grade level and subjects
     let query = { isApproved: true };

@@ -15,23 +15,30 @@
                 <a href="/">Take Quiz Now!</a>
             </div>
             <div class="nav-menu">
-                <a href="/" class="nav-link">Home</a>
-                <a href="/login" class="nav-link">Login</a>
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
             </div>
         </div>
     </nav>
 
     <main class="main-content">
-        <div class="error-container">
-            <div class="error-content">
-                <div class="error-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <h1 class="error-title">Oops! Something went wrong</h1>
-                <p class="error-message"><%= error %></p>
-                <div class="error-actions">
-                    <a href="/" class="btn btn-primary">Go Home</a>
-                    <a href="/login" class="btn btn-secondary">Login</a>
+        <div class="container">
+            <div class="error-container">
+                <div class="error-card">
+                    <div class="error-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h1>Access Denied</h1>
+                    <p><%= error %></p>
+                    <div class="error-actions">
+                        <a href="/dashboard" class="btn btn-primary">
+                            <i class="fas fa-home"></i> Go to Dashboard
+                        </a>
+                        <a href="/select-role" class="btn btn-secondary">
+                            <i class="fas fa-user-edit"></i> Change Role
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
