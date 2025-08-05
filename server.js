@@ -118,7 +118,7 @@ async function deleteFromS3(fileUrl) {
     const key = urlParts.slice(-2).join('/'); // Get the last two parts (folder/filename)
     
     const params = {
-      Bucket: process.env.AWS_S3_BUCKET || 'skillon-test',
+      Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
       Key: key
     };
 
@@ -771,7 +771,7 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
       const key = urlParts.slice(-2).join('/');
       
       const params = {
-        Bucket: process.env.AWS_S3_BUCKET || 'skillon-test',
+        Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
         Key: key
       };
       
@@ -829,7 +829,7 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
       const key = urlParts.slice(-2).join('/'); // Get the last two parts (folder/filename)
       
       const params = {
-        Bucket: process.env.AWS_S3_BUCKET || 'skillon-test',
+        Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
         Key: key
       };
       
