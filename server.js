@@ -111,16 +111,23 @@ async function uploadToS3(file, folder = 'uploads') {
 }
 
 // Helper function to delete file from S3
-async function deleteFromS3(key) {
-  const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: key
-  };
-
+async function deleteFromS3(fileUrl) {
   try {
+    // Extract the key from the URL
+    const urlParts = fileUrl.split('/');
+    const key = urlParts.slice(-2).join('/'); // Get the last two parts (folder/filename)
+    
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET || 'skillon-test',
+      Key: key
+    };
+
+    console.log('Deleting from S3:', params);
     await s3.deleteObject(params).promise();
+    console.log('Successfully deleted from S3:', key);
   } catch (error) {
     console.error('Error deleting from S3:', error);
+    throw error;
   }
 }
 
@@ -1238,6 +1245,41 @@ app.post('/admin/approve-all-content', isAuthenticated, requireRole(['admin']), 
 
 
 
+// Route for deleting content (admin only)
+app.delete('/admin/delete-content/:contentId', isAuthenticated, requireRole(['admin']), async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    
+    console.log('Admin delete request for content:', contentId);
+    
+    const content = await Content.findById(contentId);
+    if (!content) {
+      return res.status(404).json({ success: false, message: 'Content not found' });
+    }
+    
+    console.log('Found content to delete:', content.title);
+    
+    // Delete from S3
+    if (content.fileUrl) {
+      try {
+        await deleteFromS3(content.fileUrl);
+      } catch (s3Error) {
+        console.error('Error deleting from S3:', s3Error);
+        // Continue with database deletion even if S3 fails
+      }
+    }
+    
+    // Delete from database
+    await Content.findByIdAndDelete(contentId);
+    console.log('Content deleted from database:', contentId);
+    
+    res.json({ success: true, message: 'Content deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting content:', error);
+    res.status(500).json({ success: false, message: 'Error deleting content: ' + error.message });
+  }
+});
+
 // Route for approving content (admin only)
 app.post('/admin/approve-content/:contentId', isAuthenticated, requireRole(['admin']), async (req, res) => {
   try {
@@ -1263,11 +1305,16 @@ app.delete('/teacher/delete-content/:contentId', isAuthenticated, requireRole(['
   try {
     const { contentId } = req.params;
     
+    console.log('Delete request for content:', contentId, 'by user:', req.user.email);
+    
     // Verify the content belongs to this teacher
     const content = await Content.findOne({ _id: contentId, createdBy: req.user._id });
     if (!content) {
+      console.log('Content not found or access denied for user:', req.user.email);
       return res.status(404).json({ success: false, message: 'Content not found or access denied' });
     }
+    
+    console.log('Found content to delete:', content.title);
     
     // Delete from S3
     if (content.fileUrl) {
@@ -1275,16 +1322,18 @@ app.delete('/teacher/delete-content/:contentId', isAuthenticated, requireRole(['
         await deleteFromS3(content.fileUrl);
       } catch (s3Error) {
         console.error('Error deleting from S3:', s3Error);
+        // Continue with database deletion even if S3 fails
       }
     }
     
     // Delete from database
     await Content.findByIdAndDelete(contentId);
+    console.log('Content deleted from database:', contentId);
     
     res.json({ success: true, message: 'Content deleted successfully' });
   } catch (error) {
     console.error('Error deleting content:', error);
-    res.status(500).json({ success: false, message: 'Error deleting content' });
+    res.status(500).json({ success: false, message: 'Error deleting content: ' + error.message });
   }
 });
 

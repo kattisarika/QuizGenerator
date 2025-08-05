@@ -200,7 +200,7 @@
 
         function deleteContent(contentId) {
             if (confirm('Are you sure you want to delete this content? This action cannot be undone.')) {
-                fetch(`/teacher/delete-content/${contentId}`, {
+                fetch(`/admin/delete-content/${contentId}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json'
