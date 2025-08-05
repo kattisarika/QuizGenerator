@@ -1134,6 +1134,45 @@ app.post('/teacher/post-content', isAuthenticated, requireRole(['teacher']), req
   }
 });
 
+// Route to approve all pending content (for existing content)
+app.post('/admin/approve-all-content', isAuthenticated, requireRole(['admin']), async (req, res) => {
+  try {
+    const result = await Content.updateMany(
+      { isApproved: false },
+      { isApproved: true }
+    );
+    
+    res.json({ 
+      success: true, 
+      message: `Approved ${result.modifiedCount} content items`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error approving all content:', error);
+    res.status(500).json({ success: false, message: 'Error approving content' });
+  }
+});
+
+// Route for approving content (admin only)
+app.post('/admin/approve-content/:contentId', isAuthenticated, requireRole(['admin']), async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    
+    const content = await Content.findById(contentId);
+    if (!content) {
+      return res.status(404).json({ success: false, message: 'Content not found' });
+    }
+    
+    content.isApproved = true;
+    await content.save();
+    
+    res.json({ success: true, message: 'Content approved successfully' });
+  } catch (error) {
+    console.error('Error approving content:', error);
+    res.status(500).json({ success: false, message: 'Error approving content' });
+  }
+});
+
 // Route for deleting content
 app.delete('/teacher/delete-content/:contentId', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
@@ -1161,6 +1200,26 @@ app.delete('/teacher/delete-content/:contentId', isAuthenticated, requireRole(['
   } catch (error) {
     console.error('Error deleting content:', error);
     res.status(500).json({ success: false, message: 'Error deleting content' });
+  }
+});
+
+// Route for admin to view all content (including unapproved)
+app.get('/admin/content-management', isAuthenticated, requireRole(['admin']), async (req, res) => {
+  try {
+    const allContent = await Content.find({})
+      .populate('createdBy', 'displayName email')
+      .sort({ createdAt: -1 });
+    
+    res.render('admin-content-management', {
+      user: req.user,
+      content: allContent
+    });
+  } catch (error) {
+    console.error('Error fetching content for admin:', error);
+    res.render('admin-content-management', {
+      user: req.user,
+      content: []
+    });
   }
 });
 
