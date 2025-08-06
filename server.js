@@ -1415,7 +1415,137 @@ app.post('/admin/approve-all-content', isAuthenticated, requireRole(['admin']), 
   }
 });
 
+// ===== TEACHER ASSIGN STUDENTS ROUTES =====
 
+// Test route to verify routing works
+app.get('/teacher/test-assign', isAuthenticated, requireRole(['teacher']), (req, res) => {
+  res.send(`<h1>Test Route Works!</h1><p>User: ${req.user.displayName}</p><p>Role: ${req.user.role}</p>`);
+});
+
+// Route for teacher assign students page
+app.get('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    console.log('Accessing /teacher/assign-students route');
+    console.log('User:', req.user.displayName, 'Role:', req.user.role, 'Approved:', req.user.isApproved);
+    
+    // Get all students
+    const students = await User.find({ role: 'student' }).sort({ displayName: 1 });
+    console.log('Found', students.length, 'students');
+    
+    // Count statistics
+    const assignedToMe = await User.countDocuments({ 
+      role: 'student', 
+      assignedTeacher: req.user._id 
+    });
+    
+    const unassigned = await User.countDocuments({ 
+      role: 'student', 
+      assignedTeacher: null 
+    });
+    
+    console.log('Statistics:', { assignedToMe, unassigned });
+    
+    res.render('teacher-assign-students', { 
+      user: req.user, 
+      students: students,
+      assignedToMe: assignedToMe,
+      unassigned: unassigned
+    });
+  } catch (error) {
+    console.error('Error in assign-students route:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    
+    // Fallback response for debugging
+    res.status(500).send(`
+      <h1>Error in Assign Students Route</h1>
+      <p><strong>Error:</strong> ${error.message}</p>
+      <p><strong>User:</strong> ${req.user.displayName}</p>
+      <p><strong>User ID:</strong> ${req.user._id}</p>
+      <p><strong>Route reached successfully</strong></p>
+      <a href="/teacher/dashboard">Back to Dashboard</a>
+    `);
+  }
+});
+
+// Route to assign students to teacher
+app.post('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { assignments } = req.body;
+    
+    if (!assignments || !Array.isArray(assignments)) {
+      return res.status(400).json({ success: false, message: 'Invalid assignments data' });
+    }
+    
+    // Validate grade levels
+    const validGrades = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', 
+                        '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
+    
+    for (const assignment of assignments) {
+      if (!validGrades.includes(assignment.gradeLevel)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Invalid grade level: ${assignment.gradeLevel}` 
+        });
+      }
+    }
+    
+    // Update students
+    const updatePromises = assignments.map(assignment => 
+      User.findByIdAndUpdate(
+        assignment.studentId,
+        { 
+          assignedTeacher: req.user._id,
+          gradeLevel: assignment.gradeLevel
+        },
+        { new: true }
+      )
+    );
+    
+    await Promise.all(updatePromises);
+    
+    console.log(`Teacher ${req.user.displayName} assigned ${assignments.length} students`);
+    
+    res.json({ success: true, message: `Successfully assigned ${assignments.length} students` });
+  } catch (error) {
+    console.error('Error assigning students:', error);
+    res.status(500).json({ success: false, message: 'Error assigning students' });
+  }
+});
+
+// Route to unassign students from teacher
+app.post('/teacher/unassign-students', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { studentIds } = req.body;
+    
+    if (!studentIds || !Array.isArray(studentIds)) {
+      return res.status(400).json({ success: false, message: 'Invalid student IDs' });
+    }
+    
+    // Only allow unassigning students that are currently assigned to this teacher
+    const result = await User.updateMany(
+      { 
+        _id: { $in: studentIds },
+        assignedTeacher: req.user._id 
+      },
+      { 
+        assignedTeacher: null
+      }
+    );
+    
+    console.log(`Teacher ${req.user.displayName} unassigned ${result.modifiedCount} students`);
+    
+    res.json({ 
+      success: true, 
+      message: `Successfully unassigned ${result.modifiedCount} students` 
+    });
+  } catch (error) {
+    console.error('Error unassigning students:', error);
+    res.status(500).json({ success: false, message: 'Error unassigning students' });
+  }
+});
+
+// ===== END TEACHER ASSIGN STUDENTS ROUTES =====
 
 // Route for deleting content (admin only)
 app.delete('/admin/delete-content/:contentId', isAuthenticated, requireRole(['admin']), async (req, res) => {
@@ -2616,134 +2746,6 @@ app.post('/temp-login', (req, res) => {
   };
   
   res.redirect('/dashboard');
-});
-
-// Test route to verify routing works
-app.get('/teacher/test-assign', isAuthenticated, requireRole(['teacher']), (req, res) => {
-  res.send(`<h1>Test Route Works!</h1><p>User: ${req.user.displayName}</p><p>Role: ${req.user.role}</p>`);
-});
-
-// Route for teacher assign students page
-app.get('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
-  try {
-    console.log('Accessing /teacher/assign-students route');
-    console.log('User:', req.user.displayName, 'Role:', req.user.role, 'Approved:', req.user.isApproved);
-    
-    // Get all students
-    const students = await User.find({ role: 'student' }).sort({ displayName: 1 });
-    console.log('Found', students.length, 'students');
-    
-    // Count statistics
-    const assignedToMe = await User.countDocuments({ 
-      role: 'student', 
-      assignedTeacher: req.user._id 
-    });
-    
-    const unassigned = await User.countDocuments({ 
-      role: 'student', 
-      assignedTeacher: null 
-    });
-    
-    console.log('Statistics:', { assignedToMe, unassigned });
-    
-    res.render('teacher-assign-students', { 
-      user: req.user, 
-      students: students,
-      assignedToMe: assignedToMe,
-      unassigned: unassigned
-    });
-  } catch (error) {
-    console.error('Error in assign-students route:', error);
-    console.error('Error details:', error.message);
-    console.error('Stack trace:', error.stack);
-    
-    // Fallback response for debugging
-    res.status(500).send(`
-      <h1>Error in Assign Students Route</h1>
-      <p><strong>Error:</strong> ${error.message}</p>
-      <p><strong>User:</strong> ${req.user.displayName}</p>
-      <p><strong>User ID:</strong> ${req.user._id}</p>
-      <p><strong>Route reached successfully</strong></p>
-      <a href="/teacher/dashboard">Back to Dashboard</a>
-    `);
-  }
-});
-
-// Route to assign students to teacher
-app.post('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
-  try {
-    const { assignments } = req.body;
-    
-    if (!assignments || !Array.isArray(assignments)) {
-      return res.status(400).json({ success: false, message: 'Invalid assignments data' });
-    }
-    
-    // Validate grade levels
-    const validGrades = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', 
-                        '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
-    
-    for (const assignment of assignments) {
-      if (!validGrades.includes(assignment.gradeLevel)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Invalid grade level: ${assignment.gradeLevel}` 
-        });
-      }
-    }
-    
-    // Update students
-    const updatePromises = assignments.map(assignment => 
-      User.findByIdAndUpdate(
-        assignment.studentId,
-        { 
-          assignedTeacher: req.user._id,
-          gradeLevel: assignment.gradeLevel
-        },
-        { new: true }
-      )
-    );
-    
-    await Promise.all(updatePromises);
-    
-    console.log(`Teacher ${req.user.displayName} assigned ${assignments.length} students`);
-    
-    res.json({ success: true, message: `Successfully assigned ${assignments.length} students` });
-  } catch (error) {
-    console.error('Error assigning students:', error);
-    res.status(500).json({ success: false, message: 'Error assigning students' });
-  }
-});
-
-// Route to unassign students from teacher
-app.post('/teacher/unassign-students', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
-  try {
-    const { studentIds } = req.body;
-    
-    if (!studentIds || !Array.isArray(studentIds)) {
-      return res.status(400).json({ success: false, message: 'Invalid student IDs' });
-    }
-    
-    // Only allow unassigning students that are currently assigned to this teacher
-    const result = await User.updateMany(
-      { 
-        _id: { $in: studentIds },
-        assignedTeacher: req.user._id 
-      },
-      { 
-        assignedTeacher: null
-      }
-    );
-    
-    console.log(`Teacher ${req.user.displayName} unassigned ${result.modifiedCount} students`);
-    
-    res.json({ 
-      success: true, 
-      message: `Successfully unassigned ${result.modifiedCount} students` 
-    });
-  } catch (error) {
-    console.error('Error unassigning students:', error);
-    res.status(500).json({ success: false, message: 'Error unassigning students' });
-  }
 });
 
 // Start server with MongoDB connection check
