@@ -180,9 +180,9 @@
 
         <div class="viewer-tabs">
             <button class="tab-btn active" onclick="showTab('options')">Viewer Options</button>
-            <button class="tab-btn" onclick="showTab('direct')">Direct Preview</button>
             <button class="tab-btn" onclick="showTab('google')">Google Viewer</button>
             <button class="tab-btn" onclick="showTab('microsoft')">Microsoft Viewer</button>
+            <button class="tab-btn" onclick="showTab('direct')">Direct Preview</button>
         </div>
 
         <div id="optionsTab" class="tab-content active">
@@ -192,19 +192,21 @@
             </div>
 
             <div class="viewer-options">
-                <button onclick="showTab('direct')" class="btn btn-primary">
-                    <i class="fas fa-eye"></i>
-                    Direct Preview
-                </button>
-                
-                <button onclick="showTab('google')" class="btn btn-secondary">
+                <button onclick="showTab('google')" class="btn btn-primary">
                     <i class="fab fa-google"></i>
                     Google Docs Viewer
+                    <small class="d-block">Recommended</small>
                 </button>
                 
-                <button onclick="showTab('microsoft')" class="btn btn-secondary">
+                <button onclick="showTab('microsoft')" class="btn btn-primary">
                     <i class="fas fa-external-link-alt"></i>
                     Microsoft Online Viewer
+                </button>
+                
+                <button onclick="showTab('direct')" class="btn btn-secondary">
+                    <i class="fas fa-eye"></i>
+                    Direct Preview
+                    <small class="d-block">Limited Support</small>
                 </button>
                 
                 <a href="/student/download-content/<%= content._id %>" class="btn btn-success" target="_blank">
@@ -231,16 +233,20 @@
             </div>
             <div class="viewer-fallback" style="display: none;" id="directFallback">
                 <div class="fallback-content">
-                    <i class="fas fa-exclamation-triangle"></i>
+                    <i class="fas fa-info-circle" style="color: #17a2b8;"></i>
                     <h4>Direct Preview Not Available</h4>
-                    <p>PowerPoint files cannot be directly previewed in browsers. Try one of the other viewer options.</p>
+                    <p>PowerPoint files cannot be directly previewed in web browsers due to format limitations.</p>
+                    <p><strong>Please try one of these alternatives:</strong></p>
                     <div class="fallback-options">
-                        <button onclick="showTab('google')" class="btn btn-secondary">
-                            <i class="fab fa-google"></i> Google Viewer
+                        <button onclick="showTab('google')" class="btn btn-primary">
+                            <i class="fab fa-google"></i> Try Google Viewer
                         </button>
                         <button onclick="showTab('microsoft')" class="btn btn-primary">
-                            <i class="fas fa-external-link-alt"></i> Microsoft Viewer
+                            <i class="fas fa-external-link-alt"></i> Try Microsoft Viewer
                         </button>
+                        <a href="/student/download-content/<%= content._id %>" class="btn btn-success">
+                            <i class="fas fa-download"></i> Download File
+                        </a>
                     </div>
                 </div>
             </div>
@@ -355,6 +361,26 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <script>
+        // Initialize the viewer when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // If this is a PowerPoint file, automatically show the fallback for Direct Preview
+            const fileName = '<%= content.fileName %>';
+            const isPowerPoint = fileName.toLowerCase().includes('.ppt') || fileName.toLowerCase().includes('.pptx');
+            
+            if (isPowerPoint) {
+                console.log('PowerPoint file detected - pre-loading fallback states');
+                // Pre-load the direct fallback since we know it won't work
+                setTimeout(() => {
+                    const directStatus = document.getElementById('directStatus');
+                    const directFallback = document.getElementById('directFallback');
+                    if (directStatus && directFallback) {
+                        directStatus.style.display = 'none';
+                        directFallback.style.display = 'block';
+                    }
+                }, 100);
+            }
+        });
+
         function showTab(tabName) {
             // Hide all tab contents
             const tabContents = document.querySelectorAll('.tab-content');
@@ -397,16 +423,29 @@
                 frame.style.display = 'none';
                 document.getElementById('directFallback').style.display = 'none';
                 
-                // Try to load the file directly - this will likely fail for PowerPoint
-                const contentId = '<%= content._id %>';
-                iframe.src = `/student/view-content/${contentId}`;
-                console.log('Loading direct viewer for content:', contentId);
+                // For PowerPoint files, immediately show fallback since direct viewing won't work
+                const fileName = '<%= content.fileName %>';
+                const isPowerPoint = fileName.toLowerCase().includes('.ppt') || fileName.toLowerCase().includes('.pptx');
                 
-                // Set a timeout to show fallback since this will likely fail
-                setTimeout(() => {
-                    console.log('Direct viewer timeout - showing fallback');
-                    handleViewerError('direct');
-                }, 2000); // 2 second timeout for direct preview
+                if (isPowerPoint) {
+                    console.log('PowerPoint file detected - showing fallback immediately');
+                    setTimeout(() => {
+                        handleViewerError('direct');
+                    }, 1000); // Show fallback after 1 second for PowerPoint
+                } else {
+                    // For other files, try to load directly
+                    const contentId = '<%= content._id %>';
+                    iframe.src = `/student/view-content/${contentId}`;
+                    console.log('Loading direct viewer for content:', contentId);
+                    
+                    // Set a timeout to show fallback if it doesn't load
+                    setTimeout(() => {
+                        if (status.style.display !== 'none') {
+                            console.log('Direct viewer timeout - showing fallback');
+                            handleViewerError('direct');
+                        }
+                    }, 3000); // 3 second timeout for non-PowerPoint files
+                }
             }
         }
         
@@ -514,9 +553,13 @@
             console.log(`${viewerType} viewer loaded successfully`);
             const status = document.getElementById(`${viewerType}Status`);
             const frame = document.getElementById(`${viewerType}Frame`);
+            const fallback = document.getElementById(`${viewerType}Fallback`);
             
-            status.style.display = 'none';
-            frame.style.display = 'block';
+            // Only show the frame if we haven't already shown the fallback
+            if (fallback && fallback.style.display === 'none') {
+                status.style.display = 'none';
+                frame.style.display = 'block';
+            }
         }
         
         function handleViewerError(viewerType) {
@@ -525,9 +568,16 @@
             const frame = document.getElementById(`${viewerType}Frame`);
             const fallback = document.getElementById(`${viewerType}Fallback`);
             
-            status.style.display = 'none';
-            frame.style.display = 'none';
-            fallback.style.display = 'block';
+            // Mark that we've handled this viewer
+            if (status) status.style.display = 'none';
+            if (frame) frame.style.display = 'none';
+            if (fallback) fallback.style.display = 'block';
+            
+            // Also clear the iframe src to stop any loading
+            const iframe = document.getElementById(`${viewerType}Viewer`);
+            if (iframe) {
+                iframe.src = 'about:blank';
+            }
         }
         
         function retryGoogleViewer() {
