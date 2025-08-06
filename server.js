@@ -781,26 +781,16 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
         region: process.env.AWS_REGION || 'us-east-1'
       });
       
-          // Extract the key from the URL and handle URL encoding
-    const urlParts = content.fileUrl.split('/');
-    const key = urlParts.slice(-2).join('/');
-    
-    // Decode URL-encoded characters in the key
-    const decodedKey = decodeURIComponent(key);
-    
-    console.log('Content fileUrl:', content.fileUrl);
-    console.log('Extracted key:', key);
-    console.log('Decoded key:', decodedKey);
-    console.log('Bucket name:', process.env.AWS_BUCKET_NAME);
-    
-    const params = {
-      Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
-      Key: decodedKey
-    };
-    
-    console.log('S3 params:', params);
-    
-    const fileObject = await s3.getObject(params).promise();
+      // Extract the key from the URL
+      const urlParts = content.fileUrl.split('/');
+      const key = urlParts.slice(-2).join('/');
+      
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
+        Key: key
+      };
+      
+      const fileObject = await s3.getObject(params).promise();
       
       // Set appropriate headers for viewing (not downloading)
       res.setHeader('Content-Type', content.fileType);
@@ -821,73 +811,6 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
   }
 });
 
-// Debug route to check content URLs
-app.get('/debug-content-urls', isAuthenticated, requireRole(['admin']), async (req, res) => {
-  try {
-    const contents = await Content.find({});
-    res.json({
-      contents: contents.map(c => ({
-        id: c._id,
-        title: c.title,
-        fileName: c.fileName,
-        fileUrl: c.fileUrl,
-        fileType: c.fileType
-      }))
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Public route for serving files to external viewers (no authentication required)
-app.get('/public-file/:contentId', async (req, res) => {
-  try {
-    const { contentId } = req.params;
-    
-    const content = await Content.findById(contentId);
-    if (!content) {
-      return res.status(404).send('Content not found');
-    }
-    
-    // Fetch the file from S3 and serve it publicly
-    try {
-      const AWS = require('aws-sdk');
-      const s3 = new AWS.S3({
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: process.env.AWS_REGION || 'us-east-1'
-      });
-      
-      // Extract the key from the URL and handle URL encoding
-      const urlParts = content.fileUrl.split('/');
-      const key = urlParts.slice(-2).join('/');
-      const decodedKey = decodeURIComponent(key);
-      
-      const params = {
-        Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
-        Key: decodedKey
-      };
-      
-      const fileObject = await s3.getObject(params).promise();
-      
-      // Set appropriate headers for public viewing
-      res.setHeader('Content-Type', content.fileType);
-      res.setHeader('Content-Disposition', 'inline');
-      res.setHeader('Content-Length', fileObject.ContentLength);
-      res.setHeader('Access-Control-Allow-Origin', '*'); // Allow cross-origin access
-      
-      // Send the file
-      res.send(fileObject.Body);
-      
-    } catch (s3Error) {
-      console.error('S3 error in public route:', s3Error);
-      res.status(500).send('Error serving file');
-    }
-  } catch (error) {
-    console.error('Error in public file route:', error);
-    res.status(500).send('Error serving file');
-  }
-});
 
 // Route for downloading content (increment download count)
 app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['student']), async (req, res) => {
@@ -921,20 +844,10 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
       const urlParts = content.fileUrl.split('/');
       const key = urlParts.slice(-2).join('/'); // Get the last two parts (folder/filename)
       
-      // Decode URL-encoded characters in the key
-      const decodedKey = decodeURIComponent(key);
-      
-      console.log('Download - Content fileUrl:', content.fileUrl);
-      console.log('Download - Extracted key:', key);
-      console.log('Download - Decoded key:', decodedKey);
-      console.log('Download - Bucket name:', process.env.AWS_BUCKET_NAME);
-      
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
-        Key: decodedKey
+        Key: key
       };
-      
-      console.log('Download - S3 params:', params);
       
       const fileObject = await s3.getObject(params).promise();
       
