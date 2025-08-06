@@ -4314,3 +4314,29 @@ body {
     font-size: 0.875rem;
     margin-top: 0.25rem;
 }
+
+/* Grade Level Notice */
+.grade-level-notice {
+    margin: 20px 0;
+}
+
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.alert i {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}

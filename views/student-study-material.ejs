@@ -59,6 +59,15 @@
                     </div>
                 </div>
 
+                <% if (gradeMessage) { %>
+                    <div class="grade-level-notice">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Grade Level Notice:</strong> <%= gradeMessage %>
+                        </div>
+                    </div>
+                <% } %>
+
                 <div class="material-grid" id="materialGrid">
                     <% if (studyMaterial && studyMaterial.length > 0) { %>
                         <% studyMaterial.forEach(item => { %>

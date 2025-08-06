@@ -827,24 +827,40 @@ app.get('/student/study-material', isAuthenticated, requireRole(['student']), as
   try {
     // Get approved content filtered by student's grade level
     let query = { isApproved: true };
+    let messageForStudent = null;
     
     // Filter by student's grade level if it exists
     if (req.user.gradeLevel) {
       query.gradeLevel = req.user.gradeLevel;
-      console.log(`Filtering content for student ${req.user.displayName} (${req.user.gradeLevel})`);
+      console.log(`🎓 Filtering content for student ${req.user.displayName} (${req.user.gradeLevel})`);
+      console.log(`📋 Query: ${JSON.stringify(query)}`);
     } else {
-      console.log(`Student ${req.user.displayName} has no grade level set - showing all content`);
+      console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all content`);
+      messageForStudent = "Your grade level is not set. Please ask your teacher to assign you to the correct grade, or update your profile.";
     }
     
     const studyMaterial = await Content.find(query)
       .populate('createdBy', 'displayName')
       .sort({ createdAt: -1 });
     
-    console.log(`Found ${studyMaterial.length} study materials for grade ${req.user.gradeLevel || 'any'}`);
+    console.log(`📚 Found ${studyMaterial.length} study materials for grade ${req.user.gradeLevel || 'any'}`);
+    
+    // Get all content for debugging
+    const allContent = await Content.find({ isApproved: true }).select('title gradeLevel createdByName');
+    console.log(`📊 All available content by grade:`);
+    const contentByGrade = {};
+    allContent.forEach(content => {
+      if (!contentByGrade[content.gradeLevel]) {
+        contentByGrade[content.gradeLevel] = [];
+      }
+      contentByGrade[content.gradeLevel].push(content.title);
+    });
+    console.log(contentByGrade);
     
     res.render('student-study-material', {
       user: req.user,
-      studyMaterial
+      studyMaterial,
+      gradeMessage: messageForStudent
     });
   } catch (error) {
     console.error('Error fetching study material:', error);
@@ -1562,6 +1578,45 @@ app.post('/teacher/unassign-students', isAuthenticated, requireRole(['teacher'])
 });
 
 // ===== END TEACHER ASSIGN STUDENTS ROUTES =====
+
+// Route for viewing content distribution by grade (for debugging)
+app.get('/admin/content-by-grade', isAuthenticated, requireRole(['admin', 'teacher']), async (req, res) => {
+  try {
+    const allContent = await Content.find({ isApproved: true })
+      .populate('createdBy', 'displayName')
+      .sort({ gradeLevel: 1, createdAt: -1 });
+    
+    const contentByGrade = {};
+    allContent.forEach(content => {
+      if (!contentByGrade[content.gradeLevel]) {
+        contentByGrade[content.gradeLevel] = [];
+      }
+      contentByGrade[content.gradeLevel].push(content);
+    });
+    
+    // Get student counts by grade
+    const studentsByGrade = {};
+    const allStudents = await User.find({ role: 'student' });
+    allStudents.forEach(student => {
+      const grade = student.gradeLevel || 'No Grade Assigned';
+      if (!studentsByGrade[grade]) {
+        studentsByGrade[grade] = 0;
+      }
+      studentsByGrade[grade]++;
+    });
+    
+    res.json({
+      success: true,
+      contentByGrade: contentByGrade,
+      studentsByGrade: studentsByGrade,
+      totalContent: allContent.length,
+      totalStudents: allStudents.length
+    });
+  } catch (error) {
+    console.error('Error fetching content distribution:', error);
+    res.status(500).json({ success: false, message: 'Error fetching content distribution' });
+  }
+});
 
 // Route for deleting content (admin only)
 app.delete('/admin/delete-content/:contentId', isAuthenticated, requireRole(['admin']), async (req, res) => {
