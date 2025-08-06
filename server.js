@@ -2618,6 +2618,11 @@ app.post('/temp-login', (req, res) => {
   res.redirect('/dashboard');
 });
 
+// Test route to verify routing works
+app.get('/teacher/test-assign', isAuthenticated, requireRole(['teacher']), (req, res) => {
+  res.send(`<h1>Test Route Works!</h1><p>User: ${req.user.displayName}</p><p>Role: ${req.user.role}</p>`);
+});
+
 // Route for teacher assign students page
 app.get('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
@@ -2648,13 +2653,19 @@ app.get('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), r
       unassigned: unassigned
     });
   } catch (error) {
-    console.error('Error fetching students:', error);
-    res.render('teacher-assign-students', { 
-      user: req.user, 
-      students: [],
-      assignedToMe: 0,
-      unassigned: 0
-    });
+    console.error('Error in assign-students route:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    
+    // Fallback response for debugging
+    res.status(500).send(`
+      <h1>Error in Assign Students Route</h1>
+      <p><strong>Error:</strong> ${error.message}</p>
+      <p><strong>User:</strong> ${req.user.displayName}</p>
+      <p><strong>User ID:</strong> ${req.user._id}</p>
+      <p><strong>Route reached successfully</strong></p>
+      <a href="/teacher/dashboard">Back to Dashboard</a>
+    `);
   }
 });
 
