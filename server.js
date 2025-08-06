@@ -682,6 +682,29 @@ app.get('/dashboard', isAuthenticated, (req, res) => {
   res.render('dashboard', { user: req.user });
 });
 
+// API endpoint to get content file URL for external viewers
+app.get('/api/content-url/:contentId', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    
+    const content = await Content.findById(contentId);
+    if (!content) {
+      return res.status(404).json({ success: false, message: 'Content not found' });
+    }
+    
+    // Return the file URL for external viewers
+    res.json({ 
+      success: true, 
+      fileUrl: content.fileUrl,
+      fileName: content.fileName,
+      fileType: content.fileType
+    });
+  } catch (error) {
+    console.error('Error getting content URL:', error);
+    res.status(500).json({ success: false, message: 'Error getting content URL' });
+  }
+});
+
 // Role-specific dashboards
 app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {

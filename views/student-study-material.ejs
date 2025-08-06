@@ -98,9 +98,9 @@
                                     </div>
                                 </div>
                                 <div class="material-actions">
-                                    <a href="/student/view-content/<%= item._id %>" class="btn btn-primary" target="_blank">
+                                    <button class="btn btn-primary" onclick="openContentModal('<%= item._id %>', '<%= item.title %>', '<%= item.fileType %>', '<%= item.fileName %>')">
                                         <i class="fas fa-eye"></i> View
-                                    </a>
+                                    </button>
                                     <a href="/student/download-content/<%= item._id %>" class="btn btn-secondary" target="_blank" download>
                                         <i class="fas fa-download"></i> Download
                                     </a>
@@ -118,6 +118,21 @@
             </div>
         </div>
     </main>
+
+    <!-- Content Viewer Modal -->
+    <div id="contentViewerModal" class="modal">
+        <div class="modal-content content-modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-eye me-2"></i><span id="modalContentTitle">View Content</span></h2>
+                <span class="close" onclick="closeContentModal()">&times;</span>
+            </div>
+            <div class="modal-body content-modal-body">
+                <div id="contentViewerContainer">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
 
 
 
@@ -167,18 +182,161 @@
 
 
 
-        // Ensure no profile modal appears on page load
+        // Ensure no modal appears on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Student study material page loaded');
             
             // Explicitly ensure no modal is visible on page load
-            const modal = document.getElementById('studentProfileModal');
-            if (modal) {
-                modal.style.display = 'none';
-                modal.classList.remove('show');
+            const profileModal = document.getElementById('studentProfileModal');
+            if (profileModal) {
+                profileModal.style.display = 'none';
+                profileModal.classList.remove('show');
                 console.log('Profile modal explicitly hidden on page load');
             }
+            
+            // Ensure content viewer modal is hidden
+            const contentModal = document.getElementById('contentViewerModal');
+            if (contentModal) {
+                contentModal.style.display = 'none';
+                contentModal.classList.remove('show');
+                console.log('Content viewer modal explicitly hidden on page load');
+            }
         });
+
+        // Content Viewer Modal Functions
+        function openContentModal(contentId, title, fileType, fileName) {
+            console.log('Opening content modal for:', title);
+            const modal = document.getElementById('contentViewerModal');
+            const modalTitle = document.getElementById('modalContentTitle');
+            const contentContainer = document.getElementById('contentViewerContainer');
+            
+            // Set title
+            modalTitle.textContent = title;
+            
+            // Show modal
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            
+            // Clear previous content
+            contentContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading content...</div>';
+            
+            // Load content based on type
+            loadContentInModal(contentId, fileType, fileName, title);
+        }
+        
+        function closeContentModal() {
+            const modal = document.getElementById('contentViewerModal');
+            modal.style.display = 'none';
+            modal.classList.remove('show');
+            
+            // Clear content to free memory
+            const contentContainer = document.getElementById('contentViewerContainer');
+            contentContainer.innerHTML = '';
+        }
+        
+        function loadContentInModal(contentId, fileType, fileName, title) {
+            const contentContainer = document.getElementById('contentViewerContainer');
+            
+            // Check if it's a PowerPoint or Word document
+            const isPowerPoint = fileType.includes('powerpoint') || fileName.toLowerCase().includes('.ppt');
+            const isWordDoc = fileType.includes('word') || fileName.toLowerCase().includes('.doc');
+            
+            if (isPowerPoint || isWordDoc) {
+                // For PowerPoint and Word docs, show viewer options
+                contentContainer.innerHTML = `
+                    <div class="content-viewer-options">
+                        <div class="viewer-info">
+                            <h3>${title}</h3>
+                            <p><i class="fas fa-file"></i> ${fileName}</p>
+                        </div>
+                        
+                        <div class="viewer-buttons">
+                            <button onclick="openMicrosoftViewer('${contentId}')" class="btn btn-primary">
+                                <i class="fas fa-external-link-alt"></i> Open in Microsoft Online Viewer
+                            </button>
+                            <button onclick="openGoogleViewer('${contentId}')" class="btn btn-secondary">
+                                <i class="fab fa-google"></i> Open in Google Docs Viewer
+                            </button>
+                            <a href="/student/download-content/${contentId}" class="btn btn-success" target="_blank">
+                                <i class="fas fa-download"></i> Download to View Locally
+                            </a>
+                        </div>
+                    </div>
+                `;
+            } else if (fileType.includes('pdf')) {
+                // For PDFs, embed directly
+                contentContainer.innerHTML = `
+                    <div class="pdf-viewer">
+                        <iframe src="/student/view-content/${contentId}" 
+                                width="100%" 
+                                height="600px" 
+                                frameborder="0">
+                            <p>Your browser doesn't support PDFs. 
+                               <a href="/student/download-content/${contentId}" target="_blank">Download the PDF</a>
+                            </p>
+                        </iframe>
+                    </div>
+                `;
+            } else {
+                // For other file types, show download option
+                contentContainer.innerHTML = `
+                    <div class="content-viewer-fallback">
+                        <div class="fallback-icon">
+                            <i class="fas fa-file"></i>
+                        </div>
+                        <h3>${title}</h3>
+                        <p>This file type cannot be previewed in the browser.</p>
+                        <a href="/student/download-content/${contentId}" class="btn btn-primary" target="_blank">
+                            <i class="fas fa-download"></i> Download to View
+                        </a>
+                    </div>
+                `;
+            }
+        }
+        
+        function openMicrosoftViewer(contentId) {
+            // First get the file URL
+            fetch(`/api/content-url/${contentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(data.fileUrl)}`;
+                        window.open(viewerUrl, '_blank');
+                    } else {
+                        alert('Could not open in Microsoft Viewer. Please try downloading the file.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error getting file URL:', error);
+                    alert('Could not open in Microsoft Viewer. Please try downloading the file.');
+                });
+        }
+        
+        function openGoogleViewer(contentId) {
+            // First get the file URL
+            fetch(`/api/content-url/${contentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(data.fileUrl)}&embedded=true`;
+                        window.open(viewerUrl, '_blank');
+                    } else {
+                        alert('Could not open in Google Viewer. Please try downloading the file.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error getting file URL:', error);
+                    alert('Could not open in Google Viewer. Please try downloading the file.');
+                });
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('contentViewerModal');
+            if (event.target === modal) {
+                closeContentModal();
+            }
+        }
 
         // Student profile modal functions (if they exist)
         function openStudentProfile() {

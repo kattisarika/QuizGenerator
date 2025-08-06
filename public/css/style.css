@@ -1340,6 +1340,102 @@ body {
     display: block;
 }
 
+/* Content Viewer Modal Styles */
+#contentViewerModal {
+    display: none;
+}
+
+#contentViewerModal.show {
+    display: block;
+}
+
+.content-modal {
+    max-width: 90%;
+    max-height: 90%;
+    width: 1000px;
+}
+
+.content-modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.content-viewer-options {
+    text-align: center;
+    padding: 20px;
+}
+
+.viewer-info h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.viewer-info p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.viewer-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.pdf-viewer {
+    width: 100%;
+    height: 600px;
+}
+
+.pdf-viewer iframe {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.content-viewer-fallback {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.fallback-icon {
+    font-size: 4rem;
+    color: #ccc;
+    margin-bottom: 20px;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.loading i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .content-modal {
+        width: 95%;
+        margin: 2% auto;
+    }
+    
+    .content-modal-body {
+        max-height: 80vh;
+    }
+    
+    .viewer-buttons {
+        flex-direction: column;
+    }
+    
+    .pdf-viewer {
+        height: 400px;
+    }
+}
+
 .modal-content {
     background-color: white;
     margin: 5% auto;
