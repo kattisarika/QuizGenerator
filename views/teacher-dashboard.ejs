@@ -181,12 +181,17 @@
         
         // Modal functionality
         function showQuizModal() {
-            document.getElementById('quizModal').style.display = 'block';
+            console.log('Opening quiz modal from teacher dashboard');
+            const modal = document.getElementById('quizModal');
+            modal.style.display = 'block';
+            modal.classList.add('show');
             loadQuizModal();
         }
         
         function closeQuizModal() {
-            document.getElementById('quizModal').style.display = 'none';
+            const modal = document.getElementById('quizModal');
+            modal.style.display = 'none';
+            modal.classList.remove('show');
         }
         
         function loadQuizModal() {
@@ -262,8 +267,27 @@
         
 
         
-        // Filter functionality
+        // Global function to ensure quiz modal is hidden
+        function ensureQuizModalHidden() {
+            const modal = document.getElementById('quizModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                console.log('Quiz modal forcibly hidden');
+            }
+        }
+
+        // Ensure quiz modal is hidden on page load and filter functionality
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Teacher dashboard page loaded');
+            
+            // Explicitly ensure modal is hidden on page load
+            ensureQuizModalHidden();
+            
+            // Add additional safety checks after short delays
+            setTimeout(ensureQuizModalHidden, 100);
+            setTimeout(ensureQuizModalHidden, 500);
+            
             const filterButtons = document.querySelectorAll('.filter-btn');
             
             filterButtons.forEach(button => {
@@ -305,8 +329,11 @@
             }
         }
         
-        // Fix options functionality
+        // Fix options functionality and additional modal protection
         document.addEventListener('DOMContentLoaded', function() {
+            // Additional safety check to ensure modal is hidden
+            ensureQuizModalHidden();
+            
             const fixButtons = document.querySelectorAll('.fix-options-btn');
             
             fixButtons.forEach(button => {

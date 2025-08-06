@@ -1330,6 +1330,16 @@ body {
     display: block;
 }
 
+/* Specific rule to ensure teacher quiz modal is hidden by default */
+#quizModal {
+    display: none;
+}
+
+/* When quiz modal should be shown, this class can override the default */
+#quizModal.show {
+    display: block;
+}
+
 .modal-content {
     background-color: white;
     margin: 5% auto;
