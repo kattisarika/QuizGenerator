@@ -1366,22 +1366,54 @@ body {
     padding: 20px;
 }
 
+.office-viewer {
+    padding: 20px;
+}
+
 .viewer-info h3 {
     color: #333;
     margin-bottom: 10px;
+    text-align: center;
 }
 
 .viewer-info p {
     color: #666;
     margin-bottom: 20px;
+    text-align: center;
+}
+
+.office-viewer-container {
+    margin-bottom: 20px;
+}
+
+.viewer-alternatives {
+    text-align: center;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.viewer-note {
+    color: #6c757d;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.viewer-note i {
+    margin-right: 5px;
 }
 
 .viewer-buttons {
     display: flex;
-    flex-direction: column;
-    gap: 15px;
-    max-width: 400px;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    max-width: 600px;
     margin: 0 auto;
+}
+
+.viewer-buttons .btn {
+    flex: 1;
+    min-width: 180px;
 }
 
 .pdf-viewer {

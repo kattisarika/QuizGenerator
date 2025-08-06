@@ -242,24 +242,40 @@
             const isWordDoc = fileType.includes('word') || fileName.toLowerCase().includes('.doc');
             
             if (isPowerPoint || isWordDoc) {
-                // For PowerPoint and Word docs, show viewer options
+                // For PowerPoint and Word docs, try direct embedding first, then show options
                 contentContainer.innerHTML = `
-                    <div class="content-viewer-options">
+                    <div class="office-viewer">
                         <div class="viewer-info">
                             <h3>${title}</h3>
                             <p><i class="fas fa-file"></i> ${fileName}</p>
                         </div>
                         
-                        <div class="viewer-buttons">
-                            <button onclick="openMicrosoftViewer('${contentId}')" class="btn btn-primary">
-                                <i class="fas fa-external-link-alt"></i> Open in Microsoft Online Viewer
-                            </button>
-                            <button onclick="openGoogleViewer('${contentId}')" class="btn btn-secondary">
-                                <i class="fab fa-google"></i> Open in Google Docs Viewer
-                            </button>
-                            <a href="/student/download-content/${contentId}" class="btn btn-success" target="_blank">
-                                <i class="fas fa-download"></i> Download to View Locally
-                            </a>
+                        <div class="office-viewer-container">
+                            <iframe id="officeViewer" 
+                                    src="/student/view-content/${contentId}?embed=true" 
+                                    width="100%" 
+                                    height="400px" 
+                                    frameborder="0"
+                                    style="border: 1px solid #ddd; border-radius: 8px;">
+                            </iframe>
+                        </div>
+                        
+                        <div class="viewer-alternatives">
+                            <p class="viewer-note">
+                                <i class="fas fa-info-circle"></i> 
+                                If the preview doesn't load properly, try these alternatives:
+                            </p>
+                            <div class="viewer-buttons">
+                                <button onclick="openMicrosoftViewer('${contentId}')" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-external-link-alt"></i> Microsoft Online Viewer
+                                </button>
+                                <button onclick="openGoogleViewer('${contentId}')" class="btn btn-sm btn-secondary">
+                                    <i class="fab fa-google"></i> Google Docs Viewer
+                                </button>
+                                <a href="/student/download-content/${contentId}" class="btn btn-sm btn-success" target="_blank">
+                                    <i class="fas fa-download"></i> Download File
+                                </a>
+                            </div>
                         </div>
                     </div>
                 `;

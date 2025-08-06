@@ -805,9 +805,18 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
                         content.fileName.toLowerCase().includes('.ppt') ||
                         content.fileName.toLowerCase().includes('.pptx');
     
-    if (isPowerPoint) {
-      // For PowerPoint files, redirect to a viewer or download
+    // Check if this is a request for embedded viewing (from modal)
+    const isEmbedded = req.query.embed === 'true';
+    
+    if (isPowerPoint && !isEmbedded) {
+      // For PowerPoint files accessed directly, show the full viewer page
       return res.render('powerpoint-viewer', {
+        user: req.user,
+        content: content
+      });
+    } else if (isPowerPoint && isEmbedded) {
+      // For embedded PowerPoint viewing, create a minimal embedded viewer
+      return res.render('embedded-office-viewer', {
         user: req.user,
         content: content
       });

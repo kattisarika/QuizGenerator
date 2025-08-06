@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedded Viewer - <%= content.title %></title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background: #f8f9fa;
+        }
+        .embedded-viewer {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .file-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .file-info h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .file-info p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .viewer-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .preview-note {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 6px;
+            color: #495057;
+            font-size: 14px;
+        }
+        .preview-note i {
+            margin-right: 8px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="embedded-viewer">
+        <div class="file-info">
+            <h3><%= content.title %></h3>
+            <p><i class="fas fa-file-powerpoint"></i> <%= content.fileName %></p>
+        </div>
+
+        <div class="preview-note">
+            <i class="fas fa-info-circle"></i>
+            PowerPoint files cannot be directly previewed in the browser. Choose an option below to view the presentation:
+        </div>
+
+        <div class="viewer-options">
+            <button onclick="openMicrosoftViewer()" class="btn btn-primary">
+                <i class="fas fa-external-link-alt"></i>
+                Open in Microsoft Online Viewer
+            </button>
+            
+            <button onclick="openGoogleViewer()" class="btn btn-secondary">
+                <i class="fab fa-google"></i>
+                Open in Google Docs Viewer
+            </button>
+            
+            <a href="/student/download-content/<%= content._id %>" class="btn btn-success" target="_blank">
+                <i class="fas fa-download"></i>
+                Download to View Locally
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script>
+        function openMicrosoftViewer() {
+            const fileUrl = '<%= content.fileUrl %>';
+            const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+            window.open(viewerUrl, '_blank');
+        }
+        
+        function openGoogleViewer() {
+            const fileUrl = '<%= content.fileUrl %>';
+            const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+            window.open(viewerUrl, '_blank');
+        }
+    </script>
+</body>
+</html>
