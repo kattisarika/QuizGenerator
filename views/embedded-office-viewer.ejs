@@ -272,20 +272,24 @@
             <div class="viewer-fallback" style="display: none;" id="googleFallback">
                 <div class="fallback-content">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <h4>Viewer Not Available</h4>
-                    <p>The Google Docs viewer couldn't load this PowerPoint file. This can happen due to:</p>
+                    <h4>Google Viewer Unavailable</h4>
+                    <p>The Google Docs viewer cannot access this PowerPoint file. This typically happens because:</p>
                     <ul>
-                        <li>File security restrictions</li>
-                        <li>Network connectivity issues</li>
-                        <li>Google Docs viewer limitations</li>
+                        <li><strong>File Privacy:</strong> The file is not publicly accessible on the internet</li>
+                        <li><strong>CORS Restrictions:</strong> Cross-origin security blocks embedding</li>
+                        <li><strong>File Format:</strong> Some PowerPoint features may not be supported</li>
                     </ul>
+                    <p><strong>Solution:</strong> Try Microsoft Viewer or download the file to view locally.</p>
                     <div class="fallback-options">
-                        <button onclick="retryGoogleViewer()" class="btn btn-primary">
-                            <i class="fas fa-redo"></i> Try Again
+                        <button onclick="showTab('microsoft')" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Try Microsoft Viewer
                         </button>
                         <button onclick="openGoogleExternal()" class="btn btn-secondary">
                             <i class="fas fa-external-link-alt"></i> Open in New Tab
                         </button>
+                        <a href="/student/download-content/<%= content._id %>" class="btn btn-success">
+                            <i class="fas fa-download"></i> Download File
+                        </a>
                     </div>
                 </div>
             </div>
@@ -317,15 +321,24 @@
             <div class="viewer-fallback" style="display: none;" id="microsoftFallback">
                 <div class="fallback-content">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <h4>Viewer Not Available</h4>
-                    <p>The Microsoft Office viewer couldn't load this PowerPoint file. Try the alternatives below:</p>
+                    <h4>Microsoft Viewer Unavailable</h4>
+                    <p>The Microsoft Office viewer cannot access this PowerPoint file. This typically happens because:</p>
+                    <ul>
+                        <li><strong>File Privacy:</strong> The file is not publicly accessible on the internet</li>
+                        <li><strong>CORS Restrictions:</strong> Cross-origin security blocks embedding</li>
+                        <li><strong>Service Limitations:</strong> Microsoft's viewer has access restrictions</li>
+                    </ul>
+                    <p><strong>Recommended:</strong> Download the file to view with PowerPoint or a compatible viewer.</p>
                     <div class="fallback-options">
-                        <button onclick="retryMicrosoftViewer()" class="btn btn-primary">
-                            <i class="fas fa-redo"></i> Try Again
+                        <button onclick="showTab('google')" class="btn btn-secondary">
+                            <i class="fab fa-google"></i> Try Google Viewer
                         </button>
                         <button onclick="openMicrosoftExternal()" class="btn btn-secondary">
                             <i class="fas fa-external-link-alt"></i> Open in New Tab
                         </button>
+                        <a href="/student/download-content/<%= content._id %>" class="btn btn-success">
+                            <i class="fas fa-download"></i> Download File
+                        </a>
                     </div>
                 </div>
             </div>
@@ -391,8 +404,9 @@
                 
                 // Set a timeout to show fallback since this will likely fail
                 setTimeout(() => {
+                    console.log('Direct viewer timeout - showing fallback');
                     handleViewerError('direct');
-                }, 3000); // 3 second timeout for direct preview
+                }, 2000); // 2 second timeout for direct preview
             }
         }
         
@@ -407,24 +421,46 @@
                 frame.style.display = 'none';
                 document.getElementById('googleFallback').style.display = 'none';
                 
-                const fileUrl = '<%= content.fileUrl %>';
-                // Try different Google Viewer URLs for better compatibility
-                const viewerUrls = [
-                    `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`,
-                    `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(fileUrl)}`,
-                    `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
-                ];
-                
-                // Try the first URL
-                iframe.src = viewerUrls[0];
-                console.log('Loading Google Viewer:', viewerUrls[0]);
+                // First try to get a signed URL for better compatibility
+                const contentId = '<%= content._id %>';
+                fetch(`/api/signed-url/${contentId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const fileUrl = data.signedUrl;
+                            console.log('Using signed URL for Google Viewer:', fileUrl);
+                            
+                            // Try different Google Viewer URLs for better compatibility
+                            const viewerUrls = [
+                                `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`,
+                                `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(fileUrl)}`,
+                                `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
+                            ];
+                            
+                            // Try the first URL
+                            iframe.src = viewerUrls[0];
+                            console.log('Loading Google Viewer:', viewerUrls[0]);
+                        } else {
+                            console.error('Failed to get signed URL, using original');
+                            handleViewerError('google');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching signed URL:', error);
+                        // Fallback to original URL
+                        const fileUrl = '<%= content.fileUrl %>';
+                        const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+                        iframe.src = viewerUrl;
+                        console.log('Loading Google Viewer with original URL:', viewerUrl);
+                    });
                 
                 // Set a timeout to show fallback if loading takes too long
                 setTimeout(() => {
                     if (status.style.display !== 'none') {
+                        console.log('Google viewer timeout - showing fallback');
                         handleViewerError('google');
                     }
-                }, 10000); // 10 second timeout
+                }, 5000); // 5 second timeout
             }
         }
         
@@ -439,17 +475,38 @@
                 frame.style.display = 'none';
                 document.getElementById('microsoftFallback').style.display = 'none';
                 
-                const fileUrl = '<%= content.fileUrl %>';
-                const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
-                iframe.src = viewerUrl;
-                console.log('Loading Microsoft Viewer:', viewerUrl);
+                // First try to get a signed URL for better compatibility
+                const contentId = '<%= content._id %>';
+                fetch(`/api/signed-url/${contentId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const fileUrl = data.signedUrl;
+                            console.log('Using signed URL for Microsoft Viewer:', fileUrl);
+                            const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+                            iframe.src = viewerUrl;
+                            console.log('Loading Microsoft Viewer:', viewerUrl);
+                        } else {
+                            console.error('Failed to get signed URL, using original');
+                            handleViewerError('microsoft');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching signed URL:', error);
+                        // Fallback to original URL
+                        const fileUrl = '<%= content.fileUrl %>';
+                        const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+                        iframe.src = viewerUrl;
+                        console.log('Loading Microsoft Viewer with original URL:', viewerUrl);
+                    });
                 
                 // Set a timeout to show fallback if loading takes too long
                 setTimeout(() => {
                     if (status.style.display !== 'none') {
+                        console.log('Microsoft viewer timeout - showing fallback');
                         handleViewerError('microsoft');
                     }
-                }, 10000); // 10 second timeout
+                }, 5000); // 5 second timeout
             }
         }
         
@@ -486,15 +543,37 @@
         }
         
         function openGoogleExternal() {
-            const fileUrl = '<%= content.fileUrl %>';
-            const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}`;
-            window.open(viewerUrl, '_blank');
+            const contentId = '<%= content._id %>';
+            fetch(`/api/signed-url/${contentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const fileUrl = data.success ? data.signedUrl : '<%= content.fileUrl %>';
+                    const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}`;
+                    window.open(viewerUrl, '_blank');
+                })
+                .catch(error => {
+                    console.error('Error getting signed URL for external viewer:', error);
+                    const fileUrl = '<%= content.fileUrl %>';
+                    const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}`;
+                    window.open(viewerUrl, '_blank');
+                });
         }
         
         function openMicrosoftExternal() {
-            const fileUrl = '<%= content.fileUrl %>';
-            const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(fileUrl)}`;
-            window.open(viewerUrl, '_blank');
+            const contentId = '<%= content._id %>';
+            fetch(`/api/signed-url/${contentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const fileUrl = data.success ? data.signedUrl : '<%= content.fileUrl %>';
+                    const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(fileUrl)}`;
+                    window.open(viewerUrl, '_blank');
+                })
+                .catch(error => {
+                    console.error('Error getting signed URL for external viewer:', error);
+                    const fileUrl = '<%= content.fileUrl %>';
+                    const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(fileUrl)}`;
+                    window.open(viewerUrl, '_blank');
+                });
         }
     </script>
 </body>

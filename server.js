@@ -735,6 +735,60 @@ app.get('/api/content-url/:contentId', isAuthenticated, requireRole(['student'])
   }
 });
 
+// API endpoint to get a signed URL for external viewers
+app.get('/api/signed-url/:contentId', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    
+    const content = await Content.findById(contentId);
+    if (!content) {
+      return res.status(404).json({ success: false, message: 'Content not found' });
+    }
+    
+    // Generate a signed URL for external viewers (valid for 1 hour)
+    try {
+      const AWS = require('aws-sdk');
+      const s3 = new AWS.S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION || 'us-east-1'
+      });
+      
+      const key = extractS3Key(content.fileUrl);
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
+        Key: key,
+        Expires: 3600 // 1 hour
+      };
+      
+      const signedUrl = s3.getSignedUrl('getObject', params);
+      console.log('Generated signed URL for external viewers:', signedUrl);
+      
+      res.json({ 
+        success: true, 
+        signedUrl: signedUrl,
+        originalUrl: content.fileUrl,
+        fileName: content.fileName,
+        fileType: content.fileType
+      });
+    } catch (s3Error) {
+      console.error('Error generating signed URL:', s3Error);
+      // Fallback to original URL
+      res.json({ 
+        success: true, 
+        signedUrl: content.fileUrl,
+        originalUrl: content.fileUrl,
+        fileName: content.fileName,
+        fileType: content.fileType,
+        fallback: true
+      });
+    }
+  } catch (error) {
+    console.error('Error getting signed URL:', error);
+    res.status(500).json({ success: false, message: 'Error getting signed URL' });
+  }
+});
+
 // Role-specific dashboards
 app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
