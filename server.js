@@ -537,9 +537,9 @@ function parseQuestionsFlexible(text, language) {
     console.log(`🔍 Line ${i}: "${line}"`);
     
     // Look for numbered lines (potential questions)
-    const numberMatch = line.match(/^(\d+)[\.\)]\s*(.+)/);
+    const numberMatch = line.match(/^(\d+)[\.\)]\s*(.*)$/);
     if (numberMatch) {
-      console.log(`📝 Found question ${numberMatch[1]}: "${numberMatch[2]}"`);
+      console.log(`📝 Found question number ${numberMatch[1]}: "${numberMatch[2]}"`);
       
       // Save previous question if it has options
       if (currentQuestion && currentQuestion.options.length >= 2) {
@@ -552,8 +552,21 @@ function parseQuestionsFlexible(text, language) {
       }
       
       // Start new question
+      let questionText = numberMatch[2].trim();
+      
+      // If no text after the number, check the next line
+      if (!questionText && i + 1 < lines.length) {
+        const nextLine = lines[i + 1].trim();
+        // Check if next line is not an option marker
+        if (!nextLine.match(/^([ಅಆಇಈ]|[a-d]|[1-4])[\.\)]/i)) {
+          questionText = nextLine;
+          i++; // Skip the next line since we used it
+          console.log(`📝 Question text from next line: "${questionText}"`);
+        }
+      }
+      
       currentQuestion = {
-        question: numberMatch[2].trim(),
+        question: questionText || `Question ${numberMatch[1]}`,
         type: 'multiple-choice',
         options: [],
         correctAnswer: '',
@@ -577,11 +590,13 @@ function parseQuestionsFlexible(text, language) {
       }
       
       if (optionMatch) {
-        currentQuestion.options.push(optionMatch[2].trim());
+        const optionText = optionMatch[2].trim();
+        currentQuestion.options.push(optionText);
         optionCount++;
-        console.log(`🎯 Found option ${optionCount}: "${optionMatch[2].trim()}"`);
-      } else if (line.length > 10 && !line.match(/^\d+/)) {
-        // If it's a long line without numbering, might be an option without markers
+        console.log(`🎯 Found option ${optionCount} (${optionMatch[1]}): "${optionText}"`);
+      } else if (currentQuestion && line.length > 3 && !line.match(/^\d+/) && !line.includes('_')) {
+        // If it's a reasonable line without numbering and not a form field, might be an option without markers
+        // Exclude lines with underscores (likely form fields)
         currentQuestion.options.push(line);
         optionCount++;
         console.log(`🎯 Found unmarked option ${optionCount}: "${line}"`);
