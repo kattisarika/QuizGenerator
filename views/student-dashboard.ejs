@@ -199,12 +199,16 @@
         // Student Profile Modal Functions
         function openStudentProfile() {
             console.log('Opening student profile modal from dashboard');
-            document.getElementById('studentProfileModal').style.display = 'block';
+            const modal = document.getElementById('studentProfileModal');
+            modal.style.display = 'block';
+            modal.classList.add('show');
             loadStudentProfile();
         }
         
         function closeStudentProfile() {
-            document.getElementById('studentProfileModal').style.display = 'none';
+            const modal = document.getElementById('studentProfileModal');
+            modal.style.display = 'none';
+            modal.classList.remove('show');
         }
         
         function loadStudentProfile() {
@@ -323,17 +327,28 @@
     <script src="/js/session-timeout.js"></script>
     
     <script>
-        // Debug: Check if modal is being opened automatically
+        // Global function to ensure modal is hidden
+        function ensureProfileModalHidden() {
+            const modal = document.getElementById('studentProfileModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                console.log('Profile modal forcibly hidden');
+            }
+        }
+
+        // Ensure profile modal is hidden on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Student dashboard page loaded');
             console.log('User grade level:', '<%= user.gradeLevel || "Not Set" %>');
             console.log('User subjects:', '<%= (user.subjects || []).join(", ") || "Not Set" %>');
             
-            // Check if modal is visible
-            const modal = document.getElementById('studentProfileModal');
-            if (modal && modal.style.display === 'block') {
-                console.log('Modal is already visible on page load!');
-            }
+            // Explicitly ensure modal is hidden on page load
+            ensureProfileModalHidden();
+            
+            // Add additional safety check after a short delay
+            setTimeout(ensureProfileModalHidden, 100);
+            setTimeout(ensureProfileModalHidden, 500);
         });
     </script>
 </body>

@@ -197,12 +197,16 @@
     <script>
         // Student Profile Modal Functions
         function openStudentProfile() {
-            document.getElementById('studentProfileModal').style.display = 'block';
+            const modal = document.getElementById('studentProfileModal');
+            modal.style.display = 'block';
+            modal.classList.add('show');
             loadStudentProfile();
         }
         
         function closeStudentProfile() {
-            document.getElementById('studentProfileModal').style.display = 'none';
+            const modal = document.getElementById('studentProfileModal');
+            modal.style.display = 'none';
+            modal.classList.remove('show');
         }
         
         function loadStudentProfile() {
@@ -268,6 +272,19 @@
                 closeStudentProfile();
             }
         }
+        
+        // Ensure profile modal is hidden on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Available quizzes page loaded');
+            
+            // Explicitly ensure modal is hidden on page load
+            const modal = document.getElementById('studentProfileModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                console.log('Profile modal explicitly hidden on page load');
+            }
+        });
         
         // Notification function
         function showNotification(message, type) {

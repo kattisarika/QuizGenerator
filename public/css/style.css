@@ -1320,6 +1320,16 @@ body {
     backdrop-filter: blur(5px);
 }
 
+/* Specific rule to ensure student profile modal is hidden by default */
+#studentProfileModal {
+    display: none;
+}
+
+/* When modal should be shown, this class can override the default */
+#studentProfileModal.show {
+    display: block;
+}
+
 .modal-content {
     background-color: white;
     margin: 5% auto;

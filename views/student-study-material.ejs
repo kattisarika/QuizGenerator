@@ -167,6 +167,19 @@
 
 
 
+        // Ensure no profile modal appears on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Student study material page loaded');
+            
+            // Explicitly ensure no modal is visible on page load
+            const modal = document.getElementById('studentProfileModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                console.log('Profile modal explicitly hidden on page load');
+            }
+        });
+
         // Student profile modal functions (if they exist)
         function openStudentProfile() {
             // This function should be defined in the main dashboard
