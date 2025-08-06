@@ -229,6 +229,51 @@
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <!-- Language Selection -->
+                                <div class="row mt-3">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">Language *</label>
+                                        <div class="radio-group">
+                                            <div class="radio-item">
+                                                <input type="radio" id="language-english" name="language" value="English" onchange="updateLanguageSelection()" checked>
+                                                <label for="language-english">
+                                                    <i class="fas fa-flag me-2"></i>English
+                                                </label>
+                                            </div>
+                                            <div class="radio-item">
+                                                <input type="radio" id="language-spanish" name="language" value="Spanish" onchange="updateLanguageSelection()">
+                                                <label for="language-spanish">
+                                                    <i class="fas fa-flag me-2"></i>Spanish (Español)
+                                                </label>
+                                            </div>
+                                            <div class="radio-item">
+                                                <input type="radio" id="language-french" name="language" value="French" onchange="updateLanguageSelection()">
+                                                <label for="language-french">
+                                                    <i class="fas fa-flag me-2"></i>French (Français)
+                                                </label>
+                                            </div>
+                                            <div class="radio-item">
+                                                <input type="radio" id="language-kannada" name="language" value="Kannada" onchange="updateLanguageSelection()">
+                                                <label for="language-kannada">
+                                                    <i class="fas fa-flag me-2"></i>Kannada (ಕನ್ನಡ)
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div id="language-selection-info" class="mt-2" style="display: none;">
+                                            <small class="text-success">
+                                                <i class="fas fa-check-circle"></i>
+                                                <span id="selected-language-text">English selected</span>
+                                            </small>
+                                        </div>
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle"></i>
+                                                Select the primary language for this quiz content
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- File Upload Section -->
@@ -346,6 +391,22 @@
             }
         }
         
+        // Language selection update function
+        function updateLanguageSelection() {
+            const selectedLanguage = document.querySelector('input[name="language"]:checked');
+            const infoDiv = document.getElementById('language-selection-info');
+            const textSpan = document.getElementById('selected-language-text');
+            
+            if (selectedLanguage) {
+                textSpan.textContent = `${selectedLanguage.value} selected`;
+                infoDiv.style.display = 'block';
+            } else {
+                infoDiv.style.display = 'none';
+            }
+            
+            console.log('Language selected:', selectedLanguage ? selectedLanguage.value : 'None');
+        }
+        
         // Test function to debug subject selection
         function testSubjectSelection() {
             const selectedSubject = document.querySelector('input[name="subjects"]:checked');
@@ -410,6 +471,11 @@
                 errors.push('Please select a subject.');
             }
             
+            const selectedLanguage = document.querySelector('input[name="language"]:checked');
+            if (!selectedLanguage) {
+                errors.push('Please select a language.');
+            }
+            
             if (errors.length > 0) {
                 e.preventDefault();
                 alert('Please fix the following errors:\n\n' + errors.join('\n'));
@@ -422,6 +488,11 @@
             const submitBtn = document.querySelector('button[type="submit"]');
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Quiz...';
             submitBtn.disabled = true;
+        });
+        
+        // Initialize language selection on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLanguageSelection(); // Show English as selected by default
         });
     </script>
 </body>

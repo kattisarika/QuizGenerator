@@ -56,6 +56,12 @@ const quizSchema = new mongoose.Schema({
     type: String,
     enum: ['English', 'Science', 'Math']
   }],
+  language: {
+    type: String,
+    enum: ['English', 'Spanish', 'French', 'Kannada'],
+    default: 'English',
+    required: true
+  },
   questionPaperUrl: {
     type: String,
     default: null

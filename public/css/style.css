@@ -4340,3 +4340,26 @@ body {
     font-size: 1.2rem;
     flex-shrink: 0;
 }
+
+/* Language Selection Styles */
+.radio-group .radio-item label i.fa-flag {
+    color: #007bff;
+    margin-right: 8px;
+}
+
+.radio-group .radio-item:hover label i.fa-flag {
+    color: #0056b3;
+}
+
+.radio-group .radio-item input:checked + label i.fa-flag {
+    color: #28a745;
+}
+
+#language-selection-info {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}

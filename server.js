@@ -1109,7 +1109,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
   { name: 'answerPaper', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const { title, description, gradeLevel, subjects } = req.body;
+    const { title, description, gradeLevel, subjects, language } = req.body;
     let extractedQuestions = [];
     let questionFileUrl = null;
     let answerFileUrl = null;
@@ -1133,8 +1133,16 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       console.log('Subject value:', subjects);
       return res.status(400).send('Please select a subject');
     }
+    
+    // Validate language
+    const validLanguages = ['English', 'Spanish', 'French', 'Kannada'];
+    if (!language || !validLanguages.includes(language)) {
+      console.log('Validation error: Invalid language selected');
+      console.log('Language value:', language);
+      return res.status(400).send('Please select a valid language');
+    }
 
-    console.log('Form validation passed:', { gradeLevel, subjects });
+    console.log('Form validation passed:', { gradeLevel, subjects, language });
 
     console.log('Creating quiz:', { title, description, gradeLevel, subjects });
 
@@ -1237,6 +1245,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       description,
       gradeLevel,
       subjects: [subjects], // Convert single subject to array for database
+      language: language, // Include selected language
       questions: extractedQuestions,
       createdBy: req.user._id,
       createdByName: req.user.displayName,
@@ -2387,6 +2396,9 @@ app.post('/recreate-quiz/:quizId', isAuthenticated, requireRole(['teacher']), as
     const newQuiz = new Quiz({
       title: originalQuiz.title + ' (Updated)',
       description: originalQuiz.description,
+      gradeLevel: originalQuiz.gradeLevel,
+      subjects: originalQuiz.subjects,
+      language: originalQuiz.language || 'English', // Include language with fallback
       createdBy: req.user._id,
       createdByName: req.user.displayName,
       isApproved: false, // New quiz needs approval
