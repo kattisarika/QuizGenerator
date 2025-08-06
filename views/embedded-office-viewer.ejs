@@ -462,9 +462,15 @@
                 
                 // First try to get a signed URL for better compatibility
                 const contentId = '<%= content._id %>';
+                console.log('Fetching signed URL for content:', contentId);
+                
                 fetch(`/api/signed-url/${contentId}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log('Signed URL response status:', response.status);
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log('Signed URL response data:', data);
                         if (data.success) {
                             const fileUrl = data.signedUrl;
                             console.log('Using signed URL for Google Viewer:', fileUrl);
@@ -478,9 +484,25 @@
                             
                             // Try the first URL
                             iframe.src = viewerUrls[0];
-                            console.log('Loading Google Viewer:', viewerUrls[0]);
+                            console.log('Loading Google Viewer with URL:', viewerUrls[0]);
+                            
+                            // Add a more aggressive check to see if the iframe loads content
+                            setTimeout(() => {
+                                try {
+                                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                                    if (iframeDoc && iframeDoc.body && iframeDoc.body.innerHTML.length > 100) {
+                                        console.log('Google viewer appears to have loaded content');
+                                        handleViewerLoad('google');
+                                    } else {
+                                        console.log('Google viewer iframe is empty or minimal content');
+                                    }
+                                } catch (e) {
+                                    console.log('Cannot access iframe content (likely CORS) - this might be normal');
+                                }
+                            }, 3000);
+                            
                         } else {
-                            console.error('Failed to get signed URL, using original');
+                            console.error('Failed to get signed URL:', data.message);
                             handleViewerError('google');
                         }
                     })
@@ -499,7 +521,23 @@
                         console.log('Google viewer timeout - showing fallback');
                         handleViewerError('google');
                     }
-                }, 5000); // 5 second timeout
+                }, 8000); // 8 second timeout for Google viewer
+                
+                // Also set a check to see if we should show the frame after a shorter time
+                setTimeout(() => {
+                    if (status.style.display !== 'none' && iframe.src) {
+                        // Check if iframe has navigated (indicating it might be working)
+                        try {
+                            const currentSrc = iframe.src;
+                            if (currentSrc && currentSrc.includes('docs.google.com')) {
+                                console.log('Google viewer iframe appears to be loading, showing frame');
+                                handleViewerLoad('google');
+                            }
+                        } catch (e) {
+                            console.log('Could not check iframe status');
+                        }
+                    }
+                }, 4000); // Check after 4 seconds
             }
         }
         
@@ -545,7 +583,23 @@
                         console.log('Microsoft viewer timeout - showing fallback');
                         handleViewerError('microsoft');
                     }
-                }, 5000); // 5 second timeout
+                }, 8000); // 8 second timeout for Microsoft viewer
+                
+                // Also set a check to see if we should show the frame after a shorter time
+                setTimeout(() => {
+                    if (status.style.display !== 'none' && iframe.src) {
+                        // Check if iframe has navigated (indicating it might be working)
+                        try {
+                            const currentSrc = iframe.src;
+                            if (currentSrc && currentSrc.includes('officeapps.live.com')) {
+                                console.log('Microsoft viewer iframe appears to be loading, showing frame');
+                                handleViewerLoad('microsoft');
+                            }
+                        } catch (e) {
+                            console.log('Could not check Microsoft iframe status');
+                        }
+                    }
+                }, 4000); // Check after 4 seconds
             }
         }
         
@@ -557,8 +611,11 @@
             
             // Only show the frame if we haven't already shown the fallback
             if (fallback && fallback.style.display === 'none') {
+                console.log(`Showing ${viewerType} viewer frame`);
                 status.style.display = 'none';
                 frame.style.display = 'block';
+            } else {
+                console.log(`${viewerType} viewer fallback already shown, not displaying frame`);
             }
         }
         
