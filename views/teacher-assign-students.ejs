@@ -34,75 +34,86 @@
             font-size: 1.1rem;
         }
         
-        .students-grid {
-            display: grid;
-            gap: 20px;
+        .students-table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 30px;
         }
         
-        .student-card {
-            background: white;
-            border: 2px solid #e1e8ed;
-            border-radius: 10px;
-            padding: 20px;
-            transition: all 0.3s ease;
-            cursor: pointer;
+        .students-table {
+            width: 100%;
+            border-collapse: collapse;
         }
         
-        .student-card:hover {
-            border-color: #667eea;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+        .students-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #5a67d8;
         }
         
-        .student-card.selected {
-            border-color: #667eea;
+        .students-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e1e8ed;
+            vertical-align: middle;
+        }
+        
+        .students-table tr:hover {
             background: #f8f9ff;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+        }
+        
+        .students-table tr.selected {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
         }
         
         .student-info {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 12px;
         }
         
         .student-avatar {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             object-fit: cover;
         }
         
         .student-avatar-placeholder {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: #667eea;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 1.2rem;
+            font-size: 1rem;
         }
         
-        .student-details h3 {
-            margin: 0 0 5px 0;
+        .student-details h4 {
+            margin: 0 0 2px 0;
             color: #2c3e50;
-            font-size: 1.1rem;
+            font-size: 1rem;
+            font-weight: 600;
         }
         
         .student-details p {
             margin: 0;
             color: #7f8c8d;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         
-        .student-assignment {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
+        .assign-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin: 0;
         }
         
         .grade-select {
@@ -265,11 +276,6 @@
         }
         
         @media (max-width: 768px) {
-            .student-assignment {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
             .filter-group {
                 flex-direction: column;
                 align-items: stretch;
@@ -277,6 +283,36 @@
             
             .assign-header h1 {
                 font-size: 1.8rem;
+            }
+            
+            .students-table-container {
+                overflow-x: auto;
+            }
+            
+            .students-table {
+                min-width: 800px;
+            }
+            
+            .students-table th,
+            .students-table td {
+                padding: 10px 8px;
+                font-size: 0.9rem;
+            }
+            
+            .student-avatar,
+            .student-avatar-placeholder {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .student-details h4 {
+                font-size: 0.9rem;
+            }
+            
+            .grade-select {
+                min-width: 120px;
+                padding: 6px 8px;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -366,72 +402,101 @@
                 <i class="fas fa-check-circle"></i> <span id="selectedCountText">0</span> students selected
             </div>
 
-            <!-- Students Grid -->
-            <div id="studentsContainer" class="students-grid">
+            <!-- Students Table -->
+            <div class="students-table-container">
                 <% if (students && students.length > 0) { %>
-                    <% students.forEach(student => { %>
-                        <div class="student-card" 
-                             data-student-id="<%= student._id %>"
-                             data-student-name="<%= student.displayName.toLowerCase() %>"
-                             data-student-email="<%= student.email.toLowerCase() %>"
-                             data-student-grade="<%= student.gradeLevel || '' %>"
-                             data-assigned-teacher="<%= student.assignedTeacher || '' %>"
-                             onclick="toggleStudentSelection(this)">
-                            
-                            <div class="student-info">
-                                <% if (student.photos && student.photos.length > 0) { %>
-                                    <img src="<%= student.photos[0].value %>" alt="Profile" class="student-avatar">
-                                <% } else { %>
-                                    <div class="student-avatar-placeholder">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                <% } %>
-                                
-                                <div class="student-details">
-                                    <h3><%= student.displayName %></h3>
-                                    <p><%= student.email %></p>
-                                    <% if (student.subjects && student.subjects.length > 0) { %>
-                                        <p><i class="fas fa-book"></i> <%= student.subjects.join(', ') %></p>
-                                    <% } %>
-                                </div>
-                            </div>
-                            
-                            <div class="student-assignment">
-                                <select class="grade-select" onclick="event.stopPropagation()">
-                                    <option value="">Select Grade Level</option>
-                                    <option value="1st grade" <%= student.gradeLevel === '1st grade' ? 'selected' : '' %>>1st Grade</option>
-                                    <option value="2nd grade" <%= student.gradeLevel === '2nd grade' ? 'selected' : '' %>>2nd Grade</option>
-                                    <option value="3rd grade" <%= student.gradeLevel === '3rd grade' ? 'selected' : '' %>>3rd Grade</option>
-                                    <option value="4th grade" <%= student.gradeLevel === '4th grade' ? 'selected' : '' %>>4th Grade</option>
-                                    <option value="5th grade" <%= student.gradeLevel === '5th grade' ? 'selected' : '' %>>5th Grade</option>
-                                    <option value="6th grade" <%= student.gradeLevel === '6th grade' ? 'selected' : '' %>>6th Grade</option>
-                                    <option value="7th grade" <%= student.gradeLevel === '7th grade' ? 'selected' : '' %>>7th Grade</option>
-                                    <option value="8th grade" <%= student.gradeLevel === '8th grade' ? 'selected' : '' %>>8th Grade</option>
-                                    <option value="9th grade" <%= student.gradeLevel === '9th grade' ? 'selected' : '' %>>9th Grade</option>
-                                    <option value="10th grade" <%= student.gradeLevel === '10th grade' ? 'selected' : '' %>>10th Grade</option>
-                                    <option value="11th grade" <%= student.gradeLevel === '11th grade' ? 'selected' : '' %>>11th Grade</option>
-                                    <option value="12th grade" <%= student.gradeLevel === '12th grade' ? 'selected' : '' %>>12th Grade</option>
-                                </select>
-                                
-                                <% 
-                                let statusClass = 'status-unassigned';
-                                let statusText = 'Unassigned';
-                                if (student.assignedTeacher) {
-                                    if (student.assignedTeacher.toString() === user._id.toString()) {
-                                        statusClass = 'status-assigned';
-                                        statusText = 'Assigned to You';
-                                    } else {
-                                        statusClass = 'status-pending';
-                                        statusText = 'Assigned to Other';
-                                    }
-                                }
-                                %>
-                                <span class="assignment-status <%= statusClass %>">
-                                    <%= statusText %>
-                                </span>
-                            </div>
-                        </div>
-                    <% }) %>
+                    <table class="students-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="selectAllStudents(this.checked)">
+                                    Select All
+                                </th>
+                                <th>Student Information</th>
+                                <th>Email Address</th>
+                                <th>Grade Level</th>
+                                <th>Current Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <% students.forEach(student => { %>
+                                <tr class="student-row" 
+                                    data-student-id="<%= student._id %>"
+                                    data-student-name="<%= student.displayName.toLowerCase() %>"
+                                    data-student-email="<%= student.email.toLowerCase() %>"
+                                    data-student-grade="<%= student.gradeLevel || '' %>"
+                                    data-assigned-teacher="<%= student.assignedTeacher || '' %>">
+                                    
+                                    <td>
+                                        <input type="checkbox" 
+                                               class="assign-checkbox student-checkbox" 
+                                               data-student-id="<%= student._id %>"
+                                               onchange="toggleStudentSelection(this)">
+                                    </td>
+                                    
+                                    <td>
+                                        <div class="student-info">
+                                            <% if (student.photos && student.photos.length > 0) { %>
+                                                <img src="<%= student.photos[0].value %>" alt="Profile" class="student-avatar">
+                                            <% } else { %>
+                                                <div class="student-avatar-placeholder">
+                                                    <i class="fas fa-user-graduate"></i>
+                                                </div>
+                                            <% } %>
+                                            
+                                            <div class="student-details">
+                                                <h4><%= student.displayName %></h4>
+                                                <% if (student.subjects && student.subjects.length > 0) { %>
+                                                    <p><i class="fas fa-book"></i> <%= student.subjects.join(', ') %></p>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    
+                                    <td>
+                                        <strong><%= student.email %></strong>
+                                    </td>
+                                    
+                                    <td>
+                                        <select class="grade-select" data-student-id="<%= student._id %>">
+                                            <option value="">Select Grade Level</option>
+                                            <option value="1st grade" <%= student.gradeLevel === '1st grade' ? 'selected' : '' %>>1st Grade</option>
+                                            <option value="2nd grade" <%= student.gradeLevel === '2nd grade' ? 'selected' : '' %>>2nd Grade</option>
+                                            <option value="3rd grade" <%= student.gradeLevel === '3rd grade' ? 'selected' : '' %>>3rd Grade</option>
+                                            <option value="4th grade" <%= student.gradeLevel === '4th grade' ? 'selected' : '' %>>4th Grade</option>
+                                            <option value="5th grade" <%= student.gradeLevel === '5th grade' ? 'selected' : '' %>>5th Grade</option>
+                                            <option value="6th grade" <%= student.gradeLevel === '6th grade' ? 'selected' : '' %>>6th Grade</option>
+                                            <option value="7th grade" <%= student.gradeLevel === '7th grade' ? 'selected' : '' %>>7th Grade</option>
+                                            <option value="8th grade" <%= student.gradeLevel === '8th grade' ? 'selected' : '' %>>8th Grade</option>
+                                            <option value="9th grade" <%= student.gradeLevel === '9th grade' ? 'selected' : '' %>>9th Grade</option>
+                                            <option value="10th grade" <%= student.gradeLevel === '10th grade' ? 'selected' : '' %>>10th Grade</option>
+                                            <option value="11th grade" <%= student.gradeLevel === '11th grade' ? 'selected' : '' %>>11th Grade</option>
+                                            <option value="12th grade" <%= student.gradeLevel === '12th grade' ? 'selected' : '' %>>12th Grade</option>
+                                        </select>
+                                    </td>
+                                    
+                                    <td>
+                                        <% 
+                                        let statusClass = 'status-unassigned';
+                                        let statusText = 'Unassigned';
+                                        if (student.assignedTeacher) {
+                                            if (student.assignedTeacher.toString() === user._id.toString()) {
+                                                statusClass = 'status-assigned';
+                                                statusText = 'Assigned to You';
+                                            } else {
+                                                statusClass = 'status-pending';
+                                                statusText = 'Assigned to Other';
+                                            }
+                                        }
+                                        %>
+                                        <span class="assignment-status <%= statusClass %>">
+                                            <%= statusText %>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
                 <% } else { %>
                     <div style="text-align: center; padding: 60px; color: #7f8c8d;">
                         <i class="fas fa-users" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;"></i>
@@ -461,18 +526,58 @@
     <script>
         let selectedStudents = new Set();
         
-        function toggleStudentSelection(card) {
-            const studentId = card.dataset.studentId;
+        function toggleStudentSelection(checkbox) {
+            const studentId = checkbox.dataset.studentId;
+            const row = checkbox.closest('tr');
             
-            if (selectedStudents.has(studentId)) {
-                selectedStudents.delete(studentId);
-                card.classList.remove('selected');
-            } else {
+            if (checkbox.checked) {
                 selectedStudents.add(studentId);
-                card.classList.add('selected');
+                row.classList.add('selected');
+            } else {
+                selectedStudents.delete(studentId);
+                row.classList.remove('selected');
             }
             
             updateSelectionUI();
+            updateSelectAllCheckbox();
+        }
+        
+        function selectAllStudents(checked) {
+            const checkboxes = document.querySelectorAll('.student-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                const row = checkbox.closest('tr');
+                const studentId = checkbox.dataset.studentId;
+                
+                checkbox.checked = checked;
+                
+                if (checked) {
+                    selectedStudents.add(studentId);
+                    row.classList.add('selected');
+                } else {
+                    selectedStudents.delete(studentId);
+                    row.classList.remove('selected');
+                }
+            });
+            
+            updateSelectionUI();
+        }
+        
+        function updateSelectAllCheckbox() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const checkboxes = document.querySelectorAll('.student-checkbox');
+            const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+            
+            if (checkedBoxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (checkedBoxes.length === checkboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
         }
         
         function updateSelectionUI() {
@@ -504,9 +609,13 @@
         
         function clearSelection() {
             selectedStudents.clear();
-            document.querySelectorAll('.student-card.selected').forEach(card => {
-                card.classList.remove('selected');
+            document.querySelectorAll('.student-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+                const row = checkbox.closest('tr');
+                row.classList.remove('selected');
             });
+            document.getElementById('selectAllCheckbox').checked = false;
+            document.getElementById('selectAllCheckbox').indeterminate = false;
             updateSelectionUI();
         }
         
@@ -517,12 +626,12 @@
             const hasInvalidGrades = [];
             
             selectedStudents.forEach(studentId => {
-                const card = document.querySelector(`[data-student-id="${studentId}"]`);
-                const gradeSelect = card.querySelector('.grade-select');
+                const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+                const gradeSelect = row.querySelector('.grade-select');
                 const gradeLevel = gradeSelect.value;
                 
                 if (!gradeLevel) {
-                    hasInvalidGrades.push(card.querySelector('h3').textContent);
+                    hasInvalidGrades.push(row.querySelector('h4').textContent);
                 } else {
                     assignments.push({
                         studentId: studentId,
@@ -604,11 +713,11 @@
             const statusFilter = document.getElementById('statusFilter').value;
             const teacherId = '<%= user._id %>';
             
-            document.querySelectorAll('.student-card').forEach(card => {
-                const name = card.dataset.studentName;
-                const email = card.dataset.studentEmail;
-                const grade = card.dataset.studentGrade;
-                const assignedTeacher = card.dataset.assignedTeacher;
+            document.querySelectorAll('.student-row').forEach(row => {
+                const name = row.dataset.studentName;
+                const email = row.dataset.studentEmail;
+                const grade = row.dataset.studentGrade;
+                const assignedTeacher = row.dataset.assignedTeacher;
                 
                 let show = true;
                 
@@ -633,7 +742,7 @@
                     }
                 }
                 
-                card.style.display = show ? 'block' : 'none';
+                row.style.display = show ? 'table-row' : 'none';
             });
         }
         
