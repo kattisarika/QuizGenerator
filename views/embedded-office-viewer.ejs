@@ -112,6 +112,50 @@
             gap: 10px;
             justify-content: center;
         }
+        .viewer-status {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        .viewer-status i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .viewer-fallback {
+            text-align: center;
+            padding: 30px;
+        }
+        .fallback-content {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .fallback-content i {
+            font-size: 3rem;
+            color: #ffc107;
+            margin-bottom: 15px;
+        }
+        .fallback-content h4 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        .fallback-content p {
+            color: #6c757d;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .fallback-content ul {
+            text-align: left;
+            margin-bottom: 20px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .fallback-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
         .preview-note {
             text-align: center;
             margin-bottom: 20px;
@@ -136,6 +180,7 @@
 
         <div class="viewer-tabs">
             <button class="tab-btn active" onclick="showTab('options')">Viewer Options</button>
+            <button class="tab-btn" onclick="showTab('direct')">Direct Preview</button>
             <button class="tab-btn" onclick="showTab('google')">Google Viewer</button>
             <button class="tab-btn" onclick="showTab('microsoft')">Microsoft Viewer</button>
         </div>
@@ -147,14 +192,19 @@
             </div>
 
             <div class="viewer-options">
-                <button onclick="showTab('google')" class="btn btn-secondary">
-                    <i class="fab fa-google"></i>
-                    Open Google Docs Viewer
+                <button onclick="showTab('direct')" class="btn btn-primary">
+                    <i class="fas fa-eye"></i>
+                    Direct Preview
                 </button>
                 
-                <button onclick="showTab('microsoft')" class="btn btn-primary">
+                <button onclick="showTab('google')" class="btn btn-secondary">
+                    <i class="fab fa-google"></i>
+                    Google Docs Viewer
+                </button>
+                
+                <button onclick="showTab('microsoft')" class="btn btn-secondary">
                     <i class="fas fa-external-link-alt"></i>
-                    Open Microsoft Online Viewer
+                    Microsoft Online Viewer
                 </button>
                 
                 <a href="/student/download-content/<%= content._id %>" class="btn btn-success" target="_blank">
@@ -164,15 +214,80 @@
             </div>
         </div>
 
+        <div id="directTab" class="tab-content">
+            <div class="viewer-status" id="directStatus">
+                <i class="fas fa-spinner fa-spin"></i> Loading direct preview...
+            </div>
+            <div class="viewer-frame" style="display: none;" id="directFrame">
+                <iframe id="directViewer" 
+                        src="" 
+                        width="100%" 
+                        height="500px" 
+                        frameborder="0"
+                        style="border: 1px solid #ddd; border-radius: 4px;"
+                        onload="handleViewerLoad('direct')"
+                        onerror="handleViewerError('direct')">
+                </iframe>
+            </div>
+            <div class="viewer-fallback" style="display: none;" id="directFallback">
+                <div class="fallback-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h4>Direct Preview Not Available</h4>
+                    <p>PowerPoint files cannot be directly previewed in browsers. Try one of the other viewer options.</p>
+                    <div class="fallback-options">
+                        <button onclick="showTab('google')" class="btn btn-secondary">
+                            <i class="fab fa-google"></i> Google Viewer
+                        </button>
+                        <button onclick="showTab('microsoft')" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Microsoft Viewer
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="viewer-controls">
+                <button onclick="showTab('options')" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Options
+                </button>
+                <a href="/student/download-content/<%= content._id %>" class="btn btn-success" target="_blank">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </div>
+        </div>
+
         <div id="googleTab" class="tab-content">
-            <div class="viewer-frame">
+            <div class="viewer-status" id="googleStatus">
+                <i class="fas fa-spinner fa-spin"></i> Loading Google Docs Viewer...
+            </div>
+            <div class="viewer-frame" style="display: none;" id="googleFrame">
                 <iframe id="googleViewer" 
                         src="" 
                         width="100%" 
                         height="500px" 
                         frameborder="0"
-                        style="border: 1px solid #ddd; border-radius: 4px;">
+                        style="border: 1px solid #ddd; border-radius: 4px;"
+                        onload="handleViewerLoad('google')"
+                        onerror="handleViewerError('google')">
                 </iframe>
+            </div>
+            <div class="viewer-fallback" style="display: none;" id="googleFallback">
+                <div class="fallback-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h4>Viewer Not Available</h4>
+                    <p>The Google Docs viewer couldn't load this PowerPoint file. This can happen due to:</p>
+                    <ul>
+                        <li>File security restrictions</li>
+                        <li>Network connectivity issues</li>
+                        <li>Google Docs viewer limitations</li>
+                    </ul>
+                    <div class="fallback-options">
+                        <button onclick="retryGoogleViewer()" class="btn btn-primary">
+                            <i class="fas fa-redo"></i> Try Again
+                        </button>
+                        <button onclick="openGoogleExternal()" class="btn btn-secondary">
+                            <i class="fas fa-external-link-alt"></i> Open in New Tab
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="viewer-controls">
                 <button onclick="showTab('options')" class="btn btn-secondary">
@@ -185,14 +300,34 @@
         </div>
 
         <div id="microsoftTab" class="tab-content">
-            <div class="viewer-frame">
+            <div class="viewer-status" id="microsoftStatus">
+                <i class="fas fa-spinner fa-spin"></i> Loading Microsoft Office Viewer...
+            </div>
+            <div class="viewer-frame" style="display: none;" id="microsoftFrame">
                 <iframe id="microsoftViewer" 
                         src="" 
                         width="100%" 
                         height="500px" 
                         frameborder="0"
-                        style="border: 1px solid #ddd; border-radius: 4px;">
+                        style="border: 1px solid #ddd; border-radius: 4px;"
+                        onload="handleViewerLoad('microsoft')"
+                        onerror="handleViewerError('microsoft')">
                 </iframe>
+            </div>
+            <div class="viewer-fallback" style="display: none;" id="microsoftFallback">
+                <div class="fallback-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h4>Viewer Not Available</h4>
+                    <p>The Microsoft Office viewer couldn't load this PowerPoint file. Try the alternatives below:</p>
+                    <div class="fallback-options">
+                        <button onclick="retryMicrosoftViewer()" class="btn btn-primary">
+                            <i class="fas fa-redo"></i> Try Again
+                        </button>
+                        <button onclick="openMicrosoftExternal()" class="btn btn-secondary">
+                            <i class="fas fa-external-link-alt"></i> Open in New Tab
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="viewer-controls">
                 <button onclick="showTab('options')" class="btn btn-secondary">
@@ -229,31 +364,137 @@
             }
             
             // Load viewer content when tab is shown
-            if (tabName === 'google') {
+            if (tabName === 'direct') {
+                loadDirectViewer();
+            } else if (tabName === 'google') {
                 loadGoogleViewer();
             } else if (tabName === 'microsoft') {
                 loadMicrosoftViewer();
             }
         }
         
+        function loadDirectViewer() {
+            const iframe = document.getElementById('directViewer');
+            const status = document.getElementById('directStatus');
+            const frame = document.getElementById('directFrame');
+            
+            if (iframe && !iframe.src) {
+                // Show loading status
+                status.style.display = 'block';
+                frame.style.display = 'none';
+                document.getElementById('directFallback').style.display = 'none';
+                
+                // Try to load the file directly - this will likely fail for PowerPoint
+                const contentId = '<%= content._id %>';
+                iframe.src = `/student/view-content/${contentId}`;
+                console.log('Loading direct viewer for content:', contentId);
+                
+                // Set a timeout to show fallback since this will likely fail
+                setTimeout(() => {
+                    handleViewerError('direct');
+                }, 3000); // 3 second timeout for direct preview
+            }
+        }
+        
         function loadGoogleViewer() {
             const iframe = document.getElementById('googleViewer');
+            const status = document.getElementById('googleStatus');
+            const frame = document.getElementById('googleFrame');
+            
             if (iframe && !iframe.src) {
+                // Show loading status
+                status.style.display = 'block';
+                frame.style.display = 'none';
+                document.getElementById('googleFallback').style.display = 'none';
+                
                 const fileUrl = '<%= content.fileUrl %>';
-                const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
-                iframe.src = viewerUrl;
-                console.log('Loading Google Viewer:', viewerUrl);
+                // Try different Google Viewer URLs for better compatibility
+                const viewerUrls = [
+                    `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`,
+                    `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(fileUrl)}`,
+                    `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
+                ];
+                
+                // Try the first URL
+                iframe.src = viewerUrls[0];
+                console.log('Loading Google Viewer:', viewerUrls[0]);
+                
+                // Set a timeout to show fallback if loading takes too long
+                setTimeout(() => {
+                    if (status.style.display !== 'none') {
+                        handleViewerError('google');
+                    }
+                }, 10000); // 10 second timeout
             }
         }
         
         function loadMicrosoftViewer() {
             const iframe = document.getElementById('microsoftViewer');
+            const status = document.getElementById('microsoftStatus');
+            const frame = document.getElementById('microsoftFrame');
+            
             if (iframe && !iframe.src) {
+                // Show loading status
+                status.style.display = 'block';
+                frame.style.display = 'none';
+                document.getElementById('microsoftFallback').style.display = 'none';
+                
                 const fileUrl = '<%= content.fileUrl %>';
                 const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
                 iframe.src = viewerUrl;
                 console.log('Loading Microsoft Viewer:', viewerUrl);
+                
+                // Set a timeout to show fallback if loading takes too long
+                setTimeout(() => {
+                    if (status.style.display !== 'none') {
+                        handleViewerError('microsoft');
+                    }
+                }, 10000); // 10 second timeout
             }
+        }
+        
+        function handleViewerLoad(viewerType) {
+            console.log(`${viewerType} viewer loaded successfully`);
+            const status = document.getElementById(`${viewerType}Status`);
+            const frame = document.getElementById(`${viewerType}Frame`);
+            
+            status.style.display = 'none';
+            frame.style.display = 'block';
+        }
+        
+        function handleViewerError(viewerType) {
+            console.log(`${viewerType} viewer failed to load`);
+            const status = document.getElementById(`${viewerType}Status`);
+            const frame = document.getElementById(`${viewerType}Frame`);
+            const fallback = document.getElementById(`${viewerType}Fallback`);
+            
+            status.style.display = 'none';
+            frame.style.display = 'none';
+            fallback.style.display = 'block';
+        }
+        
+        function retryGoogleViewer() {
+            const iframe = document.getElementById('googleViewer');
+            iframe.src = '';
+            loadGoogleViewer();
+        }
+        
+        function retryMicrosoftViewer() {
+            const iframe = document.getElementById('microsoftViewer');
+            iframe.src = '';
+            loadMicrosoftViewer();
+        }
+        
+        function openGoogleExternal() {
+            const fileUrl = '<%= content.fileUrl %>';
+            const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}`;
+            window.open(viewerUrl, '_blank');
+        }
+        
+        function openMicrosoftExternal() {
+            const fileUrl = '<%= content.fileUrl %>';
+            const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(fileUrl)}`;
+            window.open(viewerUrl, '_blank');
         }
     </script>
 </body>
