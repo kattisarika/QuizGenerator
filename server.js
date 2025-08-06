@@ -110,24 +110,54 @@ async function uploadToS3(file, folder = 'uploads') {
   }
 }
 
+// Helper function to extract S3 key from URL
+function extractS3Key(fileUrl) {
+  try {
+    // Handle different S3 URL formats
+    console.log('Extracting key from URL:', fileUrl);
+    
+    if (fileUrl.includes('amazonaws.com')) {
+      // Standard S3 URL format: https://bucket.s3.region.amazonaws.com/key
+      const url = new URL(fileUrl);
+      const key = url.pathname.substring(1); // Remove leading slash
+      console.log('Extracted key (amazonaws.com):', key);
+      return decodeURIComponent(key);
+    } else if (fileUrl.includes('s3.amazonaws.com')) {
+      // Alternative S3 URL format: https://s3.amazonaws.com/bucket/key
+      const urlParts = fileUrl.split('/');
+      const bucketIndex = urlParts.findIndex(part => part.includes('s3.amazonaws.com')) + 2; // Skip bucket name
+      const key = urlParts.slice(bucketIndex).join('/');
+      console.log('Extracted key (s3.amazonaws.com):', key);
+      return decodeURIComponent(key);
+    } else {
+      // Fallback: assume last parts are the key (uploads/filename)
+      const urlParts = fileUrl.split('/');
+      const key = urlParts.slice(-2).join('/');
+      console.log('Extracted key (fallback):', key);
+      return decodeURIComponent(key);
+    }
+  } catch (error) {
+    console.error('Error extracting S3 key:', error);
+    // Fallback to original method
+    const urlParts = fileUrl.split('/');
+    const key = urlParts.slice(-2).join('/');
+    return decodeURIComponent(key);
+  }
+}
+
 // Helper function to delete file from S3
 async function deleteFromS3(fileUrl) {
   try {
-    // Extract the key from the URL and handle URL encoding
-    const urlParts = fileUrl.split('/');
-    const key = urlParts.slice(-2).join('/'); // Get the last two parts (folder/filename)
-    
-    // Decode URL-encoded characters in the key
-    const decodedKey = decodeURIComponent(key);
+    const key = extractS3Key(fileUrl);
     
     const params = {
       Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
-      Key: decodedKey
+      Key: key
     };
 
     console.log('Deleting from S3:', params);
     await s3.deleteObject(params).promise();
-    console.log('Successfully deleted from S3:', decodedKey);
+    console.log('Successfully deleted from S3:', key);
   } catch (error) {
     console.error('Error deleting from S3:', error);
     throw error;
@@ -804,9 +834,8 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
         region: process.env.AWS_REGION || 'us-east-1'
       });
       
-      // Extract the key from the URL
-      const urlParts = content.fileUrl.split('/');
-      const key = urlParts.slice(-2).join('/');
+      // Extract the key from the URL using improved function
+      const key = extractS3Key(content.fileUrl);
       
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
@@ -824,7 +853,10 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
       res.send(fileObject.Body);
       
     } catch (s3Error) {
-      console.error('S3 error:', s3Error);
+      console.error('S3 error in view-content:', s3Error);
+      console.error('File URL:', content.fileUrl);
+      console.error('Content ID:', contentId);
+      console.error('Extracted key:', extractS3Key(content.fileUrl));
       // Fallback to redirect if S3 access fails
       res.redirect(content.fileUrl);
     }
@@ -862,9 +894,8 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
         region: process.env.AWS_REGION || 'us-east-1'
       });
       
-      // Extract the key from the URL and handle URL encoding
-      const urlParts = content.fileUrl.split('/');
-      const key = urlParts.slice(-2).join('/'); // Get the last two parts (folder/filename)
+      // Extract the key from the URL using improved function
+      const key = extractS3Key(content.fileUrl);
       
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
@@ -889,7 +920,10 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
       res.send(fileObject.Body);
       
     } catch (s3Error) {
-      console.error('S3 error:', s3Error);
+      console.error('S3 error in download-content:', s3Error);
+      console.error('File URL:', content.fileUrl);
+      console.error('Content ID:', contentId);
+      console.error('Extracted key:', extractS3Key(content.fileUrl));
       // Fallback to redirect if S3 access fails
       res.redirect(content.fileUrl);
     }
