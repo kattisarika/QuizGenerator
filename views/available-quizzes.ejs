@@ -19,7 +19,7 @@
                 <a href="/available-quizzes" class="nav-link active">Available Quizzes</a>
                 <a href="/student/study-material" class="nav-link">View Study Material</a>
                 <a href="/my-results" class="nav-link">My Results</a>
-                <a href="/student/dashboard" class="nav-link">Student Grade Level</a>
+                <a href="#" class="nav-link" onclick="openStudentProfile()">Student Grade Level</a>
                 <a href="/select-role" class="nav-link">Change Role</a>
                 <a href="/logout" class="nav-link logout-btn">Logout</a>
             </div>
@@ -119,9 +119,12 @@
                     </div>
                     <h3>No Quizzes Available</h3>
                     <p>No quizzes found for your grade level (<%= user.gradeLevel || 'Not Set' %>) and subjects (<%= (user.subjects || []).join(', ') || 'Not Set' %>).</p>
-                    <p>Please update your profile from the dashboard or check back later for new quizzes!</p>
+                    <p>Please update your profile or check back later for new quizzes!</p>
                     <div class="empty-state-actions">
-                        <a href="/student/dashboard" class="btn btn-primary">
+                        <button onclick="openStudentProfile()" class="btn btn-primary">
+                            <i class="fas fa-user-edit"></i> Update Profile
+                        </button>
+                        <a href="/student/dashboard" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Back to Dashboard
                         </a>
                     </div>
@@ -130,7 +133,60 @@
         </div>
     </main>
 
-
+    <!-- Student Profile Modal -->
+    <div id="studentProfileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-graduate me-2"></i>Student Profile</h2>
+                <span class="close" onclick="closeStudentProfile()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="studentProfileForm">
+                    <div class="form-group">
+                        <label for="gradeLevel">Grade Level:</label>
+                        <select id="gradeLevel" name="gradeLevel" required>
+                            <option value="">Select Grade Level</option>
+                            <option value="1st grade">1st Grade</option>
+                            <option value="2nd grade">2nd Grade</option>
+                            <option value="3rd grade">3rd Grade</option>
+                            <option value="4th grade">4th Grade</option>
+                            <option value="5th grade">5th Grade</option>
+                            <option value="6th grade">6th Grade</option>
+                            <option value="7th grade">7th Grade</option>
+                            <option value="8th grade">8th Grade</option>
+                            <option value="9th grade">9th Grade</option>
+                            <option value="10th grade">10th Grade</option>
+                            <option value="11th grade">11th Grade</option>
+                            <option value="12th grade">12th Grade</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Subjects:</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="subjectEnglish" name="subjects" value="English">
+                                <label for="subjectEnglish">English</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="subjectScience" name="subjects" value="Science">
+                                <label for="subjectScience">Science</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="subjectMath" name="subjects" value="Math">
+                                <label for="subjectMath">Math</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Profile</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeStudentProfile()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <footer class="footer">
         <div class="footer-content">
@@ -139,13 +195,106 @@
     </footer>
 
     <script>
-        // Debug: Check page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Available quizzes page loaded');
-            console.log('User grade level:', '<%= user.gradeLevel || "Not Set" %>');
-            console.log('User subjects:', '<%= (user.subjects || []).join(", ") || "Not Set" %>');
-            console.log('Number of quizzes:', <%= quizzes.length %>);
+        // Student Profile Modal Functions
+        function openStudentProfile() {
+            document.getElementById('studentProfileModal').style.display = 'block';
+            loadStudentProfile();
+        }
+        
+        function closeStudentProfile() {
+            document.getElementById('studentProfileModal').style.display = 'none';
+        }
+        
+        function loadStudentProfile() {
+            fetch('/student-profile')
+                .then(response => response.json())
+                .then(data => {
+                    // Set grade level
+                    const gradeSelect = document.getElementById('gradeLevel');
+                    gradeSelect.value = data.gradeLevel || '';
+                    
+                    // Set subjects
+                    const subjectCheckboxes = document.querySelectorAll('input[name="subjects"]');
+                    subjectCheckboxes.forEach(checkbox => {
+                        checkbox.checked = data.subjects.includes(checkbox.value);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading student profile:', error);
+                });
+        }
+        
+        // Handle form submission
+        document.getElementById('studentProfileForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const gradeLevel = document.getElementById('gradeLevel').value;
+            const subjectCheckboxes = document.querySelectorAll('input[name="subjects"]:checked');
+            const subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
+            
+            fetch('/update-student-profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    gradeLevel: gradeLevel,
+                    subjects: subjects
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Profile updated successfully!', 'success');
+                    closeStudentProfile();
+                    // Reload page to reflect changes
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification('Error updating profile: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating profile:', error);
+                showNotification('Error updating profile', 'error');
+            });
         });
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('studentProfileModal');
+            if (event.target === modal) {
+                closeStudentProfile();
+            }
+        }
+        
+        // Notification function
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Remove notification after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
     </script>
 </body>
 </html> 
