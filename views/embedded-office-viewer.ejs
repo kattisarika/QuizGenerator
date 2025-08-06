@@ -72,6 +72,46 @@
         .btn-success:hover {
             background: #218838;
         }
+        .viewer-tabs {
+            display: flex;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: #f8f9fa;
+            color: #6c757d;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .tab-btn:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+        .tab-btn.active {
+            background: white;
+            color: #495057;
+            border-bottom-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .viewer-frame {
+            margin-bottom: 15px;
+        }
+        .viewer-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
         .preview-note {
             text-align: center;
             margin-bottom: 20px;
@@ -94,41 +134,126 @@
             <p><i class="fas fa-file-powerpoint"></i> <%= content.fileName %></p>
         </div>
 
-        <div class="preview-note">
-            <i class="fas fa-info-circle"></i>
-            PowerPoint files cannot be directly previewed in the browser. Choose an option below to view the presentation:
+        <div class="viewer-tabs">
+            <button class="tab-btn active" onclick="showTab('options')">Viewer Options</button>
+            <button class="tab-btn" onclick="showTab('google')">Google Viewer</button>
+            <button class="tab-btn" onclick="showTab('microsoft')">Microsoft Viewer</button>
         </div>
 
-        <div class="viewer-options">
-            <button onclick="openMicrosoftViewer()" class="btn btn-primary">
-                <i class="fas fa-external-link-alt"></i>
-                Open in Microsoft Online Viewer
-            </button>
-            
-            <button onclick="openGoogleViewer()" class="btn btn-secondary">
-                <i class="fab fa-google"></i>
-                Open in Google Docs Viewer
-            </button>
-            
-            <a href="/student/download-content/<%= content._id %>" class="btn btn-success" target="_blank">
-                <i class="fas fa-download"></i>
-                Download to View Locally
-            </a>
+        <div id="optionsTab" class="tab-content active">
+            <div class="preview-note">
+                <i class="fas fa-info-circle"></i>
+                Choose a viewer option to preview this PowerPoint presentation:
+            </div>
+
+            <div class="viewer-options">
+                <button onclick="showTab('google')" class="btn btn-secondary">
+                    <i class="fab fa-google"></i>
+                    Open Google Docs Viewer
+                </button>
+                
+                <button onclick="showTab('microsoft')" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt"></i>
+                    Open Microsoft Online Viewer
+                </button>
+                
+                <a href="/student/download-content/<%= content._id %>" class="btn btn-success" target="_blank">
+                    <i class="fas fa-download"></i>
+                    Download to View Locally
+                </a>
+            </div>
+        </div>
+
+        <div id="googleTab" class="tab-content">
+            <div class="viewer-frame">
+                <iframe id="googleViewer" 
+                        src="" 
+                        width="100%" 
+                        height="500px" 
+                        frameborder="0"
+                        style="border: 1px solid #ddd; border-radius: 4px;">
+                </iframe>
+            </div>
+            <div class="viewer-controls">
+                <button onclick="showTab('options')" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Options
+                </button>
+                <a href="/student/download-content/<%= content._id %>" class="btn btn-success" target="_blank">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </div>
+        </div>
+
+        <div id="microsoftTab" class="tab-content">
+            <div class="viewer-frame">
+                <iframe id="microsoftViewer" 
+                        src="" 
+                        width="100%" 
+                        height="500px" 
+                        frameborder="0"
+                        style="border: 1px solid #ddd; border-radius: 4px;">
+                </iframe>
+            </div>
+            <div class="viewer-controls">
+                <button onclick="showTab('options')" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Options
+                </button>
+                <a href="/student/download-content/<%= content._id %>" class="btn btn-success" target="_blank">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <script>
-        function openMicrosoftViewer() {
-            const fileUrl = '<%= content.fileUrl %>';
-            const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
-            window.open(viewerUrl, '_blank');
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tab buttons
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected tab content
+            const selectedTab = document.getElementById(tabName + 'Tab');
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+            
+            // Activate selected tab button
+            const selectedBtn = event?.target || document.querySelector(`[onclick="showTab('${tabName}')"]`);
+            if (selectedBtn) {
+                selectedBtn.classList.add('active');
+            }
+            
+            // Load viewer content when tab is shown
+            if (tabName === 'google') {
+                loadGoogleViewer();
+            } else if (tabName === 'microsoft') {
+                loadMicrosoftViewer();
+            }
         }
         
-        function openGoogleViewer() {
-            const fileUrl = '<%= content.fileUrl %>';
-            const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
-            window.open(viewerUrl, '_blank');
+        function loadGoogleViewer() {
+            const iframe = document.getElementById('googleViewer');
+            if (iframe && !iframe.src) {
+                const fileUrl = '<%= content.fileUrl %>';
+                const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+                iframe.src = viewerUrl;
+                console.log('Loading Google Viewer:', viewerUrl);
+            }
+        }
+        
+        function loadMicrosoftViewer() {
+            const iframe = document.getElementById('microsoftViewer');
+            if (iframe && !iframe.src) {
+                const fileUrl = '<%= content.fileUrl %>';
+                const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+                iframe.src = viewerUrl;
+                console.log('Loading Microsoft Viewer:', viewerUrl);
+            }
         }
     </script>
 </body>

@@ -267,10 +267,7 @@
                             </p>
                             <div class="viewer-buttons">
                                 <button onclick="openMicrosoftViewer('${contentId}')" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-external-link-alt"></i> Microsoft Online Viewer
-                                </button>
-                                <button onclick="openGoogleViewer('${contentId}')" class="btn btn-sm btn-secondary">
-                                    <i class="fab fa-google"></i> Google Docs Viewer
+                                    <i class="fas fa-external-link-alt"></i> Microsoft Online Viewer (External)
                                 </button>
                                 <a href="/student/download-content/${contentId}" class="btn btn-sm btn-success" target="_blank">
                                     <i class="fas fa-download"></i> Download File
@@ -325,24 +322,6 @@
                 .catch(error => {
                     console.error('Error getting file URL:', error);
                     alert('Could not open in Microsoft Viewer. Please try downloading the file.');
-                });
-        }
-        
-        function openGoogleViewer(contentId) {
-            // First get the file URL
-            fetch(`/api/content-url/${contentId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(data.fileUrl)}&embedded=true`;
-                        window.open(viewerUrl, '_blank');
-                    } else {
-                        alert('Could not open in Google Viewer. Please try downloading the file.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error getting file URL:', error);
-                    alert('Could not open in Google Viewer. Please try downloading the file.');
                 });
         }
         
