@@ -79,6 +79,9 @@
                                     <p><%= item.description %></p>
                                     <div class="material-meta">
                                         <span class="material-category"><%= item.category %></span>
+                                        <% if (item.gradeLevel) { %>
+                                            <span class="material-grade"><i class="fas fa-graduation-cap"></i> <%= item.gradeLevel %></span>
+                                        <% } %>
                                         <span class="material-teacher">By: <%= item.createdByName %></span>
                                         <span class="material-date"><%= new Date(item.createdAt).toLocaleDateString() %></span>
                                     </div>

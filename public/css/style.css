@@ -4279,3 +4279,38 @@ body {
         font-size: 0.8rem;
     }
 }
+
+/* Grade Level Styles */
+.content-grade, .material-grade {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 4px;
+}
+
+.content-grade i, .material-grade i {
+    font-size: 0.7rem;
+}
+
+/* Form group spacing for grade level */
+.form-group select[name="gradeLevel"] {
+    border: 2px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.form-group select[name="gradeLevel"]:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.form-text.text-muted {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}

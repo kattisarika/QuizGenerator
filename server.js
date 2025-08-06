@@ -825,19 +825,22 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
 // Route for student study material page
 app.get('/student/study-material', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
-    // Get all approved content, optionally filtered by student's grade level and subjects
+    // Get approved content filtered by student's grade level
     let query = { isApproved: true };
     
-    // If student has grade level and subjects set, filter content accordingly
-    if (req.user.gradeLevel && req.user.subjects && req.user.subjects.length > 0) {
-      // For now, show all content but we can add filtering later
-      // query.gradeLevel = req.user.gradeLevel;
-      // query.subjects = { $in: req.user.subjects };
+    // Filter by student's grade level if it exists
+    if (req.user.gradeLevel) {
+      query.gradeLevel = req.user.gradeLevel;
+      console.log(`Filtering content for student ${req.user.displayName} (${req.user.gradeLevel})`);
+    } else {
+      console.log(`Student ${req.user.displayName} has no grade level set - showing all content`);
     }
     
     const studyMaterial = await Content.find(query)
       .populate('createdBy', 'displayName')
       .sort({ createdAt: -1 });
+    
+    console.log(`Found ${studyMaterial.length} study materials for grade ${req.user.gradeLevel || 'any'}`);
     
     res.render('student-study-material', {
       user: req.user,
@@ -1365,10 +1368,22 @@ app.get('/teacher/post-content', isAuthenticated, requireRole(['teacher']), requ
 // Route for posting new content
 app.post('/teacher/post-content', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, upload.single('contentFile'), async (req, res) => {
   try {
-    const { title, description, category } = req.body;
+    const { title, description, category, gradeLevel } = req.body;
     
     if (!req.file) {
       return res.status(400).send('Please upload a file');
+    }
+    
+    if (!gradeLevel) {
+      return res.status(400).send('Please select a grade level');
+    }
+    
+    // Validate grade level
+    const validGrades = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', 
+                        '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
+    
+    if (!validGrades.includes(gradeLevel)) {
+      return res.status(400).send('Invalid grade level selected');
     }
     
     // Upload file to S3
@@ -1379,6 +1394,7 @@ app.post('/teacher/post-content', isAuthenticated, requireRole(['teacher']), req
       title,
       description,
       category,
+      gradeLevel,
       fileUrl,
       fileName: req.file.originalname,
       fileType: req.file.mimetype,
