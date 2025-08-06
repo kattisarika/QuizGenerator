@@ -341,26 +341,65 @@ async function extractTextFromFile(fileBuffer, originalName) {
   }
 }
 
-function parseQuestionsFromText(text) {
+// Language-specific parsing patterns
+function getLanguagePatterns(language) {
+  const patterns = {
+    English: {
+      options: /[a-d]\)/gi,
+      optionSplit: /\s+([a-d])[\.\)]\s*/i,
+      optionLetters: ['a', 'b', 'c', 'd']
+    },
+    Spanish: {
+      options: /[a-d]\)/gi,
+      optionSplit: /\s+([a-d])[\.\)]\s*/i,
+      optionLetters: ['a', 'b', 'c', 'd']
+    },
+    French: {
+      options: /[a-d]\)/gi,
+      optionSplit: /\s+([a-d])[\.\)]\s*/i,
+      optionLetters: ['a', 'b', 'c', 'd']
+    },
+    Kannada: {
+      // Kannada might use ಅ) ಆ) ಇ) ಈ) or a) b) c) d) or 1) 2) 3) 4)
+      options: /([ಅಆಇಈ]|[a-d]|[1-4])\)/gi,
+      optionSplit: /\s+(([ಅಆಇಈ]|[a-d]|[1-4]))[\.\)]\s*/i,
+      optionLetters: ['ಅ', 'ಆ', 'ಇ', 'ಈ'], // Kannada vowels
+      alternativeLetters: ['a', 'b', 'c', 'd'], // English fallback
+      numberLetters: ['1', '2', '3', '4'] // Number fallback
+    }
+  };
+  
+  return patterns[language] || patterns.English;
+}
+
+function parseQuestionsFromText(text, language = 'English') {
   const questions = [];
   const lines = text.split('\n').filter(line => line.trim());
+  
+  console.log(`🌍 Parsing questions with language: ${language}`);
+  console.log(`📄 Total lines to parse: ${lines.length}`);
+  console.log(`📝 First few lines:`, lines.slice(0, 3));
+  
+  // Define language-specific patterns
+  const patterns = getLanguagePatterns(language);
   
   for (const line of lines) {
     const trimmedLine = line.trim();
     
-    // Check if line starts with a number (question)
+    // Check if line starts with a number (question) - universal pattern
     const questionMatch = trimmedLine.match(/^(\d+)[\.\)]\s*(.+)/);
     if (questionMatch) {
       const questionNumber = parseInt(questionMatch[1]);
       const fullLine = questionMatch[2].trim();
       
-      // Check if this line contains all 4 options by looking for the pattern: a) ... b) ... c) ... d) ...
-      const optionMatches = fullLine.match(/[a-d]\)/gi) || [];
+      // Check if this line contains all 4 options using language-specific patterns
+      const optionMatches = fullLine.match(patterns.options) || [];
+      console.log(`🔍 Found ${optionMatches.length} option markers in line: "${fullLine.substring(0, 100)}..."`);
       
       if (optionMatches.length >= 4) {
         // Question with all 4 options on the same line
-        // Use a much simpler approach - split by option markers
-        const parts = fullLine.split(/\s+([a-d])[\.\)]\s*/i);
+        // Use language-specific pattern to split by option markers
+        const parts = fullLine.split(patterns.optionSplit);
         
         if (parts.length >= 9) {
           // We have: [question, a, opt1, b, opt2, c, opt3, d, opt4]
@@ -377,11 +416,13 @@ function parseQuestionsFromText(text) {
             points: 1
           };
           
-          console.log(`Parsed question: "${question.question}"`);
-          console.log(`Options: [${question.options.join(', ')}]`);
+          console.log(`✅ Parsed question: "${question.question}"`);
+          console.log(`📝 Options: [${question.options.join(', ')}]`);
           
           questions.push(question);
         } else {
+          console.log(`⚠️  Could not parse options from single line, trying alternative approach`);
+          
           // Try a different approach - find each option individually
           const question = {
             question: '',
@@ -471,6 +512,93 @@ function parseQuestionsFromText(text) {
     }
   }
   
+  // If no questions found with strict parsing, try flexible parsing
+  if (questions.length === 0) {
+    console.log(`⚡ No questions found with strict parsing, trying flexible approach for ${language}`);
+    return parseQuestionsFlexible(text, language);
+  }
+  
+  console.log(`✅ Total questions found: ${questions.length}`);
+  return questions;
+}
+
+// Flexible parsing for languages that might not follow standard patterns
+function parseQuestionsFlexible(text, language) {
+  const questions = [];
+  const lines = text.split('\n').filter(line => line.trim());
+  
+  console.log(`🔄 Flexible parsing: Processing ${lines.length} lines for ${language}`);
+  
+  let currentQuestion = null;
+  let optionCount = 0;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    console.log(`🔍 Line ${i}: "${line}"`);
+    
+    // Look for numbered lines (potential questions)
+    const numberMatch = line.match(/^(\d+)[\.\)]\s*(.+)/);
+    if (numberMatch) {
+      console.log(`📝 Found question ${numberMatch[1]}: "${numberMatch[2]}"`);
+      
+      // Save previous question if it has options
+      if (currentQuestion && currentQuestion.options.length >= 2) {
+        // Ensure we have 4 options, pad with empty if needed
+        while (currentQuestion.options.length < 4) {
+          currentQuestion.options.push(`Option ${currentQuestion.options.length + 1}`);
+        }
+        questions.push(currentQuestion);
+        console.log(`✅ Added question: "${currentQuestion.question.substring(0, 50)}..." with ${currentQuestion.options.length} options`);
+      }
+      
+      // Start new question
+      currentQuestion = {
+        question: numberMatch[2].trim(),
+        type: 'multiple-choice',
+        options: [],
+        correctAnswer: '',
+        points: 1
+      };
+      optionCount = 0;
+      continue;
+    }
+    
+    // Look for option patterns if we have a current question
+    if (currentQuestion && optionCount < 4) {
+      let optionMatch = null;
+      
+      // Try different option patterns based on language
+      if (language === 'Kannada') {
+        // Try Kannada vowels, English letters, or numbers
+        optionMatch = line.match(/^([ಅಆಇಈ]|[a-d]|[1-4])[\.\)]\s*(.+)/i);
+      } else {
+        // Default to English letters or numbers
+        optionMatch = line.match(/^([a-d]|[1-4])[\.\)]\s*(.+)/i);
+      }
+      
+      if (optionMatch) {
+        currentQuestion.options.push(optionMatch[2].trim());
+        optionCount++;
+        console.log(`🎯 Found option ${optionCount}: "${optionMatch[2].trim()}"`);
+      } else if (line.length > 10 && !line.match(/^\d+/)) {
+        // If it's a long line without numbering, might be an option without markers
+        currentQuestion.options.push(line);
+        optionCount++;
+        console.log(`🎯 Found unmarked option ${optionCount}: "${line}"`);
+      }
+    }
+  }
+  
+  // Save the last question
+  if (currentQuestion && currentQuestion.options.length >= 2) {
+    while (currentQuestion.options.length < 4) {
+      currentQuestion.options.push(`Option ${currentQuestion.options.length + 1}`);
+    }
+    questions.push(currentQuestion);
+    console.log(`✅ Added final question: "${currentQuestion.question.substring(0, 50)}..." with ${currentQuestion.options.length} options`);
+  }
+  
+  console.log(`🎉 Flexible parsing completed: ${questions.length} questions found`);
   return questions;
 }
 
@@ -1133,7 +1261,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       console.log('Subject value:', subjects);
       return res.status(400).send('Please select a subject');
     }
-    
+
     // Validate language
     const validLanguages = ['English', 'Spanish', 'French', 'Kannada'];
     if (!language || !validLanguages.includes(language)) {
@@ -1168,7 +1296,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
           return res.status(400).send('Could not extract text from the uploaded question paper. Please ensure the file is not corrupted and contains readable text.');
         }
         
-        extractedQuestions = parseQuestionsFromText(questionText);
+        extractedQuestions = parseQuestionsFromText(questionText, language);
         console.log('Parsed questions count:', extractedQuestions.length);
         
         if (extractedQuestions.length === 0) {
@@ -1303,7 +1431,7 @@ B. Mars
 C. Jupiter
 D. Saturn`;
 
-  const questions = parseQuestionsFromText(sampleText);
+  const questions = parseQuestionsFromText(sampleText, 'English');
   res.json({
     originalText: sampleText,
     parsedQuestions: questions
@@ -1954,7 +2082,7 @@ D. Saturn`;
   const sampleAnswerText = `1. B
 2. B`;
 
-  const questions = parseQuestionsFromText(sampleQuestionText);
+      const questions = parseQuestionsFromText(sampleQuestionText, 'English');
   const answers = parseAnswersFromText(sampleAnswerText);
   const mergedQuestions = mergeQuestionsWithAnswers(questions, answers);
 
@@ -1976,7 +2104,7 @@ a) 3,800 b) 3,900 c) 4,000 d) 3,850`;
   const actualAnswerText = `Answer Key
 "1. B", "2. A"`;
 
-  const questions = parseQuestionsFromText(sampleQuestionText);
+      const questions = parseQuestionsFromText(sampleQuestionText, 'English');
   const answers = parseAnswersFromText(actualAnswerText);
   const mergedQuestions = mergeQuestionsWithAnswers(questions, answers);
 
