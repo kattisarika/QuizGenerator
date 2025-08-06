@@ -1416,10 +1416,19 @@ app.post('/teacher/post-content', isAuthenticated, requireRole(['teacher']), req
       fileType: req.file.mimetype,
       fileSize: req.file.size,
       createdBy: req.user._id,
-      createdByName: req.user.displayName
+      createdByName: req.user.displayName,
+      isApproved: true  // Auto-approve content from approved teachers
     });
     
     await content.save();
+    
+    console.log(`✅ Content created successfully:`, {
+      title: content.title,
+      gradeLevel: content.gradeLevel,
+      isApproved: content.isApproved,
+      createdBy: content.createdByName,
+      contentId: content._id
+    });
     
     res.redirect('/teacher/post-content');
   } catch (error) {
@@ -1579,19 +1588,60 @@ app.post('/teacher/unassign-students', isAuthenticated, requireRole(['teacher'])
 
 // ===== END TEACHER ASSIGN STUDENTS ROUTES =====
 
+// Route to auto-approve all teacher content (for fixing existing unapproved content)
+app.post('/admin/approve-all-teacher-content', isAuthenticated, requireRole(['admin']), async (req, res) => {
+  try {
+    // Find all unapproved content created by approved teachers
+    const approvedTeachers = await User.find({ role: 'teacher', isApproved: true }).select('_id');
+    const teacherIds = approvedTeachers.map(teacher => teacher._id);
+    
+    const result = await Content.updateMany(
+      { 
+        isApproved: false,
+        createdBy: { $in: teacherIds }
+      },
+      { 
+        isApproved: true 
+      }
+    );
+    
+    console.log(`Auto-approved ${result.modifiedCount} content items from approved teachers`);
+    
+    res.json({ 
+      success: true, 
+      message: `Approved ${result.modifiedCount} content items from teachers`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error auto-approving teacher content:', error);
+    res.status(500).json({ success: false, message: 'Error auto-approving content' });
+  }
+});
+
 // Route for viewing content distribution by grade (for debugging)
 app.get('/admin/content-by-grade', isAuthenticated, requireRole(['admin', 'teacher']), async (req, res) => {
   try {
-    const allContent = await Content.find({ isApproved: true })
+    const allContent = await Content.find({})  // Show ALL content, approved and unapproved
       .populate('createdBy', 'displayName')
       .sort({ gradeLevel: 1, createdAt: -1 });
     
+    const approvedContent = allContent.filter(content => content.isApproved);
+    const unapprovedContent = allContent.filter(content => !content.isApproved);
+    
     const contentByGrade = {};
-    allContent.forEach(content => {
+    approvedContent.forEach(content => {
       if (!contentByGrade[content.gradeLevel]) {
         contentByGrade[content.gradeLevel] = [];
       }
       contentByGrade[content.gradeLevel].push(content);
+    });
+    
+    const unapprovedByGrade = {};
+    unapprovedContent.forEach(content => {
+      if (!unapprovedByGrade[content.gradeLevel]) {
+        unapprovedByGrade[content.gradeLevel] = [];
+      }
+      unapprovedByGrade[content.gradeLevel].push(content);
     });
     
     // Get student counts by grade
@@ -1607,8 +1657,11 @@ app.get('/admin/content-by-grade', isAuthenticated, requireRole(['admin', 'teach
     
     res.json({
       success: true,
-      contentByGrade: contentByGrade,
+      approvedContentByGrade: contentByGrade,
+      unapprovedContentByGrade: unapprovedByGrade,
       studentsByGrade: studentsByGrade,
+      totalApprovedContent: approvedContent.length,
+      totalUnapprovedContent: unapprovedContent.length,
       totalContent: allContent.length,
       totalStudents: allStudents.length
     });
