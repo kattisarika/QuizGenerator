@@ -811,6 +811,23 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
   }
 });
 
+// Debug route to check content URLs
+app.get('/debug-content-urls', isAuthenticated, requireRole(['admin']), async (req, res) => {
+  try {
+    const contents = await Content.find({});
+    res.json({
+      contents: contents.map(c => ({
+        id: c._id,
+        title: c.title,
+        fileName: c.fileName,
+        fileUrl: c.fileUrl,
+        fileType: c.fileType
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Route for downloading content (increment download count)
 app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['student']), async (req, res) => {
