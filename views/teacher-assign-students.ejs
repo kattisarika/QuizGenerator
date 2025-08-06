@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Students - Teacher Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .assign-students-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .assign-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .assign-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.2rem;
+        }
+        
+        .assign-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .students-grid {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .student-card {
+            background: white;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .student-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+        }
+        
+        .student-card.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+        }
+        
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .student-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .student-avatar-placeholder {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        .student-details h3 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+        
+        .student-details p {
+            margin: 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .student-assignment {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .grade-select {
+            flex: 1;
+            min-width: 150px;
+            padding: 8px 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 5px;
+            font-size: 1rem;
+            background: white;
+        }
+        
+        .grade-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .assignment-status {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-assigned {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-unassigned {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .assign-actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .btn-assign {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+        
+        .btn-assign:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-assign:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 1px solid #e1e8ed;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-right: 10px;
+        }
+        
+        .filter-select {
+            padding: 8px 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 5px;
+            background: white;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 10px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 25px;
+            font-size: 1rem;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .selected-count {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .assignment-summary {
+            background: #f8f9ff;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: none;
+        }
+        
+        .assignment-summary.show {
+            display: block;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e1e8ed;
+        }
+        
+        .summary-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .summary-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .student-assignment {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .assign-header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/teacher/dashboard" class="nav-link">Dashboard</a>
+                <a href="/create-quiz" class="nav-link">Create Quiz</a>
+                <a href="/teacher/post-content" class="nav-link">Post Content</a>
+                <a href="/teacher/assign-students" class="nav-link active">Assign Students</a>
+                <a href="/teacher/student-results" class="nav-link">Student Results</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="assign-students-container">
+            <div class="assign-header">
+                <h1><i class="fas fa-users"></i> Assign Students</h1>
+                <p>Select students and assign them to grade levels for your classes</p>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filter-group">
+                    <input type="text" id="searchBox" class="search-box" placeholder="🔍 Search students by name or email...">
+                    
+                    <label for="gradeFilter">Filter by Grade:</label>
+                    <select id="gradeFilter" class="filter-select">
+                        <option value="">All Grades</option>
+                        <option value="1st grade">1st Grade</option>
+                        <option value="2nd grade">2nd Grade</option>
+                        <option value="3rd grade">3rd Grade</option>
+                        <option value="4th grade">4th Grade</option>
+                        <option value="5th grade">5th Grade</option>
+                        <option value="6th grade">6th Grade</option>
+                        <option value="7th grade">7th Grade</option>
+                        <option value="8th grade">8th Grade</option>
+                        <option value="9th grade">9th Grade</option>
+                        <option value="10th grade">10th Grade</option>
+                        <option value="11th grade">11th Grade</option>
+                        <option value="12th grade">12th Grade</option>
+                    </select>
+                    
+                    <label for="statusFilter">Filter by Status:</label>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="">All Status</option>
+                        <option value="assigned">Assigned to Me</option>
+                        <option value="unassigned">Unassigned</option>
+                        <option value="other">Assigned to Others</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Assignment Summary -->
+            <div id="assignmentSummary" class="assignment-summary">
+                <h3><i class="fas fa-chart-bar"></i> Assignment Summary</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-number" id="selectedCount">0</div>
+                        <div class="summary-label">Selected Students</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-number" id="totalStudents"><%= students.length %></div>
+                        <div class="summary-label">Total Students</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-number" id="assignedToMe"><%= assignedToMe || 0 %></div>
+                        <div class="summary-label">Assigned to Me</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-number" id="unassignedCount"><%= unassigned || 0 %></div>
+                        <div class="summary-label">Unassigned</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selected Count -->
+            <div id="selectedCountBadge" class="selected-count" style="display: none;">
+                <i class="fas fa-check-circle"></i> <span id="selectedCountText">0</span> students selected
+            </div>
+
+            <!-- Students Grid -->
+            <div id="studentsContainer" class="students-grid">
+                <% if (students && students.length > 0) { %>
+                    <% students.forEach(student => { %>
+                        <div class="student-card" 
+                             data-student-id="<%= student._id %>"
+                             data-student-name="<%= student.displayName.toLowerCase() %>"
+                             data-student-email="<%= student.email.toLowerCase() %>"
+                             data-student-grade="<%= student.gradeLevel || '' %>"
+                             data-assigned-teacher="<%= student.assignedTeacher || '' %>"
+                             onclick="toggleStudentSelection(this)">
+                            
+                            <div class="student-info">
+                                <% if (student.photos && student.photos.length > 0) { %>
+                                    <img src="<%= student.photos[0].value %>" alt="Profile" class="student-avatar">
+                                <% } else { %>
+                                    <div class="student-avatar-placeholder">
+                                        <i class="fas fa-user-graduate"></i>
+                                    </div>
+                                <% } %>
+                                
+                                <div class="student-details">
+                                    <h3><%= student.displayName %></h3>
+                                    <p><%= student.email %></p>
+                                    <% if (student.subjects && student.subjects.length > 0) { %>
+                                        <p><i class="fas fa-book"></i> <%= student.subjects.join(', ') %></p>
+                                    <% } %>
+                                </div>
+                            </div>
+                            
+                            <div class="student-assignment">
+                                <select class="grade-select" onclick="event.stopPropagation()">
+                                    <option value="">Select Grade Level</option>
+                                    <option value="1st grade" <%= student.gradeLevel === '1st grade' ? 'selected' : '' %>>1st Grade</option>
+                                    <option value="2nd grade" <%= student.gradeLevel === '2nd grade' ? 'selected' : '' %>>2nd Grade</option>
+                                    <option value="3rd grade" <%= student.gradeLevel === '3rd grade' ? 'selected' : '' %>>3rd Grade</option>
+                                    <option value="4th grade" <%= student.gradeLevel === '4th grade' ? 'selected' : '' %>>4th Grade</option>
+                                    <option value="5th grade" <%= student.gradeLevel === '5th grade' ? 'selected' : '' %>>5th Grade</option>
+                                    <option value="6th grade" <%= student.gradeLevel === '6th grade' ? 'selected' : '' %>>6th Grade</option>
+                                    <option value="7th grade" <%= student.gradeLevel === '7th grade' ? 'selected' : '' %>>7th Grade</option>
+                                    <option value="8th grade" <%= student.gradeLevel === '8th grade' ? 'selected' : '' %>>8th Grade</option>
+                                    <option value="9th grade" <%= student.gradeLevel === '9th grade' ? 'selected' : '' %>>9th Grade</option>
+                                    <option value="10th grade" <%= student.gradeLevel === '10th grade' ? 'selected' : '' %>>10th Grade</option>
+                                    <option value="11th grade" <%= student.gradeLevel === '11th grade' ? 'selected' : '' %>>11th Grade</option>
+                                    <option value="12th grade" <%= student.gradeLevel === '12th grade' ? 'selected' : '' %>>12th Grade</option>
+                                </select>
+                                
+                                <% 
+                                let statusClass = 'status-unassigned';
+                                let statusText = 'Unassigned';
+                                if (student.assignedTeacher) {
+                                    if (student.assignedTeacher.toString() === user._id.toString()) {
+                                        statusClass = 'status-assigned';
+                                        statusText = 'Assigned to You';
+                                    } else {
+                                        statusClass = 'status-pending';
+                                        statusText = 'Assigned to Other';
+                                    }
+                                }
+                                %>
+                                <span class="assignment-status <%= statusClass %>">
+                                    <%= statusText %>
+                                </span>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div style="text-align: center; padding: 60px; color: #7f8c8d;">
+                        <i class="fas fa-users" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;"></i>
+                        <h3>No Students Found</h3>
+                        <p>There are no students in the system yet.</p>
+                    </div>
+                <% } %>
+            </div>
+
+            <!-- Assignment Actions -->
+            <div class="assign-actions">
+                <button id="assignButton" class="btn-assign" onclick="assignSelectedStudents()" disabled>
+                    <i class="fas fa-user-check"></i> Assign Selected Students
+                </button>
+                
+                <button id="unassignButton" class="btn-assign" onclick="unassignSelectedStudents()" disabled style="background: #e74c3c;">
+                    <i class="fas fa-user-times"></i> Unassign Selected Students
+                </button>
+                
+                <button class="btn-assign" onclick="clearSelection()" style="background: #95a5a6;">
+                    <i class="fas fa-times"></i> Clear Selection
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let selectedStudents = new Set();
+        
+        function toggleStudentSelection(card) {
+            const studentId = card.dataset.studentId;
+            
+            if (selectedStudents.has(studentId)) {
+                selectedStudents.delete(studentId);
+                card.classList.remove('selected');
+            } else {
+                selectedStudents.add(studentId);
+                card.classList.add('selected');
+            }
+            
+            updateSelectionUI();
+        }
+        
+        function updateSelectionUI() {
+            const count = selectedStudents.size;
+            
+            // Update count displays
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('selectedCountText').textContent = count;
+            
+            // Show/hide selected count badge
+            const badge = document.getElementById('selectedCountBadge');
+            const summary = document.getElementById('assignmentSummary');
+            
+            if (count > 0) {
+                badge.style.display = 'inline-block';
+                summary.classList.add('show');
+            } else {
+                badge.style.display = 'none';
+                summary.classList.remove('show');
+            }
+            
+            // Enable/disable buttons
+            const assignButton = document.getElementById('assignButton');
+            const unassignButton = document.getElementById('unassignButton');
+            
+            assignButton.disabled = count === 0;
+            unassignButton.disabled = count === 0;
+        }
+        
+        function clearSelection() {
+            selectedStudents.clear();
+            document.querySelectorAll('.student-card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+            updateSelectionUI();
+        }
+        
+        function assignSelectedStudents() {
+            if (selectedStudents.size === 0) return;
+            
+            const assignments = [];
+            const hasInvalidGrades = [];
+            
+            selectedStudents.forEach(studentId => {
+                const card = document.querySelector(`[data-student-id="${studentId}"]`);
+                const gradeSelect = card.querySelector('.grade-select');
+                const gradeLevel = gradeSelect.value;
+                
+                if (!gradeLevel) {
+                    hasInvalidGrades.push(card.querySelector('h3').textContent);
+                } else {
+                    assignments.push({
+                        studentId: studentId,
+                        gradeLevel: gradeLevel
+                    });
+                }
+            });
+            
+            if (hasInvalidGrades.length > 0) {
+                alert(`Please select grade levels for the following students:\n\n${hasInvalidGrades.join('\n')}`);
+                return;
+            }
+            
+            if (assignments.length === 0) return;
+            
+            // Confirm assignment
+            if (!confirm(`Are you sure you want to assign ${assignments.length} student(s) to yourself?`)) {
+                return;
+            }
+            
+            // Send assignment request
+            fetch('/teacher/assign-students', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ assignments: assignments })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Successfully assigned ${assignments.length} student(s)!`);
+                    location.reload(); // Refresh to show updated status
+                } else {
+                    alert('Error assigning students: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error assigning students. Please try again.');
+            });
+        }
+        
+        function unassignSelectedStudents() {
+            if (selectedStudents.size === 0) return;
+            
+            const studentIds = Array.from(selectedStudents);
+            
+            if (!confirm(`Are you sure you want to unassign ${studentIds.length} student(s) from yourself?`)) {
+                return;
+            }
+            
+            fetch('/teacher/unassign-students', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ studentIds: studentIds })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Successfully unassigned ${studentIds.length} student(s)!`);
+                    location.reload(); // Refresh to show updated status
+                } else {
+                    alert('Error unassigning students: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error unassigning students. Please try again.');
+            });
+        }
+        
+        // Search and filter functionality
+        function filterStudents() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const gradeFilter = document.getElementById('gradeFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const teacherId = '<%= user._id %>';
+            
+            document.querySelectorAll('.student-card').forEach(card => {
+                const name = card.dataset.studentName;
+                const email = card.dataset.studentEmail;
+                const grade = card.dataset.studentGrade;
+                const assignedTeacher = card.dataset.assignedTeacher;
+                
+                let show = true;
+                
+                // Search filter
+                if (searchTerm && !name.includes(searchTerm) && !email.includes(searchTerm)) {
+                    show = false;
+                }
+                
+                // Grade filter
+                if (gradeFilter && grade !== gradeFilter) {
+                    show = false;
+                }
+                
+                // Status filter
+                if (statusFilter) {
+                    if (statusFilter === 'assigned' && assignedTeacher !== teacherId) {
+                        show = false;
+                    } else if (statusFilter === 'unassigned' && assignedTeacher) {
+                        show = false;
+                    } else if (statusFilter === 'other' && (!assignedTeacher || assignedTeacher === teacherId)) {
+                        show = false;
+                    }
+                }
+                
+                card.style.display = show ? 'block' : 'none';
+            });
+        }
+        
+        // Event listeners
+        document.getElementById('searchBox').addEventListener('input', filterStudents);
+        document.getElementById('gradeFilter').addEventListener('change', filterStudents);
+        document.getElementById('statusFilter').addEventListener('change', filterStudents);
+        
+        // Initialize
+        updateSelectionUI();
+    </script>
+</body>
+</html>
