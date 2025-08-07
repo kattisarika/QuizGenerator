@@ -46,6 +46,11 @@ const contentSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  organizationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true
+  },
   isApproved: {
     type: Boolean,
     default: false
@@ -66,9 +71,35 @@ const contentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for efficient queries
-contentSchema.index({ createdBy: 1, createdAt: -1 });
-contentSchema.index({ category: 1 });
-contentSchema.index({ isApproved: 1 });
+// Index for efficient queries and SaaS multi-tenancy
+contentSchema.index({ organizationId: 1, createdBy: 1, createdAt: -1 });
+contentSchema.index({ organizationId: 1, category: 1 });
+contentSchema.index({ organizationId: 1, isApproved: 1 });
+contentSchema.index({ organizationId: 1, gradeLevel: 1 });
+contentSchema.index({ createdBy: 1, createdAt: -1 }); // Keep for backwards compatibility
+
+// Static method to find content by organization
+contentSchema.statics.findByOrganization = function(organizationId, filter = {}) {
+  return this.find({ organizationId, ...filter });
+};
+
+// Static method to find approved content for students
+contentSchema.statics.findApprovedForOrganization = function(organizationId, gradeLevel = null) {
+  const filter = { organizationId, isApproved: true };
+  if (gradeLevel) filter.gradeLevel = gradeLevel;
+  return this.find(filter).sort({ createdAt: -1 });
+};
+
+// Instance method to increment views
+contentSchema.methods.incrementViews = function() {
+  this.views = (this.views || 0) + 1;
+  return this.save();
+};
+
+// Instance method to increment downloads
+contentSchema.methods.incrementDownloads = function() {
+  this.downloads = (this.downloads || 0) + 1;
+  return this.save();
+};
 
 module.exports = mongoose.model('Content', contentSchema); 

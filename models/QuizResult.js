@@ -43,6 +43,16 @@ const quizResultSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  organizationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true
+  },
+  teacherId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   answers: [answerSchema],
   totalQuestions: {
     type: Number,
@@ -85,8 +95,45 @@ const quizResultSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for efficient queries
-quizResultSchema.index({ student: 1, quiz: 1 });
-quizResultSchema.index({ student: 1, createdAt: -1 });
+// Index for efficient queries and SaaS multi-tenancy
+quizResultSchema.index({ organizationId: 1, student: 1, quiz: 1 });
+quizResultSchema.index({ organizationId: 1, student: 1, createdAt: -1 });
+quizResultSchema.index({ organizationId: 1, teacherId: 1, createdAt: -1 });
+quizResultSchema.index({ organizationId: 1, quiz: 1 });
+quizResultSchema.index({ student: 1, quiz: 1 }); // Keep for backwards compatibility
+quizResultSchema.index({ student: 1, createdAt: -1 }); // Keep for backwards compatibility
+
+// Static method to find results by organization
+quizResultSchema.statics.findByOrganization = function(organizationId, filter = {}) {
+  return this.find({ organizationId, ...filter });
+};
+
+// Static method to find results for teacher
+quizResultSchema.statics.findByTeacher = function(teacherId, organizationId, filter = {}) {
+  return this.find({ organizationId, teacherId, ...filter });
+};
+
+// Static method to find results for student
+quizResultSchema.statics.findByStudent = function(studentId, organizationId, filter = {}) {
+  return this.find({ organizationId, student: studentId, ...filter });
+};
+
+// Static method to get quiz analytics
+quizResultSchema.statics.getQuizAnalytics = function(quizId, organizationId) {
+  return this.aggregate([
+    { $match: { quiz: quizId, organizationId } },
+    {
+      $group: {
+        _id: null,
+        totalAttempts: { $sum: 1 },
+        averageScore: { $avg: '$score' },
+        averagePercentage: { $avg: '$percentage' },
+        averageTime: { $avg: '$timeTaken' },
+        maxScore: { $max: '$score' },
+        minScore: { $min: '$score' }
+      }
+    }
+  ]);
+};
 
 module.exports = mongoose.model('QuizResult', quizResultSchema); 

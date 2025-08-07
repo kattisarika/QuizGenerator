@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Your Teaching Organization - SkillOns</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .signup-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .signup-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .signup-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .signup-body {
+            padding: 2rem;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 0.5rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .step.active {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .step.completed {
+            background: #10b981;
+            color: white;
+        }
+        
+        .step.pending {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+        
+        .form-floating > label {
+            color: #6b7280;
+        }
+        
+        .form-control:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+        
+        .feature-card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #4f46e5;
+        }
+        
+        .plan-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .plan-card:hover, .plan-card.selected {
+            border-color: #4f46e5;
+            background: #f8fafc;
+            transform: translateY(-2px);
+        }
+        
+        .plan-price {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+        
+        .subdomain-preview {
+            background: #f8fafc;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            font-family: 'Monaco', 'Consolas', monospace;
+            color: #4f46e5;
+        }
+        
+        .hero-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <div class="signup-card">
+            <div class="signup-header">
+                <h1 class="mb-0">
+                    <i class="fas fa-graduation-cap me-3"></i>
+                    Start Your Teaching Journey
+                </h1>
+                <p class="mb-0 mt-2">Create your personalized quiz platform in minutes</p>
+            </div>
+            
+            <div class="signup-body">
+                <!-- Step Indicator -->
+                <div class="step-indicator">
+                    <div class="step active" id="step1">1</div>
+                    <div class="step pending" id="step2">2</div>
+                    <div class="step pending" id="step3">3</div>
+                </div>
+                
+                <!-- Step 1: Basic Information -->
+                <div id="step1-content" class="step-content">
+                    <div class="hero-section">
+                        <h2 class="hero-title">Let's Get Started!</h2>
+                        <p class="hero-subtitle">Tell us about your organization</p>
+                    </div>
+                    
+                    <form id="step1-form">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="organizationName" name="organizationName" placeholder="Organization Name" required>
+                                    <label for="organizationName">School/Organization Name</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="subdomain" name="subdomain" placeholder="Subdomain" required pattern="[a-z0-9-]+" maxlength="50">
+                                    <label for="subdomain">Choose Your Subdomain</label>
+                                </div>
+                                <div class="subdomain-preview" id="subdomainPreview">
+                                    https://your-school.skillons.com
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="teacherName" name="teacherName" placeholder="Your Name" required>
+                                    <label for="teacherName">Your Full Name</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-floating">
+                                    <input type="email" class="form-control" id="email" name="email" placeholder="Email" required>
+                                    <label for="email">Your Email Address</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-floating">
+                                <textarea class="form-control" id="bio" name="bio" placeholder="Tell us about yourself" style="height: 100px"></textarea>
+                                <label for="bio">Brief Bio (Optional)</label>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="button" class="btn btn-primary btn-lg" onclick="nextStep(2)">
+                                Continue <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Step 2: Plan Selection -->
+                <div id="step2-content" class="step-content" style="display: none;">
+                    <div class="hero-section">
+                        <h2 class="hero-title">Choose Your Plan</h2>
+                        <p class="hero-subtitle">Start with our free plan and upgrade anytime</p>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="plan-card" data-plan="free">
+                                <div class="plan-price">Free</div>
+                                <h4 class="mt-3 mb-3">Starter Plan</h4>
+                                <ul class="list-unstyled text-start">
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Up to 50 students</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>10 quizzes</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>100MB storage</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Basic analytics</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>English language support</li>
+                                </ul>
+                                <div class="mt-3">
+                                    <small class="text-muted">Perfect for getting started</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="plan-card" data-plan="basic">
+                                <div class="plan-price">$19<small>/month</small></div>
+                                <h4 class="mt-3 mb-3">Professional Plan</h4>
+                                <ul class="list-unstyled text-start">
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Up to 200 students</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>50 quizzes</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>1GB storage</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Multi-language support</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Advanced analytics</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Priority support</li>
+                                </ul>
+                                <div class="mt-3">
+                                    <small class="text-muted">Great for growing schools</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn btn-outline-secondary me-3" onclick="previousStep(1)">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </button>
+                        <button type="button" class="btn btn-primary btn-lg" onclick="nextStep(3)">
+                            Continue <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Step 3: Confirmation -->
+                <div id="step3-content" class="step-content" style="display: none;">
+                    <div class="hero-section">
+                        <h2 class="hero-title">Almost Ready!</h2>
+                        <p class="hero-subtitle">Review your information and start teaching</p>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="feature-card">
+                                <h5><i class="fas fa-school text-primary me-2"></i>Organization Details</h5>
+                                <p class="mb-1"><strong>Name:</strong> <span id="review-org-name"></span></p>
+                                <p class="mb-1"><strong>URL:</strong> <span id="review-url"></span></p>
+                                <p class="mb-0"><strong>Admin:</strong> <span id="review-admin"></span></p>
+                            </div>
+                            
+                            <div class="feature-card">
+                                <h5><i class="fas fa-crown text-primary me-2"></i>Selected Plan</h5>
+                                <p class="mb-0">You selected the <strong><span id="review-plan"></span></strong> plan.</p>
+                                <small class="text-muted">You can upgrade or downgrade anytime from your dashboard.</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="feature-card text-center">
+                                <h5><i class="fas fa-rocket text-primary me-2"></i>What's Next?</h5>
+                                <ul class="list-unstyled text-start">
+                                    <li class="mb-2"><i class="fas fa-plus text-success me-2"></i>Add your students</li>
+                                    <li class="mb-2"><i class="fas fa-upload text-success me-2"></i>Upload study materials</li>
+                                    <li class="mb-2"><i class="fas fa-question-circle text-success me-2"></i>Create your first quiz</li>
+                                    <li class="mb-2"><i class="fas fa-chart-bar text-success me-2"></i>Track student progress</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="final-form">
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="termsAccepted" required>
+                                <label class="form-check-label" for="termsAccepted">
+                                    I agree to the <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="button" class="btn btn-outline-secondary me-3" onclick="previousStep(2)">
+                                <i class="fas fa-arrow-left me-2"></i>Back
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg" id="create-btn">
+                                <i class="fas fa-rocket me-2"></i>Create My Organization
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentStep = 1;
+        let selectedPlan = 'free';
+        
+        // Handle subdomain input
+        document.getElementById('subdomain').addEventListener('input', function(e) {
+            let value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+            e.target.value = value;
+            document.getElementById('subdomainPreview').textContent = `https://${value || 'your-school'}.skillons.com`;
+        });
+        
+        // Handle plan selection
+        document.querySelectorAll('.plan-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedPlan = this.dataset.plan;
+            });
+        });
+        
+        // Select free plan by default
+        document.querySelector('[data-plan="free"]').classList.add('selected');
+        
+        function nextStep(step) {
+            if (step === 2) {
+                // Validate step 1
+                if (!validateStep1()) return;
+            } else if (step === 3) {
+                // Update review information
+                updateReview();
+            }
+            
+            // Hide current step
+            document.getElementById(`step${currentStep}-content`).style.display = 'none';
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep}`).classList.add('completed');
+            
+            // Show next step
+            currentStep = step;
+            document.getElementById(`step${currentStep}-content`).style.display = 'block';
+            document.getElementById(`step${currentStep}`).classList.add('active');
+        }
+        
+        function previousStep(step) {
+            // Hide current step
+            document.getElementById(`step${currentStep}-content`).style.display = 'none';
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep}`).classList.add('pending');
+            
+            // Show previous step
+            currentStep = step;
+            document.getElementById(`step${currentStep}-content`).style.display = 'block';
+            document.getElementById(`step${currentStep}`).classList.remove('completed');
+            document.getElementById(`step${currentStep}`).classList.add('active');
+        }
+        
+        function validateStep1() {
+            const form = document.getElementById('step1-form');
+            const inputs = form.querySelectorAll('input[required]');
+            let valid = true;
+            
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.classList.add('is-invalid');
+                    valid = false;
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+            
+            // Check subdomain format
+            const subdomain = document.getElementById('subdomain').value;
+            if (subdomain && !/^[a-z0-9-]+$/.test(subdomain)) {
+                document.getElementById('subdomain').classList.add('is-invalid');
+                alert('Subdomain can only contain lowercase letters, numbers, and hyphens.');
+                valid = false;
+            }
+            
+            return valid;
+        }
+        
+        function updateReview() {
+            document.getElementById('review-org-name').textContent = document.getElementById('organizationName').value;
+            document.getElementById('review-url').textContent = `https://${document.getElementById('subdomain').value}.skillons.com`;
+            document.getElementById('review-admin').textContent = document.getElementById('teacherName').value;
+            document.getElementById('review-plan').textContent = selectedPlan === 'free' ? 'Free Starter' : 'Professional ($19/month)';
+        }
+        
+        // Handle final form submission
+        document.getElementById('final-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('create-btn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+            btn.disabled = true;
+            
+            const formData = {
+                organizationName: document.getElementById('organizationName').value,
+                subdomain: document.getElementById('subdomain').value,
+                teacherName: document.getElementById('teacherName').value,
+                email: document.getElementById('email').value,
+                bio: document.getElementById('bio').value,
+                planType: selectedPlan
+            };
+            
+            try {
+                const response = await fetch('/api/create-organization', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Redirect to Google OAuth with organization context
+                    window.location.href = `/auth/google?org=${result.organizationId}`;
+                } else {
+                    throw new Error(result.error || 'Failed to create organization');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+                btn.innerHTML = '<i class="fas fa-rocket me-2"></i>Create My Organization';
+                btn.disabled = false;
+            }
+        });
+        
+        // Check subdomain availability
+        let subdomainTimeout;
+        document.getElementById('subdomain').addEventListener('input', function(e) {
+            clearTimeout(subdomainTimeout);
+            const subdomain = e.target.value;
+            
+            if (subdomain.length >= 3) {
+                subdomainTimeout = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`/api/check-subdomain/${subdomain}`);
+                        const result = await response.json();
+                        
+                        if (!result.available) {
+                            e.target.classList.add('is-invalid');
+                            e.target.setCustomValidity('This subdomain is already taken');
+                        } else {
+                            e.target.classList.remove('is-invalid');
+                            e.target.setCustomValidity('');
+                        }
+                    } catch (error) {
+                        console.error('Error checking subdomain:', error);
+                    }
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>

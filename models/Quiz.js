@@ -43,6 +43,11 @@ const quizSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  organizationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization',
+    required: true
+  },
   isApproved: {
     type: Boolean,
     default: false
@@ -73,7 +78,37 @@ const quizSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
 });
+
+// Indexes for SaaS multi-tenancy
+quizSchema.index({ organizationId: 1, createdBy: 1 });
+quizSchema.index({ organizationId: 1, gradeLevel: 1 });
+quizSchema.index({ organizationId: 1, isApproved: 1 });
+quizSchema.index({ organizationId: 1, subjects: 1 });
+quizSchema.index({ organizationId: 1, language: 1 });
+
+// Pre-save middleware
+quizSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+// Static method to find quizzes by organization
+quizSchema.statics.findByOrganization = function(organizationId, filter = {}) {
+  return this.find({ organizationId, ...filter });
+};
+
+// Static method to find approved quizzes for students
+quizSchema.statics.findApprovedForOrganization = function(organizationId, gradeLevel = null, subjects = null) {
+  const filter = { organizationId, isApproved: true };
+  if (gradeLevel) filter.gradeLevel = gradeLevel;
+  if (subjects && subjects.length > 0) filter.subjects = { $in: subjects };
+  return this.find(filter);
+};
 
 module.exports = mongoose.model('Quiz', quizSchema); 
