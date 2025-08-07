@@ -272,28 +272,54 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         }
         
         if (!user) {
-          // New user - default to student role
-          user = new User({
-            googleId: profile.id,
-            displayName: profile.displayName,
-            email: profile.emails ? profile.emails[0].value : '',
-            photos: profile.photos,
-            role: 'student', // Default role
-            isApproved: false
+          const userEmail = profile.emails ? profile.emails[0].value : '';
+          
+          // Check if there's a temporary user created during organization signup
+          const tempUser = await User.findOne({ 
+            email: userEmail, 
+            googleId: { $regex: /^temp_/ } 
           });
           
-          // Make specific email an admin (replace with your email)
-          if (user.email === 'skillonusers@gmail.com') {
-            user.role = 'admin';
-            user.isApproved = true;
-          }
-          
-          try {
-            await user.save();
-            console.log('New user created successfully');
-          } catch (saveError) {
-            console.error('Error saving new user:', saveError);
-            return cb(new Error('Failed to create user'), null);
+          if (tempUser) {
+            // Update temporary user with real Google profile data
+            console.log('Found temporary user, updating with Google profile');
+            tempUser.googleId = profile.id;
+            tempUser.displayName = profile.displayName;
+            tempUser.photos = profile.photos;
+            
+            try {
+              await tempUser.save();
+              console.log('Temporary user updated successfully');
+              user = tempUser;
+            } catch (saveError) {
+              console.error('Error updating temporary user:', saveError);
+              return cb(new Error('Failed to update user'), null);
+            }
+          } else {
+            // New user - check if they're a super admin first
+            if (userEmail === 'skillonusers@gmail.com') {
+              user = new User({
+                googleId: profile.id,
+                displayName: profile.displayName,
+                email: userEmail,
+                photos: profile.photos,
+                role: 'super_admin',
+                isApproved: true
+                // organizationId not required for super_admin
+              });
+            } else {
+              // Regular new user - needs to go through organization signup or be invited
+              console.log('New user without organization context, redirecting to signup');
+              return cb(new Error('New users must be invited by a teacher or create an organization'), null);
+            }
+            
+            try {
+              await user.save();
+              console.log('New user created successfully');
+            } catch (saveError) {
+              console.error('Error saving new user:', saveError);
+              return cb(new Error('Failed to create user'), null);
+            }
           }
         } else {
           console.log('Existing user found');
@@ -2966,6 +2992,12 @@ app.get('/auth/google/callback', (req, res) => {
   })(req, res, (err) => {
     if (err) {
       console.error('Google OAuth callback error:', err);
+      
+      // Handle specific SaaS-related errors
+      if (err.message.includes('must be invited') || err.message.includes('create an organization')) {
+        return res.redirect('/teacher-signup?error=Please create an organization or ask a teacher for an invitation');
+      }
+      
       return res.redirect('/login?error=Authentication failed');
     }
     
@@ -2977,11 +3009,23 @@ app.get('/auth/google/callback', (req, res) => {
     
     console.log('User authenticated successfully:', req.user._id);
     
+    // For SaaS: Check if user has organization context
+    if (req.user.role !== 'super_admin' && !req.user.organizationId) {
+      console.log('User without organization context, redirecting to signup');
+      return res.redirect('/teacher-signup?error=Please create an organization first');
+    }
+    
     // Add null check for req.user.role
     if (!req.user || !req.user.role) {
       return res.redirect('/select-role');
     }
-    res.redirect('/dashboard');
+    
+    // Redirect based on organization context
+    if (req.user.organizationRole === 'owner' && req.user.role === 'teacher') {
+      res.redirect('/organization/dashboard');
+    } else {
+      res.redirect('/dashboard');
+    }
   });
 });
 
