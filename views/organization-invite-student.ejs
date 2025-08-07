@@ -186,16 +186,24 @@
             e.preventDefault();
             
             const form = e.target;
-            const formData = new FormData(form);
             const inviteBtn = document.getElementById('inviteBtn');
+            
+            // Get form data
+            const email = form.email.value;
+            const gradeLevel = form.gradeLevel.value;
             
             // Get selected subjects
             const subjects = Array.from(document.querySelectorAll('input[name="subjects"]:checked'))
                 .map(checkbox => checkbox.value);
             
-            // Clear existing subject data and add selected ones
-            formData.delete('subjects');
-            subjects.forEach(subject => formData.append('subjects', subject));
+            // Create JSON payload
+            const payload = {
+                email: email,
+                gradeLevel: gradeLevel,
+                subjects: subjects
+            };
+            
+            console.log('Sending payload:', payload);
             
             // Disable button and show loading
             const originalText = inviteBtn.innerHTML;
@@ -205,7 +213,10 @@
             try {
                 const response = await fetch('/organization/invite-student', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
                 });
                 
                 const result = await response.json();

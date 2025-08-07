@@ -361,9 +361,15 @@ router.post('/organization/invite-student',
   logOrganizationActivity('invite_student'),
   async (req, res) => {
     try {
+      console.log('Invite student request body:', req.body);
+      console.log('Content-Type:', req.get('Content-Type'));
+      
       const { email, gradeLevel, subjects } = req.body;
       
+      console.log('Extracted values:', { email, gradeLevel, subjects });
+      
       if (!email || !gradeLevel) {
+        console.log('Validation failed - email:', email, 'gradeLevel:', gradeLevel);
         return res.status(400).json({ error: 'Email and grade level are required' });
       }
       
