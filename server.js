@@ -877,8 +877,14 @@ app.get('/', (req, res) => {
 });
 
 // SaaS Teacher Signup Route
+// User signup route - handles both teachers and students
+app.get('/signup', (req, res) => {
+  res.render('user-signup', { title: 'Join SkillOns - Choose Your Role' });
+});
+
+// Legacy teacher signup redirect
 app.get('/teacher-signup', (req, res) => {
-  res.render('teacher-signup', { title: 'Create Your Teaching Organization' });
+  res.redirect('/signup');
 });
 
 app.get('/login', (req, res) => {
@@ -2995,7 +3001,7 @@ app.get('/auth/google/callback', (req, res) => {
       
       // Handle specific SaaS-related errors
       if (err.message.includes('must be invited') || err.message.includes('create an organization')) {
-        return res.redirect('/teacher-signup?error=Please create an organization or ask a teacher for an invitation');
+        return res.redirect('/signup?error=Please create an organization or ask a teacher for an invitation');
       }
       
       return res.redirect('/login?error=Authentication failed');
@@ -3012,7 +3018,7 @@ app.get('/auth/google/callback', (req, res) => {
     // For SaaS: Check if user has organization context
     if (req.user.role !== 'super_admin' && !req.user.organizationId) {
       console.log('User without organization context, redirecting to signup');
-      return res.redirect('/teacher-signup?error=Please create an organization first');
+      return res.redirect('/signup?error=Please create an organization first');
     }
     
     // Add null check for req.user.role

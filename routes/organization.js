@@ -391,4 +391,72 @@ router.get('/organization/billing',
   }
 );
 
+// Student account creation route
+router.post('/api/create-student-account', async (req, res) => {
+  try {
+    const { studentName, email, gradeLevel, organizationCode, subjects } = req.body;
+    
+    // Validate required fields
+    if (!studentName || !email || !gradeLevel || !organizationCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please fill in all required fields'
+      });
+    }
+    
+    // Find organization by subdomain (organizationCode)
+    const organization = await Organization.findOne({ subdomain: organizationCode });
+    if (!organization) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid organization code. Please check with your teacher.'
+      });
+    }
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'An account with this email already exists'
+      });
+    }
+    
+    // Create temporary student user (will be completed during Google OAuth)
+    const tempUser = new User({
+      googleId: `temp_student_${Date.now()}`,
+      displayName: studentName,
+      email: email,
+      role: 'student',
+      organizationId: organization._id,
+      organizationRole: 'student',
+      gradeLevel: gradeLevel,
+      subjects: subjects || [],
+      isApproved: true, // Students are auto-approved
+      invitationStatus: 'pending'
+    });
+    
+    await tempUser.save();
+    
+    console.log('Temporary student user created:', {
+      email: tempUser.email,
+      organization: organization.name,
+      gradeLevel: tempUser.gradeLevel
+    });
+    
+    res.json({
+      success: true,
+      message: 'Student account created successfully! Please sign in with Google.',
+      organizationName: organization.name
+    });
+    
+  } catch (error) {
+    console.error('Error creating student account:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while creating your account. Please try again.'
+    });
+  }
+});
+
 module.exports = router;
