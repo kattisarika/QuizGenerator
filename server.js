@@ -1459,6 +1459,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       questions: extractedQuestions,
       createdBy: req.user._id,
       createdByName: req.user.displayName,
+      organizationId: req.user.organizationId, // Add organization context for SaaS
       isApproved: false,
       questionPaperUrl: questionFileUrl, // Store S3 URL
       answerPaperUrl: answerFileUrl || null // Store S3 URL if provided
@@ -1636,6 +1637,7 @@ app.post('/teacher/post-content', isAuthenticated, requireRole(['teacher']), req
       fileSize: req.file.size,
       createdBy: req.user._id,
       createdByName: req.user.displayName,
+      organizationId: req.user.organizationId, // Add organization context for SaaS
       isApproved: true  // Auto-approve content from approved teachers
     });
     
@@ -2494,6 +2496,8 @@ app.post('/submit-quiz/:quizId', isAuthenticated, requireRole(['student']), asyn
       studentName: req.user.displayName,
       quiz: quiz._id,
       quizTitle: quiz.title,
+      teacherId: quiz.createdBy, // Add teacher reference
+      organizationId: req.user.organizationId, // Add organization context for SaaS
       answers: processedAnswers,
       totalQuestions: quiz.questions.length,
       correctAnswers: correctAnswers,
@@ -2611,6 +2615,7 @@ app.post('/recreate-quiz/:quizId', isAuthenticated, requireRole(['teacher']), as
       language: originalQuiz.language || 'English', // Include language with fallback
       createdBy: req.user._id,
       createdByName: req.user.displayName,
+      organizationId: req.user.organizationId, // Add organization context for SaaS
       isApproved: false, // New quiz needs approval
       questions: originalQuiz.questions.map(q => ({
         ...q,
