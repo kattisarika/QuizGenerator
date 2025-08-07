@@ -45,7 +45,8 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Organization',
     required: function() {
-      return this.role !== 'super_admin';
+      // Don't require organizationId for super_admin or temporary users during org creation
+      return this.role !== 'super_admin' && !this.googleId?.startsWith('temp_');
     }
   },
   organizationRole: {
