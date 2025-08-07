@@ -51,7 +51,11 @@
                             <a href="/student/dashboard" class="btn btn-primary">Go to Student Dashboard</a>
                         <% } else if (user.role === 'teacher') { %>
                             <% if (user.isApproved) { %>
-                                <a href="/teacher/dashboard" class="btn btn-primary">Go to Teacher Dashboard</a>
+                                <% if (user.organizationId) { %>
+                                    <a href="/organization/dashboard" class="btn btn-primary">Go to Organization Dashboard</a>
+                                <% } else { %>
+                                    <a href="/teacher/dashboard" class="btn btn-primary">Go to Teacher Dashboard</a>
+                                <% } %>
                             <% } else { %>
                                 <div class="pending-notice">
                                     <i class="fas fa-clock"></i>
@@ -101,11 +105,17 @@
         document.addEventListener('DOMContentLoaded', function() {
             const userRole = '<%= user.role %>';
             const isApproved = <%= user.isApproved %>;
+            const hasOrganization = '<%= user.organizationId %>';
             
             if (userRole === 'student') {
                 window.location.href = '/student/dashboard';
             } else if (userRole === 'teacher' && isApproved) {
-                window.location.href = '/teacher/dashboard';
+                // Redirect teachers to organization dashboard if they have an organization
+                if (hasOrganization && hasOrganization !== 'null' && hasOrganization !== '') {
+                    window.location.href = '/organization/dashboard';
+                } else {
+                    window.location.href = '/teacher/dashboard';
+                }
             } else if (userRole === 'admin') {
                 window.location.href = '/admin/dashboard';
             }

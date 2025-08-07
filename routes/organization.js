@@ -146,7 +146,27 @@ router.post('/api/create-organization', async (req, res) => {
  * GET /organization/dashboard
  * Organization dashboard for owners/admins
  */
+// Custom middleware to set organization context from user for dashboard access
+const setOrganizationFromUser = async (req, res, next) => {
+  try {
+    if (req.user && req.user.organizationId) {
+      const organization = await Organization.findById(req.user.organizationId);
+      if (organization) {
+        req.organization = organization;
+        req.organizationId = organization._id;
+        res.locals.organization = organization;
+        res.locals.organizationId = req.organizationId;
+      }
+    }
+    next();
+  } catch (error) {
+    console.error('Error setting organization from user:', error);
+    next();
+  }
+};
+
 router.get('/organization/dashboard', 
+  setOrganizationFromUser,
   requireOrganization,
   requireOrganizationMember,
   requireOrganizationPermission('view_analytics'),

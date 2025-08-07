@@ -3058,7 +3058,11 @@ app.get('/auth/google/callback', (req, res) => {
     }
     
     // Redirect based on organization context
-    if (req.user.organizationRole === 'owner' && req.user.role === 'teacher') {
+    if (req.user.role === 'teacher' && req.user.organizationId) {
+      // Teachers with organization context should go to organization dashboard
+      res.redirect('/organization/dashboard');
+    } else if (req.user.organizationRole === 'owner') {
+      // Organization owners go to organization dashboard
       res.redirect('/organization/dashboard');
     } else {
       res.redirect('/dashboard');
