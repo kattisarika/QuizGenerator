@@ -85,25 +85,11 @@ router.post('/api/create-organization', async (req, res) => {
       return res.status(400).json({ error: 'User with this email already exists' });
     }
     
-    // Create organization
-    const organization = new Organization({
-      name: organizationName,
-      subdomain: subdomain.toLowerCase(),
-      planType,
-      contact: {
-        email
-      },
-      settings: Organization.getPlanLimits(planType)
-    });
-    
-    await organization.save();
-    
-    // Create temporary user record (will be completed during OAuth)
+    // Create temporary user record first (will be completed during OAuth)
     const tempUser = new User({
       displayName: teacherName,
       email,
       role: 'teacher',
-      organizationId: organization._id,
       organizationRole: 'owner',
       isApproved: true,
       teacherProfile: {
@@ -115,9 +101,31 @@ router.post('/api/create-organization', async (req, res) => {
     
     await tempUser.save();
     
-    // Update organization with owner
-    organization.ownerId = tempUser._id;
+    // Get plan limits and structure them properly
+    const planLimits = Organization.getPlanLimits(planType);
+    
+    // Create organization with the user as owner
+    const organization = new Organization({
+      name: organizationName,
+      subdomain: subdomain.toLowerCase(),
+      ownerId: tempUser._id,
+      planType,
+      contact: {
+        email
+      },
+      settings: {
+        maxStudents: planLimits.maxStudents,
+        maxQuizzes: planLimits.maxQuizzes,
+        maxStorage: planLimits.maxStorage,
+        features: planLimits.features
+      }
+    });
+    
     await organization.save();
+    
+    // Update user with organization reference
+    tempUser.organizationId = organization._id;
+    await tempUser.save();
     
     // Log organization creation
     console.log(`New organization created: ${organizationName} (${subdomain}) by ${email}`);
