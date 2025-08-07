@@ -321,10 +321,39 @@ router.get('/organization/members',
 );
 
 /**
+ * GET /organization/invite-student
+ * Display student invitation form
+ */
+router.get('/organization/invite-student',
+  setOrganizationFromUser,
+  requireOrganization,
+  requireOrganizationMember,
+  requireOrganizationPermission('manage_students'),
+  async (req, res) => {
+    try {
+      res.render('organization-invite-student', {
+        title: 'Invite Student',
+        organization: req.organization,
+        user: req.user,
+        limits: Organization.getPlanLimits(req.organization.planType)
+      });
+    } catch (error) {
+      console.error('Error loading invite student page:', error);
+      res.status(500).render('error', {
+        title: 'Error',
+        message: 'Failed to load invite student page',
+        error: { status: 500 }
+      });
+    }
+  }
+);
+
+/**
  * POST /organization/invite-student
  * Invite a student to join the organization
  */
 router.post('/organization/invite-student',
+  setOrganizationFromUser,
   requireOrganization,
   requireOrganizationMember,
   requireOrganizationPermission('manage_students'),

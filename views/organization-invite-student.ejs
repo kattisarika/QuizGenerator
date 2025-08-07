@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Take Quiz Now!</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">Take Quiz Now!</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/organization/dashboard" class="nav-link">Dashboard</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container mt-4">
+            <div class="row">
+                <div class="col-md-8 mx-auto">
+                    <!-- Header -->
+                    <div class="page-header mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <a href="/organization/dashboard" class="btn btn-outline-secondary me-3">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </a>
+                            <h1 class="mb-0">
+                                <i class="fas fa-user-plus me-2 text-primary"></i>
+                                Invite Student
+                            </h1>
+                        </div>
+                        <p class="text-muted">Send an invitation to a student to join your organization</p>
+                    </div>
+
+                    <!-- Organization Info -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-school me-2"></i>
+                                <%= organization.name %>
+                            </h5>
+                            <p class="card-text text-muted">
+                                Students: <%= organization.stats?.totalStudents || 0 %> / <%= limits.maxStudents %>
+                                <% if (organization.stats?.totalStudents >= limits.maxStudents) { %>
+                                    <span class="badge bg-warning ms-2">Limit Reached</span>
+                                <% } %>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Invite Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-envelope me-2"></i>
+                                Student Invitation Details
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="inviteForm" action="/organization/invite-student" method="POST">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="email" class="form-label">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            Student Email Address *
+                                        </label>
+                                        <input type="email" class="form-control" id="email" name="email" required>
+                                        <div class="form-text">The student will receive an invitation at this email address</div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="gradeLevel" class="form-label">
+                                            <i class="fas fa-graduation-cap me-1"></i>
+                                            Grade Level *
+                                        </label>
+                                        <select class="form-select" id="gradeLevel" name="gradeLevel" required>
+                                            <option value="">Select Grade Level</option>
+                                            <option value="1st grade">1st Grade</option>
+                                            <option value="2nd grade">2nd Grade</option>
+                                            <option value="3rd grade">3rd Grade</option>
+                                            <option value="4th grade">4th Grade</option>
+                                            <option value="5th grade">5th Grade</option>
+                                            <option value="6th grade">6th Grade</option>
+                                            <option value="7th grade">7th Grade</option>
+                                            <option value="8th grade">8th Grade</option>
+                                            <option value="9th grade">9th Grade</option>
+                                            <option value="10th grade">10th Grade</option>
+                                            <option value="11th grade">11th Grade</option>
+                                            <option value="12th grade">12th Grade</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-book me-1"></i>
+                                        Subjects (Optional)
+                                    </label>
+                                    <div class="form-check-group">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="english" name="subjects" value="English">
+                                            <label class="form-check-label" for="english">English</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="science" name="subjects" value="Science">
+                                            <label class="form-check-label" for="science">Science</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="math" name="subjects" value="Math">
+                                            <label class="form-check-label" for="math">Math</label>
+                                        </div>
+                                    </div>
+                                    <div class="form-text">Select subjects the student will be studying</div>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>How it works:</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li>An invitation email will be sent to the student</li>
+                                        <li>The student can click the link to create their account</li>
+                                        <li>They'll be automatically added to your organization</li>
+                                        <li>You can assign them quizzes and track their progress</li>
+                                    </ul>
+                                </div>
+
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="/organization/dashboard" class="btn btn-secondary">
+                                        <i class="fas fa-times me-2"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary" id="inviteBtn">
+                                        <i class="fas fa-paper-plane me-2"></i>Send Invitation
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Alternative: Organization Code -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-qr-code me-2"></i>
+                                Alternative: Share Organization Code
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Students can also join directly using your organization code:</p>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="text" class="form-control" value="<%= organization.subdomain %>" readonly id="orgCode">
+                                <button class="btn btn-outline-primary" onclick="copyOrgCode()">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <div class="form-text mt-2">
+                                Share this code with students and direct them to the signup page at: 
+                                <a href="/signup" target="_blank">skillons.herokuapp.com/signup</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Form submission handler
+        document.getElementById('inviteForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const inviteBtn = document.getElementById('inviteBtn');
+            
+            // Get selected subjects
+            const subjects = Array.from(document.querySelectorAll('input[name="subjects"]:checked'))
+                .map(checkbox => checkbox.value);
+            
+            // Clear existing subject data and add selected ones
+            formData.delete('subjects');
+            subjects.forEach(subject => formData.append('subjects', subject));
+            
+            // Disable button and show loading
+            const originalText = inviteBtn.innerHTML;
+            inviteBtn.disabled = true;
+            inviteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+            
+            try {
+                const response = await fetch('/organization/invite-student', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Success
+                    showAlert('success', 'Invitation sent successfully!', 'The student will receive an email with instructions to join your organization.');
+                    form.reset();
+                } else {
+                    // Error
+                    showAlert('danger', 'Invitation Failed', result.error || 'Failed to send invitation. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error sending invitation:', error);
+                showAlert('danger', 'Network Error', 'Failed to send invitation. Please check your connection and try again.');
+            } finally {
+                // Re-enable button
+                inviteBtn.disabled = false;
+                inviteBtn.innerHTML = originalText;
+            }
+        });
+        
+        // Copy organization code
+        function copyOrgCode() {
+            const codeInput = document.getElementById('orgCode');
+            codeInput.select();
+            codeInput.setSelectionRange(0, 99999);
+            
+            try {
+                document.execCommand('copy');
+                showAlert('success', 'Copied!', 'Organization code copied to clipboard.');
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                showAlert('warning', 'Copy Failed', 'Please copy the code manually.');
+            }
+        }
+        
+        // Show alert messages
+        function showAlert(type, title, message) {
+            const alertContainer = document.createElement('div');
+            alertContainer.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertContainer.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+            alertContainer.innerHTML = `
+                <strong>${title}</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(alertContainer);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertContainer.parentNode) {
+                    alertContainer.remove();
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
