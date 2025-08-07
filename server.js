@@ -2722,12 +2722,12 @@ app.get('/test-create-admin', async (req, res) => {
       });
     }
     
-    // Create admin user
+    // Create super admin user (doesn't require organizationId)
     const adminUser = new User({
       googleId: 'test-admin-' + Date.now(),
       displayName: 'Test Admin',
       email: 'sarika.katti@gmail.com',
-      role: 'admin',
+      role: 'super_admin', // Changed to super_admin for SaaS
       isApproved: true
     });
     
@@ -2887,7 +2887,7 @@ app.get('/create-admin', async (req, res) => {
     // Check if admin already exists for your email
     const existingAdmin = await User.findOne({ email: 'sarika.katti@gmail.com' });
     if (existingAdmin) {
-      existingAdmin.role = 'admin';
+      existingAdmin.role = 'super_admin'; // Changed to super_admin for SaaS
       existingAdmin.isApproved = true;
       await existingAdmin.save();
       res.send(`
@@ -2906,7 +2906,7 @@ app.get('/create-admin', async (req, res) => {
         googleId: 'admin-' + Date.now(),
         displayName: 'System Administrator',
         email: 'sarika.katti@gmail.com',
-        role: 'admin',
+        role: 'super_admin', // Changed to super_admin for SaaS
         isApproved: true
       });
       
@@ -2937,7 +2937,7 @@ app.get('/createadmin', async (req, res) => {
     // Check if admin already exists for your email
     const existingAdmin = await User.findOne({ email: 'sarika.katti@gmail.com' });
     if (existingAdmin) {
-      existingAdmin.role = 'admin';
+      existingAdmin.role = 'super_admin'; // Changed to super_admin for SaaS
       existingAdmin.isApproved = true;
       await existingAdmin.save();
       res.send(`
@@ -2956,7 +2956,7 @@ app.get('/createadmin', async (req, res) => {
         googleId: 'admin-' + Date.now(),
         displayName: 'System Administrator',
         email: 'sarika.katti@gmail.com',
-        role: 'admin',
+        role: 'super_admin', // Changed to super_admin for SaaS
         isApproved: true
       });
       
