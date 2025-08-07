@@ -10,6 +10,19 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 require('dotenv').config();
 
+// SaaS Multi-tenancy imports
+const { 
+  detectOrganization, 
+  requireOrganization, 
+  requireOrganizationMember, 
+  requireOrganizationPermission,
+  requireActiveSubscription,
+  checkOrganizationLimits,
+  scopeToOrganization,
+  logOrganizationActivity
+} = require('./middleware/tenancy');
+const organizationRoutes = require('./routes/organization');
+
 // AWS S3 configuration
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3({
@@ -68,6 +81,7 @@ const User = require('./models/User');
 const Quiz = require('./models/Quiz');
 const QuizResult = require('./models/QuizResult');
 const Content = require('./models/Content');
+const Organization = require('./models/Organization');
 
 // Middleware
 app.use(express.json());
@@ -325,6 +339,13 @@ passport.deserializeUser(async (id, done) => {
     done(error, null);
   }
 });
+
+// SaaS Multi-tenancy middleware setup
+app.use(detectOrganization);
+app.use(scopeToOrganization);
+
+// Organization routes
+app.use('/', organizationRoutes);
 
 // Helper functions for file processing
 async function extractTextFromFile(fileBuffer, originalName) {
@@ -827,6 +848,11 @@ const requireApprovedTeacher = (req, res, next) => {
 // Routes
 app.get('/', (req, res) => {
   res.render('index', { user: req.user });
+});
+
+// SaaS Teacher Signup Route
+app.get('/teacher-signup', (req, res) => {
+  res.render('teacher-signup', { title: 'Create Your Teaching Organization' });
 });
 
 app.get('/login', (req, res) => {
