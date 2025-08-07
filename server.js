@@ -1006,15 +1006,24 @@ app.get('/api/signed-url/:contentId', isAuthenticated, requireRole(['student']),
 app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const teacherQuizzes = await Quiz.find({ createdBy: req.user._id });
+    
+    // Get organization information for the teacher
+    let organization = null;
+    if (req.user.organizationId) {
+      organization = await Organization.findById(req.user.organizationId);
+    }
+    
     res.render('teacher-dashboard', { 
       user: req.user, 
-      quizzes: teacherQuizzes
+      quizzes: teacherQuizzes,
+      organization: organization
     });
   } catch (error) {
-    console.error('Error fetching teacher quizzes:', error);
+    console.error('Error fetching teacher dashboard data:', error);
     res.render('teacher-dashboard', { 
       user: req.user, 
-      quizzes: []
+      quizzes: [],
+      organization: null
     });
   }
 });

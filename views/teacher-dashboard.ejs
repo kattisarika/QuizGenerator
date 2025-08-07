@@ -41,6 +41,26 @@
                         <h1>Welcome, <%= user.displayName %>!</h1>
                         <p><%= user.email %></p>
                         <span class="role-badge teacher-badge">Teacher</span>
+                        <% if (organization) { %>
+                            <div class="organization-info">
+                                <h3><i class="fas fa-school me-2"></i><%= organization.name %></h3>
+                                <div class="organization-code-section">
+                                    <div class="organization-code">
+                                        <label>Student Signup Code:</label>
+                                        <div class="code-display">
+                                            <input type="text" value="<%= organization.subdomain %>" readonly id="orgCode" class="code-input">
+                                            <button onclick="copyOrgCode()" class="copy-btn" title="Copy to clipboard">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <small class="help-text">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Share this code with students so they can join your organization
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        <% } %>
                     </div>
                 </div>
             </div>
@@ -461,6 +481,37 @@
                     statNumbers[0].textContent = totalQuizzes;
                     statNumbers[1].textContent = approvedQuizzes;
                     statNumbers[2].textContent = pendingQuizzes;
+                }
+            }
+            
+            // Copy organization code functionality
+            function copyOrgCode() {
+                const codeInput = document.getElementById('orgCode');
+                const copyBtn = codeInput.nextElementSibling;
+                
+                // Select and copy the text
+                codeInput.select();
+                codeInput.setSelectionRange(0, 99999); // For mobile devices
+                
+                try {
+                    document.execCommand('copy');
+                    
+                    // Visual feedback
+                    const originalIcon = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    copyBtn.style.background = '#22c55e';
+                    
+                    // Show notification
+                    showNotification('Organization code copied to clipboard!', 'success');
+                    
+                    // Reset button after 2 seconds
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalIcon;
+                        copyBtn.style.background = '';
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy: ', err);
+                    showNotification('Failed to copy code. Please copy manually.', 'error');
                 }
             }
         });
