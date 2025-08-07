@@ -223,7 +223,17 @@
                 
                 if (response.ok) {
                     // Success
-                    showAlert('success', 'Invitation sent successfully!', 'The student will receive an email with instructions to join your organization.');
+                    if (result.emailSent) {
+                        showAlert('success', 'Invitation sent successfully!', 'The student will receive an email with instructions to join your organization.');
+                    } else {
+                        // Email service not configured - show manual instructions
+                        const signupUrl = result.signupUrl || '/signup';
+                        const orgCode = result.organizationCode || '';
+                        showAlert('warning', 'Invitation created!', 
+                            `Email service is not configured. Please share this information manually:<br>
+                            <strong>Signup Link:</strong> <a href="${signupUrl}" target="_blank">${signupUrl}</a><br>
+                            <strong>Organization Code:</strong> ${orgCode}`);
+                    }
                     form.reset();
                 } else {
                     // Error

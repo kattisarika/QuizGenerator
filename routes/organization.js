@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Organization = require('../models/Organization');
 const User = require('../models/User');
+const emailService = require('../services/emailService');
 const { 
   detectOrganization, 
   requireOrganization, 
@@ -410,13 +411,38 @@ router.post('/organization/invite-student',
         return res.status(400).json({ error: saveError.message || 'Failed to create invitation' });
       }
       
-      // TODO: Send invitation email
+      // Send invitation email
+      const invitationData = {
+        email: invitation.email,
+        organizationName: req.organization.name,
+        organizationCode: req.organization.subdomain,
+        teacherName: req.user.displayName,
+        gradeLevel: invitation.gradeLevel,
+        subjects: invitation.subjects || []
+      };
+
+      console.log('Sending invitation email to:', invitation.email);
+      const emailResult = await emailService.sendStudentInvitation(invitationData);
       
-      res.json({ 
-        success: true, 
-        message: 'Student invitation created successfully',
-        invitationId: invitation._id
-      });
+      if (emailResult.success) {
+        console.log('Invitation email sent successfully');
+        res.json({ 
+          success: true, 
+          message: 'Student invitation sent successfully! They will receive an email with instructions to join.',
+          invitationId: invitation._id,
+          emailSent: true
+        });
+      } else {
+        console.log('Email service not available or failed:', emailResult.message);
+        res.json({ 
+          success: true, 
+          message: 'Student invitation created successfully. Please share the organization code manually as email service is not configured.',
+          invitationId: invitation._id,
+          emailSent: false,
+          organizationCode: req.organization.subdomain,
+          signupUrl: `${process.env.APP_URL || 'https://skillons.herokuapp.com'}/signup?code=${req.organization.subdomain}`
+        });
+      }
     } catch (error) {
       console.error('Error inviting student:', error);
       res.status(500).json({ error: 'Failed to invite student' });
