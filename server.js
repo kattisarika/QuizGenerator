@@ -1035,17 +1035,20 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
 // Route for student study material page
 app.get('/student/study-material', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
-    // Get approved content filtered by student's grade level
-    let query = { isApproved: true };
+    // Get approved content filtered by student's grade level and organization
+    let query = { 
+      isApproved: true,
+      organizationId: req.user.organizationId // Filter by organization for SaaS
+    };
     let messageForStudent = null;
     
     // Filter by student's grade level if it exists
     if (req.user.gradeLevel) {
       query.gradeLevel = req.user.gradeLevel;
-      console.log(`🎓 Filtering content for student ${req.user.displayName} (${req.user.gradeLevel})`);
+      console.log(`🎓 Filtering content for student ${req.user.displayName} (${req.user.gradeLevel}) in organization ${req.user.organizationId}`);
       console.log(`📋 Query: ${JSON.stringify(query)}`);
     } else {
-      console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all content`);
+      console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all content from organization ${req.user.organizationId}`);
       messageForStudent = "Your grade level is not set. Please ask your teacher to assign you to the correct grade, or update your profile.";
     }
     
@@ -1239,10 +1242,17 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
 
 app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
-    const availableQuizzes = await Quiz.find({ isApproved: true });
+    // Get quizzes from the student's organization only
+    const availableQuizzes = await Quiz.find({ 
+      isApproved: true,
+      organizationId: req.user.organizationId // Filter by organization for SaaS
+    });
     
-    // Fetch student's quiz results
-    const quizResults = await QuizResult.find({ student: req.user._id });
+    // Fetch student's quiz results from their organization
+    const quizResults = await QuizResult.find({ 
+      student: req.user._id,
+      organizationId: req.user.organizationId // Filter results by organization
+    });
     const completedCount = quizResults.length;
     
     // Calculate average score
@@ -2011,8 +2021,11 @@ app.get('/teacher/student-results', isAuthenticated, requireRole(['teacher']), r
     const teacherQuizzes = await Quiz.find({ createdBy: req.user._id });
     const quizIds = teacherQuizzes.map(quiz => quiz._id);
     
-    // Fetch all student results for teacher's quizzes
-    const allResults = await QuizResult.find({ quiz: { $in: quizIds } })
+    // Fetch all student results for teacher's quizzes in their organization
+    const allResults = await QuizResult.find({ 
+      quiz: { $in: quizIds },
+      organizationId: req.user.organizationId // Filter by organization for SaaS
+    })
       .populate('student', 'displayName email')
       .populate('quiz', 'title')
       .sort({ completedAt: -1 });
@@ -2349,8 +2362,11 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
     // Get student's profile to filter quizzes
     const student = await User.findById(req.user._id);
     
-    // Build filter based on student's grade level and subjects
-    const filter = { isApproved: true };
+    // Build filter based on student's grade level, subjects, and organization
+    const filter = { 
+      isApproved: true,
+      organizationId: req.user.organizationId // Filter by organization for SaaS
+    };
     
     if (student.gradeLevel) {
       filter.gradeLevel = student.gradeLevel;
@@ -2374,7 +2390,8 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
     
     // Get the student's quiz results to determine which quizzes they've taken
     const studentResults = await QuizResult.find({ 
-      student: req.user._id 
+      student: req.user._id,
+      organizationId: req.user.organizationId // Filter results by organization
     }).select('quiz score percentage timeTaken createdAt');
     
     // Create a map of quiz IDs and their attempt counts
