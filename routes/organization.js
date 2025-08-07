@@ -396,11 +396,19 @@ router.post('/organization/invite-student',
         invitationStatus: 'pending',
         invitedBy: req.user._id,
         invitedAt: new Date(),
+        isApproved: true, // Auto-approve invited students
         // Temporary googleId - will be updated when user signs up
         googleId: `invite_${Date.now()}_${Math.random()}`
       });
       
-      await invitation.save();
+      console.log('Creating invitation for:', invitation.email);
+      try {
+        await invitation.save();
+        console.log('Invitation saved successfully:', invitation._id);
+      } catch (saveError) {
+        console.error('Error saving invitation:', saveError);
+        return res.status(400).json({ error: saveError.message || 'Failed to create invitation' });
+      }
       
       // TODO: Send invitation email
       
