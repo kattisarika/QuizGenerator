@@ -169,11 +169,28 @@ userSchema.methods.canAccess = function(resource) {
   const permissions = {
     owner: ['all'],
     admin: ['manage_users', 'manage_content', 'view_analytics', 'manage_quizzes'],
-    teacher: ['manage_students', 'create_content', 'create_quizzes', 'view_results'],
+    teacher: ['manage_students', 'create_content', 'create_quizzes', 'view_results', 'view_analytics'],
     student: ['take_quiz', 'view_content', 'view_own_results']
   };
   
-  const userPermissions = permissions[this.organizationRole] || permissions.student;
+  // Determine the role to use for permission checking
+  let roleForPermissions = this.organizationRole;
+  
+  // Fallback logic if organizationRole is not set
+  if (!roleForPermissions) {
+    // For teachers with organizationId, assume they have at least teacher permissions
+    // In SaaS model, teachers who created organizations should be owners
+    if (this.role === 'teacher' && this.organizationId) {
+      // TODO: This could be enhanced to check if they're the actual org owner in the Organization model
+      // For now, give teacher permissions as minimum
+      roleForPermissions = 'teacher';
+    } else {
+      // Use their main role as fallback
+      roleForPermissions = this.role;
+    }
+  }
+  
+  const userPermissions = permissions[roleForPermissions] || permissions.student;
   return userPermissions.includes('all') || userPermissions.includes(resource);
 };
 
