@@ -881,7 +881,7 @@ app.get('/', async (req, res) => {
       organizationId: { $exists: true, $ne: null }
     })
     .populate('organizationId', 'name subdomain')
-    .select('displayName email organizationId organizationRole')
+    .select('displayName organizationId organizationRole')
     .sort({ displayName: 1 });
 
     res.render('index', { 
