@@ -872,8 +872,29 @@ const requireApprovedTeacher = (req, res, next) => {
 };
 
 // Routes
-app.get('/', (req, res) => {
-  res.render('index', { user: req.user });
+app.get('/', async (req, res) => {
+  try {
+    // Fetch all teachers with their organization information
+    const teachers = await User.find({ 
+      role: 'teacher', 
+      isApproved: true,
+      organizationId: { $exists: true, $ne: null }
+    })
+    .populate('organizationId', 'name subdomain')
+    .select('displayName email organizationId organizationRole')
+    .sort({ displayName: 1 });
+
+    res.render('index', { 
+      user: req.user,
+      teachers: teachers || []
+    });
+  } catch (error) {
+    console.error('Error fetching teachers for homepage:', error);
+    res.render('index', { 
+      user: req.user,
+      teachers: []
+    });
+  }
 });
 
 // SaaS Teacher Signup Route

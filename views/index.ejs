@@ -229,6 +229,86 @@
         </div>
     </div>
 
+    <!-- Teachers Directory -->
+    <% if (teachers && teachers.length > 0) { %>
+    <div class="features-section" style="background: #f8f9fa;">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center mb-4">
+                    <h2 style="color: #667eea;">
+                        <i class="fas fa-users me-2"></i>
+                        Find Your Teacher
+                    </h2>
+                    <p class="lead text-muted">Connect with your teacher and join their organization using the code below</p>
+                </div>
+            </div>
+            
+            <div class="row">
+                <% teachers.forEach(function(teacher) { %>
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm border-0" style="border-radius: 15px; transition: transform 0.3s ease;">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <div class="teacher-avatar mx-auto mb-3" style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-chalkboard-teacher text-white" style="font-size: 24px;"></i>
+                                </div>
+                                <h5 class="card-title mb-1" style="color: #2c3e50;"><%= teacher.displayName %></h5>
+                                <p class="text-muted small mb-0"><%= teacher.email %></p>
+                            </div>
+                            
+                            <div class="organization-info mb-3">
+                                <h6 class="mb-2" style="color: #667eea;">
+                                    <i class="fas fa-school me-1"></i>
+                                    <%= teacher.organizationId.name %>
+                                </h6>
+                                <div class="org-code-display">
+                                    <label class="form-label small text-muted mb-1">Organization Code:</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" 
+                                               class="form-control text-center fw-bold" 
+                                               value="<%= teacher.organizationId.subdomain %>" 
+                                               readonly 
+                                               id="orgCode_<%= teacher._id %>"
+                                               style="font-family: monospace; background: #f8f9fa; border: 2px solid #e9ecef;">
+                                        <button class="btn btn-outline-primary btn-sm" 
+                                                type="button" 
+                                                onclick="copyCode('<%= teacher._id %>')"
+                                                title="Copy organization code">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="action-buttons">
+                                <a href="/signup?code=<%= teacher.organizationId.subdomain %>" 
+                                   class="btn btn-primary btn-sm rounded-pill px-3 mb-2">
+                                    <i class="fas fa-user-plus me-1"></i>
+                                    Join as Student
+                                </a>
+                                <div class="text-muted small mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Click to join this teacher's organization
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% }); %>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-12 text-center">
+                    <div class="alert alert-info d-inline-block" style="border-radius: 15px;">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>How to join:</strong> Click "Join as Student" or copy the organization code and use it during manual signup.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
     <!-- Testing Instructions -->
     <div class="hero-section" style="padding: 2rem 0;">
         <div class="container">
@@ -271,5 +351,86 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Copy organization code functionality
+        function copyCode(teacherId) {
+            const codeInput = document.getElementById('orgCode_' + teacherId);
+            const copyBtn = codeInput.nextElementSibling;
+            
+            // Select and copy the text
+            codeInput.select();
+            codeInput.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                document.execCommand('copy');
+                
+                // Visual feedback
+                const originalIcon = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                copyBtn.classList.remove('btn-outline-primary');
+                copyBtn.classList.add('btn-success');
+                
+                // Show success message
+                showCopyMessage('Organization code copied to clipboard!', 'success');
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalIcon;
+                    copyBtn.classList.remove('btn-success');
+                    copyBtn.classList.add('btn-outline-primary');
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                showCopyMessage('Failed to copy code. Please copy manually.', 'error');
+            }
+        }
+        
+        // Show copy message
+        function showCopyMessage(message, type) {
+            // Remove existing message if any
+            const existingMessage = document.getElementById('copyMessage');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            // Create new message
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'copyMessage';
+            messageDiv.className = `alert alert-${type === 'success' ? 'success' : 'warning'} alert-dismissible fade show position-fixed`;
+            messageDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+            messageDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(messageDiv);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, 3000);
+        }
+        
+        // Add hover effects to teacher cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const teacherCards = document.querySelectorAll('.card');
+            teacherCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                    this.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = '';
+                });
+            });
+        });
+    </script>
 </body>
 </html>
