@@ -12,30 +12,30 @@
             min-height: 100vh;
             font-family: 'Inter', sans-serif;
         }
-        
+
         .hero-section {
             padding: 4rem 0;
             text-align: center;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-        
+
         .hero-title {
             font-size: 3.5rem;
             font-weight: bold;
             margin-bottom: 1rem;
         }
-        
+
         .hero-subtitle {
             font-size: 1.5rem;
             margin-bottom: 2rem;
             opacity: 0.9;
         }
-        
+
         .cta-buttons {
             margin: 2rem 0;
         }
-        
+
         .cta-button {
             margin: 0.5rem;
             padding: 1rem 2rem;
@@ -44,38 +44,38 @@
             text-decoration: none;
             transition: all 0.3s ease;
         }
-        
+
         .btn-primary-custom {
             background: white;
             color: #667eea;
             border: 2px solid white;
         }
-        
+
         .btn-primary-custom:hover {
             background: transparent;
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
-        
+
         .btn-outline-custom {
             background: transparent;
             color: white;
             border: 2px solid rgba(255,255,255,0.5);
         }
-        
+
         .btn-outline-custom:hover {
             background: white;
             color: #667eea;
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
-        
+
         .features-section {
             background: white;
             padding: 4rem 0;
         }
-        
+
         .feature-card {
             text-align: center;
             padding: 2rem;
@@ -84,13 +84,13 @@
             margin-bottom: 2rem;
             height: 100%;
         }
-        
+
         .feature-icon {
             font-size: 3rem;
             color: #667eea;
             margin-bottom: 1rem;
         }
-        
+
         .debug-info {
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
@@ -99,7 +99,7 @@
             margin: 2rem 0;
             color: white;
         }
-        
+
         .organization-info {
             background: rgba(255,255,255,0.2);
             border-radius: 10px;
@@ -120,10 +120,10 @@
                 The Complete SaaS Quiz Platform for Teachers
             </p>
             <p class="lead">
-                Create your own isolated teaching environment with unlimited quizzes, 
+                Create your own isolated teaching environment with unlimited quizzes,
                 multi-language support, and comprehensive student analytics.
             </p>
-            
+
             <div class="cta-buttons">
                 <a href="/signup" class="btn btn-primary-custom cta-button">
                     <i class="fas fa-rocket me-2"></i>
@@ -141,9 +141,9 @@
                 </a>
                 <% } %>
             </div>
-            
+
             <!-- Debug Information (for testing) -->
-            <% if (typeof organization !== 'undefined' && organization) { %>
+        <!--    <% if (typeof organization !== 'undefined' && organization) { %>
             <div class="organization-info">
                 <h5><i class="fas fa-info-circle me-2"></i>Organization Detected</h5>
                 <p><strong>Name:</strong> <%= organization.name %></p>
@@ -152,7 +152,7 @@
                 <p><strong>URL:</strong> <%= organization.fullDomain %></p>
             </div>
             <% } %>
-            
+
             <div class="debug-info">
                 <h5><i class="fas fa-bug me-2"></i>Debug Information (for testing)</h5>
                 <div class="row">
@@ -172,7 +172,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Features Section -->
     <div class="features-section">
@@ -183,7 +183,7 @@
                     <p class="lead">Complete isolation, unlimited possibilities</p>
                 </div>
             </div>
-            
+
             <div class="row">
                 <div class="col-md-4">
                     <div class="feature-card">
@@ -192,7 +192,7 @@
                         <p>Get your personalized subdomain with complete data isolation. Your students, quizzes, and content are completely separate from other teachers.</p>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
                     <div class="feature-card">
                         <i class="fas fa-globe feature-icon"></i>
@@ -200,7 +200,7 @@
                         <p>Create quizzes in English, Spanish, French, and Kannada. Our advanced parsing engine understands different question formats automatically.</p>
                     </div>
                 </div>
-                
+
                 <div class="col-md-4">
                     <div class="feature-card">
                         <i class="fas fa-chart-line feature-icon"></i>
@@ -209,7 +209,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="row mt-4">
                 <div class="col-md-6">
                     <div class="feature-card">
@@ -218,7 +218,7 @@
                         <p>Upload PDFs, Word documents, and PowerPoint files. Share study materials with grade-level filtering.</p>
                     </div>
                 </div>
-                
+
                 <div class="col-md-6">
                     <div class="feature-card">
                         <i class="fas fa-shield-alt feature-icon"></i>
@@ -243,7 +243,7 @@
                     <p class="lead text-muted">Connect with your teacher and join their organization using the code below</p>
                 </div>
             </div>
-            
+
             <div class="row">
                 <% teachers.forEach(function(teacher) { %>
                 <div class="col-md-6 col-lg-4 mb-4">
@@ -255,7 +255,7 @@
                                 </div>
                                 <h5 class="card-title mb-2" style="color: #2c3e50;"><%= teacher.displayName %></h5>
                             </div>
-                            
+
                             <div class="organization-info mb-3">
                                 <h6 class="mb-2" style="color: #667eea;">
                                     <i class="fas fa-school me-1"></i>
@@ -264,14 +264,14 @@
                                 <div class="org-code-display">
                                     <label class="form-label small text-muted mb-1">Organization Code:</label>
                                     <div class="input-group input-group-sm">
-                                        <input type="text" 
-                                               class="form-control text-center fw-bold" 
-                                               value="<%= teacher.organizationId.subdomain %>" 
-                                               readonly 
+                                        <input type="text"
+                                               class="form-control text-center fw-bold"
+                                               value="<%= teacher.organizationId.subdomain %>"
+                                               readonly
                                                id="orgCode_<%= teacher._id %>"
                                                style="font-family: monospace; background: #f8f9fa; border: 2px solid #e9ecef;">
-                                        <button class="btn btn-outline-primary btn-sm" 
-                                                type="button" 
+                                        <button class="btn btn-outline-primary btn-sm"
+                                                type="button"
                                                 onclick="copyCode('<%= teacher._id %>')"
                                                 title="Copy organization code">
                                             <i class="fas fa-copy"></i>
@@ -279,9 +279,9 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="action-buttons">
-                                <a href="/signup?code=<%= teacher.organizationId.subdomain %>" 
+                                <a href="/signup?code=<%= teacher.organizationId.subdomain %>"
                                    class="btn btn-primary btn-sm rounded-pill px-3 mb-2">
                                     <i class="fas fa-user-plus me-1"></i>
                                     Join as Student
@@ -296,7 +296,7 @@
                 </div>
                 <% }); %>
             </div>
-            
+
             <div class="row mt-4">
                 <div class="col-12 text-center">
                     <div class="alert alert-info d-inline-block" style="border-radius: 15px;">
@@ -334,7 +334,7 @@
                         </ol>
                     </div>
                 </div>
-                
+
                 <div class="row mt-3">
                     <div class="col-12">
                         <h6>🔧 Development Testing</h6>
@@ -351,42 +351,42 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
         // Copy organization code functionality
         function copyCode(teacherId) {
             const codeInput = document.getElementById('orgCode_' + teacherId);
             const copyBtn = codeInput.nextElementSibling;
-            
+
             // Select and copy the text
             codeInput.select();
             codeInput.setSelectionRange(0, 99999); // For mobile devices
-            
+
             try {
                 document.execCommand('copy');
-                
+
                 // Visual feedback
                 const originalIcon = copyBtn.innerHTML;
                 copyBtn.innerHTML = '<i class="fas fa-check"></i>';
                 copyBtn.classList.remove('btn-outline-primary');
                 copyBtn.classList.add('btn-success');
-                
+
                 // Show success message
                 showCopyMessage('Organization code copied to clipboard!', 'success');
-                
+
                 // Reset button after 2 seconds
                 setTimeout(() => {
                     copyBtn.innerHTML = originalIcon;
                     copyBtn.classList.remove('btn-success');
                     copyBtn.classList.add('btn-outline-primary');
                 }, 2000);
-                
+
             } catch (err) {
                 console.error('Failed to copy: ', err);
                 showCopyMessage('Failed to copy code. Please copy manually.', 'error');
             }
         }
-        
+
         // Show copy message
         function showCopyMessage(message, type) {
             // Remove existing message if any
@@ -394,7 +394,7 @@
             if (existingMessage) {
                 existingMessage.remove();
             }
-            
+
             // Create new message
             const messageDiv = document.createElement('div');
             messageDiv.id = 'copyMessage';
@@ -405,9 +405,9 @@
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
-            
+
             document.body.appendChild(messageDiv);
-            
+
             // Auto-remove after 3 seconds
             setTimeout(() => {
                 if (messageDiv.parentNode) {
@@ -415,7 +415,7 @@
                 }
             }, 3000);
         }
-        
+
         // Add hover effects to teacher cards
         document.addEventListener('DOMContentLoaded', function() {
             const teacherCards = document.querySelectorAll('.card');
@@ -424,7 +424,7 @@
                     this.style.transform = 'translateY(-5px)';
                     this.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
                 });
-                
+
                 card.addEventListener('mouseleave', function() {
                     this.style.transform = 'translateY(0)';
                     this.style.boxShadow = '';
