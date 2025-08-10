@@ -111,6 +111,12 @@ body {
     margin-bottom: 40px;
 }
 
+.lead1{
+  font-size: 1.25rem;
+  font-weight: 300;
+  color:white;
+}
+
 .cta-buttons {
     display: flex;
     gap: 20px;
@@ -1293,13 +1299,13 @@ body {
         align-items: flex-start;
         gap: 10px;
     }
-    
+
     .quiz-actions {
         margin-left: 0;
         width: 100%;
         justify-content: flex-end;
     }
-    
+
     .notification {
         right: 10px;
         left: 10px;
@@ -1454,15 +1460,15 @@ body {
         width: 95%;
         margin: 2% auto;
     }
-    
+
     .content-modal-body {
         max-height: 80vh;
     }
-    
+
     .viewer-buttons {
         flex-direction: column;
     }
-    
+
     .pdf-viewer {
         height: 400px;
     }
@@ -1616,26 +1622,26 @@ body {
         margin: 10% auto;
         max-height: 85vh;
     }
-    
+
     .modal-header {
         padding: 15px 20px;
     }
-    
+
     .modal-body {
         padding: 20px;
     }
-    
+
     .quiz-card-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
     }
-    
+
     .quiz-card-actions {
         width: 100%;
         justify-content: flex-end;
     }
-    
+
     .quiz-filters {
         justify-content: center;
     }
@@ -1870,15 +1876,15 @@ body {
     .navbar, .footer, .quiz-actions {
         display: none !important;
     }
-    
+
     .main-content {
         margin-top: 0 !important;
     }
-    
+
     .quiz-view-container {
         padding: 0 !important;
     }
-    
+
     .quiz-header, .quiz-content {
         box-shadow: none !important;
         border: 1px solid #ddd !important;
@@ -1892,21 +1898,21 @@ body {
         align-items: flex-start;
         gap: 15px;
     }
-    
+
     .quiz-actions {
         width: 100%;
         justify-content: flex-start;
     }
-    
+
     .quiz-meta {
         flex-direction: column;
         gap: 10px;
     }
-    
+
     .quiz-stats {
         grid-template-columns: 1fr;
     }
-    
+
     .question-footer {
         flex-direction: column;
         align-items: flex-start;
@@ -2885,47 +2891,47 @@ body {
         align-items: flex-start;
         gap: 15px;
     }
-    
+
     .quiz-timer {
         align-self: center;
     }
-    
+
     .nav-buttons {
         flex-direction: column;
         gap: 10px;
     }
-    
+
     .question-indicators {
         justify-content: center;
     }
-    
+
     .quizzes-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .result-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 20px;
     }
-    
+
     .summary-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .summary-cards {
         grid-template-columns: 1fr;
     }
-    
+
     .insights-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .result-actions {
         flex-direction: column;
         align-items: center;
     }
-    
+
     .chart-container {
         height: 150px;
     }
@@ -3242,26 +3248,26 @@ body {
         gap: 16px;
         align-items: flex-start;
     }
-    
+
     .summary-stats {
         grid-template-columns: 1fr;
     }
-    
+
     .results-table {
         font-size: 0.9rem;
     }
-    
+
     .results-table th,
     .results-table td {
         padding: 8px 12px;
     }
-    
+
     .result-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 12px;
     }
-    
+
     .result-meta {
         flex-direction: column;
         gap: 8px;
@@ -3360,13 +3366,13 @@ body {
     .quiz-results-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .quiz-result-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
     }
-    
+
     .quiz-result-stats {
         flex-direction: row;
         flex-wrap: wrap;
@@ -3555,21 +3561,21 @@ body {
     .content-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .content-card {
         flex-direction: column;
         align-items: flex-start;
     }
-    
+
     .content-actions {
         align-self: stretch;
         justify-content: flex-end;
     }
-    
+
     .file-upload-area {
         padding: 20px 10px;
     }
-    
+
     .file-upload-area i {
         font-size: 2rem;
     }
@@ -3772,21 +3778,21 @@ body {
         flex-direction: column;
         gap: 12px;
     }
-    
+
     .material-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .material-card {
         flex-direction: column;
         align-items: flex-start;
     }
-    
+
     .material-actions {
         align-self: stretch;
         justify-content: flex-end;
     }
-    
+
     .modal-content {
         width: 95%;
         margin: 10% auto;
@@ -4259,21 +4265,21 @@ body {
     .viewer-options {
         grid-template-columns: 1fr;
     }
-    
+
     .viewer-actions {
         flex-direction: column;
         align-items: center;
     }
-    
+
     .modal-content {
         width: 95%;
         height: 95%;
     }
-    
+
     .viewer-tabs {
         flex-wrap: wrap;
     }
-    
+
     .tab-btn {
         padding: 8px 12px;
         font-size: 0.8rem;
