@@ -323,9 +323,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           }
         } else {
           console.log('Existing user found');
-          // Existing user - check if they should be admin
-          if (user.email === 'skillonusers@gmail.com' && user.role !== 'admin') {
-            user.role = 'admin';
+          // Existing user - check if they should be super admin
+          if (user.email === 'skillonusers@gmail.com' && user.role !== 'super_admin') {
+            user.role = 'super_admin';
             user.isApproved = true;
             try {
               await user.save();
@@ -938,7 +938,7 @@ app.get('/dashboard', isAuthenticated, (req, res) => {
     } else {
       return res.render('pending-approval', { user: req.user });
     }
-  } else if (req.user.role === 'admin') {
+  } else if (req.user.role === 'admin' || req.user.role === 'super_admin') {
     return res.redirect('/admin/dashboard');
   }
   
@@ -1300,7 +1300,7 @@ app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (
   }
 });
 
-app.get('/admin/dashboard', isAuthenticated, requireRole(['admin']), async (req, res) => {
+app.get('/admin/dashboard', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const pendingTeachers = await User.find({ role: 'teacher', isApproved: false });
     const pendingQuizzes = await Quiz.find({ isApproved: false });
@@ -3078,8 +3078,11 @@ app.get('/auth/google/callback', (req, res) => {
       return res.redirect('/select-role');
     }
     
-    // Redirect based on organization context
-    if (req.user.role === 'teacher' && req.user.organizationId) {
+    // Redirect based on role and organization context
+    if (req.user.role === 'super_admin' || req.user.role === 'admin') {
+      // Super admins and admins go to admin dashboard
+      res.redirect('/admin/dashboard');
+    } else if (req.user.role === 'teacher' && req.user.organizationId) {
       // Teachers with organization context should go to organization dashboard
       res.redirect('/organization/dashboard');
     } else if (req.user.organizationRole === 'owner') {

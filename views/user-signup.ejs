@@ -12,37 +12,37 @@
             min-height: 100vh;
             font-family: 'Inter', sans-serif;
         }
-        
+
         .signup-container {
             max-width: 900px;
             margin: 2rem auto;
             padding: 0 1rem;
         }
-        
+
         .signup-card {
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.1);
             overflow: hidden;
         }
-        
+
         .signup-header {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: white;
             padding: 2rem;
             text-align: center;
         }
-        
+
         .signup-body {
             padding: 2rem;
         }
-        
+
         .step-indicator {
             display: flex;
             justify-content: center;
             margin-bottom: 2rem;
         }
-        
+
         .step {
             width: 40px;
             height: 40px;
@@ -54,30 +54,30 @@
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        
+
         .step.active {
             background: #4f46e5;
             color: white;
         }
-        
+
         .step.completed {
             background: #22c55e;
             color: white;
         }
-        
+
         .step.pending {
             background: #e5e7eb;
             color: #6b7280;
         }
-        
+
         .step-content {
             display: none;
         }
-        
+
         .step-content.active {
             display: block;
         }
-        
+
         .user-type-card {
             border: 2px solid #e5e7eb;
             border-radius: 15px;
@@ -87,40 +87,40 @@
             transition: all 0.3s ease;
             margin-bottom: 1rem;
         }
-        
+
         .user-type-card:hover {
             border-color: #4f46e5;
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(79, 70, 229, 0.1);
         }
-        
+
         .user-type-card.selected {
             border-color: #4f46e5;
             background-color: #f8faff;
         }
-        
+
         .user-type-icon {
             font-size: 3rem;
             margin-bottom: 1rem;
         }
-        
+
         .teacher-icon {
             color: #4f46e5;
         }
-        
+
         .student-icon {
             color: #22c55e;
         }
-        
+
         .form-floating > label {
             color: #6b7280;
         }
-        
+
         .form-control:focus {
             border-color: #4f46e5;
             box-shadow: 0 0 0 0.25rem rgba(79, 70, 229, 0.1);
         }
-        
+
         .btn-primary {
             background: #4f46e5;
             border: none;
@@ -128,7 +128,7 @@
             border-radius: 10px;
             font-weight: 600;
         }
-        
+
         .btn-outline-secondary {
             border-color: #d1d5db;
             color: #6b7280;
@@ -136,31 +136,31 @@
             border-radius: 10px;
             font-weight: 600;
         }
-        
+
         .subdomain-preview {
             font-size: 0.9rem;
             margin-top: 0.5rem;
             font-family: 'Monaco', 'Consolas', monospace;
             color: #4f46e5;
         }
-        
+
         .hero-section {
             text-align: center;
             margin-bottom: 3rem;
         }
-        
+
         .hero-title {
             font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 1rem;
         }
-        
+
         .hero-subtitle {
             font-size: 1.2rem;
             color: #6b7280;
             margin-bottom: 2rem;
         }
-        
+
         .plan-card {
             border: 2px solid #e5e7eb;
             border-radius: 15px;
@@ -169,53 +169,53 @@
             transition: all 0.3s ease;
             margin-bottom: 1rem;
         }
-        
+
         .plan-card:hover {
             border-color: #4f46e5;
             transform: translateY(-2px);
         }
-        
+
         .plan-card.selected {
             border-color: #4f46e5;
             background-color: #f8faff;
         }
-        
+
         .plan-name {
             font-weight: 700;
             font-size: 1.2rem;
             margin-bottom: 0.5rem;
         }
-        
+
         .plan-price {
             font-size: 1.5rem;
             font-weight: 600;
             color: #4f46e5;
             margin-bottom: 1rem;
         }
-        
+
         .plan-features {
             list-style: none;
             padding: 0;
         }
-        
+
         .plan-features li {
             padding: 0.25rem 0;
             color: #6b7280;
         }
-        
+
         .plan-features li i {
             color: #22c55e;
             margin-right: 0.5rem;
         }
-        
+
         .organization-form {
             display: none;
         }
-        
+
         .student-form {
             display: none;
         }
-        
+
         .organization-form.active,
         .student-form.active {
             display: block;
@@ -232,7 +232,7 @@
                 </h1>
                 <p class="mb-0 mt-2">Choose your role to get started</p>
             </div>
-            
+
             <div class="signup-body">
                 <!-- Step Indicator -->
                 <div class="step-indicator">
@@ -241,14 +241,14 @@
                     <div class="step pending" id="step3">3</div>
                     <div class="step pending" id="step4">4</div>
                 </div>
-                
+
                 <!-- Step 1: User Type Selection -->
                 <div id="step1-content" class="step-content active">
                     <div class="hero-section">
                         <h2 class="hero-title">Welcome to SkillOns!</h2>
                         <p class="hero-subtitle">Are you a teacher or student?</p>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="user-type-card" id="teacher-card" onclick="selectUserType('teacher')">
@@ -277,14 +277,14 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="text-center mt-4">
                         <button type="button" class="btn btn-primary" id="userTypeNext" onclick="nextStep()" disabled>
                             Continue <i class="fas fa-arrow-right ms-2"></i>
                         </button>
                     </div>
                 </div>
-                
+
                 <!-- Step 2: Organization Details (for teachers) / Join Organization (for students) -->
                 <div id="step2-content" class="step-content">
                     <!-- Teacher Organization Form -->
@@ -293,7 +293,7 @@
                             <h2 class="hero-title">Create Your Organization</h2>
                             <p class="hero-subtitle">Set up your teaching platform</p>
                         </div>
-                        
+
                         <form id="step2-form">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
@@ -312,7 +312,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <div class="form-floating">
@@ -327,7 +327,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="mb-3">
                                 <div class="form-floating">
                                     <textarea class="form-control" id="bio" name="bio" placeholder="Tell us about yourself" style="height: 100px"></textarea>
@@ -336,14 +336,14 @@
                             </div>
                         </form>
                     </div>
-                    
+
                     <!-- Student Join Form -->
                     <div class="student-form" id="studentForm">
                         <div class="hero-section">
                             <h2 class="hero-title">Join Your Teacher's Organization</h2>
                             <p class="hero-subtitle">Enter your details and organization code</p>
                         </div>
-                        
+
                         <form id="student-form">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
@@ -359,7 +359,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <div class="form-floating">
@@ -389,7 +389,7 @@
                                     <small class="text-muted">Ask your teacher for the organization code</small>
                                 </div>
                             </div>
-                            
+
                             <div class="mb-3">
                                 <label class="form-label">Subjects of Interest (optional)</label>
                                 <div class="row">
@@ -439,7 +439,7 @@
                             </div>
                         </form>
                     </div>
-                    
+
                     <div class="text-center">
                         <button type="button" class="btn btn-outline-secondary me-3" onclick="previousStep()">
                             <i class="fas fa-arrow-left me-2"></i> Back
@@ -449,14 +449,14 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <!-- Step 3: Plan Selection (for teachers only) -->
                 <div id="step3-content" class="step-content">
                     <div class="hero-section">
                         <h2 class="hero-title">Choose Your Plan</h2>
                         <p class="hero-subtitle">Select the plan that fits your needs</p>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <div class="plan-card" onclick="selectPlan('basic')">
@@ -499,7 +499,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="text-center">
                         <button type="button" class="btn btn-outline-secondary me-3" onclick="previousStep()">
                             <i class="fas fa-arrow-left me-2"></i> Back
@@ -509,18 +509,18 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <!-- Step 4: Review & Create -->
                 <div id="step4-content" class="step-content">
                     <div class="hero-section">
                         <h2 class="hero-title">Review & Create</h2>
                         <p class="hero-subtitle">Almost there! Review your information</p>
                     </div>
-                    
+
                     <div id="reviewInfo">
                         <!-- Dynamic content will be populated here -->
                     </div>
-                    
+
                     <div class="text-center">
                         <button type="button" class="btn btn-outline-secondary me-3" onclick="previousStep()">
                             <i class="fas fa-arrow-left me-2"></i> Back
@@ -529,7 +529,7 @@
                             <i class="fas fa-rocket me-2"></i> Create Account
                         </button>
                     </div>
-                    
+
                     <div class="text-center mt-3">
                         <small class="text-muted">
                             By creating an account, you agree to our Terms of Service and Privacy Policy
@@ -545,28 +545,28 @@
         let currentStep = 1;
         let userType = '';
         let selectedPlan = 'basic';
-        
+
         function selectUserType(type) {
             userType = type;
-            
+
             // Remove selected class from both cards
             document.getElementById('teacher-card').classList.remove('selected');
             document.getElementById('student-card').classList.remove('selected');
-            
+
             // Add selected class to chosen card
             document.getElementById(type + '-card').classList.add('selected');
-            
+
             // Enable next button
             document.getElementById('userTypeNext').disabled = false;
         }
-        
+
         function nextStep() {
             if (currentStep === 1) {
                 if (!userType) {
                     alert('Please select whether you are a teacher or student');
                     return;
                 }
-                
+
                 // Show appropriate form for step 2
                 if (userType === 'teacher') {
                     document.getElementById('organizationForm').classList.add('active');
@@ -578,7 +578,7 @@
                     document.getElementById('step3').style.display = 'none';
                 }
             }
-            
+
             if (currentStep === 2) {
                 if (userType === 'teacher') {
                     // Validate organization form
@@ -587,7 +587,7 @@
                         form.reportValidity();
                         return;
                     }
-                    
+
                     // Check subdomain availability
                     checkSubdomainAvailability();
                 } else {
@@ -597,71 +597,71 @@
                         form.reportValidity();
                         return;
                     }
-                    
+
                     // For students, skip plan selection and go to review
                     currentStep = 3; // Will be incremented to 4 below
                 }
             }
-            
+
             if (currentStep === 3 && userType === 'teacher') {
                 if (!selectedPlan) {
                     alert('Please select a plan');
                     return;
                 }
             }
-            
+
             // Move to next step
             document.getElementById(`step${currentStep}-content`).classList.remove('active');
             document.getElementById(`step${currentStep}`).classList.remove('active');
             document.getElementById(`step${currentStep}`).classList.add('completed');
-            
+
             currentStep++;
-            
+
             document.getElementById(`step${currentStep}-content`).classList.add('active');
             document.getElementById(`step${currentStep}`).classList.add('active');
-            
+
             // Update review page
             if (currentStep === 4) {
                 updateReviewPage();
             }
         }
-        
+
         function previousStep() {
             if (currentStep === 1) return;
-            
+
             document.getElementById(`step${currentStep}-content`).classList.remove('active');
             document.getElementById(`step${currentStep}`).classList.remove('active');
             document.getElementById(`step${currentStep}`).classList.add('pending');
-            
+
             // Handle step 3 visibility for students
             if (currentStep === 4 && userType === 'student') {
                 currentStep = 2; // Skip plan selection
             } else {
                 currentStep--;
             }
-            
+
             document.getElementById(`step${currentStep}-content`).classList.add('active');
             document.getElementById(`step${currentStep}`).classList.remove('completed');
             document.getElementById(`step${currentStep}`).classList.add('active');
-            
+
             // Show step 3 for teachers
             if (userType === 'teacher') {
                 document.getElementById('step3').style.display = 'flex';
             }
         }
-        
+
         function selectPlan(plan) {
             selectedPlan = plan;
-            
+
             // Remove selected class from all plan cards
             document.querySelectorAll('.plan-card').forEach(card => {
                 card.classList.remove('selected');
             });
-            
+
             // Add selected class to chosen plan
             event.target.closest('.plan-card').classList.add('selected');
         }
-        
+
         function updateSubdomainPreview() {
             const subdomain = document.getElementById('subdomain').value;
             const preview = document.getElementById('subdomainPreview');
@@ -671,11 +671,11 @@
                 preview.textContent = 'https://your-school.skillons.com';
             }
         }
-        
+
         function checkSubdomainAvailability() {
             const subdomain = document.getElementById('subdomain').value;
             if (!subdomain) return;
-            
+
             fetch('/api/check-subdomain', {
                 method: 'POST',
                 headers: {
@@ -695,18 +695,18 @@
                 console.error('Error checking subdomain:', error);
             });
         }
-        
+
         function updateReviewPage() {
             const reviewDiv = document.getElementById('reviewInfo');
             let reviewHTML = '';
-            
+
             if (userType === 'teacher') {
                 const orgName = document.getElementById('organizationName').value;
                 const subdomain = document.getElementById('subdomain').value;
                 const teacherName = document.getElementById('teacherName').value;
                 const email = document.getElementById('email').value;
                 const planNames = { basic: 'Basic (Free)', pro: 'Professional ($19/month)', enterprise: 'Enterprise ($49/month)' };
-                
+
                 reviewHTML = `
                     <div class="card">
                         <div class="card-body">
@@ -724,10 +724,10 @@
                 const studentEmail = document.getElementById('studentEmail').value;
                 const gradeLevel = document.getElementById('gradeLevel').value;
                 const orgCode = document.getElementById('organizationCode').value;
-                
+
                 const subjects = Array.from(document.querySelectorAll('input[name="subjects"]:checked'))
                     .map(cb => cb.value);
-                
+
                 reviewHTML = `
                     <div class="card">
                         <div class="card-body">
@@ -741,22 +741,22 @@
                     </div>
                 `;
             }
-            
+
             reviewDiv.innerHTML = reviewHTML;
         }
-        
+
         function createAccount() {
             const createBtn = document.getElementById('createBtn');
             createBtn.disabled = true;
             createBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Creating...';
-            
+
             if (userType === 'teacher') {
                 createTeacherOrganization();
             } else {
                 createStudentAccount();
             }
         }
-        
+
         function createTeacherOrganization() {
             const formData = {
                 organizationName: document.getElementById('organizationName').value,
@@ -766,7 +766,7 @@
                 bio: document.getElementById('bio').value,
                 planType: selectedPlan
             };
-            
+
             fetch('/api/create-organization', {
                 method: 'POST',
                 headers: {
@@ -790,11 +790,11 @@
                 resetCreateButton();
             });
         }
-        
+
         function createStudentAccount() {
             const subjects = Array.from(document.querySelectorAll('input[name="subjects"]:checked'))
                 .map(cb => cb.value);
-            
+
             const formData = {
                 studentName: document.getElementById('studentName').value,
                 email: document.getElementById('studentEmail').value,
@@ -802,7 +802,7 @@
                 organizationCode: document.getElementById('organizationCode').value,
                 subjects: subjects
             };
-            
+
             fetch('/api/create-student-account', {
                 method: 'POST',
                 headers: {
@@ -826,17 +826,17 @@
                 resetCreateButton();
             });
         }
-        
+
         function resetCreateButton() {
             const createBtn = document.getElementById('createBtn');
             createBtn.disabled = false;
             createBtn.innerHTML = '<i class="fas fa-rocket me-2"></i> Create Account';
         }
-        
+
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('subdomain').addEventListener('input', updateSubdomainPreview);
-            
+
             // Handle URL parameters for error messages
             const urlParams = new URLSearchParams(window.location.search);
             const error = urlParams.get('error');
