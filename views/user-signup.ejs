@@ -399,21 +399,22 @@
                                     </div>
                                     
                                     <div class="form-floating" id="orgSelectBox">
-                                        <select class="form-control" id="organizationSelect" name="organizationCode" required>
-                                            <option value="">Select Organization</option>
+                                        <select class="form-control" id="organizationSelect" name="organizationCodes" multiple required style="height: 120px;">
                                             <% if (typeof organizations !== 'undefined' && organizations.length > 0) { %>
                                                 <% organizations.forEach(function(org) { %>
                                                     <option value="<%= org.subdomain %>"><%= org.name %> (<%= org.subdomain %>)</option>
                                                 <% }); %>
                                             <% } %>
                                         </select>
-                                        <label for="organizationSelect">Choose Your Organization</label>
+                                        <label for="organizationSelect">Choose Your Organizations (Hold Ctrl/Cmd to select multiple)</label>
                                     </div>
+                                    <small class="text-muted mt-1">💡 You can select multiple organizations by holding Ctrl (Windows) or Cmd (Mac) while clicking</small>
                                     
                                     <div class="form-floating" id="orgCodeInput" style="display: none;">
-                                        <input type="text" class="form-control" id="organizationCodeManual" name="organizationCodeManual" placeholder="Organization Code">
-                                        <label for="organizationCodeManual">Organization Code (from teacher)</label>
+                                        <input type="text" class="form-control" id="organizationCodeManual" name="organizationCodeManual" placeholder="code1, code2, code3">
+                                        <label for="organizationCodeManual">Organization Codes (comma-separated)</label>
                                     </div>
+                                    <small class="text-muted mt-1" id="manualCodeHelp" style="display: none;">💡 Enter multiple codes separated by commas (e.g., school1, academy2, institute3)</small>
                                     
                                     <small class="text-muted" id="orgHelpText">Select your school/organization from the list, or use the manual code option if you don't see it listed</small>
                                 </div>
@@ -755,13 +756,17 @@
                 
                 // Get organization info from either select box or manual input
                 const selectFromList = document.getElementById('selectFromList').checked;
-                const orgCode = selectFromList 
-                    ? document.getElementById('organizationSelect').value
-                    : document.getElementById('organizationCodeManual').value;
+                let orgDisplayNames = [];
                 
-                const orgDisplayName = selectFromList
-                    ? document.getElementById('organizationSelect').selectedOptions[0]?.text || orgCode
-                    : orgCode;
+                if (selectFromList) {
+                    const selectElement = document.getElementById('organizationSelect');
+                    orgDisplayNames = Array.from(selectElement.selectedOptions).map(option => option.text);
+                } else {
+                    const manualCodes = document.getElementById('organizationCodeManual').value;
+                    orgDisplayNames = manualCodes.split(',').map(code => code.trim()).filter(code => code);
+                }
+                
+                const orgDisplayText = orgDisplayNames.length > 0 ? orgDisplayNames.join(', ') : 'None selected';
 
                 const subjects = Array.from(document.querySelectorAll('input[name="subjects"]:checked'))
                     .map(cb => cb.value);
@@ -773,7 +778,7 @@
                             <p><strong>Your Name:</strong> ${studentName}</p>
                             <p><strong>Email:</strong> ${studentEmail}</p>
                             <p><strong>Grade Level:</strong> ${gradeLevel}</p>
-                            <p><strong>Organization:</strong> ${orgDisplayName}</p>
+                            <p><strong>Organizations:</strong> ${orgDisplayText}</p>
                             <p><strong>Subjects:</strong> ${subjects.length ? subjects.join(', ') : 'None selected'}</p>
                         </div>
                     </div>
@@ -790,21 +795,25 @@
             const orgSelect = document.getElementById('organizationSelect');
             const orgCodeManual = document.getElementById('organizationCodeManual');
             const helpText = document.getElementById('orgHelpText');
+            const manualCodeHelp = document.getElementById('manualCodeHelp');
 
             if (selectFromList) {
                 orgSelectBox.style.display = 'block';
                 orgCodeInput.style.display = 'none';
+                manualCodeHelp.style.display = 'none';
                 orgSelect.required = true;
                 orgCodeManual.required = false;
                 orgCodeManual.value = '';
-                helpText.textContent = 'Select your school/organization from the list';
+                helpText.textContent = 'Select one or more organizations from the list (hold Ctrl/Cmd for multiple)';
             } else {
                 orgSelectBox.style.display = 'none';
                 orgCodeInput.style.display = 'block';
+                manualCodeHelp.style.display = 'block';
                 orgSelect.required = false;
                 orgCodeManual.required = true;
-                orgSelect.value = '';
-                helpText.textContent = 'Enter the organization code provided by your teacher';
+                // Clear all selections
+                Array.from(orgSelect.options).forEach(option => option.selected = false);
+                helpText.textContent = 'Enter organization codes separated by commas for multiple organizations';
             }
         }
 
@@ -858,17 +867,25 @@
             const subjects = Array.from(document.querySelectorAll('input[name="subjects"]:checked'))
                 .map(cb => cb.value);
 
-            // Get organization code from either select box or manual input
+            // Get organization codes from either select box or manual input
             const selectFromList = document.getElementById('selectFromList').checked;
-            const organizationCode = selectFromList 
-                ? document.getElementById('organizationSelect').value
-                : document.getElementById('organizationCodeManual').value;
+            let organizationCodes;
+            
+            if (selectFromList) {
+                // Get multiple selected values from the select box
+                const selectElement = document.getElementById('organizationSelect');
+                organizationCodes = Array.from(selectElement.selectedOptions).map(option => option.value);
+            } else {
+                // For manual entry, split by commas or use single code
+                const manualCodes = document.getElementById('organizationCodeManual').value;
+                organizationCodes = manualCodes.split(',').map(code => code.trim()).filter(code => code);
+            }
 
             const formData = {
                 studentName: document.getElementById('studentName').value,
                 email: document.getElementById('studentEmail').value,
                 gradeLevel: document.getElementById('gradeLevel').value,
-                organizationCode: organizationCode,
+                organizationCodes: organizationCodes,
                 subjects: subjects
             };
 

@@ -483,60 +483,81 @@ router.get('/organization/billing',
 // Student account creation route
 router.post('/api/create-student-account', async (req, res) => {
   try {
-    const { studentName, email, gradeLevel, organizationCode, subjects } = req.body;
+    const { studentName, email, gradeLevel, organizationCodes, subjects } = req.body;
     
     // Validate required fields
-    if (!studentName || !email || !gradeLevel || !organizationCode) {
+    if (!studentName || !email || !gradeLevel || !organizationCodes || organizationCodes.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Please fill in all required fields'
+        message: 'Please fill in all required fields and select at least one organization'
       });
     }
     
-    // Find organization by subdomain (organizationCode)
-    const organization = await Organization.findOne({ subdomain: organizationCode });
-    if (!organization) {
+    // Ensure organizationCodes is an array
+    const orgCodes = Array.isArray(organizationCodes) ? organizationCodes : [organizationCodes];
+    
+    // Find all organizations by subdomain
+    const organizations = await Organization.find({ subdomain: { $in: orgCodes } });
+    if (organizations.length !== orgCodes.length) {
+      const foundCodes = organizations.map(org => org.subdomain);
+      const invalidCodes = orgCodes.filter(code => !foundCodes.includes(code));
       return res.status(400).json({
         success: false,
-        message: 'Invalid organization code. Please check with your teacher.'
+        message: `Invalid organization code(s): ${invalidCodes.join(', ')}. Please check with your teacher.`
       });
     }
     
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'An account with this email already exists'
-      });
-    }
-    
-    // Create temporary student user (will be completed during Google OAuth)
-    const tempUser = new User({
-      googleId: `temp_student_${Date.now()}`,
-      displayName: studentName,
+    // Check if user already exists with any of these organizations
+    const existingUsers = await User.find({ 
       email: email,
-      role: 'student',
-      organizationId: organization._id,
-      organizationRole: 'student',
-      gradeLevel: gradeLevel,
-      subjects: subjects || [],
-      isApproved: true, // Students are auto-approved
-      invitationStatus: 'pending'
+      organizationId: { $in: organizations.map(org => org._id) }
     });
     
-    await tempUser.save();
+    if (existingUsers.length > 0) {
+      const existingOrgNames = await Organization.find({ 
+        _id: { $in: existingUsers.map(user => user.organizationId) } 
+      }).select('name');
+      return res.status(400).json({
+        success: false,
+        message: `You already have accounts with: ${existingOrgNames.map(org => org.name).join(', ')}`
+      });
+    }
     
-    console.log('Temporary student user created:', {
-      email: tempUser.email,
-      organization: organization.name,
-      gradeLevel: tempUser.gradeLevel
+    // Create temporary student users for each organization
+    const tempUsers = [];
+    const timestamp = Date.now();
+    
+    for (let i = 0; i < organizations.length; i++) {
+      const org = organizations[i];
+      const tempUser = new User({
+        googleId: `temp_student_${timestamp}_${i}`,
+        displayName: studentName,
+        email: email,
+        role: 'student',
+        organizationId: org._id,
+        organizationRole: 'student',
+        gradeLevel: gradeLevel,
+        subjects: subjects || [],
+        isApproved: true, // Students are auto-approved
+        invitationStatus: 'pending'
+      });
+      
+      await tempUser.save();
+      tempUsers.push(tempUser);
+    }
+    
+    console.log('Temporary student users created:', {
+      email: email,
+      organizations: organizations.map(org => org.name),
+      gradeLevel: gradeLevel,
+      count: tempUsers.length
     });
     
     res.json({
       success: true,
-      message: 'Student account created successfully! Please sign in with Google.',
-      organizationName: organization.name
+      message: `Student accounts created successfully for ${organizations.length} organization(s)! Please sign in with Google.`,
+      organizationNames: organizations.map(org => org.name),
+      count: tempUsers.length
     });
     
   } catch (error) {
