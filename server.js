@@ -274,26 +274,47 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         if (!user) {
           const userEmail = profile.emails ? profile.emails[0].value : '';
           
-          // Check if there's a temporary user created during organization signup
-          const tempUser = await User.findOne({ 
+          // Check if there are temporary users created during organization signup
+          const tempUsers = await User.find({ 
             email: userEmail, 
             googleId: { $regex: /^temp_/ } 
           });
           
-          if (tempUser) {
-            // Update temporary user with real Google profile data
-            console.log('Found temporary user, updating with Google profile');
-            tempUser.googleId = profile.id;
-            tempUser.displayName = profile.displayName;
-            tempUser.photos = profile.photos;
+          if (tempUsers.length > 0) {
+            console.log(`Found ${tempUsers.length} temporary user(s) for ${userEmail}`);
+            
+            // Update the first temp user as the primary account
+            const primaryUser = tempUsers[0];
+            primaryUser.googleId = profile.id;
+            primaryUser.displayName = profile.displayName;
+            primaryUser.photos = profile.photos;
+            
+            // If there are multiple organizations, store them in an array for future org switching
+            if (tempUsers.length > 1) {
+              primaryUser.organizationMemberships = tempUsers.map(u => ({
+                organizationId: u.organizationId,
+                role: u.organizationRole || 'student',
+                gradeLevel: u.gradeLevel,
+                subjects: u.subjects,
+                joinedAt: u.createdAt || new Date()
+              }));
+            }
             
             try {
-              await tempUser.save();
-              console.log('Temporary user updated successfully');
-              user = tempUser;
+              await primaryUser.save();
+              console.log(`Primary user updated with ${tempUsers.length} organization(s)`);
+              
+              // Delete the duplicate temporary users (keep only the primary one)
+              if (tempUsers.length > 1) {
+                const duplicateIds = tempUsers.slice(1).map(u => u._id);
+                await User.deleteMany({ _id: { $in: duplicateIds } });
+                console.log(`Removed ${duplicateIds.length} duplicate temporary users`);
+              }
+              
+              user = primaryUser;
             } catch (saveError) {
-              console.error('Error updating temporary user:', saveError);
-              return cb(new Error('Failed to update user'), null);
+              console.error('Error updating temporary users:', saveError);
+              return cb(new Error('Failed to update users'), null);
             }
           } else {
             // New user - check if they're a super admin first
@@ -1072,25 +1093,39 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
 // Route for student study material page
 app.get('/student/study-material', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
-    // Get approved content filtered by student's grade level and organization
+    // Get all organization IDs the student belongs to
+    let organizationIds = [];
+    
+    if (req.user.organizationMemberships && req.user.organizationMemberships.length > 0) {
+      // Multi-organization student - get content from all organizations
+      organizationIds = req.user.organizationMemberships.map(membership => membership.organizationId);
+      console.log(`Multi-org student: ${req.user.email} accessing study material from ${organizationIds.length} organizations`);
+    } else if (req.user.organizationId) {
+      // Single organization student - legacy support
+      organizationIds = [req.user.organizationId];
+      console.log(`Single-org student: ${req.user.email} accessing study material from 1 organization`);
+    }
+    
+    // Get approved content filtered by student's grade level and organizations
     let query = { 
       isApproved: true,
-      organizationId: req.user.organizationId // Filter by organization for SaaS
+      organizationId: { $in: organizationIds }
     };
     let messageForStudent = null;
     
     // Filter by student's grade level if it exists
     if (req.user.gradeLevel) {
       query.gradeLevel = req.user.gradeLevel;
-      console.log(`🎓 Filtering content for student ${req.user.displayName} (${req.user.gradeLevel}) in organization ${req.user.organizationId}`);
+      console.log(`🎓 Filtering content for student ${req.user.displayName} (${req.user.gradeLevel}) from ${organizationIds.length} organization(s)`);
       console.log(`📋 Query: ${JSON.stringify(query)}`);
     } else {
-      console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all content from organization ${req.user.organizationId}`);
+      console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all content from ${organizationIds.length} organization(s)`);
       messageForStudent = "Your grade level is not set. Please ask your teacher to assign you to the correct grade, or update your profile.";
     }
     
     const studyMaterial = await Content.find(query)
       .populate('createdBy', 'displayName')
+      .populate('organizationId', 'name')
       .sort({ createdAt: -1 });
     
     console.log(`📚 Found ${studyMaterial.length} study materials for grade ${req.user.gradeLevel || 'any'}`);
@@ -1107,16 +1142,23 @@ app.get('/student/study-material', isAuthenticated, requireRole(['student']), as
     });
     console.log(contentByGrade);
     
+    // Get organization details for display
+    const organizations = await Organization.find({ 
+      _id: { $in: organizationIds } 
+    }).select('name subdomain');
+    
     res.render('student-study-material', {
       user: req.user,
       studyMaterial,
-      gradeMessage: messageForStudent
+      gradeMessage: messageForStudent,
+      organizations: organizations
     });
   } catch (error) {
     console.error('Error fetching study material:', error);
     res.render('student-study-material', {
       user: req.user,
-      studyMaterial: []
+      studyMaterial: [],
+      organizations: []
     });
   }
 });
@@ -1279,16 +1321,31 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
 
 app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
-    // Get quizzes from the student's organization only
+    // Get all organization IDs the student belongs to
+    let organizationIds = [];
+    
+    if (req.user.organizationMemberships && req.user.organizationMemberships.length > 0) {
+      // Multi-organization student - get quizzes from all organizations
+      organizationIds = req.user.organizationMemberships.map(membership => membership.organizationId);
+      console.log(`Multi-org student: ${req.user.email} has access to ${organizationIds.length} organizations`);
+    } else if (req.user.organizationId) {
+      // Single organization student - legacy support
+      organizationIds = [req.user.organizationId];
+      console.log(`Single-org student: ${req.user.email} has access to 1 organization`);
+    }
+    
+    // Get quizzes from all student's organizations
     const availableQuizzes = await Quiz.find({ 
       isApproved: true,
-      organizationId: req.user.organizationId // Filter by organization for SaaS
-    });
+      organizationId: { $in: organizationIds }
+    }).populate('createdBy', 'displayName')
+      .populate('organizationId', 'name')
+      .sort({ createdAt: -1 });
     
-    // Fetch student's quiz results from their organization
+    // Fetch student's quiz results from all their organizations
     const quizResults = await QuizResult.find({ 
       student: req.user._id,
-      organizationId: req.user.organizationId // Filter results by organization
+      organizationId: { $in: organizationIds }
     });
     const completedCount = quizResults.length;
     
@@ -1299,11 +1356,19 @@ app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (
       averageScore = Math.round(totalScore / completedCount);
     }
     
+    // Get organization details for display
+    const organizations = await Organization.find({ 
+      _id: { $in: organizationIds } 
+    }).select('name subdomain');
+    
+    console.log(`Student dashboard: Found ${availableQuizzes.length} quizzes from ${organizations.length} organizations`);
+    
     res.render('student-dashboard', { 
       user: req.user, 
       quizzes: availableQuizzes,
       completedCount,
-      averageScore
+      averageScore,
+      organizations: organizations
     });
   } catch (error) {
     console.error('Error fetching student dashboard data:', error);
@@ -1311,7 +1376,8 @@ app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (
       user: req.user, 
       quizzes: [],
       completedCount: 0,
-      averageScore: 0
+      averageScore: 0,
+      organizations: []
     });
   }
 });

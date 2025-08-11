@@ -70,6 +70,40 @@ const userSchema = new mongoose.Schema({
       push: { type: Boolean, default: true }
     }
   },
+  // Multi-organization memberships for students
+  organizationMemberships: [{
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true
+    },
+    role: {
+      type: String,
+      enum: ['owner', 'admin', 'teacher', 'student'],
+      default: 'student'
+    },
+    gradeLevel: {
+      type: String,
+      enum: ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade']
+    },
+    subjects: [{
+      type: String,
+      enum: ['English', 'Science', 'Math']
+    }],
+    joinedAt: {
+      type: Date,
+      default: Date.now
+    },
+    isActive: {
+      type: Boolean,
+      default: true
+    }
+  }],
+  // Current active organization (for session context)
+  currentOrganizationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Organization'
+  },
   // Student invitation tracking
   invitationStatus: {
     type: String,
