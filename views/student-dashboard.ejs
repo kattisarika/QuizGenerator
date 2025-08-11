@@ -98,6 +98,16 @@
                     </div>
                 </div>
 
+                <% if (typeof needsMigration !== 'undefined' && needsMigration) { %>
+                <div class="alert alert-warning">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Account Migration Available</h5>
+                    <p>We found multiple accounts for your email. You can merge them to see content from all your organizations in one place.</p>
+                    <button class="btn btn-primary" onclick="migrateAccount()">
+                        <i class="fas fa-sync me-1"></i>Merge My Accounts
+                    </button>
+                </div>
+                <% } %>
+
                 <% if (organizations && organizations.length > 1) { %>
                 <div class="organization-info">
                     <h3><i class="fas fa-school me-2"></i>Your Organizations</h3>
@@ -381,6 +391,36 @@
             setTimeout(ensureProfileModalHidden, 100);
             setTimeout(ensureProfileModalHidden, 500);
         });
+        
+        function migrateAccount() {
+            const button = event.target;
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Migrating...';
+            
+            fetch('/api/migrate-multi-org-account', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Success! Merged ${data.organizationCount} organization memberships. Please refresh the page to see content from all your organizations.`);
+                    window.location.reload();
+                } else {
+                    alert('Migration failed: ' + data.message);
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-sync me-1"></i>Merge My Accounts';
+                }
+            })
+            .catch(error => {
+                console.error('Migration error:', error);
+                alert('An error occurred during migration. Please try again.');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-sync me-1"></i>Merge My Accounts';
+            });
+        }
     </script>
 </body>
 </html> 

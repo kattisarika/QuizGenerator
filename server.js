@@ -319,11 +319,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           } else {
             // New user - check if they're a super admin first
             if (userEmail === 'skillonusers@gmail.com') {
-              user = new User({
-                googleId: profile.id,
-                displayName: profile.displayName,
+          user = new User({
+            googleId: profile.id,
+            displayName: profile.displayName,
                 email: userEmail,
-                photos: profile.photos,
+            photos: profile.photos,
                 role: 'super_admin',
                 isApproved: true
                 // organizationId not required for super_admin
@@ -332,14 +332,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               // Regular new user - needs to go through organization signup or be invited
               console.log('New user without organization context, redirecting to signup');
               return cb(new Error('New users must be invited by a teacher or create an organization'), null);
-            }
-            
-            try {
-              await user.save();
-              console.log('New user created successfully');
-            } catch (saveError) {
-              console.error('Error saving new user:', saveError);
-              return cb(new Error('Failed to create user'), null);
+          }
+          
+          try {
+            await user.save();
+            console.log('New user created successfully');
+          } catch (saveError) {
+            console.error('Error saving new user:', saveError);
+            return cb(new Error('Failed to create user'), null);
             }
           }
         } else {
@@ -1321,6 +1321,17 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
 
 app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
+    console.log(`\n=== STUDENT DASHBOARD DEBUG for ${req.user.email} ===`);
+    console.log('User organizationId:', req.user.organizationId);
+    console.log('User organizationMemberships:', req.user.organizationMemberships);
+    
+    // Check if there are multiple accounts for this email
+    const allUserAccounts = await User.find({ email: req.user.email });
+    console.log(`Found ${allUserAccounts.length} user accounts with email ${req.user.email}`);
+    allUserAccounts.forEach((account, index) => {
+      console.log(`Account ${index + 1}: googleId=${account.googleId}, orgId=${account.organizationId}, role=${account.role}`);
+    });
+    
     // Get all organization IDs the student belongs to
     let organizationIds = [];
     
@@ -1332,6 +1343,22 @@ app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (
       // Single organization student - legacy support
       organizationIds = [req.user.organizationId];
       console.log(`Single-org student: ${req.user.email} has access to 1 organization`);
+      
+      // Check if there are other accounts for this user that should be merged
+      if (allUserAccounts.length > 1) {
+        console.log(`WARNING: Found ${allUserAccounts.length} accounts but user has no organizationMemberships array!`);
+        const otherOrgIds = allUserAccounts
+          .filter(account => account._id.toString() !== req.user._id.toString())
+          .map(account => account.organizationId)
+          .filter(orgId => orgId);
+        
+        if (otherOrgIds.length > 0) {
+          console.log(`Adding ${otherOrgIds.length} additional organization IDs from other accounts`);
+          organizationIds = organizationIds.concat(otherOrgIds);
+        }
+      }
+    } else {
+      console.log(`Student ${req.user.email} has no organization access!`);
     }
     
     // Get quizzes from all student's organizations
@@ -1362,13 +1389,16 @@ app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (
     }).select('name subdomain');
     
     console.log(`Student dashboard: Found ${availableQuizzes.length} quizzes from ${organizations.length} organizations`);
+    console.log(`Organization IDs used: ${organizationIds.join(', ')}`);
+    console.log(`=== END STUDENT DASHBOARD DEBUG ===\n`);
     
     res.render('student-dashboard', { 
       user: req.user, 
       quizzes: availableQuizzes,
       completedCount,
       averageScore,
-      organizations: organizations
+      organizations: organizations,
+      needsMigration: allUserAccounts.length > 1 && (!req.user.organizationMemberships || req.user.organizationMemberships.length === 0)
     });
   } catch (error) {
     console.error('Error fetching student dashboard data:', error);
@@ -1377,7 +1407,86 @@ app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (
       quizzes: [],
       completedCount: 0,
       averageScore: 0,
-      organizations: []
+      organizations: [],
+      needsMigration: false
+    });
+  }
+});
+
+// Migration API for existing multi-org students
+app.post('/api/migrate-multi-org-account', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    console.log(`\n=== MIGRATION REQUEST for ${req.user.email} ===`);
+    
+    // Find all user accounts with the same email
+    const allUserAccounts = await User.find({ email: req.user.email });
+    console.log(`Found ${allUserAccounts.length} accounts for ${req.user.email}`);
+    
+    if (allUserAccounts.length <= 1) {
+      return res.json({ 
+        success: false, 
+        message: 'No multiple accounts found to migrate' 
+      });
+    }
+    
+    // Use the current authenticated user as the primary account
+    const primaryUser = req.user;
+    const otherAccounts = allUserAccounts.filter(account => 
+      account._id.toString() !== primaryUser._id.toString()
+    );
+    
+    console.log(`Primary account: ${primaryUser._id}, Other accounts: ${otherAccounts.length}`);
+    
+    // Create organizationMemberships array from all accounts
+    const organizationMemberships = [];
+    
+    // Add primary user's organization
+    if (primaryUser.organizationId) {
+      organizationMemberships.push({
+        organizationId: primaryUser.organizationId,
+        role: primaryUser.organizationRole || 'student',
+        gradeLevel: primaryUser.gradeLevel,
+        subjects: primaryUser.subjects,
+        joinedAt: primaryUser.createdAt || new Date(),
+        isActive: true
+      });
+    }
+    
+    // Add other accounts' organizations
+    otherAccounts.forEach(account => {
+      if (account.organizationId) {
+        organizationMemberships.push({
+          organizationId: account.organizationId,
+          role: account.organizationRole || 'student',
+          gradeLevel: account.gradeLevel,
+          subjects: account.subjects,
+          joinedAt: account.createdAt || new Date(),
+          isActive: true
+        });
+      }
+    });
+    
+    // Update primary user with organization memberships
+    primaryUser.organizationMemberships = organizationMemberships;
+    await primaryUser.save();
+    
+    // Delete the duplicate accounts
+    const duplicateIds = otherAccounts.map(account => account._id);
+    await User.deleteMany({ _id: { $in: duplicateIds } });
+    
+    console.log(`Migration completed: ${organizationMemberships.length} organizations merged, ${duplicateIds.length} duplicate accounts removed`);
+    
+    res.json({
+      success: true,
+      message: `Successfully merged ${organizationMemberships.length} organization memberships`,
+      organizationCount: organizationMemberships.length
+    });
+    
+  } catch (error) {
+    console.error('Error during account migration:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error during account migration'
     });
   }
 });
@@ -3171,7 +3280,7 @@ app.get('/auth/google/callback', (req, res) => {
       // Organization owners go to organization dashboard
       res.redirect('/organization/dashboard');
     } else {
-      res.redirect('/dashboard');
+    res.redirect('/dashboard');
     }
   });
 });
