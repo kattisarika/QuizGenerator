@@ -2571,39 +2571,65 @@ app.get('/test-quiz-filter', async (req, res) => {
 // Route to view available quizzes for students
 app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
-    // Get student's profile to filter quizzes
-    const student = await User.findById(req.user._id);
+    console.log(`\n=== AVAILABLE QUIZZES DEBUG for ${req.user.email} ===`);
     
-    // Build filter based on student's grade level, subjects, and organization
+    // Get all organization IDs the student belongs to
+    let organizationIds = [];
+    
+    if (req.user.organizationMemberships && req.user.organizationMemberships.length > 0) {
+      // Multi-organization student - get quizzes from all organizations
+      organizationIds = req.user.organizationMemberships.map(membership => membership.organizationId);
+      console.log(`Multi-org student: ${req.user.email} browsing quizzes from ${organizationIds.length} organizations`);
+    } else if (req.user.organizationId) {
+      // Single organization student - legacy support
+      organizationIds = [req.user.organizationId];
+      console.log(`Single-org student: ${req.user.email} browsing quizzes from 1 organization`);
+      
+      // Check if there are other accounts for this user that should be included
+      const allUserAccounts = await User.find({ email: req.user.email });
+      if (allUserAccounts.length > 1) {
+        console.log(`Found ${allUserAccounts.length} accounts for ${req.user.email} - including all organizations`);
+        const otherOrgIds = allUserAccounts
+          .filter(account => account._id.toString() !== req.user._id.toString())
+          .map(account => account.organizationId)
+          .filter(orgId => orgId);
+        
+        if (otherOrgIds.length > 0) {
+          console.log(`Adding ${otherOrgIds.length} additional organization IDs from other accounts`);
+          organizationIds = organizationIds.concat(otherOrgIds);
+        }
+      }
+    } else {
+      console.log(`Student ${req.user.email} has no organization access!`);
+    }
+    
+    // Build filter for ALL organizations (don't filter by grade level or subjects here - show all available)
     const filter = { 
       isApproved: true,
-      organizationId: req.user.organizationId // Filter by organization for SaaS
+      organizationId: { $in: organizationIds }
     };
     
-    if (student.gradeLevel) {
-      filter.gradeLevel = student.gradeLevel;
-    }
+    console.log('Quiz filter (all organizations):', filter);
     
-    if (student.subjects && student.subjects.length > 0) {
-      filter.subjects = { $in: student.subjects };
-    }
+    const approvedQuizzes = await Quiz.find(filter)
+      .populate('createdBy', 'displayName')
+      .populate('organizationId', 'name')
+      .sort({ createdAt: -1 });
     
-    console.log('Student profile:', {
-      gradeLevel: student.gradeLevel,
-      subjects: student.subjects
+    console.log('Found quizzes from all organizations:', approvedQuizzes.length);
+    console.log('Quiz breakdown by organization:');
+    const quizByOrg = {};
+    approvedQuizzes.forEach(quiz => {
+      const orgName = quiz.organizationId?.name || 'Unknown';
+      if (!quizByOrg[orgName]) quizByOrg[orgName] = 0;
+      quizByOrg[orgName]++;
     });
+    console.log(quizByOrg);
     
-    console.log('Quiz filter:', filter);
-    
-    const approvedQuizzes = await Quiz.find(filter).populate('createdBy');
-    
-    console.log('Found quizzes matching filter:', approvedQuizzes.length);
-    console.log('Quizzes found:', approvedQuizzes.map(q => ({ title: q.title, gradeLevel: q.gradeLevel, subjects: q.subjects })));
-    
-    // Get the student's quiz results to determine which quizzes they've taken
+    // Get the student's quiz results from all organizations
     const studentResults = await QuizResult.find({ 
       student: req.user._id,
-      organizationId: req.user.organizationId // Filter results by organization
+      organizationId: { $in: organizationIds }
     }).select('quiz score percentage timeTaken createdAt');
     
     // Create a map of quiz IDs and their attempt counts
@@ -2623,7 +2649,8 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
         
         return {
           ...quiz.toObject(),
-          createdByName: quiz.createdBy.name,
+          createdByName: quiz.createdBy ? quiz.createdBy.displayName : 'Teacher',
+          organizationName: quiz.organizationId ? quiz.organizationId.name : 'Organization',
           isTaken: isTaken,
           attemptCount: attemptCount,
           canRetake: canRetake,
@@ -2631,8 +2658,10 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
           previousTime: previousResult ? previousResult.timeTaken : null
         };
       }), 
-      user: req.user 
+      user: req.user
     });
+    
+    console.log(`=== END AVAILABLE QUIZZES DEBUG ===\n`);
   } catch (error) {
     console.error('Error fetching available quizzes:', error);
     res.status(500).send('Error fetching quizzes');
