@@ -1706,7 +1706,7 @@ app.post('/teacher/post-content', isAuthenticated, requireRole(['teacher']), req
 });
 
 // Route to approve all pending content (for existing content)
-app.post('/admin/approve-all-content', isAuthenticated, requireRole(['admin']), async (req, res) => {
+app.post('/admin/approve-all-content', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const result = await Content.updateMany(
       { isApproved: false },
@@ -1857,7 +1857,7 @@ app.post('/teacher/unassign-students', isAuthenticated, requireRole(['teacher'])
 // ===== END TEACHER ASSIGN STUDENTS ROUTES =====
 
 // Route to auto-approve all teacher content (for fixing existing unapproved content)
-app.post('/admin/approve-all-teacher-content', isAuthenticated, requireRole(['admin']), async (req, res) => {
+app.post('/admin/approve-all-teacher-content', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     // Find all unapproved content created by approved teachers
     const approvedTeachers = await User.find({ role: 'teacher', isApproved: true }).select('_id');
@@ -1940,7 +1940,7 @@ app.get('/admin/content-by-grade', isAuthenticated, requireRole(['admin', 'teach
 });
 
 // Route for deleting content (admin only)
-app.delete('/admin/delete-content/:contentId', isAuthenticated, requireRole(['admin']), async (req, res) => {
+app.delete('/admin/delete-content/:contentId', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { contentId } = req.params;
     
@@ -1975,7 +1975,7 @@ app.delete('/admin/delete-content/:contentId', isAuthenticated, requireRole(['ad
 });
 
 // Route for approving content (admin only)
-app.post('/admin/approve-content/:contentId', isAuthenticated, requireRole(['admin']), async (req, res) => {
+app.post('/admin/approve-content/:contentId', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { contentId } = req.params;
     
@@ -2032,7 +2032,7 @@ app.delete('/teacher/delete-content/:contentId', isAuthenticated, requireRole(['
 });
 
 // Route for admin to view all content (including unapproved)
-app.get('/admin/content-management', isAuthenticated, requireRole(['admin']), async (req, res) => {
+app.get('/admin/content-management', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const allContent = await Content.find({})
       .populate('createdBy', 'displayName email')
@@ -3019,7 +3019,7 @@ app.get('/createadmin', async (req, res) => {
 });
 
 // Admin approval routes
-app.post('/approve-teacher/:userId', isAuthenticated, requireRole(['admin']), async (req, res) => {
+app.post('/approve-teacher/:userId', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
     if (user && user.role === 'teacher') {
@@ -3033,7 +3033,7 @@ app.post('/approve-teacher/:userId', isAuthenticated, requireRole(['admin']), as
   }
 });
 
-app.post('/approve-quiz/:quizId', isAuthenticated, requireRole(['admin']), async (req, res) => {
+app.post('/approve-quiz/:quizId', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
     if (quiz) {
