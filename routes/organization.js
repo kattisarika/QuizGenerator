@@ -64,8 +64,23 @@ router.post('/api/create-organization', async (req, res) => {
   try {
     const { organizationName, subdomain, teacherName, email, bio, planType = 'free' } = req.body;
     
+    console.log('Organization creation request:', {
+      organizationName,
+      subdomain,
+      teacherName,
+      email,
+      bio,
+      planType
+    });
+    
     // Validate required fields
     if (!organizationName || !subdomain || !teacherName || !email) {
+      console.log('Missing required fields:', {
+        organizationName: !!organizationName,
+        subdomain: !!subdomain,
+        teacherName: !!teacherName,
+        email: !!email
+      });
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
@@ -83,6 +98,7 @@ router.post('/api/create-organization', async (req, res) => {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      console.log('User already exists:', { email, existingUserId: existingUser._id });
       return res.status(400).json({ error: 'User with this email already exists' });
     }
     

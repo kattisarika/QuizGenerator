@@ -706,12 +706,8 @@
             const subdomain = document.getElementById('subdomain').value;
             if (!subdomain) return;
 
-            fetch('/api/check-subdomain', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ subdomain })
+            fetch(`/api/check-subdomain/${subdomain}`, {
+                method: 'GET'
             })
             .then(response => response.json())
             .then(data => {
