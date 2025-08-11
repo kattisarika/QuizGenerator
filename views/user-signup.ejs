@@ -382,11 +382,40 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="organizationCode" name="organizationCode" placeholder="Organization Code" required>
-                                        <label for="organizationCode">Organization Code (from teacher)</label>
+                                    <label class="form-label">Organization Selection</label>
+                                    <div class="mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="orgSelectMethod" id="selectFromList" value="list" checked onchange="toggleOrgSelection()">
+                                            <label class="form-check-label" for="selectFromList">
+                                                Select from list
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="orgSelectMethod" id="enterCode" value="code" onchange="toggleOrgSelection()">
+                                            <label class="form-check-label" for="enterCode">
+                                                Enter organization code manually
+                                            </label>
+                                        </div>
                                     </div>
-                                    <small class="text-muted">Ask your teacher for the organization code</small>
+                                    
+                                    <div class="form-floating" id="orgSelectBox">
+                                        <select class="form-control" id="organizationSelect" name="organizationCode" required>
+                                            <option value="">Select Organization</option>
+                                            <% if (typeof organizations !== 'undefined' && organizations.length > 0) { %>
+                                                <% organizations.forEach(function(org) { %>
+                                                    <option value="<%= org.subdomain %>"><%= org.name %> (<%= org.subdomain %>)</option>
+                                                <% }); %>
+                                            <% } %>
+                                        </select>
+                                        <label for="organizationSelect">Choose Your Organization</label>
+                                    </div>
+                                    
+                                    <div class="form-floating" id="orgCodeInput" style="display: none;">
+                                        <input type="text" class="form-control" id="organizationCodeManual" name="organizationCodeManual" placeholder="Organization Code">
+                                        <label for="organizationCodeManual">Organization Code (from teacher)</label>
+                                    </div>
+                                    
+                                    <small class="text-muted" id="orgHelpText">Select your school/organization from the list, or use the manual code option if you don't see it listed</small>
                                 </div>
                             </div>
 
@@ -723,7 +752,16 @@
                 const studentName = document.getElementById('studentName').value;
                 const studentEmail = document.getElementById('studentEmail').value;
                 const gradeLevel = document.getElementById('gradeLevel').value;
-                const orgCode = document.getElementById('organizationCode').value;
+                
+                // Get organization info from either select box or manual input
+                const selectFromList = document.getElementById('selectFromList').checked;
+                const orgCode = selectFromList 
+                    ? document.getElementById('organizationSelect').value
+                    : document.getElementById('organizationCodeManual').value;
+                
+                const orgDisplayName = selectFromList
+                    ? document.getElementById('organizationSelect').selectedOptions[0]?.text || orgCode
+                    : orgCode;
 
                 const subjects = Array.from(document.querySelectorAll('input[name="subjects"]:checked'))
                     .map(cb => cb.value);
@@ -735,7 +773,7 @@
                             <p><strong>Your Name:</strong> ${studentName}</p>
                             <p><strong>Email:</strong> ${studentEmail}</p>
                             <p><strong>Grade Level:</strong> ${gradeLevel}</p>
-                            <p><strong>Organization Code:</strong> ${orgCode}</p>
+                            <p><strong>Organization:</strong> ${orgDisplayName}</p>
                             <p><strong>Subjects:</strong> ${subjects.length ? subjects.join(', ') : 'None selected'}</p>
                         </div>
                     </div>
@@ -743,6 +781,31 @@
             }
 
             reviewDiv.innerHTML = reviewHTML;
+        }
+
+        function toggleOrgSelection() {
+            const selectFromList = document.getElementById('selectFromList').checked;
+            const orgSelectBox = document.getElementById('orgSelectBox');
+            const orgCodeInput = document.getElementById('orgCodeInput');
+            const orgSelect = document.getElementById('organizationSelect');
+            const orgCodeManual = document.getElementById('organizationCodeManual');
+            const helpText = document.getElementById('orgHelpText');
+
+            if (selectFromList) {
+                orgSelectBox.style.display = 'block';
+                orgCodeInput.style.display = 'none';
+                orgSelect.required = true;
+                orgCodeManual.required = false;
+                orgCodeManual.value = '';
+                helpText.textContent = 'Select your school/organization from the list';
+            } else {
+                orgSelectBox.style.display = 'none';
+                orgCodeInput.style.display = 'block';
+                orgSelect.required = false;
+                orgCodeManual.required = true;
+                orgSelect.value = '';
+                helpText.textContent = 'Enter the organization code provided by your teacher';
+            }
         }
 
         function createAccount() {
@@ -795,11 +858,17 @@
             const subjects = Array.from(document.querySelectorAll('input[name="subjects"]:checked'))
                 .map(cb => cb.value);
 
+            // Get organization code from either select box or manual input
+            const selectFromList = document.getElementById('selectFromList').checked;
+            const organizationCode = selectFromList 
+                ? document.getElementById('organizationSelect').value
+                : document.getElementById('organizationCodeManual').value;
+
             const formData = {
                 studentName: document.getElementById('studentName').value,
                 email: document.getElementById('studentEmail').value,
                 gradeLevel: document.getElementById('gradeLevel').value,
-                organizationCode: document.getElementById('organizationCode').value,
+                organizationCode: organizationCode,
                 subjects: subjects
             };
 

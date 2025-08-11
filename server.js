@@ -899,8 +899,24 @@ app.get('/', async (req, res) => {
 
 // SaaS Teacher Signup Route
 // User signup route - handles both teachers and students
-app.get('/signup', (req, res) => {
-  res.render('user-signup', { title: 'Join SkillOns - Choose Your Role' });
+app.get('/signup', async (req, res) => {
+  try {
+    // Fetch all available organizations for student selection
+    const organizations = await Organization.find({})
+      .select('name subdomain')
+      .sort({ name: 1 });
+    
+    res.render('user-signup', { 
+      title: 'Join SkillOns - Choose Your Role',
+      organizations: organizations || []
+    });
+  } catch (error) {
+    console.error('Error fetching organizations for signup:', error);
+    res.render('user-signup', { 
+      title: 'Join SkillOns - Choose Your Role',
+      organizations: []
+    });
+  }
 });
 
 // Legacy teacher signup redirect
