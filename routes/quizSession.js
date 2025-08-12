@@ -37,17 +37,24 @@ function emitSessionUpdate(io, sessionId, updateType, data) {
 // Create a new competitive quiz session
 router.post('/create', isAuthenticated, requireRole(['teacher']), async (req, res) => {
   try {
+    console.log('=== CREATING QUIZ SESSION ===');
+    console.log('Teacher:', req.user.displayName, '(', req.user.email, ')');
+    console.log('Organization ID:', req.user.organizationId);
+    
     const { quizId, duration, maxParticipants, settings } = req.body;
+    console.log('Session request:', { quizId, duration, maxParticipants, settings });
     
     // Validate quiz exists and belongs to teacher's organization
     const quiz = await Quiz.findOne({ 
       _id: quizId, 
-      organizationId: req.user.organizationId,
-      isApproved: true 
+      organizationId: req.user.organizationId
     });
     
+    console.log('Quiz found:', quiz ? `"${quiz.title}" (${quiz.questions.length} questions)` : 'NOT FOUND');
+    
     if (!quiz) {
-      return res.status(404).json({ success: false, message: 'Quiz not found' });
+      console.log('❌ Quiz not found or does not belong to teacher\'s organization');
+      return res.status(404).json({ success: false, message: 'Quiz not found or access denied' });
     }
     
     // Generate unique session code
@@ -72,6 +79,9 @@ router.post('/create', isAuthenticated, requireRole(['teacher']), async (req, re
     });
     
     await session.save();
+    console.log('✅ Quiz session created successfully!');
+    console.log('Session Code:', sessionCode);
+    console.log('Session ID:', session._id);
     
     res.json({ 
       success: true, 

@@ -352,6 +352,13 @@
             }
             
             try {
+                console.log('Creating session with data:', {
+                    quizId,
+                    duration: parseInt(duration),
+                    maxParticipants: parseInt(maxParticipants),
+                    settings
+                });
+                
                 const response = await fetch('/quiz-session/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -363,20 +370,23 @@
                     })
                 });
                 
+                console.log('Response status:', response.status);
                 const data = await response.json();
+                console.log('Response data:', data);
                 
                 if (data.success) {
                     bootstrap.Modal.getInstance(document.getElementById('createSessionModal')).hide();
                     loadSessions(); // Refresh the sessions list
                     
                     // Show success message
-                    showAlert('success', `Session created successfully! Session Code: ${data.session.sessionCode}`);
+                    showAlert('success', `🎉 Session created successfully! Session Code: ${data.session.sessionCode}`);
                 } else {
-                    showAlert('danger', data.message || 'Error creating session');
+                    console.error('Session creation failed:', data);
+                    showAlert('danger', `❌ ${data.message || 'Error creating session'}`);
                 }
             } catch (error) {
                 console.error('Error creating session:', error);
-                showAlert('danger', 'Error creating session');
+                showAlert('danger', '❌ Network error - please check your connection and try again');
             }
         }
 
