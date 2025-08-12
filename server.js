@@ -973,19 +973,45 @@ app.get('/join-competitive-quiz', isAuthenticated, requireRole(['student']), (re
 // API endpoint to get teacher's quizzes for competitive sessions
 app.get('/api/teacher-quizzes', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
+    console.log('=== TEACHER QUIZZES API DEBUG ===');
+    console.log('Teacher ID:', req.user._id);
+    console.log('Teacher organization ID:', req.user.organizationId);
+    console.log('Teacher email:', req.user.email);
+    
     // Check if teacher has organization
     if (!req.user.organizationId) {
+      console.log('❌ No organization ID found for teacher');
       return res.status(403).json({ 
         success: false, 
         message: 'You need to be associated with an organization to access quizzes' 
       });
     }
 
+    // First, check all quizzes created by this teacher
+    const allQuizzes = await Quiz.find({ createdBy: req.user._id }).select('title isApproved organizationId createdAt');
+    console.log(`📊 Teacher has ${allQuizzes.length} total quizzes:`);
+    allQuizzes.forEach((quiz, index) => {
+      console.log(`   ${index + 1}. "${quiz.title}" - Approved: ${quiz.isApproved} - OrgID: ${quiz.organizationId}`);
+    });
+
+    // Get ALL quizzes for competitive sessions (no approval required)
     const quizzes = await Quiz.find({ 
       createdBy: req.user._id,
-      organizationId: req.user.organizationId,
-      isApproved: true 
-    }).select('title questions createdAt').sort({ createdAt: -1 });
+      organizationId: req.user.organizationId
+    }).select('title questions createdAt isApproved').sort({ createdAt: -1 });
+
+    console.log(`✅ Found ${quizzes.length} quizzes available for competitive sessions (approval not required)`);
+    
+    if (quizzes.length === 0) {
+      console.log('⚠️  No quizzes found. Possible reasons:');
+      console.log('   1. No quizzes created yet - go to /create-quiz');
+      console.log('   2. Organization mismatch - check with admin');
+    } else {
+      console.log('📋 Available quizzes:');
+      quizzes.forEach((quiz, index) => {
+        console.log(`   ${index + 1}. "${quiz.title}" - ${quiz.questions.length} questions - Approved: ${quiz.isApproved}`);
+      });
+    }
 
     res.json({ success: true, quizzes });
   } catch (error) {
