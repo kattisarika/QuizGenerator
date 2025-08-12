@@ -120,7 +120,7 @@
                     <button type="button" class="btn btn-primary" id="create-session-btn" onclick="console.log('Button clicked!'); createSession();">
                         <i class="fas fa-rocket me-2"></i>Create Session
                     </button>
-                    <button type="button" class="btn btn-warning ms-2" onclick="alert('Test button works!')">
+                    <button type="button" class="btn btn-warning ms-2" onclick="testSimpleFunction()">
                         Test JS
                     </button>
                 </div>
@@ -193,6 +193,18 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // IMMEDIATE TEST - This should execute when script loads
+        console.log('🚀 SCRIPT STARTED LOADING');
+        
+        // Simple test function
+        function testSimpleFunction() {
+            console.log('🎯 Test button clicked!');
+            alert('Test function works!');
+            return true;
+        }
+        
+        console.log('✅ Test function defined');
+
         let socket;
         let currentSessionId = null;
         let currentSessionCode = null;
