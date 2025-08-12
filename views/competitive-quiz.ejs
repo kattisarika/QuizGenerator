@@ -120,8 +120,11 @@
                     <button type="button" class="btn btn-primary" id="create-session-btn" onclick="console.log('Button clicked!'); createSession();">
                         <i class="fas fa-rocket me-2"></i>Create Session
                     </button>
-                    <button type="button" class="btn btn-warning ms-2" onclick="testSimpleFunction()">
-                        Test JS
+                    <button type="button" class="btn btn-warning ms-2" onclick="alert('INLINE ALERT TEST')">
+                        Test Inline
+                    </button>
+                    <button type="button" class="btn btn-info ms-2" onclick="console.log('INLINE CONSOLE TEST')">
+                        Test Console  
                     </button>
                 </div>
             </div>
@@ -196,6 +199,9 @@
         // IMMEDIATE TEST - This should execute when script loads
         console.log('🚀 SCRIPT STARTED LOADING');
         
+        // Test alert immediately
+        alert('IMMEDIATE ALERT: JavaScript is loading!');
+        
         // Simple test function
         function testSimpleFunction() {
             console.log('🎯 Test button clicked!');
@@ -217,7 +223,17 @@
 
         // Initialize Socket.IO connection
         document.addEventListener('DOMContentLoaded', function() {
-            socket = io();
+            console.log('DOM Content Loaded event fired');
+            alert('DOM LOADED - Before Socket.IO');
+            
+            try {
+                socket = io();
+                console.log('Socket.IO initialized successfully');
+                alert('Socket.IO initialized successfully');
+            } catch (error) {
+                console.error('Socket.IO initialization failed:', error);
+                alert('Socket.IO failed: ' + error.message);
+            }
             
             // Test that createSession function exists
             console.log('createSession function exists:', typeof createSession === 'function');
