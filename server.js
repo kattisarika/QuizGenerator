@@ -3401,19 +3401,40 @@ app.post('/temp-login', (req, res) => {
 
 // Competitive Quiz Management for Teachers
 app.get('/competitive-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  console.log('=== COMPETITIVE QUIZ ACCESS DEBUG ===');
+  console.log('User ID:', req.user._id);
+  console.log('User role:', req.user.role);
+  console.log('User organizationId:', req.user.organizationId);
+  console.log('User email:', req.user.email);
+  
   try {
     // Check if teacher has organization access
     if (!req.user.organizationId) {
+      console.log('No organization ID found, rendering error page');
       return res.render('error', {
-        message: 'You need to be associated with an organization to access competitive quiz features.',
+        message: 'You need to be associated with an organization to access competitive quiz features. Please contact an administrator to be assigned to an organization.',
         user: req.user,
         error: { status: 403 }
       });
     }
 
+    console.log('Fetching organization details for ID:', req.user.organizationId);
+    
     // Fetch organization details
     const organization = await Organization.findById(req.user.organizationId);
+    
+    console.log('Organization found:', organization ? organization.name : 'NOT FOUND');
 
+    if (!organization) {
+      console.log('Organization not found in database');
+      return res.render('error', {
+        message: 'Your organization was not found. Please contact an administrator.',
+        user: req.user,
+        error: { status: 404 }
+      });
+    }
+
+    console.log('Rendering competitive-quiz page successfully');
     res.render('competitive-quiz', {
       user: req.user,
       organization: organization,
@@ -3422,7 +3443,7 @@ app.get('/competitive-quiz', isAuthenticated, requireRole(['teacher']), requireA
   } catch (error) {
     console.error('Error loading competitive quiz page:', error);
     res.status(500).render('error', {
-      message: 'Error loading competitive quiz features',
+      message: 'Error loading competitive quiz features: ' + error.message,
       user: req.user,
       error: { status: 500 }
     });
