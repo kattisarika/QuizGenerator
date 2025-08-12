@@ -179,7 +179,7 @@
                                         <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Grade Level and Subject Selection -->
                                 <div class="row mt-3">
                                     <div class="col-md-6 mb-3">
@@ -217,6 +217,11 @@
                                                 <label for="subject-math">Math</label>
                                             </div>
                                             <div class="radio-item">
+                                                <input type="radio" id="subject-Python" name="subjects" value="Python" onchange="updateSubjectSelection()">
+                                                <label for="subject-math">Python</label>
+                                            </div>
+
+                                            <div class="radio-item">
                                                 <input type="radio" id="language-kannada" name="language" value="Kannada" onchange="updateLanguageSelection()">
                                                 <label for="language-kannada">
                                                     <i class="fas fa-flag me-2"></i>Kannada (ಕನ್ನಡ)
@@ -236,7 +241,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Language Selection -->
                                 <div class="row mt-3">
                                     <div class="col-md-12 mb-3">
@@ -288,7 +293,7 @@
                                 <h5 class="text-primary mb-3">
                                     <i class="fas fa-file-upload me-2"></i>Upload Documents
                                 </h5>
-                                
+
                                 <!-- Question Paper Upload -->
                                 <div class="mb-4">
                                     <label class="form-label">Question Paper *</label>
@@ -300,7 +305,7 @@
                                         <p class="text-muted">Drag and drop or click to upload PDF/DOC file</p>
                                         <small class="text-muted">Supported formats: PDF, DOC, DOCX (Max 10MB)</small>
                                     </div>
-                                    <input type="file" id="questionPaper" name="questionPaper" accept=".pdf,.doc,.docx" 
+                                    <input type="file" id="questionPaper" name="questionPaper" accept=".pdf,.doc,.docx"
                                            style="display: none;" required onchange="handleFileSelect(this, 'questionPaper')">
                                     <div id="questionPaperInfo" class="file-info" style="display: none;"></div>
                                 </div>
@@ -316,7 +321,7 @@
                                         <p class="text-muted">Drag and drop or click to upload answer key</p>
                                         <small class="text-muted">Supported formats: PDF, DOC, DOCX (Max 10MB)</small>
                                     </div>
-                                    <input type="file" id="answerPaper" name="answerPaper" accept=".pdf,.doc,.docx" 
+                                    <input type="file" id="answerPaper" name="answerPaper" accept=".pdf,.doc,.docx"
                                            style="display: none;" onchange="handleFileSelect(this, 'answerPaper')">
                                     <div id="answerPaperInfo" class="file-info" style="display: none;"></div>
                                 </div>
@@ -358,11 +363,11 @@
         function handleFileSelect(input, type) {
             const file = input.files[0];
             const infoDiv = document.getElementById(type + 'Info');
-            
+
             if (file) {
                 const fileSize = (file.size / 1024 / 1024).toFixed(2);
                 const fileType = file.name.split('.').pop().toUpperCase();
-                
+
                 infoDiv.innerHTML = `
                     <div class="d-flex align-items-center">
                         <i class="fas fa-file-${fileType === 'PDF' ? 'pdf' : 'word'} me-2 text-primary"></i>
@@ -389,7 +394,7 @@
             const selectedSubject = document.querySelector('input[name="subjects"]:checked');
             const infoDiv = document.getElementById('subject-selection-info');
             const textSpan = document.getElementById('selected-subjects-text');
-            
+
             if (selectedSubject) {
                 textSpan.textContent = `Selected: ${selectedSubject.value}`;
                 infoDiv.style.display = 'block';
@@ -397,39 +402,39 @@
                 infoDiv.style.display = 'none';
             }
         }
-        
+
         // Language selection update function
         function updateLanguageSelection() {
             const selectedLanguage = document.querySelector('input[name="language"]:checked');
             const infoDiv = document.getElementById('language-selection-info');
             const textSpan = document.getElementById('selected-language-text');
-            
+
             if (selectedLanguage) {
                 textSpan.textContent = `${selectedLanguage.value} selected`;
                 infoDiv.style.display = 'block';
             } else {
                 infoDiv.style.display = 'none';
             }
-            
+
             console.log('Language selected:', selectedLanguage ? selectedLanguage.value : 'None');
         }
-        
+
         // Test function to debug subject selection
         function testSubjectSelection() {
             const selectedSubject = document.querySelector('input[name="subjects"]:checked');
             console.log('=== SUBJECT SELECTION TEST ===');
             console.log('Total radio buttons found:', document.querySelectorAll('input[name="subjects"]').length);
             console.log('Selected subject:', selectedSubject ? selectedSubject.value : 'None');
-            
+
             // Test all radio buttons
             const allSubjects = document.querySelectorAll('input[name="subjects"]');
             allSubjects.forEach((subject, index) => {
                 console.log(`Radio ${index + 1}:`, subject.id, 'Value:', subject.value, 'Checked:', subject.checked);
             });
-            
+
             alert(`Selected subject: ${selectedSubject ? selectedSubject.value : 'None'}. Check console for details.`);
         }
-        
+
         // Drag and drop functionality
         document.querySelectorAll('.file-upload-area').forEach(area => {
             area.addEventListener('dragover', (e) => {
@@ -445,7 +450,7 @@
             area.addEventListener('drop', (e) => {
                 e.preventDefault();
                 area.classList.remove('dragover');
-                
+
                 const files = e.dataTransfer.files;
                 if (files.length > 0) {
                     const input = area.nextElementSibling;
@@ -460,47 +465,47 @@
             const questionPaper = document.getElementById('questionPaper').files[0];
             const gradeLevel = document.getElementById('gradeLevel').value;
             const selectedSubject = document.querySelector('input[name="subjects"]:checked');
-            
+
             console.log('Form validation - Grade Level:', gradeLevel);
             console.log('Form validation - Subject selected:', selectedSubject ? selectedSubject.value : 'None');
-            
+
             let errors = [];
-            
+
             if (!questionPaper) {
                 errors.push('Please upload a question paper.');
             }
-            
+
             if (!gradeLevel) {
                 errors.push('Please select a grade level.');
             }
-            
+
             if (!selectedSubject) {
                 errors.push('Please select a subject.');
             }
-            
+
             const selectedLanguage = document.querySelector('input[name="language"]:checked');
             if (!selectedLanguage) {
                 errors.push('Please select a language.');
             }
-            
+
             if (errors.length > 0) {
                 e.preventDefault();
                 alert('Please fix the following errors:\n\n' + errors.join('\n'));
                 return false;
             }
-            
+
             console.log('Form validation passed - proceeding with submission');
-            
+
             // Show loading state
             const submitBtn = document.querySelector('button[type="submit"]');
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Quiz...';
             submitBtn.disabled = true;
         });
-        
+
         // Initialize language selection on page load
         document.addEventListener('DOMContentLoaded', function() {
             updateLanguageSelection(); // Show English as selected by default
         });
     </script>
 </body>
-</html> 
+</html>
