@@ -1838,7 +1838,7 @@ app.post('/teacher/post-content', isAuthenticated, requireRole(['teacher']), req
     
     // Validate grade level
     const validGrades = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', 
-                        '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
+                        '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade', 'Young Adult Education'];
     
     if (!validGrades.includes(gradeLevel)) {
       return res.status(400).send('Invalid grade level selected');
@@ -1963,7 +1963,7 @@ app.post('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), 
     
     // Validate grade levels
     const validGrades = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', 
-                        '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
+                        '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade', 'Young Adult Education'];
     
     for (const assignment of assignments) {
       if (!validGrades.includes(assignment.gradeLevel)) {
@@ -2460,7 +2460,7 @@ app.post('/update-student-profile', isAuthenticated, requireRole(['student']), a
     console.log('Extracted data:', { gradeLevel, subjects });
     
     // Validate grade level
-    const validGradeLevels = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
+    const validGradeLevels = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade', 'Young Adult Education'];
     if (gradeLevel && !validGradeLevels.includes(gradeLevel)) {
       console.log('Invalid grade level:', gradeLevel);
       return res.status(400).json({ success: false, message: 'Invalid grade level' });

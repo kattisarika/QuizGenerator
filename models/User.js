@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema({
   },
   gradeLevel: {
     type: String,
-    enum: ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'],
+    enum: ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade', 'Young Adult Education'],
     default: null
   },
   subjects: [{
@@ -84,7 +84,7 @@ const userSchema = new mongoose.Schema({
     },
     gradeLevel: {
       type: String,
-      enum: ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade']
+      enum: ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade', 'Young Adult Education']
     },
     subjects: [{
       type: String,
