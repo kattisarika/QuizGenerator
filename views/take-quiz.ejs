@@ -127,6 +127,7 @@
         let timerInterval;
         const totalQuestions = <%= quiz.questions.length %>;
         const quizId = '<%= quiz._id %>';
+        let isSubmittingQuiz = false;
 
         // Initialize quiz
         document.addEventListener('DOMContentLoaded', function() {
@@ -231,7 +232,31 @@
         document.getElementById('quiz-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // Count answered questions
+            const answeredCount = Object.keys(answers).length;
+            const unansweredCount = totalQuestions - answeredCount;
+            
+            // Show confirmation dialog
+            let confirmMessage = `You have answered ${answeredCount} out of ${totalQuestions} questions.`;
+            if (unansweredCount > 0) {
+                confirmMessage += `\n\n${unansweredCount} question(s) remain unanswered and will be marked as incorrect.`;
+            }
+            confirmMessage += '\n\nAre you ready to submit your quiz and see your results?';
+            
+            if (!confirm(confirmMessage)) {
+                return; // User cancelled submission
+            }
+            
+            // Set submission flag to prevent beforeunload warning
+            isSubmittingQuiz = true;
+            
             const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+            
+            // Show loading state
+            const submitBtn = document.getElementById('submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
             
             // Collect all answers
             const answersArray = [];
@@ -263,21 +288,34 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Clear timer
+                    clearInterval(timerInterval);
+                    // Navigate to results page
                     window.location.href = `/quiz-result/${data.resultId}`;
                 } else {
+                    // Reset submission flag and button state
+                    isSubmittingQuiz = false;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
                     alert('Error submitting quiz: ' + data.message);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                // Reset submission flag and button state
+                isSubmittingQuiz = false;
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
                 alert('Error submitting quiz. Please try again.');
             });
         });
 
-        // Warn before leaving page
+        // Warn before leaving page (only if not submitting quiz)
         window.addEventListener('beforeunload', function(e) {
-            e.preventDefault();
-            e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
+            if (!isSubmittingQuiz) {
+                e.preventDefault();
+                e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
+            }
         });
     </script>
     
