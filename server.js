@@ -405,88 +405,7 @@ passport.deserializeUser(async (id, done) => {
 app.use(detectOrganization);
 app.use(scopeToOrganization);
 
-// Competitive Quiz Management for Teachers (moved here to avoid route conflicts)
-app.get('/competitive-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
-  console.log('=== COMPETITIVE QUIZ ACCESS DEBUG ===');
-  console.log('User ID:', req.user._id);
-  console.log('User role:', req.user.role);
-  console.log('User organizationId:', req.user.organizationId);
-  console.log('User email:', req.user.email);
-  
-  try {
-    // Check if teacher has organization access
-    if (!req.user.organizationId) {
-      console.log('No organization ID found, rendering error page');
-      return res.render('error', {
-        message: 'You need to be associated with an organization to access competitive quiz features. Please contact an administrator to be assigned to an organization.',
-        user: req.user,
-        error: { status: 403 }
-      });
-    }
 
-    console.log('Fetching organization details for ID:', req.user.organizationId);
-    
-    // Fetch organization details
-    const organization = await Organization.findById(req.user.organizationId);
-    
-    console.log('Organization found:', organization ? organization.name : 'NOT FOUND');
-
-    if (!organization) {
-      console.log('Organization not found in database');
-      return res.render('error', {
-        message: 'Your organization was not found. Please contact an administrator.',
-        user: req.user,
-        error: { status: 404 }
-      });
-    }
-
-    console.log('Rendering competitive-quiz page successfully');
-    res.render('competitive-quiz', {
-      user: req.user,
-      organization: organization,
-      title: 'Competitive Quiz Sessions'
-    });
-  } catch (error) {
-    console.error('Error loading competitive quiz page:', error);
-    res.status(500).render('error', {
-      message: 'Error loading competitive quiz features: ' + error.message,
-      user: req.user,
-      error: { status: 500 }
-    });
-  }
-});
-
-// Join Competitive Quiz for Students
-app.get('/join-competitive-quiz', isAuthenticated, requireRole(['student']), (req, res) => {
-  res.render('join-competitive-quiz', {
-    user: req.user,
-    title: 'Join Competitive Quiz'
-  });
-});
-
-// API endpoint to get teacher's quizzes for competitive sessions
-app.get('/api/teacher-quizzes', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
-  try {
-    // Check if teacher has organization
-    if (!req.user.organizationId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'You need to be associated with an organization to access quizzes' 
-      });
-    }
-
-    const quizzes = await Quiz.find({ 
-      createdBy: req.user._id,
-      organizationId: req.user.organizationId,
-      isApproved: true 
-    }).select('title questions createdAt').sort({ createdAt: -1 });
-
-    res.json({ success: true, quizzes });
-  } catch (error) {
-    console.error('Error getting teacher quizzes:', error);
-    res.status(500).json({ success: false, message: 'Error loading quizzes' });
-  }
-});
 
 // Organization routes
 app.use('/', organizationRoutes);
@@ -991,6 +910,89 @@ const requireApprovedTeacher = (req, res, next) => {
   console.log('Teacher approval check passed, proceeding to route handler');
   next();
 };
+
+// Competitive Quiz Management for Teachers
+app.get('/competitive-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  console.log('=== COMPETITIVE QUIZ ACCESS DEBUG ===');
+  console.log('User ID:', req.user._id);
+  console.log('User role:', req.user.role);
+  console.log('User organizationId:', req.user.organizationId);
+  console.log('User email:', req.user.email);
+  
+  try {
+    // Check if teacher has organization access
+    if (!req.user.organizationId) {
+      console.log('No organization ID found, rendering error page');
+      return res.render('error', {
+        message: 'You need to be associated with an organization to access competitive quiz features. Please contact an administrator to be assigned to an organization.',
+        user: req.user,
+        error: { status: 403 }
+      });
+    }
+
+    console.log('Fetching organization details for ID:', req.user.organizationId);
+    
+    // Fetch organization details
+    const organization = await Organization.findById(req.user.organizationId);
+    
+    console.log('Organization found:', organization ? organization.name : 'NOT FOUND');
+
+    if (!organization) {
+      console.log('Organization not found in database');
+      return res.render('error', {
+        message: 'Your organization was not found. Please contact an administrator.',
+        user: req.user,
+        error: { status: 404 }
+      });
+    }
+
+    console.log('Rendering competitive-quiz page successfully');
+    res.render('competitive-quiz', {
+      user: req.user,
+      organization: organization,
+      title: 'Competitive Quiz Sessions'
+    });
+  } catch (error) {
+    console.error('Error loading competitive quiz page:', error);
+    res.status(500).render('error', {
+      message: 'Error loading competitive quiz features: ' + error.message,
+      user: req.user,
+      error: { status: 500 }
+    });
+  }
+});
+
+// Join Competitive Quiz for Students
+app.get('/join-competitive-quiz', isAuthenticated, requireRole(['student']), (req, res) => {
+  res.render('join-competitive-quiz', {
+    user: req.user,
+    title: 'Join Competitive Quiz'
+  });
+});
+
+// API endpoint to get teacher's quizzes for competitive sessions
+app.get('/api/teacher-quizzes', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    // Check if teacher has organization
+    if (!req.user.organizationId) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You need to be associated with an organization to access quizzes' 
+      });
+    }
+
+    const quizzes = await Quiz.find({ 
+      createdBy: req.user._id,
+      organizationId: req.user.organizationId,
+      isApproved: true 
+    }).select('title questions createdAt').sort({ createdAt: -1 });
+
+    res.json({ success: true, quizzes });
+  } catch (error) {
+    console.error('Error getting teacher quizzes:', error);
+    res.status(500).json({ success: false, message: 'Error loading quizzes' });
+  }
+});
 
 // Routes
 app.get('/', async (req, res) => {
