@@ -8,6 +8,8 @@ const path = require('path');
 const fs = require('fs-extra');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
+const http = require('http');
+const socketIo = require('socket.io');
 require('dotenv').config();
 
 // SaaS Multi-tenancy imports
@@ -22,6 +24,7 @@ const {
   logOrganizationActivity
 } = require('./middleware/tenancy');
 const organizationRoutes = require('./routes/organization');
+const quizSessionRoutes = require('./routes/quizSession');
 
 // AWS S3 configuration
 const AWS = require('aws-sdk');
@@ -32,7 +35,17 @@ const s3 = new AWS.S3({
 });
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: process.env.NODE_ENV === 'production' ? false : ['http://localhost:3000'],
+    methods: ['GET', 'POST']
+  }
+});
 const PORT = process.env.PORT || 3000;
+
+// Make io available to routes
+app.set('io', io);
 
 // MongoDB connection with retry
 const connectDB = async () => {
@@ -393,6 +406,9 @@ app.use(scopeToOrganization);
 
 // Organization routes
 app.use('/', organizationRoutes);
+
+// Quiz session routes
+app.use('/quiz-session', quizSessionRoutes);
 
 // Helper functions for file processing
 async function extractTextFromFile(fileBuffer, originalName) {
@@ -2658,7 +2674,7 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
           previousTime: previousResult ? previousResult.timeTaken : null
         };
       }), 
-      user: req.user
+      user: req.user 
     });
     
     console.log(`=== END AVAILABLE QUIZZES DEBUG ===\n`);
@@ -3382,11 +3398,88 @@ app.post('/temp-login', (req, res) => {
   res.redirect('/dashboard');
 });
 
+// Competitive Quiz Management for Teachers
+app.get('/competitive-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('competitive-quiz', {
+    user: req.user,
+    title: 'Competitive Quiz Sessions'
+  });
+});
+
+// Join Competitive Quiz for Students
+app.get('/join-competitive-quiz', isAuthenticated, requireRole(['student']), (req, res) => {
+  res.render('join-competitive-quiz', {
+    user: req.user,
+    title: 'Join Competitive Quiz'
+  });
+});
+
+// API endpoint to get teacher's quizzes for competitive sessions
+app.get('/api/teacher-quizzes', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const organizationIds = req.user.organizationId ? [req.user.organizationId] : [];
+    const quizzes = await Quiz.find({ 
+      createdBy: req.user._id,
+      organizationId: { $in: organizationIds },
+      isApproved: true 
+    }).select('title questions createdAt').sort({ createdAt: -1 });
+
+    res.json({ success: true, quizzes });
+  } catch (error) {
+    console.error('Error getting teacher quizzes:', error);
+    res.status(500).json({ success: false, message: 'Error loading quizzes' });
+  }
+});
+
+// Socket.IO for real-time competitive quiz features
+io.on('connection', (socket) => {
+  console.log('User connected to competitive quiz system:', socket.id);
+  
+  // Join a quiz session room
+  socket.on('join-session', (sessionId) => {
+    socket.join(`session-${sessionId}`);
+    console.log(`User ${socket.id} joined session ${sessionId}`);
+  });
+  
+  // Leave a quiz session room
+  socket.on('leave-session', (sessionId) => {
+    socket.leave(`session-${sessionId}`);
+    console.log(`User ${socket.id} left session ${sessionId}`);
+  });
+  
+  // Handle real-time quiz progress updates
+  socket.on('quiz-progress', (data) => {
+    socket.to(`session-${data.sessionId}`).emit('participant-progress', {
+      studentName: data.studentName,
+      currentQuestion: data.currentQuestion,
+      answersSubmitted: data.answersSubmitted,
+      timestamp: new Date()
+    });
+  });
+  
+  // Handle quiz completion
+  socket.on('quiz-completed', (data) => {
+    socket.to(`session-${data.sessionId}`).emit('participant-finished', {
+      studentName: data.studentName,
+      score: data.score,
+      percentage: data.percentage,
+      timeTaken: data.timeTaken,
+      timestamp: new Date()
+    });
+  });
+  
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log('User disconnected from competitive quiz system:', socket.id);
+  });
+});
+
 // Start server with MongoDB connection check
 const startServer = () => {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
     console.log('✅ Google OAuth is configured and ready!');
+    console.log('🏁 Real-time competitive quiz system enabled!');
     console.log('👥 Role-based system: Teachers, Students, and Admins');
     console.log(`🗄️  MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
   });

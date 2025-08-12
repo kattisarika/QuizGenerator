@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Competitive Quiz - <%= user.organizationName || 'SkillOns' %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/student/dashboard">
+                <i class="fas fa-graduation-cap me-2"></i>SkillOns
+            </a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3">Welcome, <%= user.displayName %></span>
+                <a href="/logout" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header text-center bg-primary text-white">
+                        <h3><i class="fas fa-trophy me-2"></i>Join Competitive Quiz</h3>
+                        <p class="mb-0">Enter your session code to join a live quiz competition!</p>
+                    </div>
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                            <h5>Ready to compete with your classmates?</h5>
+                            <p class="text-muted">Get your session code from your teacher and enter it below</p>
+                        </div>
+                        
+                        <form id="join-session-form" class="text-center">
+                            <div class="mb-4">
+                                <label for="session-code" class="form-label h6">Session Code</label>
+                                <input type="text" 
+                                       class="form-control form-control-lg text-center" 
+                                       id="session-code" 
+                                       placeholder="Enter 6-digit code"
+                                       maxlength="6"
+                                       style="font-size: 2rem; letter-spacing: 0.5rem; font-weight: bold;"
+                                       required>
+                                <small class="form-text text-muted mt-2">
+                                    Ask your teacher for the session code
+                                </small>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fas fa-rocket me-2"></i>Join Quiz Session
+                            </button>
+                        </form>
+                        
+                        <div id="loading-state" class="text-center mt-4" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Joining session...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Session Info Card (Hidden initially) -->
+                <div class="card mt-4" id="session-info" style="display: none;">
+                    <div class="card-header bg-success text-white">
+                        <h5><i class="fas fa-check-circle me-2"></i>Successfully Joined!</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Quiz: <span id="quiz-title">-</span></h6>
+                                <p class="mb-2">Status: <span class="badge bg-info" id="session-status">Waiting</span></p>
+                                <p class="mb-0">Participants: <span id="participant-count">0</span></p>
+                            </div>
+                            <div class="col-md-6 text-center">
+                                <div id="waiting-message">
+                                    <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                                    <p class="mb-0">Waiting for teacher to start the quiz...</p>
+                                </div>
+                                <div id="quiz-starting" style="display: none;">
+                                    <i class="fas fa-play fa-2x text-success mb-2"></i>
+                                    <p class="mb-2"><strong>Quiz is starting!</strong></p>
+                                    <button class="btn btn-success btn-lg" onclick="startQuiz()">
+                                        <i class="fas fa-play me-2"></i>Start Quiz
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Live Participants -->
+                        <div class="mt-3">
+                            <h6><i class="fas fa-users me-2"></i>Other Participants</h6>
+                            <div id="participants-list" class="d-flex flex-wrap gap-2">
+                                <!-- Participant badges will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Leaderboard Card (During Quiz) -->
+                <div class="card mt-4" id="live-leaderboard-card" style="display: none;">
+                    <div class="card-header bg-warning text-dark">
+                        <h5><i class="fas fa-trophy me-2"></i>Live Leaderboard</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="leaderboard-content">
+                            <!-- Live leaderboard will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let socket;
+        let currentSessionId = null;
+        let currentSessionData = null;
+
+        // Initialize Socket.IO connection
+        document.addEventListener('DOMContentLoaded', function() {
+            socket = io();
+            
+            // Set up form submission
+            document.getElementById('join-session-form').addEventListener('submit', joinSession);
+            
+            // Auto-uppercase session code input
+            document.getElementById('session-code').addEventListener('input', function(e) {
+                e.target.value = e.target.value.toUpperCase();
+            });
+            
+            // Set up real-time updates
+            socket.on('participant-joined', function(data) {
+                updateParticipantCount(data.participantCount);
+                if (data.newParticipant) {
+                    addParticipantBadge(data.newParticipant.name);
+                }
+            });
+            
+            socket.on('session-started', function(data) {
+                showQuizStarting();
+            });
+            
+            socket.on('participant-progress', function(data) {
+                updateLeaderboard(data);
+            });
+            
+            socket.on('participant-finished', function(data) {
+                updateLeaderboard(data);
+            });
+        });
+
+        async function joinSession(e) {
+            e.preventDefault();
+            
+            const sessionCode = document.getElementById('session-code').value.trim();
+            
+            if (!sessionCode || sessionCode.length !== 6) {
+                showAlert('danger', 'Please enter a valid 6-digit session code');
+                return;
+            }
+            
+            // Show loading state
+            document.getElementById('loading-state').style.display = 'block';
+            document.getElementById('join-session-form').style.display = 'none';
+            
+            try {
+                const response = await fetch(`/quiz-session/join/${sessionCode}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSessionId = data.session.id;
+                    currentSessionData = data.session;
+                    
+                    // Join socket room for real-time updates
+                    socket.emit('join-session', currentSessionId);
+                    
+                    // Show session info
+                    showSessionInfo(data.session);
+                    
+                    showAlert('success', 'Successfully joined the quiz session!');
+                } else {
+                    showAlert('danger', data.message || 'Error joining session');
+                    resetToJoinForm();
+                }
+            } catch (error) {
+                console.error('Error joining session:', error);
+                showAlert('danger', 'Error joining session. Please try again.');
+                resetToJoinForm();
+            }
+        }
+
+        function showSessionInfo(session) {
+            document.getElementById('loading-state').style.display = 'none';
+            
+            // Populate session info
+            document.getElementById('quiz-title').textContent = session.quizTitle;
+            document.getElementById('session-status').textContent = session.status.toUpperCase();
+            document.getElementById('participant-count').textContent = session.participantCount;
+            
+            // Show session info card
+            document.getElementById('session-info').style.display = 'block';
+            
+            // Show leaderboard if quiz is active
+            if (session.status === 'active') {
+                document.getElementById('live-leaderboard-card').style.display = 'block';
+            }
+        }
+
+        function showQuizStarting() {
+            document.getElementById('waiting-message').style.display = 'none';
+            document.getElementById('quiz-starting').style.display = 'block';
+            document.getElementById('session-status').textContent = 'ACTIVE';
+            document.getElementById('session-status').className = 'badge bg-success';
+            
+            // Show leaderboard
+            document.getElementById('live-leaderboard-card').style.display = 'block';
+            
+            showAlert('success', 'The quiz has started! Click the Start Quiz button to begin.');
+        }
+
+        function startQuiz() {
+            if (!currentSessionId) return;
+            
+            // Redirect to competitive quiz taking page
+            window.location.href = `/take-competitive-quiz/${currentSessionId}`;
+        }
+
+        function updateParticipantCount(count) {
+            document.getElementById('participant-count').textContent = count;
+        }
+
+        function addParticipantBadge(participantName) {
+            const participantsList = document.getElementById('participants-list');
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary';
+            badge.textContent = participantName;
+            participantsList.appendChild(badge);
+        }
+
+        function updateLeaderboard(data) {
+            // This would update the live leaderboard during the quiz
+            console.log('Leaderboard update:', data);
+        }
+
+        function resetToJoinForm() {
+            document.getElementById('loading-state').style.display = 'none';
+            document.getElementById('join-session-form').style.display = 'block';
+            document.getElementById('session-info').style.display = 'none';
+            document.getElementById('live-leaderboard-card').style.display = 'none';
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
