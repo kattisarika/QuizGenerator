@@ -117,7 +117,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="createSession()">
+                    <button type="button" class="btn btn-primary" id="create-session-btn" onclick="createSession()">
                         <i class="fas fa-rocket me-2"></i>Create Session
                     </button>
                 </div>
@@ -194,9 +194,19 @@
         let currentSessionId = null;
         let currentSessionCode = null;
 
+        // Test function to check if JavaScript is working
+        function testFunction() {
+            console.log('✅ JavaScript is working! createSession function should be accessible.');
+            alert('JavaScript is working! If you see this, the button should work.');
+        }
+
         // Initialize Socket.IO connection
         document.addEventListener('DOMContentLoaded', function() {
             socket = io();
+            
+            // Test that createSession function exists
+            console.log('createSession function exists:', typeof createSession === 'function');
+            
             loadQuizzes();
             loadSessions();
             
@@ -367,9 +377,23 @@
         }
 
         async function createSession() {
+            console.log('=== CREATE SESSION BUTTON CLICKED ===');
+            
+            // Get button and disable it to prevent multiple clicks
+            const createBtn = document.getElementById('create-session-btn');
+            const originalText = createBtn.innerHTML;
+            createBtn.disabled = true;
+            createBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+            
             const quizId = document.getElementById('quiz-select').value;
             const duration = document.getElementById('duration').value;
             const maxParticipants = document.getElementById('max-participants').value;
+            
+            console.log('Form values:', {
+                quizId,
+                duration,
+                maxParticipants
+            });
             
             const settings = {
                 showLeaderboard: document.getElementById('show-leaderboard').checked,
@@ -377,10 +401,18 @@
                 instantResults: document.getElementById('instant-results').checked
             };
             
+            console.log('Settings:', settings);
+            
             if (!quizId) {
+                console.log('❌ No quiz selected');
                 alert('Please select a quiz');
+                // Restore button state
+                createBtn.disabled = false;
+                createBtn.innerHTML = originalText;
                 return;
             }
+            
+            console.log('✅ Quiz selected, proceeding with session creation');
             
             try {
                 console.log('Creating session with data:', {
@@ -411,13 +443,23 @@
                     
                     // Show success message
                     showAlert('success', `🎉 Session created successfully! Session Code: ${data.session.sessionCode}`);
+                    
+                    // Reset button (will be hidden by modal close, but good practice)
+                    createBtn.disabled = false;
+                    createBtn.innerHTML = originalText;
                 } else {
                     console.error('Session creation failed:', data);
                     showAlert('danger', `❌ ${data.message || 'Error creating session'}`);
+                    // Restore button state on error
+                    createBtn.disabled = false;
+                    createBtn.innerHTML = originalText;
                 }
             } catch (error) {
                 console.error('Error creating session:', error);
                 showAlert('danger', '❌ Network error - please check your connection and try again');
+                // Restore button state on network error
+                createBtn.disabled = false;
+                createBtn.innerHTML = originalText;
             }
         }
 
