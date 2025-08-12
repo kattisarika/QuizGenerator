@@ -3400,11 +3400,33 @@ app.post('/temp-login', (req, res) => {
 });
 
 // Competitive Quiz Management for Teachers
-app.get('/competitive-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
-  res.render('competitive-quiz', {
-    user: req.user,
-    title: 'Competitive Quiz Sessions'
-  });
+app.get('/competitive-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    // Check if teacher has organization access
+    if (!req.user.organizationId) {
+      return res.render('error', {
+        message: 'You need to be associated with an organization to access competitive quiz features.',
+        user: req.user,
+        error: { status: 403 }
+      });
+    }
+
+    // Fetch organization details
+    const organization = await Organization.findById(req.user.organizationId);
+
+    res.render('competitive-quiz', {
+      user: req.user,
+      organization: organization,
+      title: 'Competitive Quiz Sessions'
+    });
+  } catch (error) {
+    console.error('Error loading competitive quiz page:', error);
+    res.status(500).render('error', {
+      message: 'Error loading competitive quiz features',
+      user: req.user,
+      error: { status: 500 }
+    });
+  }
 });
 
 // Join Competitive Quiz for Students
@@ -3418,10 +3440,17 @@ app.get('/join-competitive-quiz', isAuthenticated, requireRole(['student']), (re
 // API endpoint to get teacher's quizzes for competitive sessions
 app.get('/api/teacher-quizzes', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
-    const organizationIds = req.user.organizationId ? [req.user.organizationId] : [];
+    // Check if teacher has organization
+    if (!req.user.organizationId) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You need to be associated with an organization to access quizzes' 
+      });
+    }
+
     const quizzes = await Quiz.find({ 
       createdBy: req.user._id,
-      organizationId: { $in: organizationIds },
+      organizationId: req.user.organizationId,
       isApproved: true 
     }).select('title questions createdAt').sort({ createdAt: -1 });
 
