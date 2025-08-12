@@ -38,8 +38,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? false : ['http://localhost:3000'],
-    methods: ['GET', 'POST']
+    origin: process.env.NODE_ENV === 'production' ? ['https://skillons.herokuapp.com'] : ['http://localhost:3000'],
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 const PORT = process.env.PORT || 3000;

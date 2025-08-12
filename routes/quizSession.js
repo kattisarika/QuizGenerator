@@ -3,7 +3,29 @@ const router = express.Router();
 const QuizSession = require('../models/QuizSession');
 const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
-const { isAuthenticated, requireRole } = require('../middleware/auth');
+// Authentication middleware functions are defined in server.js
+// We'll access them through the app context, but for now let's create local versions
+const isAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    return next();
+  } else {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+};
+
+const requireRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+    
+    next();
+  };
+};
 
 // Helper function to emit real-time updates
 function emitSessionUpdate(io, sessionId, updateType, data) {
