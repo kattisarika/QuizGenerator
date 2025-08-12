@@ -1020,6 +1020,16 @@ app.get('/api/teacher-quizzes', isAuthenticated, requireRole(['teacher']), requi
   }
 });
 
+// Test route for JavaScript debugging
+app.get('/test-js', (req, res) => {
+  res.render('test-js');
+});
+
+// Minimal competitive quiz test
+app.get('/competitive-quiz-minimal', (req, res) => {
+  res.render('competitive-quiz-minimal');
+});
+
 // Routes
 app.get('/', async (req, res) => {
   try {
