@@ -1669,7 +1669,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
   { name: 'answerPaper', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const { title, description, gradeLevel, subjects, language } = req.body;
+    const { title, description, gradeLevel, subjects, language, quizType } = req.body;
     let extractedQuestions = [];
     let questionFileUrl = null;
     let answerFileUrl = null;
@@ -1822,7 +1822,14 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       console.log('Answer paper stored at:', answerFileUrl);
     }
 
-    res.redirect('/teacher/dashboard');
+    // Handle different quiz types
+    if (quizType === 'competitive') {
+      console.log('Competitive quiz created - redirecting to competitive quiz management');
+      res.redirect(`/competitive-quiz?newQuiz=${quiz._id}&quizTitle=${encodeURIComponent(title)}`);
+    } else {
+      console.log('Regular quiz created - redirecting to teacher dashboard');
+      res.redirect('/teacher/dashboard');
+    }
   } catch (error) {
     console.error('Error creating quiz:', error);
     res.status(500).send(`Error creating quiz: ${error.message}`);

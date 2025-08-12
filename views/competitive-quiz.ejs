@@ -200,6 +200,37 @@
             loadQuizzes();
             loadSessions();
             
+            // Check if this is a redirect from creating a new competitive quiz
+            const urlParams = new URLSearchParams(window.location.search);
+            const newQuizId = urlParams.get('newQuiz');
+            const quizTitle = urlParams.get('quizTitle');
+            
+            if (newQuizId && quizTitle) {
+                // Show success message and auto-open create session modal
+                setTimeout(() => {
+                    showAlert('success', `🎉 Competitive quiz "${decodeURIComponent(quizTitle)}" created successfully! Ready to create your first session?`);
+                    
+                    // Auto-open the create session modal after a brief delay
+                    setTimeout(() => {
+                        const modal = new bootstrap.Modal(document.getElementById('createSessionModal'));
+                        modal.show();
+                        
+                        // Pre-select the newly created quiz
+                        const quizSelect = document.getElementById('quiz-select');
+                        if (quizSelect) {
+                            const option = Array.from(quizSelect.options).find(opt => opt.value === newQuizId);
+                            if (option) {
+                                quizSelect.value = newQuizId;
+                            }
+                        }
+                    }, 2000);
+                }, 1000);
+                
+                // Clean up URL parameters
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+            
             // Set up real-time updates
             socket.on('participant-joined', function(data) {
                 updateParticipantCount(data.participantCount);

@@ -164,6 +164,43 @@
                     </div>
                     <div class="card-body p-4">
                         <form action="/create-quiz" method="POST" enctype="multipart/form-data" id="quizForm">
+                            <!-- Quiz Type Selection -->
+                            <div class="mb-4">
+                                <h5 class="text-primary mb-3">
+                                    <i class="fas fa-gamepad me-2"></i>Quiz Type
+                                </h5>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="radio-group">
+                                            <div class="radio-item">
+                                                <input type="radio" id="quiz-type-regular" name="quizType" value="regular" checked onchange="updateQuizTypeDisplay()">
+                                                <label for="quiz-type-regular">
+                                                    <i class="fas fa-file-alt me-2"></i>Regular Quiz
+                                                    <small class="text-muted d-block">Standard quiz for students to take individually</small>
+                                                </label>
+                                            </div>
+                                            <div class="radio-item">
+                                                <input type="radio" id="quiz-type-competitive" name="quizType" value="competitive" onchange="updateQuizTypeDisplay()">
+                                                <label for="quiz-type-competitive">
+                                                    <i class="fas fa-trophy me-2"></i>Competitive Quiz
+                                                    <small class="text-muted d-block">Live competitive quiz with real-time leaderboards</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="quiz-type-info" class="mt-3 p-3 rounded" style="background: #f8f9fa; border-left: 4px solid #667eea;">
+                                    <div id="regular-quiz-info">
+                                        <strong><i class="fas fa-info-circle me-2"></i>Regular Quiz</strong>
+                                        <p class="mb-0 small">Students can take this quiz individually at their own pace. Perfect for assignments and assessments.</p>
+                                    </div>
+                                    <div id="competitive-quiz-info" style="display: none;">
+                                        <strong><i class="fas fa-trophy me-2"></i>Competitive Quiz</strong>
+                                        <p class="mb-0 small">Create live competitive sessions where students compete in real-time with live leaderboards and instant results!</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Basic Quiz Information -->
                             <div class="mb-4">
                                 <h5 class="text-primary mb-3">
@@ -408,6 +445,24 @@
                 infoDiv.style.display = 'block';
             } else {
                 infoDiv.style.display = 'none';
+            }
+        }
+
+        // Quiz type selection update function
+        function updateQuizTypeDisplay() {
+            const selectedQuizType = document.querySelector('input[name="quizType"]:checked');
+            const regularInfo = document.getElementById('regular-quiz-info');
+            const competitiveInfo = document.getElementById('competitive-quiz-info');
+
+            if (selectedQuizType) {
+                if (selectedQuizType.value === 'regular') {
+                    regularInfo.style.display = 'block';
+                    competitiveInfo.style.display = 'none';
+                } else if (selectedQuizType.value === 'competitive') {
+                    regularInfo.style.display = 'none';
+                    competitiveInfo.style.display = 'block';
+                }
+                console.log('Quiz type selected:', selectedQuizType.value);
             }
         }
 
