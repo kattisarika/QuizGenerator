@@ -214,6 +214,19 @@
             }
         });
 
+        // Make entire option area clickable
+        document.addEventListener('click', function(e) {
+            const optionItem = e.target.closest('.option-item');
+            if (optionItem) {
+                const radioInput = optionItem.querySelector('input[type="radio"]');
+                if (radioInput && !radioInput.checked) {
+                    radioInput.checked = true;
+                    // Trigger the change event to update answers
+                    radioInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+        });
+
         // Handle form submission
         document.getElementById('quiz-form').addEventListener('submit', function(e) {
             e.preventDefault();

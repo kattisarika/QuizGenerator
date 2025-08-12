@@ -2051,11 +2051,20 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     background: white;
+    user-select: none; /* Prevent text selection when clicking */
+    position: relative;
 }
 
 .option-item:hover {
     border-color: #667eea;
     background: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.option-item:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
 }
 
 .option-item input[type="radio"] {
@@ -2075,6 +2084,13 @@ body {
 .option-item:has(input[type="radio"]:checked) {
     border-color: #667eea;
     background: #f0f4ff;
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.2);
+    transform: translateY(-1px);
+}
+
+.option-item:has(input[type="radio"]:checked):hover {
+    border-color: #5a67d8;
+    background: #e8f0ff;
 }
 
 .option-label {
