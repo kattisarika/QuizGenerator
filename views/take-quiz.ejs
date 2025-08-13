@@ -438,7 +438,14 @@
         // Update live leaderboard
         async function updateLiveLeaderboard() {
             try {
-                const response = await fetch(`/quiz-session/${sessionId}/leaderboard`);
+                // Add cache-busting parameter to prevent 304 responses
+                const timestamp = Date.now();
+                const response = await fetch(`/quiz-session/${sessionId}/leaderboard?_t=${timestamp}`, {
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.success) {
@@ -466,7 +473,14 @@
         // Load participants list
         async function loadParticipants() {
             try {
-                const response = await fetch(`/quiz-session/${sessionId}/leaderboard`);
+                // Add cache-busting parameter to prevent 304 responses
+                const timestamp = Date.now();
+                const response = await fetch(`/quiz-session/${sessionId}/leaderboard?_t=${timestamp}`, {
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
                 const data = await response.json();
                 
                 console.log('Participants API response:', data); // Debug log
@@ -556,6 +570,13 @@
         
         // Update leaderboard every 5 seconds
         setInterval(updateLiveLeaderboard, 5000);
+        
+        // Force initial refresh after a short delay to ensure fresh data
+        setTimeout(() => {
+            console.log('Force refreshing leaderboard and participants...');
+            updateLiveLeaderboard();
+            loadParticipants();
+        }, 1000);
         
         // Track question start time
         questionStartTime = Date.now();
