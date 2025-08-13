@@ -203,7 +203,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
     <script>
         // IMMEDIATE TEST - This should execute when script loads
         console.log('🚀 SCRIPT STARTED LOADING');
@@ -235,19 +234,9 @@
             console.log('DOM Content Loaded event fired');
             alert('DOM LOADED - Before Socket.IO');
             
-            try {
-                if (typeof io !== 'undefined') {
-                    socket = io();
-                    console.log('Socket.IO initialized successfully');
-                    alert('Socket.IO initialized successfully');
-                } else {
-                    console.log('Socket.IO not available');
-                    alert('Socket.IO not available - continuing without it');
-                }
-            } catch (error) {
-                console.error('Socket.IO initialization failed:', error);
-                alert('Socket.IO failed: ' + error.message);
-            }
+            // Socket.IO temporarily removed for debugging
+            console.log('Socket.IO skipped for debugging');
+            alert('Socket.IO skipped - testing basic functionality');
             
             // Test that createSession function exists
             console.log('createSession function exists:', typeof createSession === 'function');
@@ -435,89 +424,28 @@
 
         async function createSession() {
             console.log('=== CREATE SESSION BUTTON CLICKED ===');
+            alert('🎉 CREATE SESSION FUNCTION WORKS! Button click detected!');
             
-            // Get button and disable it to prevent multiple clicks
-            const createBtn = document.getElementById('create-session-btn');
-            const originalText = createBtn.innerHTML;
-            createBtn.disabled = true;
-            createBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+            // Simple test - just check if form elements exist
+            const quizSelect = document.getElementById('quiz-select');
+            const duration = document.getElementById('duration');
+            const maxParticipants = document.getElementById('max-participants');
             
-            const quizId = document.getElementById('quiz-select').value;
-            const duration = document.getElementById('duration').value;
-            const maxParticipants = document.getElementById('max-participants').value;
-            
-            console.log('Form values:', {
-                quizId,
-                duration,
-                maxParticipants
+            console.log('Form elements found:', {
+                quizSelect: !!quizSelect,
+                duration: !!duration,
+                maxParticipants: !!maxParticipants
             });
             
-            const settings = {
-                showLeaderboard: document.getElementById('show-leaderboard').checked,
-                allowLateJoin: document.getElementById('allow-late-join').checked,
-                instantResults: document.getElementById('instant-results').checked
-            };
-            
-            console.log('Settings:', settings);
-            
-            if (!quizId) {
-                console.log('❌ No quiz selected');
-                alert('Please select a quiz');
-                // Restore button state
-                createBtn.disabled = false;
-                createBtn.innerHTML = originalText;
+            if (!quizSelect || !quizSelect.value) {
+                alert('⚠️ Please select a quiz first');
                 return;
             }
             
-            console.log('✅ Quiz selected, proceeding with session creation');
+            alert('✅ Quiz selected! Session creation would work here.');
+            console.log('Selected quiz ID:', quizSelect.value);
             
-            try {
-                console.log('Creating session with data:', {
-                    quizId,
-                    duration: parseInt(duration),
-                    maxParticipants: parseInt(maxParticipants),
-                    settings
-                });
-                
-                const response = await fetch('/quiz-session/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        quizId,
-                        duration: parseInt(duration),
-                        maxParticipants: parseInt(maxParticipants),
-                        settings
-                    })
-                });
-                
-                console.log('Response status:', response.status);
-                const data = await response.json();
-                console.log('Response data:', data);
-                
-                if (data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('createSessionModal')).hide();
-                    loadSessions(); // Refresh the sessions list
-                    
-                    // Show success message
-                    showAlert('success', `🎉 Session created successfully! Session Code: ${data.session.sessionCode}`);
-                    
-                    // Reset button (will be hidden by modal close, but good practice)
-                    createBtn.disabled = false;
-                    createBtn.innerHTML = originalText;
-                } else {
-                    console.error('Session creation failed:', data);
-                    showAlert('danger', `❌ ${data.message || 'Error creating session'}`);
-                    // Restore button state on error
-                    createBtn.disabled = false;
-                    createBtn.innerHTML = originalText;
-                }
-            } catch (error) {
-                console.error('Error creating session:', error);
-                showAlert('danger', '❌ Network error - please check your connection and try again');
-                // Restore button state on network error
-                createBtn.disabled = false;
-                createBtn.innerHTML = originalText;
-            }
+            // Temporarily removed complex session creation for debugging
         }
 
         async function manageSession(sessionId, sessionCode) {
