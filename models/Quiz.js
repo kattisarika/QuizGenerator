@@ -50,7 +50,7 @@ const quizSchema = new mongoose.Schema({
   },
   isApproved: {
     type: Boolean,
-    default: false
+    default: true  // Auto-approve all quizzes
   },
   gradeLevel: {
     type: String,

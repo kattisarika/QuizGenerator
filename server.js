@@ -1494,7 +1494,7 @@ app.post('/api/migrate-multi-org-account', isAuthenticated, requireRole(['studen
 app.get('/admin/dashboard', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const pendingTeachers = await User.find({ role: 'teacher', isApproved: false });
-    const pendingQuizzes = await Quiz.find({ isApproved: false });
+    const pendingQuizzes = [];  // No pending quizzes since all are auto-approved
     res.render('admin-dashboard', { user: req.user, pendingTeachers, pendingQuizzes });
   } catch (error) {
     console.error('Error fetching admin data:', error);
@@ -1682,7 +1682,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       createdBy: req.user._id,
       createdByName: req.user.displayName,
       organizationId: req.user.organizationId, // Add organization context for SaaS
-      isApproved: false,
+      isApproved: true,  // Auto-approve teacher quizzes
       questionPaperUrl: questionFileUrl, // Store S3 URL
       answerPaperUrl: answerFileUrl || null // Store S3 URL if provided
     });
@@ -2676,9 +2676,10 @@ app.get('/take-quiz/:quizId', isAuthenticated, requireRole(['student']), async (
       return res.status(404).send('Quiz not found');
     }
     
-    if (!quiz.isApproved) {
-      return res.status(403).send('This quiz is not yet approved');
-    }
+    // No need to check approval since all quizzes are auto-approved
+    // if (!quiz.isApproved) {
+    //   return res.status(403).send('This quiz is not yet approved');
+    // }
     
     // Check if student has already taken this quiz and count attempts
     const existingResults = await QuizResult.find({
@@ -2874,7 +2875,7 @@ app.post('/recreate-quiz/:quizId', isAuthenticated, requireRole(['teacher']), as
       createdBy: req.user._id,
       createdByName: req.user.displayName,
       organizationId: req.user.organizationId, // Add organization context for SaaS
-      isApproved: false, // New quiz needs approval
+      isApproved: true, // Auto-approve teacher quizzes
       questions: originalQuiz.questions.map(q => ({
         ...q,
         options: q.options.length < 4 ? 
@@ -3237,17 +3238,30 @@ app.post('/approve-teacher/:userId', isAuthenticated, requireRole(['admin', 'sup
   }
 });
 
+// Quiz approval endpoint - NO LONGER NEEDED (all quizzes auto-approved)
+// Keeping endpoint for backward compatibility but it does nothing
 app.post('/approve-quiz/:quizId', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
+  // All quizzes are now auto-approved, so just redirect
+  res.redirect('/admin/dashboard');
+});
+
+// Migration endpoint to approve all existing quizzes
+app.get('/migrate/approve-all-quizzes', async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.quizId);
-    if (quiz) {
-      quiz.isApproved = true;
-      await quiz.save();
-    }
-    res.redirect('/admin/dashboard');
+    const result = await Quiz.updateMany(
+      { isApproved: false },
+      { isApproved: true }
+    );
+    
+    res.send(`
+      <h2>Quiz Approval Migration Complete</h2>
+      <p>Updated ${result.modifiedCount} quizzes to approved status.</p>
+      <p>All quizzes are now auto-approved.</p>
+      <a href="/dashboard">Go to Dashboard</a>
+    `);
   } catch (error) {
-    console.error('Error approving quiz:', error);
-    res.redirect('/admin/dashboard');
+    console.error('Error migrating quizzes:', error);
+    res.status(500).send('Error migrating quizzes');
   }
 });
 
