@@ -970,6 +970,62 @@ app.get('/join-competitive-quiz', isAuthenticated, requireRole(['student']), (re
   });
 });
 
+// Take Competitive Quiz (Students start taking the quiz)
+app.get('/take-competitive-quiz/:sessionId', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const sessionId = req.params.sessionId;
+    
+    // Get session details to verify student is part of this session
+    const QuizSession = require('./models/QuizSession');
+    const session = await QuizSession.findById(sessionId).populate('quiz');
+    
+    if (!session) {
+      return res.status(404).render('error', {
+        message: 'Quiz session not found',
+        user: req.user,
+        error: { status: 404 }
+      });
+    }
+    
+    // Check if student is in the session
+    const studentInSession = session.participants.some(p => p.student.toString() === req.user._id.toString());
+    if (!studentInSession) {
+      return res.status(403).render('error', {
+        message: 'You are not authorized to take this quiz session',
+        user: req.user,
+        error: { status: 403 }
+      });
+    }
+    
+    // Check if session is active
+    if (session.status !== 'active') {
+      return res.status(400).render('error', {
+        message: 'This quiz session is not currently active',
+        user: req.user,
+        error: { status: 400 }
+      });
+    }
+    
+    // Redirect to regular quiz taking page with session context
+    res.render('take-quiz', {
+      user: req.user,
+      quiz: session.quiz,
+      sessionId: sessionId,
+      isCompetitive: true,
+      timeLimit: session.duration,
+      title: `Competitive Quiz: ${session.quiz.title}`
+    });
+    
+  } catch (error) {
+    console.error('Error accessing competitive quiz:', error);
+    res.status(500).render('error', {
+      message: 'Error accessing quiz session: ' + error.message,
+      user: req.user,
+      error: { status: 500 }
+    });
+  }
+});
+
 // API endpoint to get teacher's quizzes for competitive sessions
 app.get('/api/teacher-quizzes', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
