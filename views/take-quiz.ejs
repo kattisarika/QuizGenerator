@@ -66,7 +66,7 @@
                                 
                                 <div class="options-list">
                                     <% question.options.forEach((option, optionIndex) => { %>
-                                        <div class="option-item">
+                                        <div class="option-item" onclick="selectOption('<%= index %>', '<%= optionIndex %>')" data-question="<%= index %>" data-option="<%= optionIndex %>">
                                             <input type="radio" 
                                                    id="q<%= index %>-opt<%= optionIndex %>" 
                                                    name="question-<%= index %>" 
@@ -132,7 +132,64 @@
         document.addEventListener('DOMContentLoaded', function() {
             startTimer();
             updateProgress();
+            initializeAnsweredQuestions();
         });
+
+        // Initialize visual feedback for already answered questions
+        function initializeAnsweredQuestions() {
+            document.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+                const questionIndex = radio.dataset.question;
+                const optionIndex = radio.dataset.option;
+                
+                // Mark the option as selected
+                const questionContainer = document.getElementById(`question-${questionIndex}`);
+                if (questionContainer) {
+                    const selectedOption = questionContainer.querySelector(`.option-item[data-option="${optionIndex}"]`);
+                    if (selectedOption) {
+                        selectedOption.classList.add('option-selected');
+                    }
+                }
+                
+                // Mark the indicator as answered
+                const indicator = document.getElementById(`indicator-${questionIndex}`);
+                if (indicator) {
+                    indicator.classList.add('answered');
+                }
+                
+                // Store in answers object
+                answers[questionIndex] = radio.value;
+            });
+        }
+
+        // Function to select an option when clicking anywhere on the option area
+        function selectOption(questionIndex, optionIndex) {
+            const radioButton = document.getElementById(`q${questionIndex}-opt${optionIndex}`);
+            if (radioButton) {
+                radioButton.checked = true;
+                
+                // Update visual feedback for all options in this question
+                const questionContainer = document.getElementById(`question-${questionIndex}`);
+                const allOptions = questionContainer.querySelectorAll('.option-item');
+                
+                // Remove selected class from all options
+                allOptions.forEach(opt => opt.classList.remove('option-selected'));
+                
+                // Add selected class to the clicked option
+                const selectedOption = questionContainer.querySelector(`.option-item[data-option="${optionIndex}"]`);
+                if (selectedOption) {
+                    selectedOption.classList.add('option-selected');
+                }
+                
+                // Update the question indicator to show it's been answered
+                const indicator = document.getElementById(`indicator-${questionIndex}`);
+                if (indicator) {
+                    indicator.classList.add('answered');
+                }
+                
+                // Store the answer
+                answers[questionIndex] = radioButton.value;
+            }
+        }
 
         function startTimer() {
             timerInterval = setInterval(updateTimer, 1000);
@@ -158,7 +215,20 @@
             document.querySelectorAll('.question-container').forEach(q => q.style.display = 'none');
             
             // Show current question
-            document.getElementById(`question-${index}`).style.display = 'block';
+            const currentQuestionElement = document.getElementById(`question-${index}`);
+            currentQuestionElement.style.display = 'block';
+            
+            // Check if this question has been answered and highlight the selected option
+            const selectedRadio = currentQuestionElement.querySelector('input[type="radio"]:checked');
+            if (selectedRadio) {
+                const optionIndex = selectedRadio.dataset.option;
+                const allOptions = currentQuestionElement.querySelectorAll('.option-item');
+                allOptions.forEach(opt => opt.classList.remove('option-selected'));
+                const selectedOption = currentQuestionElement.querySelector(`.option-item[data-option="${optionIndex}"]`);
+                if (selectedOption) {
+                    selectedOption.classList.add('option-selected');
+                }
+            }
             
             // Update indicators
             document.querySelectorAll('.question-indicator').forEach(ind => ind.classList.remove('active'));
