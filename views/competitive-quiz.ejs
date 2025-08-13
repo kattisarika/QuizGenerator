@@ -286,19 +286,8 @@
                 window.history.replaceState({}, document.title, cleanUrl);
             }
             
-            // Set up real-time updates
-            socket.on('participant-joined', function(data) {
-                updateParticipantCount(data.participantCount);
-                addParticipantToList(data.newParticipant);
-            });
-            
-            socket.on('participant-progress', function(data) {
-                updateParticipantProgress(data);
-            });
-            
-            socket.on('participant-finished', function(data) {
-                updateLeaderboard(data);
-            });
+            // Real-time updates temporarily disabled for debugging
+            console.log('Socket.IO event listeners skipped for debugging');
         });
 
         async function loadQuizzes() {
@@ -472,8 +461,8 @@
                         startBtn.style.display = 'none';
                     }
                     
-                    // Join socket room for real-time updates
-                    socket.emit('join-session', sessionId);
+                    // Socket.IO temporarily disabled for debugging
+                    console.log('Would join socket room for session:', sessionId);
                     
                     // Show the modal
                     new bootstrap.Modal(document.getElementById('sessionManageModal')).show();
