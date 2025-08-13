@@ -196,9 +196,13 @@ quizSessionSchema.statics.getLeaderboard = function(sessionId) {
 
 // Instance method to add participant
 quizSessionSchema.methods.addParticipant = function(studentId, studentName) {
+  console.log('addParticipant called with:', { studentId, studentName });
+  console.log('Current participants count:', this.participants.length);
+  
   // Check if student already joined
   const existing = this.participants.find(p => p.student.toString() === studentId.toString());
   if (existing) {
+    console.log('Student already exists, updating lastActivity');
     existing.lastActivity = new Date();
     return this.save();
   }
@@ -208,6 +212,7 @@ quizSessionSchema.methods.addParticipant = function(studentId, studentName) {
     throw new Error('Session is full');
   }
   
+  console.log('Adding new participant to array');
   this.participants.push({
     student: studentId,
     studentName: studentName,
@@ -215,6 +220,7 @@ quizSessionSchema.methods.addParticipant = function(studentId, studentName) {
     lastActivity: new Date()
   });
   
+  console.log('Participants array after push:', this.participants.length);
   return this.save();
 };
 

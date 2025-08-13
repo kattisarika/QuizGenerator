@@ -130,7 +130,13 @@ router.post('/join/:sessionCode', isAuthenticated, requireRole(['student']), asy
     }
     
     // Add participant to session
+    console.log('Adding participant:', req.user.displayName, 'to session');
     await session.addParticipant(req.user._id, req.user.displayName);
+    
+    // Refresh session data after adding participant
+    await session.populate('participants');
+    console.log('Session participants after adding:', session.participants.length);
+    console.log('Participant details:', session.participants.map(p => ({ name: p.studentName, joinedAt: p.joinedAt })));
     
     // Emit real-time update
     if (req.app.get('io')) {
@@ -512,6 +518,12 @@ router.get('/:sessionId/leaderboard', isAuthenticated, async (req, res) => {
     
     console.log('Leaderboard request for session:', req.params.sessionId);
     console.log('Session found with', session.participants.length, 'participants');
+    console.log('Session status:', session.status);
+    console.log('Session participants:', session.participants.map(p => ({ 
+      studentName: p.studentName, 
+      status: p.status, 
+      joinedAt: p.joinedAt 
+    })));
     
     // Create live leaderboard
     const leaderboard = session.participants
