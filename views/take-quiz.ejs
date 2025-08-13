@@ -743,43 +743,46 @@
         
         // Test connection function for debugging
         function testConnection() {
-            console.log('🧪 Testing connection...');
+            console.log('🧪 Testing connection and session state...');
             console.log('sessionId:', sessionId);
-            console.log('jQuery available:', typeof $ !== 'undefined');
-            console.log('fetch available:', typeof fetch !== 'undefined');
             
-            // Test basic connectivity
-            const testUrl = `/quiz-session/${sessionId}/leaderboard?_t=${Date.now()}`;
-            console.log('Testing URL:', testUrl);
+            // Test debug endpoint
+            const debugUrl = `/quiz-session/${sessionId}/debug?_t=${Date.now()}`;
+            console.log('Testing debug URL:', debugUrl);
             
-            // Try both methods
-            if (typeof $ !== 'undefined') {
-                console.log('Testing jQuery AJAX...');
-                $.get(testUrl)
-                    .done(function(data) {
-                        console.log('✅ jQuery test successful:', data);
-                        alert('jQuery AJAX working! Check console for details.');
-                    })
-                    .fail(function(xhr, status, error) {
-                        console.error('❌ jQuery test failed:', { xhr, status, error });
-                        alert(`jQuery failed: ${status} - ${error}`);
-                    });
-            } else {
-                console.log('Testing fetch...');
-                fetch(testUrl)
-                    .then(response => {
-                        console.log('✅ Fetch test response status:', response.status);
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('✅ Fetch test successful:', data);
-                        alert('Fetch working! Check console for details.');
-                    })
-                    .catch(error => {
-                        console.error('❌ Fetch test failed:', error);
-                        alert(`Fetch failed: ${error.message}`);
-                    });
-            }
+            fetch(debugUrl)
+                .then(response => {
+                    console.log('Debug response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('📊 SESSION DEBUG INFO:', data);
+                    if (data.success) {
+                        const info = data.debug;
+                        const message = `
+Session Debug Info:
+- Session ID: ${info.sessionId}
+- Session Code: ${info.sessionCode}
+- Status: ${info.status}
+- Quiz: ${info.quizTitle}
+- Participant Count: ${info.participantCount}
+- Participants: ${JSON.stringify(info.participants, null, 2)}
+                        `;
+                        console.log(message);
+                        alert(`Session has ${info.participantCount} participants. Check console for full details.`);
+                        
+                        // Also test regular leaderboard
+                        return fetch(`/quiz-session/${sessionId}/leaderboard?_t=${Date.now()}`);
+                    }
+                })
+                .then(response => response.json())
+                .then(leaderboardData => {
+                    console.log('📊 LEADERBOARD DATA:', leaderboardData);
+                })
+                .catch(error => {
+                    console.error('❌ Debug test failed:', error);
+                    alert(`Debug failed: ${error.message}`);
+                });
         }
         
         // Force initial refresh after a short delay to ensure fresh data

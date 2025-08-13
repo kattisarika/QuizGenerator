@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const QuizSession = require('../models/QuizSession');
 const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
@@ -508,32 +509,88 @@ router.post('/:sessionId/complete', isAuthenticated, requireRole(['student']), a
   }
 });
 
-// Get current leaderboard
-router.get('/:sessionId/leaderboard', isAuthenticated, async (req, res) => {
+// Debug endpoint to check session state
+router.get('/:sessionId/debug', isAuthenticated, async (req, res) => {
   try {
-    const session = await QuizSession.findById(req.params.sessionId).populate('quiz');
+    const sessionId = req.params.sessionId;
+    
+    // Get session with all details
+    const session = await QuizSession.findById(sessionId)
+      .populate('quiz', 'title questions')
+      .populate('teacher', 'displayName email')
+      .populate('participants.student', 'displayName email');
+    
     if (!session) {
       return res.status(404).json({ success: false, message: 'Session not found' });
     }
     
-    console.log('Leaderboard request for session:', req.params.sessionId);
-    console.log('Session found with', session.participants.length, 'participants');
+    // Get participant count directly from database
+    const participantCount = await QuizSession.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(sessionId) } },
+      { $project: { participantCount: { $size: { $ifNull: ['$participants', []] } } } }
+    ]);
+    
+    res.json({
+      success: true,
+      debug: {
+        sessionId: session._id,
+        sessionCode: session.sessionCode,
+        status: session.status,
+        teacher: session.teacher,
+        quizTitle: session.quizTitle,
+        createdAt: session.createdAt,
+        participantCount: participantCount[0]?.participantCount || 0,
+        participants: session.participants.map(p => ({
+          id: p._id,
+          studentId: p.student,
+          studentName: p.studentName,
+          joinedAt: p.joinedAt,
+          status: p.status,
+          score: p.score,
+          currentQuestion: p.currentQuestion
+        })),
+        rawParticipants: session.participants
+      }
+    });
+  } catch (error) {
+    console.error('Debug endpoint error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get current leaderboard
+router.get('/:sessionId/leaderboard', isAuthenticated, async (req, res) => {
+  try {
+    // Force fresh read from database
+    const session = await QuizSession.findById(req.params.sessionId)
+      .populate('quiz')
+      .lean()
+      .exec();
+      
+    if (!session) {
+      console.log('Session not found:', req.params.sessionId);
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    
+    console.log('=== LEADERBOARD REQUEST ===');
+    console.log('Session ID:', req.params.sessionId);
+    console.log('Session found with', session.participants ? session.participants.length : 0, 'participants');
     console.log('Session status:', session.status);
-    console.log('Session participants:', session.participants.map(p => ({ 
-      studentName: p.studentName, 
-      status: p.status, 
-      joinedAt: p.joinedAt 
-    })));
+    console.log('Session created:', session.createdAt);
+    console.log('Session participants:', session.participants || []);
+    
+    // Ensure participants array exists
+    const participants = session.participants || [];
     
     // Create live leaderboard
-    const leaderboard = session.participants
+    const leaderboard = participants
       .map(p => ({
         studentName: p.studentName,
-        score: p.score,
-        currentQuestion: p.currentQuestion,
-        status: p.status,
-        timeTaken: p.timeTaken,
-        percentage: p.percentage,
+        score: p.score || 0,
+        currentQuestion: p.currentQuestion || 0,
+        status: p.status || 'waiting',
+        timeTaken: p.timeTaken || 0,
+        percentage: p.percentage || 0,
         lastActivity: p.lastActivity
       }))
       .sort((a, b) => {
@@ -546,9 +603,11 @@ router.get('/:sessionId/leaderboard', isAuthenticated, async (req, res) => {
     const responseData = { 
       success: true, 
       leaderboard, 
-      participants: session.participants.length,
+      participants: participants.length,
       sessionId: session._id,
-      status: session.status
+      status: session.status,
+      sessionCode: session.sessionCode,
+      quizTitle: session.quizTitle
     };
     
     console.log('Sending leaderboard response:', {
