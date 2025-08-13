@@ -3303,8 +3303,8 @@ app.get('/auth/google/callback', (req, res) => {
       // Super admins and admins go to admin dashboard
       res.redirect('/admin/dashboard');
     } else if (req.user.role === 'teacher' && req.user.organizationId) {
-      // Teachers with organization context should go to organization dashboard
-      res.redirect('/organization/dashboard');
+      // Teachers with organization context should go to teacher dashboard
+      res.redirect('/teacher/dashboard');
     } else if (req.user.organizationRole === 'owner') {
       // Organization owners go to organization dashboard
       res.redirect('/organization/dashboard');
