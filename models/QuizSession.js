@@ -47,6 +47,13 @@ const participantSchema = new mongoose.Schema({
     enum: ['joined', 'in-progress', 'completed', 'disconnected'],
     default: 'joined'
   },
+  questionProgress: [{
+    questionIndex: Number,
+    answeredAt: Date,
+    timeTakenForQuestion: Number, // seconds taken for this specific question
+    isCorrect: Boolean,
+    selectedAnswer: String
+  }],
   lastActivity: {
     type: Date,
     default: Date.now

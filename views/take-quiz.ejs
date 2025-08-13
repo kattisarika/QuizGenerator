@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Take Quiz - <%= quiz.title %></title>
+    <title><%= isCompetitive ? 'Competitive Quiz' : 'Take Quiz' %> - <%= quiz.title %></title>
     <link rel="stylesheet" href="/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <% if (isCompetitive) { %>
+    <script src="/socket.io/socket.io.js"></script>
+    <% } %>
 </head>
 <body>
     <nav class="navbar">
@@ -25,7 +28,34 @@
     </nav>
 
     <main class="main-content">
-        <div class="quiz-taking-container">
+        <% if (isCompetitive) { %>
+        <!-- Competitive Mode Live Leaderboard -->
+        <div id="competitive-sidebar" style="position: fixed; right: 20px; top: 100px; width: 300px; background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 20px; z-index: 1000; max-height: 70vh; overflow-y: auto;">
+            <h4><i class="fas fa-trophy text-warning"></i> Live Leaderboard</h4>
+            <div id="live-leaderboard">
+                <div class="text-center text-muted">
+                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                </div>
+            </div>
+            
+            <hr>
+            
+            <h5><i class="fas fa-users text-primary"></i> Participants</h5>
+            <div id="participants-list">
+                <div class="text-center text-muted">
+                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                </div>
+            </div>
+            
+            <!-- Winner Announcement -->
+            <div id="winner-announcement" style="display: none;" class="alert alert-success text-center">
+                <h5><i class="fas fa-crown text-warning"></i> Quiz Complete!</h5>
+                <p class="mb-0" id="winner-text"></p>
+            </div>
+        </div>
+        <% } %>
+        
+        <div class="quiz-taking-container" style="<%= isCompetitive ? 'margin-right: 340px;' : '' %>">
             <div class="quiz-header">
                 <div class="quiz-info">
                     <h1><%= quiz.title %></h1>
@@ -318,6 +348,202 @@
             }
         });
     </script>
+    
+    <% if (isCompetitive) { %>
+    <!-- Competitive Mode Real-time Features -->
+    <script>
+        let competitiveSocket;
+        let sessionId = '<%= sessionId %>';
+        let questionStartTime = Date.now();
+        
+        // Initialize competitive features
+        if (typeof io !== 'undefined') {
+            competitiveSocket = io();
+            
+            // Join session room
+            competitiveSocket.emit('join-session', sessionId);
+            
+            // Listen for real-time updates
+            competitiveSocket.on('question-answered', function(data) {
+                updateLiveLeaderboard();
+                showQuestionAlert(data);
+            });
+            
+            competitiveSocket.on('participant-completed', function(data) {
+                updateLiveLeaderboard();
+                showCompletionAlert(data);
+            });
+            
+            competitiveSocket.on('quiz-finished', function(data) {
+                showWinnerAnnouncement(data.winner, data.finalLeaderboard);
+            });
+            
+            // Load initial leaderboard
+            updateLiveLeaderboard();
+            loadParticipants();
+        }
+        
+        // Override the nextQuestion function for competitive mode
+        const originalNextQuestion = window.nextQuestion;
+        window.nextQuestion = function() {
+            // Track time for this question
+            const timeTaken = Math.round((Date.now() - questionStartTime) / 1000);
+            
+            // Send progress update if answer was selected
+            const selectedAnswer = document.querySelector('input[name="answer"]:checked');
+            if (selectedAnswer && currentQuestionIndex > 0) {
+                const question = quizData.questions[currentQuestionIndex - 1];
+                const isCorrect = selectedAnswer.value === question.correctAnswer;
+                
+                // Send progress to server
+                fetch(`/quiz-session/${sessionId}/progress`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        questionIndex: currentQuestionIndex - 1,
+                        selectedAnswer: selectedAnswer.value,
+                        timeTaken: timeTaken,
+                        isCorrect: isCorrect
+                    })
+                }).catch(console.error);
+            }
+            
+            // Reset timer for next question
+            questionStartTime = Date.now();
+            
+            // Call original function
+            originalNextQuestion();
+        };
+        
+        // Override quiz submission for competitive mode
+        const originalSubmitQuiz = window.submitQuiz;
+        window.submitQuiz = async function() {
+            const totalTimeTaken = Math.round((Date.now() - quizStartTime) / 1000);
+            
+            try {
+                // Mark as completed in session
+                await fetch(`/quiz-session/${sessionId}/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ totalTimeTaken })
+                });
+            } catch (error) {
+                console.error('Error updating competitive session:', error);
+            }
+            
+            // Call original submit function
+            originalSubmitQuiz();
+        };
+        
+        // Update live leaderboard
+        async function updateLiveLeaderboard() {
+            try {
+                const response = await fetch(`/quiz-session/${sessionId}/leaderboard`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const leaderboardDiv = document.getElementById('live-leaderboard');
+                    leaderboardDiv.innerHTML = data.leaderboard.map((participant, index) => `
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 ${index === 0 ? 'bg-warning bg-opacity-25' : 'bg-light'} rounded">
+                            <div>
+                                <strong>${index + 1}. ${participant.studentName}</strong>
+                                <br>
+                                <small class="text-muted">Q${participant.currentQuestion} • ${participant.score} correct</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="badge ${participant.status === 'completed' ? 'bg-success' : 'bg-primary'}">${participant.status}</div>
+                                <br>
+                                <small class="text-muted">${formatTime(participant.timeTaken)}</small>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error updating leaderboard:', error);
+            }
+        }
+        
+        // Load participants list
+        async function loadParticipants() {
+            try {
+                const response = await fetch(`/quiz-session/${sessionId}/leaderboard`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const participantsDiv = document.getElementById('participants-list');
+                    participantsDiv.innerHTML = `
+                        <div class="text-center mb-2">
+                            <span class="badge bg-info">${data.participants} participants</span>
+                        </div>
+                        ${data.leaderboard.map(p => `
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="fas fa-user-circle text-primary me-2"></i>
+                                <span class="small">${p.studentName}</span>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading participants:', error);
+            }
+        }
+        
+        // Show question answered alert
+        function showQuestionAlert(data) {
+            if (data.isCorrect) {
+                const toast = document.createElement('div');
+                toast.className = 'alert alert-success position-fixed';
+                toast.style.cssText = 'top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 300px;';
+                toast.innerHTML = `<i class="fas fa-check-circle"></i> ${data.studentName} got question ${data.questionIndex + 1} right in ${data.timeTaken}s!`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            }
+        }
+        
+        // Show completion alert
+        function showCompletionAlert(data) {
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-info position-fixed';
+            toast.style.cssText = 'top: 60px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 300px;';
+            toast.innerHTML = `<i class="fas fa-flag-checkered"></i> ${data.studentName} finished! (${data.completedCount}/${data.totalParticipants} done)`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+        
+        // Show winner announcement
+        function showWinnerAnnouncement(winner, leaderboard) {
+            const winnerDiv = document.getElementById('winner-announcement');
+            const winnerText = document.getElementById('winner-text');
+            
+            winnerText.innerHTML = `
+                🏆 <strong>${winner.studentName}</strong> wins!<br>
+                Score: ${winner.score}/${leaderboard.length} in ${formatTime(winner.timeTaken)}
+            `;
+            
+            winnerDiv.style.display = 'block';
+            
+            // Show confetti or celebration effect
+            confetti && confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+        
+        // Format time helper
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Update leaderboard every 5 seconds
+        setInterval(updateLiveLeaderboard, 5000);
+        
+        // Track question start time
+        questionStartTime = Date.now();
+    </script>
+    <% } %>
     
     <!-- Session timeout management -->
     <script src="/js/session-timeout.js"></script>

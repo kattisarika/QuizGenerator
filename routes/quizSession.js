@@ -363,4 +363,177 @@ router.get('/teacher/my-sessions', isAuthenticated, requireRole(['teacher']), as
   }
 });
 
+// Update participant progress (when they answer a question)
+router.post('/:sessionId/progress', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { questionIndex, selectedAnswer, timeTaken, isCorrect } = req.body;
+    
+    const session = await QuizSession.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    
+    // Find the participant
+    const participant = session.participants.find(p => p.student.toString() === req.user._id.toString());
+    if (!participant) {
+      return res.status(403).json({ success: false, message: 'Not authorized for this session' });
+    }
+    
+    // Update question progress
+    participant.questionProgress.push({
+      questionIndex,
+      answeredAt: new Date(),
+      timeTakenForQuestion: timeTaken,
+      isCorrect,
+      selectedAnswer
+    });
+    
+    // Update overall progress
+    participant.currentQuestion = Math.max(participant.currentQuestion, questionIndex + 1);
+    participant.answersSubmitted = participant.questionProgress.length;
+    participant.lastActivity = new Date();
+    
+    // Calculate current score
+    const correctAnswers = participant.questionProgress.filter(q => q.isCorrect).length;
+    participant.score = correctAnswers;
+    participant.percentage = (correctAnswers / session.quiz.questions.length) * 100;
+    
+    await session.save();
+    
+    // Emit real-time update to all participants and teacher
+    const progressData = {
+      studentId: req.user._id,
+      studentName: participant.studentName,
+      questionIndex,
+      timeTaken,
+      isCorrect,
+      currentScore: participant.score,
+      totalQuestions: session.quiz.questions.length,
+      percentage: participant.percentage
+    };
+    
+    if (req.app.get('io')) {
+      emitSessionUpdate(req.app.get('io'), sessionId, 'question-answered', progressData);
+    }
+    
+    res.json({ success: true, progress: progressData });
+    
+  } catch (error) {
+    console.error('Error updating progress:', error);
+    res.status(500).json({ success: false, message: 'Error updating progress' });
+  }
+});
+
+// Mark participant as completed
+router.post('/:sessionId/complete', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { totalTimeTaken } = req.body;
+    
+    const session = await QuizSession.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    
+    // Find the participant
+    const participant = session.participants.find(p => p.student.toString() === req.user._id.toString());
+    if (!participant) {
+      return res.status(403).json({ success: false, message: 'Not authorized for this session' });
+    }
+    
+    // Mark as completed
+    participant.status = 'completed';
+    participant.completedAt = new Date();
+    participant.timeTaken = totalTimeTaken;
+    
+    await session.save();
+    
+    // Check if this was the last participant to finish
+    const completedCount = session.participants.filter(p => p.status === 'completed').length;
+    const totalParticipants = session.participants.length;
+    
+    // Create final leaderboard
+    const leaderboard = session.participants
+      .filter(p => p.status === 'completed')
+      .sort((a, b) => {
+        // Sort by score first (descending), then by time (ascending)
+        if (a.score !== b.score) return b.score - a.score;
+        return a.timeTaken - b.timeTaken;
+      })
+      .map((p, index) => ({
+        rank: index + 1,
+        studentName: p.studentName,
+        score: p.score,
+        timeTaken: p.timeTaken,
+        percentage: p.percentage,
+        isWinner: index === 0
+      }));
+    
+    // Emit completion update
+    const completionData = {
+      studentId: req.user._id,
+      studentName: participant.studentName,
+      finalScore: participant.score,
+      timeTaken: participant.timeTaken,
+      completedCount,
+      totalParticipants,
+      leaderboard
+    };
+    
+    if (req.app.get('io')) {
+      emitSessionUpdate(req.app.get('io'), sessionId, 'participant-completed', completionData);
+      
+      // If everyone finished, announce winner
+      if (completedCount === totalParticipants) {
+        const winner = leaderboard[0];
+        emitSessionUpdate(req.app.get('io'), sessionId, 'quiz-finished', {
+          winner,
+          finalLeaderboard: leaderboard
+        });
+      }
+    }
+    
+    res.json({ success: true, leaderboard, rank: leaderboard.find(l => l.studentName === participant.studentName)?.rank });
+    
+  } catch (error) {
+    console.error('Error completing quiz:', error);
+    res.status(500).json({ success: false, message: 'Error completing quiz' });
+  }
+});
+
+// Get current leaderboard
+router.get('/:sessionId/leaderboard', isAuthenticated, async (req, res) => {
+  try {
+    const session = await QuizSession.findById(req.params.sessionId);
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    
+    // Create live leaderboard
+    const leaderboard = session.participants
+      .map(p => ({
+        studentName: p.studentName,
+        score: p.score,
+        currentQuestion: p.currentQuestion,
+        status: p.status,
+        timeTaken: p.timeTaken,
+        percentage: p.percentage,
+        lastActivity: p.lastActivity
+      }))
+      .sort((a, b) => {
+        // Sort by score first (descending), then by current question (descending), then by time (ascending)
+        if (a.score !== b.score) return b.score - a.score;
+        if (a.currentQuestion !== b.currentQuestion) return b.currentQuestion - a.currentQuestion;
+        return a.timeTaken - b.timeTaken;
+      });
+    
+    res.json({ success: true, leaderboard, participants: session.participants.length });
+    
+  } catch (error) {
+    console.error('Error getting leaderboard:', error);
+    res.status(500).json({ success: false, message: 'Error getting leaderboard' });
+  }
+});
+
 module.exports = router;
