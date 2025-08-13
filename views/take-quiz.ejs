@@ -42,9 +42,14 @@
             
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h5 class="mb-0"><i class="fas fa-users text-primary"></i> Participants</h5>
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadParticipants()" title="Refresh participants">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-warning me-1" onclick="testConnection()" title="Test connection">
+                        <i class="fas fa-bug"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadParticipants()" title="Refresh participants">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
             <div id="participants-list">
                 <div class="text-center text-muted">
@@ -442,8 +447,22 @@
         
         // Update live leaderboard using AJAX
         function updateLiveLeaderboard() {
+            if (!sessionId) {
+                console.error('❌ sessionId is undefined for leaderboard update!');
+                return;
+            }
+            
             const timestamp = Date.now();
             const url = `/quiz-session/${sessionId}/leaderboard?_t=${timestamp}`;
+            
+            console.log('Updating leaderboard from:', url);
+            
+            // Fallback to fetch if jQuery fails
+            if (typeof $ === 'undefined') {
+                console.log('jQuery not available for leaderboard, using fetch fallback');
+                updateLeaderboardWithFetch();
+                return;
+            }
             
             $.ajax({
                 url: url,
@@ -478,12 +497,76 @@
             });
         }
         
+        // Fetch fallback for leaderboard updates
+        async function updateLeaderboardWithFetch() {
+            try {
+                const timestamp = Date.now();
+                const url = `/quiz-session/${sessionId}/leaderboard?_t=${timestamp}`;
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.leaderboard) {
+                    const leaderboardDiv = document.getElementById('live-leaderboard');
+                    leaderboardDiv.innerHTML = data.leaderboard.map((participant, index) => `
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 ${index === 0 ? 'bg-warning bg-opacity-25' : 'bg-light'} rounded">
+                            <div>
+                                <strong>${index + 1}. ${participant.studentName}</strong>
+                                <br>
+                                <small class="text-muted">Q${participant.currentQuestion || 0} • ${participant.score || 0} correct</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="badge ${participant.status === 'completed' ? 'bg-success' : 'bg-primary'}">${participant.status || 'active'}</div>
+                                <br>
+                                <small class="text-muted">${formatTime(participant.timeTaken || 0)}</small>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    console.log(`✅ Fetch: Updated leaderboard with ${data.leaderboard.length} participants`);
+                }
+            } catch (error) {
+                console.error('Fetch fallback error for leaderboard:', error);
+                // Don't show error in UI for background updates
+            }
+        }
+        
         // Load participants list using AJAX
         function loadParticipants() {
+            if (!sessionId) {
+                console.error('❌ sessionId is undefined!');
+                const participantsDiv = document.getElementById('participants-list');
+                participantsDiv.innerHTML = `
+                    <div class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Session ID missing
+                    </div>
+                `;
+                return;
+            }
+            
             const timestamp = Date.now();
             const url = `/quiz-session/${sessionId}/leaderboard?_t=${timestamp}`;
             
             console.log('Loading participants from:', url);
+            console.log('sessionId:', sessionId);
+            console.log('jQuery available:', typeof $ !== 'undefined');
+            
+            // Fallback to fetch if jQuery fails
+            if (typeof $ === 'undefined') {
+                console.log('jQuery not available, using fetch fallback');
+                loadParticipantsWithFetch();
+                return;
+            }
             
             $.ajax({
                 url: url,
@@ -554,6 +637,58 @@
             });
         }
         
+        // Fetch fallback for participants loading
+        async function loadParticipantsWithFetch() {
+            try {
+                const timestamp = Date.now();
+                const url = `/quiz-session/${sessionId}/leaderboard?_t=${timestamp}`;
+                
+                console.log('Using fetch fallback for:', url);
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Fetch response:', data);
+                
+                if (data.success && data.leaderboard) {
+                    const participantsCount = data.participants || data.leaderboard.length || 0;
+                    const participantsDiv = document.getElementById('participants-list');
+                    participantsDiv.innerHTML = `
+                        <div class="text-center mb-2">
+                            <span class="badge bg-info">${participantsCount} participants</span>
+                        </div>
+                        ${data.leaderboard.map(p => `
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="fas fa-user-circle text-primary me-2"></i>
+                                <span class="small">${p.studentName}</span>
+                            </div>
+                        `).join('')}
+                    `;
+                    
+                    console.log(`✅ Fetch: Loaded ${participantsCount} participants successfully`);
+                } else {
+                    throw new Error('Invalid API response structure');
+                }
+            } catch (error) {
+                console.error('Fetch fallback error:', error);
+                const participantsDiv = document.getElementById('participants-list');
+                participantsDiv.innerHTML = `
+                    <div class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Failed to load: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
         // Show question answered alert
         function showQuestionAlert(data) {
             if (data.isCorrect) {
@@ -605,6 +740,47 @@
         
         // Update leaderboard every 5 seconds
         setInterval(updateLiveLeaderboard, 5000);
+        
+        // Test connection function for debugging
+        function testConnection() {
+            console.log('🧪 Testing connection...');
+            console.log('sessionId:', sessionId);
+            console.log('jQuery available:', typeof $ !== 'undefined');
+            console.log('fetch available:', typeof fetch !== 'undefined');
+            
+            // Test basic connectivity
+            const testUrl = `/quiz-session/${sessionId}/leaderboard?_t=${Date.now()}`;
+            console.log('Testing URL:', testUrl);
+            
+            // Try both methods
+            if (typeof $ !== 'undefined') {
+                console.log('Testing jQuery AJAX...');
+                $.get(testUrl)
+                    .done(function(data) {
+                        console.log('✅ jQuery test successful:', data);
+                        alert('jQuery AJAX working! Check console for details.');
+                    })
+                    .fail(function(xhr, status, error) {
+                        console.error('❌ jQuery test failed:', { xhr, status, error });
+                        alert(`jQuery failed: ${status} - ${error}`);
+                    });
+            } else {
+                console.log('Testing fetch...');
+                fetch(testUrl)
+                    .then(response => {
+                        console.log('✅ Fetch test response status:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('✅ Fetch test successful:', data);
+                        alert('Fetch working! Check console for details.');
+                    })
+                    .catch(error => {
+                        console.error('❌ Fetch test failed:', error);
+                        alert(`Fetch failed: ${error.message}`);
+                    });
+            }
+        }
         
         // Force initial refresh after a short delay to ensure fresh data
         setTimeout(() => {
