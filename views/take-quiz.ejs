@@ -469,11 +469,14 @@
                 const response = await fetch(`/quiz-session/${sessionId}/leaderboard`);
                 const data = await response.json();
                 
-                if (data.success) {
+                console.log('Participants API response:', data); // Debug log
+                
+                if (data.success && data.leaderboard) {
+                    const participantsCount = data.participants || data.leaderboard.length || 0;
                     const participantsDiv = document.getElementById('participants-list');
                     participantsDiv.innerHTML = `
                         <div class="text-center mb-2">
-                            <span class="badge bg-info">${data.participants} participants</span>
+                            <span class="badge bg-info">${participantsCount} participants</span>
                         </div>
                         ${data.leaderboard.map(p => `
                             <div class="d-flex align-items-center mb-1">
@@ -482,9 +485,23 @@
                             </div>
                         `).join('')}
                     `;
+                } else {
+                    console.error('Invalid API response:', data);
+                    const participantsDiv = document.getElementById('participants-list');
+                    participantsDiv.innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-exclamation-triangle"></i> Unable to load participants
+                        </div>
+                    `;
                 }
             } catch (error) {
                 console.error('Error loading participants:', error);
+                const participantsDiv = document.getElementById('participants-list');
+                participantsDiv.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-wifi"></i> Connection error
+                    </div>
+                `;
             }
         }
         

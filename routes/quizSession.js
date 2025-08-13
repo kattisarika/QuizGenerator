@@ -505,10 +505,13 @@ router.post('/:sessionId/complete', isAuthenticated, requireRole(['student']), a
 // Get current leaderboard
 router.get('/:sessionId/leaderboard', isAuthenticated, async (req, res) => {
   try {
-    const session = await QuizSession.findById(req.params.sessionId);
+    const session = await QuizSession.findById(req.params.sessionId).populate('quiz');
     if (!session) {
       return res.status(404).json({ success: false, message: 'Session not found' });
     }
+    
+    console.log('Leaderboard request for session:', req.params.sessionId);
+    console.log('Session found with', session.participants.length, 'participants');
     
     // Create live leaderboard
     const leaderboard = session.participants
@@ -528,7 +531,20 @@ router.get('/:sessionId/leaderboard', isAuthenticated, async (req, res) => {
         return a.timeTaken - b.timeTaken;
       });
     
-    res.json({ success: true, leaderboard, participants: session.participants.length });
+    const responseData = { 
+      success: true, 
+      leaderboard, 
+      participants: session.participants.length,
+      sessionId: session._id,
+      status: session.status
+    };
+    
+    console.log('Sending leaderboard response:', {
+      participantCount: session.participants.length,
+      leaderboardEntries: leaderboard.length
+    });
+    
+    res.json(responseData);
     
   } catch (error) {
     console.error('Error getting leaderboard:', error);
