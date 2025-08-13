@@ -34,10 +34,19 @@
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="fas fa-trophy me-2"></i>Competitive Quiz Sessions</h2>
-                    <button class="btn btn-primary" 
-                            onclick="alert('🎯 MAIN BUTTON CLICKED!'); console.log('Opening modal...'); document.getElementById('createSessionModal').style.display='block';">
-                        <i class="fas fa-plus me-2"></i>Create New Session
-                    </button>
+                    <div>
+                        <!-- Simple test button -->
+                        <button onclick="alert('TEST BUTTON WORKS!')" class="btn btn-success me-2">
+                            🔥 TEST
+                        </button>
+                        
+                        <!-- Original button with simplified approach -->
+                        <button onclick="alert('🎯 MAIN BUTTON CLICKED!'); document.getElementById('createSessionModal').style.display='block';" 
+                                class="btn btn-primary"
+                                style="pointer-events: auto !important; z-index: 1000 !important;">
+                            <i class="fas fa-plus me-2"></i>Create New Session
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Active Sessions -->
@@ -142,7 +151,7 @@
                     </button>
                     
                     <!-- Original button with simpler approach -->
-                    <button type="button" class="btn btn-primary" onclick="window.alert('CREATE SESSION CLICKED!'); window.console.log('Create session button clicked');">
+                    <button type="button" class="btn btn-primary" id="create-session-btn" onclick="window.alert('CREATE SESSION CLICKED!'); createSession();">
                         <i class="fas fa-rocket me-2"></i>Create Session
                     </button>
                     
