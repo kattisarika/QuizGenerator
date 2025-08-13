@@ -92,19 +92,10 @@
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="fas fa-trophy me-2"></i>Competitive Quiz Sessions</h2>
-                    <div>
-                        <!-- Simple test button -->
-                        <button onclick="alert('TEST BUTTON WORKS!')" class="btn btn-success me-2">
-                            🔥 TEST
-                        </button>
-                        
-                        <!-- Original button with simplified approach -->
-                        <button onclick="alert('🎯 MAIN BUTTON CLICKED!'); document.getElementById('createSessionModal').style.display='block';" 
-                                class="btn btn-primary"
-                                style="pointer-events: auto !important; z-index: 1000 !important;">
-                            <i class="fas fa-plus me-2"></i>Create New Session
-                        </button>
-                    </div>
+                    <button onclick="document.getElementById('createSessionModal').style.display='block';" 
+                            class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create New Session
+                    </button>
                 </div>
 
                 <!-- Active Sessions -->
@@ -145,17 +136,7 @@
                     <button type="button" onclick="document.getElementById('createSessionModal').style.display='none'" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
                 </div>
                 
-                <!-- JavaScript Test Section -->
-                <div class="alert alert-warning mx-3 mt-3">
-                    <strong>🔧 Debug Test:</strong> 
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="alert('MODAL JAVASCRIPT WORKS!')">
-                        🚨 Test Modal JS
-                    </button>
-                    <span id="js-test-result" style="color: red;">❌ JavaScript not executed</span>
-                    <script>
-                        document.getElementById('js-test-result').innerHTML = '<span style="color: green;">✅ JavaScript executed successfully!</span>';
-                    </script>
-                </div>
+
                 
                 <div class="modal-body">
                     <form id="create-session-form">
@@ -202,20 +183,9 @@
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #dee2e6;">
                     <button type="button" class="btn btn-secondary" onclick="document.getElementById('createSessionModal').style.display='none'">Cancel</button>
-                    
-                    <!-- Ultra simple test button -->
-                    <button type="button" class="btn btn-success" onclick="window.alert('SIMPLE ALERT TEST!')">
-                        🔥 SIMPLE TEST
-                    </button>
-                    
-                    <!-- Original button with simpler approach -->
-                    <button type="button" class="btn btn-primary" id="create-session-btn" onclick="window.alert('CREATE SESSION CLICKED!'); createSession();">
+                    <button type="button" class="btn btn-primary" id="create-session-btn" onclick="createSession();">
                         <i class="fas fa-rocket me-2"></i>Create Session
                     </button>
-                    
-                    <!-- Debug buttons -->
-                    <button type="button" class="btn btn-warning ms-2" onclick="window.alert('TEST ALERT')">Test Alert</button>
-                    <button type="button" class="btn btn-info ms-2" onclick="window.console.log('TEST CONSOLE')">Test Console</button>
                 </div>
             </div>
         </div>
@@ -495,28 +465,66 @@
 
         async function createSession() {
             console.log('=== CREATE SESSION BUTTON CLICKED ===');
-            alert('🎉 CREATE SESSION FUNCTION WORKS! Button click detected!');
             
-            // Simple test - just check if form elements exist
-            const quizSelect = document.getElementById('quiz-select');
-            const duration = document.getElementById('duration');
-            const maxParticipants = document.getElementById('max-participants');
+            // Get button and disable it to prevent multiple clicks
+            const createBtn = document.getElementById('create-session-btn');
+            const originalText = createBtn.innerHTML;
+            createBtn.disabled = true;
+            createBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
             
-            console.log('Form elements found:', {
-                quizSelect: !!quizSelect,
-                duration: !!duration,
-                maxParticipants: !!maxParticipants
-            });
+            const quizId = document.getElementById('quiz-select').value;
+            const duration = document.getElementById('duration').value;
+            const maxParticipants = document.getElementById('max-participants').value;
             
-            if (!quizSelect || !quizSelect.value) {
-                alert('⚠️ Please select a quiz first');
+            const settings = {
+                showLeaderboard: document.getElementById('show-leaderboard').checked,
+                allowLateJoin: document.getElementById('allow-late-join').checked,
+                instantResults: document.getElementById('instant-results').checked
+            };
+            
+            if (!quizId) {
+                showAlert('danger', 'Please select a quiz');
+                createBtn.disabled = false;
+                createBtn.innerHTML = originalText;
                 return;
             }
             
-            alert('✅ Quiz selected! Session creation would work here.');
-            console.log('Selected quiz ID:', quizSelect.value);
-            
-            // Temporarily removed complex session creation for debugging
+            try {
+                const response = await fetch('/quiz-session/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quizId,
+                        duration: parseInt(duration),
+                        maxParticipants: parseInt(maxParticipants),
+                        settings
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Close modal
+                    document.getElementById('createSessionModal').style.display = 'none';
+                    loadSessions(); // Refresh the sessions list
+                    
+                    // Show success message
+                    showAlert('success', `🎉 Session created successfully! Session Code: ${data.session.sessionCode}`);
+                    
+                    // Reset button
+                    createBtn.disabled = false;
+                    createBtn.innerHTML = originalText;
+                } else {
+                    showAlert('danger', `❌ ${data.message || 'Error creating session'}`);
+                    createBtn.disabled = false;
+                    createBtn.innerHTML = originalText;
+                }
+            } catch (error) {
+                console.error('Error creating session:', error);
+                showAlert('danger', '❌ Network error - please check your connection and try again');
+                createBtn.disabled = false;
+                createBtn.innerHTML = originalText;
+            }
         }
 
         async function manageSession(sessionId, sessionCode) {
