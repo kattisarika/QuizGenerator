@@ -350,8 +350,8 @@
                     
                     // Auto-open the create session modal after a brief delay
                     setTimeout(() => {
-                        const modal = new bootstrap.Modal(document.getElementById('createSessionModal'));
-                        modal.show();
+                        // Use our custom modal display instead of Bootstrap Modal
+                        document.getElementById('createSessionModal').style.display = 'block';
                         
                         // Pre-select the newly created quiz
                         const quizSelect = document.getElementById('quiz-select');
