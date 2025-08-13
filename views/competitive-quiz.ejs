@@ -77,6 +77,19 @@
                     <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Create Competitive Quiz Session</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+                
+                <!-- JavaScript Test Section -->
+                <div class="alert alert-warning mx-3 mt-3">
+                    <strong>🔧 Debug Test:</strong> 
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="alert('MODAL JAVASCRIPT WORKS!')">
+                        🚨 Test Modal JS
+                    </button>
+                    <span id="js-test-result" style="color: red;">❌ JavaScript not executed</span>
+                    <script>
+                        document.getElementById('js-test-result').innerHTML = '<span style="color: green;">✅ JavaScript executed successfully!</span>';
+                    </script>
+                </div>
+                
                 <div class="modal-body">
                     <form id="create-session-form">
                         <div class="row">
@@ -122,17 +135,20 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="create-session-btn" 
-                            onclick="alert('INLINE ONCLICK WORKS!'); console.log('Button clicked!'); createSession();"
-                            style="pointer-events: auto !important; z-index: 99999 !important;">
+                    
+                    <!-- Ultra simple test button -->
+                    <button type="button" class="btn btn-success" onclick="window.alert('SIMPLE ALERT TEST!')">
+                        🔥 SIMPLE TEST
+                    </button>
+                    
+                    <!-- Original button with simpler approach -->
+                    <button type="button" class="btn btn-primary" onclick="window.alert('CREATE SESSION CLICKED!'); window.console.log('Create session button clicked');">
                         <i class="fas fa-rocket me-2"></i>Create Session
                     </button>
-                    <button type="button" class="btn btn-warning ms-2" onclick="alert('INLINE ALERT TEST')">
-                        Test Inline
-                    </button>
-                    <button type="button" class="btn btn-info ms-2" onclick="console.log('INLINE CONSOLE TEST')">
-                        Test Console  
-                    </button>
+                    
+                    <!-- Debug buttons -->
+                    <button type="button" class="btn btn-warning ms-2" onclick="window.alert('TEST ALERT')">Test Alert</button>
+                    <button type="button" class="btn btn-info ms-2" onclick="window.console.log('TEST CONSOLE')">Test Console</button>
                 </div>
             </div>
         </div>
