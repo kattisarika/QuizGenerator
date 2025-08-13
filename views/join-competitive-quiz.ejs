@@ -218,7 +218,8 @@
             
             // Show leaderboard if quiz is active
             if (session.status === 'active') {
-                document.getElementById('live-leaderboard-card').style.display = 'block';
+                // Quiz is already started, show the start button
+                showQuizStarting();
             }
         }
 
