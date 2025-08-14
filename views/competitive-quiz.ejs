@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Competitive Quiz Sessions - <%= user.displayName %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container-main {
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        .session-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+        .session-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .session-code {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            padding: 10px 20px;
+            border-radius: 10px;
+            letter-spacing: 2px;
+        }
+        .participant-count {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            color: #666;
+        }
+        .participant-count i {
+            color: #667eea;
+        }
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .status-scheduled {
+            background: #ffc107;
+            color: #000;
+        }
+        .status-waiting {
+            background: #17a2b8;
+            color: white;
+        }
+        .status-in-progress {
+            background: #28a745;
+            color: white;
+        }
+        .status-completed {
+            background: #6c757d;
+            color: white;
+        }
+        .create-session-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: transform 0.3s ease;
+        }
+        .create-session-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        .participant-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .participant-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .participant-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status-waiting { background: #ffc107; }
+        .status-in-progress { background: #17a2b8; }
+        .status-completed { background: #28a745; }
+        
+        .leaderboard-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .leaderboard-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        .rank-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        .rank-1 { background: gold; color: #333; }
+        .rank-2 { background: silver; color: #333; }
+        .rank-3 { background: #cd7f32; }
+        .rank-other { background: #667eea; }
+    </style>
+</head>
+<body>
+    <div class="container container-main">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="session-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2><i class="fas fa-trophy"></i> Competitive Quiz Sessions</h2>
+                        <button class="btn create-session-btn" data-bs-toggle="modal" data-bs-target="#createSessionModal">
+                            <i class="fas fa-plus"></i> Create New Session
+                        </button>
+                    </div>
+
+                    <div id="sessionsContainer">
+                        <!-- Active sessions will be loaded here -->
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-trophy fa-3x mb-3"></i>
+                            <p>No active competitive sessions. Create one to get started!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Session Modal -->
+    <div class="modal fade" id="createSessionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus-circle"></i> Create Competitive Quiz Session</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createSessionForm">
+                        <div class="mb-3">
+                            <label class="form-label">Select Competitive Quiz</label>
+                            <select class="form-select" id="quizSelect" required>
+                                <option value="">Choose a quiz...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Scheduled Start Time</label>
+                            <input type="datetime-local" class="form-control" id="startTime" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Duration (minutes)</label>
+                            <input type="number" class="form-control" id="duration" value="30" min="5" max="120" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Max Participants</label>
+                            <input type="number" class="form-control" id="maxParticipants" value="100" min="2" max="500">
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="allowLateJoin">
+                                <label class="form-check-label" for="allowLateJoin">
+                                    Allow students to join after session starts
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="showLiveLeaderboard" checked>
+                                <label class="form-check-label" for="showLiveLeaderboard">
+                                    Show live leaderboard to participants
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createSession()">Create Session</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Details Modal -->
+    <div class="modal fade" id="sessionDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Session Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-users"></i> Participants</h5>
+                            <div id="participantsList" class="participant-list">
+                                <!-- Participants will be loaded here -->
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-trophy"></i> Live Leaderboard</h5>
+                            <div id="leaderboardList" class="leaderboard-container">
+                                <!-- Leaderboard will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" onclick="endSession()">End Session</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentSessionId = null;
+        let refreshInterval = null;
+
+        // Load competitive quizzes on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCompetitiveQuizzes();
+            loadActiveSessions();
+            
+            // Set minimum datetime to now
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('startTime').min = now.toISOString().slice(0, 16);
+            
+            // Set default to 10 minutes from now
+            now.setMinutes(now.getMinutes() + 10);
+            document.getElementById('startTime').value = now.toISOString().slice(0, 16);
+        });
+
+        async function loadCompetitiveQuizzes() {
+            try {
+                const response = await fetch('/api/teacher/competitive-quizzes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('quizSelect');
+                    select.innerHTML = '<option value="">Choose a quiz...</option>';
+                    
+                    data.quizzes.forEach(quiz => {
+                        const option = document.createElement('option');
+                        option.value = quiz._id;
+                        option.textContent = `${quiz.title} (${quiz.questions.length} questions)`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading quizzes:', error);
+            }
+        }
+
+        async function loadActiveSessions() {
+            try {
+                const response = await fetch('/api/teacher/active-sessions');
+                const data = await response.json();
+                
+                if (data.success && data.sessions.length > 0) {
+                    displaySessions(data.sessions);
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+
+        function displaySessions(sessions) {
+            const container = document.getElementById('sessionsContainer');
+            container.innerHTML = '';
+            
+            sessions.forEach(session => {
+                const sessionCard = createSessionCard(session);
+                container.appendChild(sessionCard);
+            });
+        }
+
+        function createSessionCard(session) {
+            const card = document.createElement('div');
+            card.className = 'session-card';
+            
+            const statusClass = `status-${session.status.replace('-', '')}`;
+            const startTime = new Date(session.scheduledStartTime).toLocaleString();
+            
+            card.innerHTML = `
+                <div class="session-header">
+                    <div>
+                        <h4>${session.quizTitle}</h4>
+                        <div class="session-code">Code: ${session.sessionCode}</div>
+                        <p class="text-muted mb-0">Start: ${startTime}</p>
+                    </div>
+                    <div class="text-end">
+                        <span class="status-badge ${statusClass}">${session.status.toUpperCase()}</span>
+                        <div class="participant-count mt-2">
+                            <i class="fas fa-users"></i>
+                            <span>${session.participantCount}/${session.maxParticipants}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    ${session.canStart ? `<button class="btn btn-success" onclick="startSession('${session.id}')">Start Session</button>` : ''}
+                    <button class="btn btn-info" onclick="viewSessionDetails('${session.id}')">View Details</button>
+                    ${session.status === 'in-progress' ? `<button class="btn btn-danger" onclick="endSession('${session.id}')">End Session</button>` : ''}
+                </div>
+            `;
+            
+            return card;
+        }
+
+        async function createSession() {
+            const formData = {
+                quizId: document.getElementById('quizSelect').value,
+                scheduledStartTime: document.getElementById('startTime').value,
+                duration: document.getElementById('duration').value,
+                maxParticipants: document.getElementById('maxParticipants').value,
+                settings: {
+                    allowLateJoin: document.getElementById('allowLateJoin').checked,
+                    showLiveLeaderboard: document.getElementById('showLiveLeaderboard').checked
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/quiz-session/create-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`Session created! Code: ${data.session.sessionCode}`);
+                    bootstrap.Modal.getInstance(document.getElementById('createSessionModal')).hide();
+                    loadActiveSessions();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error creating session:', error);
+                alert('Error creating session');
+            }
+        }
+
+        async function startSession(sessionId) {
+            try {
+                const response = await fetch(`/api/quiz-session/start/${sessionId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Session started!');
+                    loadActiveSessions();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error starting session:', error);
+            }
+        }
+
+        async function viewSessionDetails(sessionId) {
+            currentSessionId = sessionId;
+            
+            // Load initial data
+            await loadParticipants(sessionId);
+            await loadLeaderboard(sessionId);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('sessionDetailsModal'));
+            modal.show();
+            
+            // Start auto-refresh
+            refreshInterval = setInterval(() => {
+                loadParticipants(sessionId);
+                loadLeaderboard(sessionId);
+            }, 5000);
+            
+            // Stop refresh when modal closes
+            document.getElementById('sessionDetailsModal').addEventListener('hidden.bs.modal', () => {
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                    refreshInterval = null;
+                }
+            });
+        }
+
+        async function loadParticipants(sessionId) {
+            try {
+                const response = await fetch(`/api/quiz-session/participants/${sessionId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const list = document.getElementById('participantsList');
+                    list.innerHTML = '';
+                    
+                    data.participants.forEach(p => {
+                        const item = document.createElement('div');
+                        item.className = 'participant-item';
+                        item.innerHTML = `
+                            <div>
+                                <span class="participant-status status-${p.status}"></span>
+                                ${p.studentName}
+                            </div>
+                            <div>
+                                <span class="badge bg-primary">${p.correctAnswers}/${p.totalAnswers}</span>
+                                <span class="badge bg-info">${p.accuracy.toFixed(0)}%</span>
+                            </div>
+                        `;
+                        list.appendChild(item);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading participants:', error);
+            }
+        }
+
+        async function loadLeaderboard(sessionId) {
+            try {
+                const response = await fetch(`/api/quiz-session/leaderboard/${sessionId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const list = document.getElementById('leaderboardList');
+                    list.innerHTML = '';
+                    
+                    data.leaderboard.forEach((entry, index) => {
+                        const item = document.createElement('div');
+                        item.className = 'leaderboard-item';
+                        
+                        const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'rank-other';
+                        
+                        item.innerHTML = `
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rank-badge ${rankClass}">${entry.rank}</div>
+                                <div>
+                                    <strong>${entry.studentName}</strong>
+                                    <br>
+                                    <small class="text-muted">Score: ${entry.score} | Time: ${entry.timeTaken}s</small>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="badge bg-success">${entry.correctAnswers} correct</span>
+                                <span class="badge bg-info">${entry.accuracy.toFixed(0)}%</span>
+                            </div>
+                        `;
+                        list.appendChild(item);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+            }
+        }
+
+        async function endSession(sessionId) {
+            if (!confirm('Are you sure you want to end this session?')) return;
+            
+            try {
+                const response = await fetch(`/api/quiz-session/end/${sessionId || currentSessionId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Session ended successfully!');
+                    bootstrap.Modal.getInstance(document.getElementById('sessionDetailsModal'))?.hide();
+                    loadActiveSessions();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error ending session:', error);
+            }
+        }
+    </script>
+</body>
+</html>

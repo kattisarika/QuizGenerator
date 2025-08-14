@@ -22,6 +22,7 @@ const {
   logOrganizationActivity
 } = require('./middleware/tenancy');
 const organizationRoutes = require('./routes/organization');
+const quizSessionRoutes = require('./routes/quizSession');
 
 // AWS S3 configuration
 const AWS = require('aws-sdk');
@@ -393,6 +394,9 @@ app.use(scopeToOrganization);
 
 // Organization routes
 app.use('/', organizationRoutes);
+
+// Quiz Session routes for competitive quizzes
+app.use('/api/quiz-session', quizSessionRoutes);
 
 // Helper functions for file processing
 async function extractTextFromFile(fileBuffer, originalName) {
@@ -1057,6 +1061,100 @@ app.get('/api/signed-url/:contentId', isAuthenticated, requireRole(['student']),
   } catch (error) {
     console.error('Error getting signed URL:', error);
     res.status(500).json({ success: false, message: 'Error getting signed URL' });
+  }
+});
+
+// Teacher API routes for competitive quizzes
+app.get('/api/teacher/competitive-quizzes', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+  try {
+    const quizzes = await Quiz.find({ 
+      createdBy: req.user._id,
+      quizType: 'competitive'
+    }).select('title questions createdAt');
+    
+    res.json({ success: true, quizzes });
+  } catch (error) {
+    console.error('Error fetching competitive quizzes:', error);
+    res.status(500).json({ success: false, message: 'Error fetching quizzes' });
+  }
+});
+
+app.get('/api/teacher/active-sessions', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+  try {
+    const QuizSession = require('./models/QuizSession');
+    const sessions = await QuizSession.find({
+      teacher: req.user._id,
+      status: { $in: ['scheduled', 'waiting', 'in-progress'] }
+    }).populate('quiz', 'title');
+    
+    const sessionData = sessions.map(s => ({
+      id: s._id,
+      sessionCode: s.sessionCode,
+      quizTitle: s.quizTitle,
+      scheduledStartTime: s.scheduledStartTime,
+      status: s.status,
+      participantCount: s.participants.length,
+      maxParticipants: s.maxParticipants,
+      canStart: s.canStart()
+    }));
+    
+    res.json({ success: true, sessions: sessionData });
+  } catch (error) {
+    console.error('Error fetching active sessions:', error);
+    res.status(500).json({ success: false, message: 'Error fetching sessions' });
+  }
+});
+
+// Competitive quiz management page (Teacher)
+app.get('/competitive-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('competitive-quiz', { user: req.user });
+});
+
+// Join competitive quiz page (Student)  
+app.get('/join-competitive', isAuthenticated, requireRole(['student']), (req, res) => {
+  res.render('join-competitive-quiz', { user: req.user });
+});
+
+// Competitive quiz taking page
+app.get('/competitive-quiz/:sessionId', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const QuizSession = require('./models/QuizSession');
+    const session = await QuizSession.findById(req.params.sessionId).populate('quiz');
+    
+    if (!session) {
+      return res.status(404).render('error', { message: 'Session not found' });
+    }
+    
+    // Check if student is part of the session
+    const participant = session.participants.find(
+      p => p.student.toString() === req.user._id.toString()
+    );
+    
+    if (!participant) {
+      return res.status(403).render('error', { message: 'You are not part of this session' });
+    }
+    
+    if (session.status !== 'in-progress') {
+      return res.status(400).render('error', { message: 'Session is not active' });
+    }
+    
+    // Mark participant as started if not already
+    if (participant.status === 'waiting') {
+      participant.status = 'in-progress';
+      participant.startedAt = new Date();
+      await session.save();
+    }
+    
+    res.render('take-competitive-quiz', { 
+      quiz: session.quiz,
+      session: session,
+      sessionId: session._id,
+      user: req.user,
+      settings: session.settings
+    });
+  } catch (error) {
+    console.error('Error loading competitive quiz:', error);
+    res.status(500).render('error', { message: 'Error loading quiz' });
   }
 });
 
