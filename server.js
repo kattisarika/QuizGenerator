@@ -1459,10 +1459,14 @@ app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (
       console.log(`Student ${req.user.email} has no organization access!`);
     }
     
-    // Get quizzes from all student's organizations
+    // Get quizzes from all student's organizations (excluding competitive quizzes)
     const availableQuizzes = await Quiz.find({ 
       isApproved: true,
-      organizationId: { $in: organizationIds }
+      organizationId: { $in: organizationIds },
+      $or: [
+        { quizType: { $ne: 'competitive' } },  // Exclude competitive quizzes
+        { quizType: { $exists: false } }       // Include old quizzes without quizType field
+      ]
     }).populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
       .sort({ createdAt: -1 });
@@ -2703,12 +2707,17 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
     }
     
     // Build filter for ALL organizations (don't filter by grade level or subjects here - show all available)
+    // Exclude competitive quizzes - they should only be accessed through sessions
     const filter = { 
       isApproved: true,
-      organizationId: { $in: organizationIds }
+      organizationId: { $in: organizationIds },
+      $or: [
+        { quizType: { $ne: 'competitive' } },  // Exclude competitive quizzes
+        { quizType: { $exists: false } }       // Include old quizzes without quizType field
+      ]
     };
     
-    console.log('Quiz filter (all organizations):', filter);
+    console.log('Quiz filter (all organizations, excluding competitive):', filter);
     
     const approvedQuizzes = await Quiz.find(filter)
       .populate('createdBy', 'displayName')
@@ -2773,6 +2782,13 @@ app.get('/take-quiz/:quizId', isAuthenticated, requireRole(['student']), async (
     const quiz = await Quiz.findById(req.params.quizId);
     if (!quiz) {
       return res.status(404).send('Quiz not found');
+    }
+    
+    // Check if this is a competitive quiz - those must be accessed through sessions
+    if (quiz.quizType === 'competitive') {
+      return res.status(403).render('error', { 
+        message: 'This is a competitive quiz. Please join through a session code provided by your teacher.' 
+      });
     }
     
     // No need to check approval since all quizzes are auto-approved
@@ -3048,6 +3064,13 @@ app.get('/view-quiz/:quizId', isAuthenticated, async (req, res) => {
     const quiz = await Quiz.findById(req.params.quizId).populate('createdBy');
     if (!quiz) {
       return res.status(404).send('Quiz not found');
+    }
+    
+    // Check if this is a competitive quiz and user is a student
+    if (quiz.quizType === 'competitive' && req.user.role === 'student') {
+      return res.status(403).render('error', { 
+        message: 'Competitive quizzes can only be accessed through a session. Please join using the session code provided by your teacher.' 
+      });
     }
     
     res.render('view-quiz', { quiz });

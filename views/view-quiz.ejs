@@ -25,9 +25,27 @@
 
     <main class="main-content">
         <div class="quiz-view-container">
+            <% if (quiz.quizType === 'competitive') { %>
+            <div class="alert alert-info" style="margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border-left: 4px solid #667eea;">
+                <h4 style="margin-bottom: 10px; color: #667eea;">
+                    <i class="fas fa-trophy"></i> Competitive Quiz
+                </h4>
+                <p style="margin-bottom: 10px;">This is a competitive quiz. Students cannot access it directly from the quiz list.</p>
+                <p style="margin-bottom: 10px;">To run this quiz:</p>
+                <ol style="margin-left: 20px;">
+                    <li>Go to the <a href="/competitive-quiz" style="color: #667eea; font-weight: bold;">Competitive Quiz Sessions</a> page</li>
+                    <li>Create a new session with a scheduled time</li>
+                    <li>Share the session code with your students</li>
+                    <li>Students will take the quiz simultaneously and compete on the live leaderboard</li>
+                </ol>
+                <a href="/competitive-quiz" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; margin-top: 10px;">
+                    <i class="fas fa-trophy"></i> Manage Competitive Sessions
+                </a>
+            </div>
+            <% } %>
             <div class="quiz-header">
                 <div class="quiz-title-section">
-                    <h1><i class="fas fa-file-alt me-2"></i><%= quiz.title %></h1>
+                    <h1><i class="fas fa-<%= quiz.quizType === 'competitive' ? 'trophy' : 'file-alt' %> me-2"></i><%= quiz.title %></h1>
                     <div class="quiz-meta">
                         <span class="quiz-status <%= quiz.isApproved ? 'approved' : 'pending' %>">
                             <i class="fas fa-<%= quiz.isApproved ? 'check-circle' : 'clock' %>"></i>
