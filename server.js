@@ -2828,6 +2828,14 @@ app.post('/submit-quiz/:quizId', isAuthenticated, requireRole(['student']), asyn
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
     
+    // Prevent direct submission to competitive quizzes
+    if (quiz.quizType === 'competitive') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Competitive quizzes must be submitted through a session.' 
+      });
+    }
+    
     const { answers, timeTaken } = req.body;
     const answersArray = Array.isArray(answers) ? answers : [];
     
