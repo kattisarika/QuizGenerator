@@ -138,8 +138,8 @@
         // Initialize visual feedback for already answered questions
         function initializeAnsweredQuestions() {
             document.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
-                const questionIndex = radio.dataset.question;
-                const optionIndex = radio.dataset.option;
+                const questionIndex = parseInt(radio.dataset.question);
+                const optionIndex = parseInt(radio.dataset.option);
                 
                 // Mark the option as selected
                 const questionContainer = document.getElementById(`question-${questionIndex}`);
@@ -156,13 +156,19 @@
                     indicator.classList.add('answered');
                 }
                 
-                // Store in answers object
-                answers[questionIndex] = radio.value;
+                // Store in answers object with correct format
+                answers[questionIndex] = {
+                    selectedAnswer: radio.value
+                };
             });
         }
 
         // Function to select an option when clicking anywhere on the option area
         function selectOption(questionIndex, optionIndex) {
+            // Convert string indices to integers
+            questionIndex = parseInt(questionIndex);
+            optionIndex = parseInt(optionIndex);
+            
             const radioButton = document.getElementById(`q${questionIndex}-opt${optionIndex}`);
             if (radioButton) {
                 radioButton.checked = true;
@@ -186,8 +192,14 @@
                     indicator.classList.add('answered');
                 }
                 
-                // Store the answer
-                answers[questionIndex] = radioButton.value;
+                // Store the answer as an object with selectedAnswer property
+                answers[questionIndex] = {
+                    selectedAnswer: radioButton.value
+                };
+                
+                // Debug log
+                console.log(`Selected option for question ${questionIndex}:`, radioButton.value);
+                console.log('Current answers object:', answers);
             }
         }
 
@@ -305,6 +317,10 @@
                     });
                 }
             }
+            
+            // Debug: Log what we're sending
+            console.log('Sending answers to backend:', answersArray);
+            console.log('Raw answers object:', answers);
             
             // Submit quiz
             fetch(`/submit-quiz/${quizId}`, {

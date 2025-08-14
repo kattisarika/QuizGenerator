@@ -2716,6 +2716,9 @@ app.post('/submit-quiz/:quizId', isAuthenticated, requireRole(['student']), asyn
     const { answers, timeTaken } = req.body;
     const answersArray = Array.isArray(answers) ? answers : [];
     
+    // Debug: Log received answers
+    console.log('Received answers from frontend:', JSON.stringify(answersArray, null, 2));
+    
     // Calculate results
     let correctAnswers = 0;
     let totalPoints = 0;
@@ -2729,6 +2732,9 @@ app.post('/submit-quiz/:quizId', isAuthenticated, requireRole(['student']), asyn
       } else if (typeof answersArray[index] === 'string') {
         selectedAnswer = answersArray[index];
       }
+      
+      // Debug: Log answer extraction
+      console.log(`Question ${index}: received answer object:`, answersArray[index], ', extracted answer:', selectedAnswer);
       
       const isCorrect = selectedAnswer === question.correctAnswer;
       
