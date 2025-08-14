@@ -121,6 +121,70 @@
             margin: 0;
             user-select: none;
         }
+        
+        /* Quiz Type Selector Styles */
+        .quiz-type-card {
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .quiz-type-content {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: white;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .quiz-type-content:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+        .quiz-type-content.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.15);
+        }
+        .quiz-type-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        .quiz-type-content.active .quiz-type-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .quiz-type-content h5 {
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .quiz-type-content p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .quiz-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+        }
+        .quiz-features li {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .quiz-features li i {
+            color: #28a745;
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -177,6 +241,51 @@
                                     <div class="col-md-6 mb-3">
                                         <label for="description" class="form-label">Description</label>
                                         <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                                    </div>
+                                </div>
+                                
+                                <!-- Quiz Type Selection -->
+                                <div class="row mt-3">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">Quiz Type *</label>
+                                        <div class="quiz-type-selector">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="quiz-type-card" onclick="selectQuizType('regular')">
+                                                        <input type="radio" id="type-regular" name="quizType" value="regular" checked hidden>
+                                                        <div class="quiz-type-content active" id="regular-card">
+                                                            <div class="quiz-type-icon">
+                                                                <i class="fas fa-book"></i>
+                                                            </div>
+                                                            <h5>Regular Quiz</h5>
+                                                            <p class="mb-0">Standard quiz for practice and assessment</p>
+                                                            <ul class="quiz-features">
+                                                                <li><i class="fas fa-check"></i> Self-paced</li>
+                                                                <li><i class="fas fa-check"></i> Immediate results</li>
+                                                                <li><i class="fas fa-check"></i> Multiple attempts</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="quiz-type-card" onclick="selectQuizType('competitive')">
+                                                        <input type="radio" id="type-competitive" name="quizType" value="competitive" hidden>
+                                                        <div class="quiz-type-content" id="competitive-card">
+                                                            <div class="quiz-type-icon">
+                                                                <i class="fas fa-trophy"></i>
+                                                            </div>
+                                                            <h5>Competitive Quiz</h5>
+                                                            <p class="mb-0">Real-time competition with leaderboard</p>
+                                                            <ul class="quiz-features">
+                                                                <li><i class="fas fa-check"></i> Live leaderboard</li>
+                                                                <li><i class="fas fa-check"></i> Time-based scoring</li>
+                                                                <li><i class="fas fa-check"></i> Single attempt</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -354,6 +463,21 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Quiz Type Selection
+        function selectQuizType(type) {
+            // Update radio button
+            document.getElementById('type-' + type).checked = true;
+            
+            // Update visual state
+            document.querySelectorAll('.quiz-type-content').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.getElementById(type + '-card').classList.add('active');
+            
+            // You can add additional logic here based on quiz type
+            console.log('Selected quiz type:', type);
+        }
+        
         function handleFileSelect(input, type) {
             const file = input.files[0];
             const infoDiv = document.getElementById(type + 'Info');

@@ -1541,7 +1541,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
   { name: 'answerPaper', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const { title, description, gradeLevel, subjects, language } = req.body;
+    const { title, description, gradeLevel, subjects, language, quizType } = req.body;
     let extractedQuestions = [];
     let questionFileUrl = null;
     let answerFileUrl = null;
@@ -1678,6 +1678,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       gradeLevel,
       subjects: [subjects], // Convert single subject to array for database
       language: language, // Include selected language
+      quizType: quizType || 'regular', // Add quiz type with default
       questions: extractedQuestions,
       createdBy: req.user._id,
       createdByName: req.user.displayName,

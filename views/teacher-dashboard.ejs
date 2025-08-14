@@ -125,10 +125,21 @@
                             <% quizzes.forEach(quiz => { %>
                                 <div class="quiz-item" data-quiz-id="<%= quiz._id %>">
                                     <div class="quiz-icon">
-                                        <i class="fas fa-file-alt"></i>
+                                        <i class="fas <%= quiz.quizType === 'competitive' ? 'fa-trophy' : 'fa-file-alt' %>"></i>
                                     </div>
                                     <div class="quiz-content">
-                                        <h4><%= quiz.title %></h4>
+                                        <h4>
+                                            <%= quiz.title %>
+                                            <% if (quiz.quizType === 'competitive') { %>
+                                                <span class="badge bg-warning text-dark ms-2" style="font-size: 12px;">
+                                                    <i class="fas fa-trophy"></i> Competitive
+                                                </span>
+                                            <% } else { %>
+                                                <span class="badge bg-info text-white ms-2" style="font-size: 12px;">
+                                                    <i class="fas fa-book"></i> Regular
+                                                </span>
+                                            <% } %>
+                                        </h4>
                                         <p><%= quiz.description %></p>
                                         <div class="quiz-meta">
                                             <span class="quiz-status <%= quiz.isApproved ? 'approved' : 'pending' %>">

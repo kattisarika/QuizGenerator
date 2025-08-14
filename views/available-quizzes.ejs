@@ -39,7 +39,7 @@
                         <div class="quiz-card">
                             <div class="quiz-card-header">
                                 <div class="quiz-icon">
-                                    <i class="fas fa-file-alt"></i>
+                                    <i class="fas <%= quiz.quizType === 'competitive' ? 'fa-trophy' : 'fa-file-alt' %>"></i>
                                 </div>
                                 <div class="quiz-status approved">
                                     <i class="fas fa-check-circle"></i>
@@ -48,7 +48,14 @@
                             </div>
                             
                             <div class="quiz-card-content">
-                                <h3><%= quiz.title %></h3>
+                                <h3>
+                                    <%= quiz.title %>
+                                    <% if (quiz.quizType === 'competitive') { %>
+                                        <span class="badge bg-warning text-dark" style="font-size: 11px; margin-left: 8px;">
+                                            <i class="fas fa-trophy"></i> Competitive
+                                        </span>
+                                    <% } %>
+                                </h3>
                                 <p class="quiz-description"><%= quiz.description %></p>
                                 
                                 <div class="quiz-meta">
