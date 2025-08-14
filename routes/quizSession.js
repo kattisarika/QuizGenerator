@@ -122,7 +122,15 @@ router.post('/join/:sessionCode', isAuthenticated, requireRole(['student']), asy
     );
     
     if (existingParticipant) {
-      // Already joined, just return success
+      // Check if already completed
+      if (existingParticipant.status === 'completed') {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'You have already completed this quiz session. Each session can only be taken once.' 
+        });
+      }
+      
+      // Already joined but not completed, allow to continue
       await session.populate('quiz');
       return res.json({
         success: true,
@@ -315,7 +323,141 @@ router.post('/submit-answer/:sessionId', isAuthenticated, requireRole(['student'
   }
 });
 
-// Complete quiz (Student)
+// Submit all answers and complete quiz (Student)
+router.post('/submit-complete/:sessionId', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const { answers } = req.body;
+    const session = await QuizSession.findById(req.params.sessionId).populate('quiz');
+    
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+    
+    if (session.status !== 'in-progress') {
+      return res.status(400).json({ success: false, message: 'Session is not active' });
+    }
+    
+    // Find participant index
+    const participantIndex = session.participants.findIndex(
+      p => p.student.toString() === req.user._id.toString()
+    );
+    
+    if (participantIndex === -1) {
+      return res.status(403).json({ success: false, message: 'You are not part of this session' });
+    }
+    
+    const participant = session.participants[participantIndex];
+    
+    // Check if already completed
+    if (participant.status === 'completed') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'You have already completed this quiz session' 
+      });
+    }
+    
+    const completedAt = new Date();
+    let timeTaken = 0;
+    
+    // Calculate time taken
+    if (participant.startedAt) {
+      timeTaken = Math.floor((completedAt - participant.startedAt) / 1000);
+    }
+    
+    // Process all answers and calculate score
+    let correctAnswers = 0;
+    let totalAnswers = 0;
+    let score = 0;
+    const processedAnswers = [];
+    
+    // Convert answers object to array if needed
+    const answersArray = Array.isArray(answers) ? answers : Object.values(answers);
+    
+    answersArray.forEach((answer, index) => {
+      if (answer && answer.selectedAnswer) {
+        totalAnswers++;
+        const question = session.quiz.questions[index];
+        const isCorrect = answer.selectedAnswer === question.correctAnswer;
+        
+        if (isCorrect) {
+          correctAnswers++;
+          score += question.points || 1;
+        }
+        
+        processedAnswers.push({
+          questionIndex: index,
+          selectedAnswer: answer.selectedAnswer,
+          isCorrect,
+          answeredAt: new Date()
+        });
+      }
+    });
+    
+    const accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers) * 100 : 0;
+    
+    // Use atomic update to save all results at once
+    const updatePath = `participants.${participantIndex}`;
+    const updateQuery = {
+      $set: {
+        [`${updatePath}.status`]: 'completed',
+        [`${updatePath}.completedAt`]: completedAt,
+        [`${updatePath}.timeTaken`]: timeTaken,
+        [`${updatePath}.answers`]: processedAnswers,
+        [`${updatePath}.totalAnswers`]: totalAnswers,
+        [`${updatePath}.correctAnswers`]: correctAnswers,
+        [`${updatePath}.score`]: score,
+        [`${updatePath}.accuracy`]: accuracy
+      }
+    };
+    
+    const updatedSession = await QuizSession.findByIdAndUpdate(
+      req.params.sessionId,
+      updateQuery,
+      { 
+        new: true,
+        runValidators: false 
+      }
+    ).populate('quiz');
+    
+    // Calculate leaderboard
+    const completedParticipants = updatedSession.participants
+      .filter(p => p.status === 'completed')
+      .map(p => ({
+        studentId: p.student,
+        studentName: p.studentName,
+        score: p.score || 0,
+        correctAnswers: p.correctAnswers || 0,
+        timeTaken: p.timeTaken || 0,
+        accuracy: p.accuracy || 0
+      }))
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.timeTaken - b.timeTaken;
+      });
+    
+    const rank = completedParticipants.findIndex(
+      p => p.studentId.toString() === req.user._id.toString()
+    ) + 1;
+    
+    res.json({
+      success: true,
+      results: {
+        score: score,
+        correctAnswers: correctAnswers,
+        totalQuestions: session.quiz.questions.length,
+        accuracy: accuracy,
+        timeTaken: timeTaken,
+        rank: rank,
+        percentage: Math.round((correctAnswers / session.quiz.questions.length) * 100)
+      }
+    });
+  } catch (error) {
+    console.error('Error submitting competitive quiz:', error);
+    res.status(500).json({ success: false, message: 'Error submitting quiz' });
+  }
+});
+
+// Complete quiz (Student) - DEPRECATED, kept for backward compatibility
 router.post('/complete/:sessionId', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
     const session = await QuizSession.findById(req.params.sessionId).populate('quiz');

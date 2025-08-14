@@ -193,15 +193,11 @@
             <div class="live-stats">
                 <div class="stat-item">
                     <i class="fas fa-check-circle"></i> 
-                    <span id="answered-count">0</span>/<%= quiz.questions.length %>
+                    Answered: <span id="answered-count">0</span>/<%= quiz.questions.length %>
                 </div>
-                <div class="stat-item">
-                    <i class="fas fa-star"></i> 
-                    Score: <span id="current-score">0</span>
-                </div>
-                <div class="stat-item">
-                    <i class="fas fa-percentage"></i> 
-                    <span id="accuracy">0</span>%
+                <div class="stat-item" style="font-size: 14px; background: rgba(255,255,255,0.3);">
+                    <i class="fas fa-info-circle"></i> 
+                    Results shown after submission
                 </div>
             </div>
         </div>
@@ -283,7 +279,7 @@
         <% } %>
     </div>
 
-    <div class="answer-feedback" id="answerFeedback"></div>
+
 
     <script>
         const sessionId = '<%= sessionId %>';
@@ -310,8 +306,8 @@
             }, 1000);
         }
 
-        // Select answer and submit to server immediately
-        async function selectCompetitiveOption(questionIndex, optionIndex) {
+        // Select answer (no server submission until quiz completion)
+        function selectCompetitiveOption(questionIndex, optionIndex) {
             questionIndex = parseInt(questionIndex);
             optionIndex = parseInt(optionIndex);
             
@@ -328,55 +324,16 @@
             document.querySelector(`.option-item[data-question="${questionIndex}"][data-option="${optionIndex}"]`)
                 .classList.add('option-selected');
             
-            // Store answer
+            // Store answer locally
             const selectedAnswer = radioButton.value;
             answers[questionIndex] = { selectedAnswer };
             
             // Mark progress dot as answered
             document.getElementById(`progress-${questionIndex}`).classList.add('answered');
             
-            // Submit answer to server for real-time tracking
-            try {
-                const response = await fetch(`/api/quiz-session/submit-answer/${sessionId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        questionIndex,
-                        selectedAnswer
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update stats
-                    currentScore = data.currentScore;
-                    document.getElementById('current-score').textContent = currentScore;
-                    document.getElementById('accuracy').textContent = Math.round(data.accuracy);
-                    
-                    // Show feedback
-                    showAnswerFeedback(data.isCorrect);
-                    
-                    // Update answered count
-                    totalAnswered = Object.keys(answers).length;
-                    document.getElementById('answered-count').textContent = totalAnswered;
-                    
-                    if (data.isCorrect) correctCount++;
-                }
-            } catch (error) {
-                console.error('Error submitting answer:', error);
-            }
-        }
-
-        function showAnswerFeedback(isCorrect) {
-            const feedback = document.getElementById('answerFeedback');
-            feedback.className = `answer-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-            feedback.textContent = isCorrect ? '✓ Correct!' : '✗ Incorrect';
-            feedback.style.display = 'block';
-            
-            setTimeout(() => {
-                feedback.style.display = 'none';
-            }, 1000);
+            // Update answered count (client-side only)
+            totalAnswered = Object.keys(answers).length;
+            document.getElementById('answered-count').textContent = totalAnswered;
         }
 
         function jumpToQuestion(index) {
@@ -403,17 +360,31 @@
         }
 
         async function submitCompetitiveQuiz() {
-            if (!confirm('Are you sure you want to submit your quiz?')) return;
+            if (!confirm('Are you sure you want to submit your quiz? You can only submit once.')) return;
+            
+            // Check if all questions are answered (optional)
+            const totalQuestions = <%= quiz.questions.length %>;
+            const answeredCount = Object.keys(answers).length;
+            
+            if (answeredCount < totalQuestions) {
+                if (!confirm(`You have only answered ${answeredCount} out of ${totalQuestions} questions. Submit anyway?`)) {
+                    return;
+                }
+            }
             
             clearInterval(timerInterval);
             clearInterval(leaderboardInterval);
             
-            const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+            // Disable submit button to prevent double submission
+            const submitBtn = document.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
             
             try {
-                const response = await fetch(`/api/quiz-session/complete/${sessionId}`, {
+                const response = await fetch(`/api/quiz-session/submit-complete/${sessionId}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answers: answers })
                 });
                 
                 const data = await response.json();
@@ -421,11 +392,30 @@
                 if (data.success) {
                     showCompletionScreen(data.results);
                 } else {
-                    alert('Error submitting quiz: ' + data.message);
+                    alert('Error: ' + data.message);
+                    // Re-enable button if error
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-flag-checkered"></i> Submit Quiz';
+                    
+                    // Restart timers if submission failed
+                    startTimer();
+                    if (<%= settings.showLiveLeaderboard %>) {
+                        leaderboardInterval = setInterval(updateLeaderboard, 5000);
+                    }
                 }
             } catch (error) {
                 console.error('Error submitting quiz:', error);
-                alert('Error submitting quiz');
+                alert('Error submitting quiz. Please try again.');
+                
+                // Re-enable button if error
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-flag-checkered"></i> Submit Quiz';
+                
+                // Restart timers if submission failed
+                startTimer();
+                if (<%= settings.showLiveLeaderboard %>) {
+                    leaderboardInterval = setInterval(updateLeaderboard, 5000);
+                }
             }
         }
 

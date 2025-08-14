@@ -1134,6 +1134,13 @@ app.get('/competitive-quiz/:sessionId', isAuthenticated, requireRole(['student']
       return res.status(403).render('error', { message: 'You are not part of this session' });
     }
     
+    // Check if student has already completed this session
+    if (participant.status === 'completed') {
+      return res.status(403).render('error', { 
+        message: 'You have already completed this quiz session. Each session can only be taken once.' 
+      });
+    }
+    
     if (session.status !== 'in-progress') {
       return res.status(400).render('error', { message: 'Session is not active' });
     }
