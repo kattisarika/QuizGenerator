@@ -336,7 +336,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = `/quiz-result/${data.resultId}`;
+                    // Show completion message with results
+                    showCompletionMessage(data);
                 } else {
                     alert('Error submitting quiz: ' + data.message);
                 }
@@ -347,11 +348,164 @@
             });
         });
 
-        // Warn before leaving page
+        // Track if quiz is submitted
+        let quizSubmitted = false;
+        
+        // Warn before leaving page (only if quiz not submitted)
         window.addEventListener('beforeunload', function(e) {
-            e.preventDefault();
-            e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
+            if (!quizSubmitted) {
+                e.preventDefault();
+                e.returnValue = 'Are you sure you want to leave? Your progress will be lost.';
+            }
         });
+        
+        // Function to show completion message
+        function showCompletionMessage(data) {
+            // Mark quiz as submitted to prevent leave warning
+            quizSubmitted = true;
+            
+            // Stop the timer
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            
+            // Hide the quiz form
+            document.getElementById('quiz-form').style.display = 'none';
+            
+            // Create and show completion message
+            const completionHTML = `
+                <div class="quiz-completion-container" style="
+                    max-width: 600px;
+                    margin: 50px auto;
+                    padding: 40px;
+                    background: white;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                    text-align: center;
+                    animation: fadeIn 0.5s ease-in;
+                ">
+                    <div class="completion-icon" style="
+                        width: 100px;
+                        height: 100px;
+                        margin: 0 auto 20px;
+                        background: linear-gradient(135deg, #28a745, #20c997);
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        animation: scaleIn 0.5s ease-out;
+                    ">
+                        <i class="fas fa-check" style="font-size: 50px; color: white;"></i>
+                    </div>
+                    
+                    <h2 style="color: #28a745; margin-bottom: 20px; font-size: 32px;">Quiz Completed!</h2>
+                    
+                    <div class="score-display" style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 30px;
+                        border-radius: 10px;
+                        margin: 20px 0;
+                    ">
+                        <h3 style="margin: 0 0 10px 0; font-size: 24px;">Your Score</h3>
+                        <div style="font-size: 48px; font-weight: bold;">
+                            ${data.percentage}%
+                        </div>
+                        <div style="margin-top: 15px; font-size: 20px;">
+                            ${data.correctAnswers} out of ${data.totalQuestions} answers correct
+                        </div>
+                    </div>
+                    
+                    <div class="result-message" style="
+                        padding: 20px;
+                        background: #f8f9fa;
+                        border-radius: 10px;
+                        margin: 20px 0;
+                    ">
+                        <p style="margin: 0; font-size: 18px; color: #333;">
+                            ${data.percentage >= 70 ? 
+                                '🎉 Excellent work! You did a great job!' : 
+                                data.percentage >= 50 ? 
+                                '👍 Good effort! Keep practicing to improve!' : 
+                                '📚 Keep studying! You can do better next time!'}
+                        </p>
+                    </div>
+                    
+                    <button onclick="viewDetailedResults('${data.resultId}')" style="
+                        background: #667eea;
+                        color: white;
+                        border: none;
+                        padding: 15px 40px;
+                        font-size: 18px;
+                        border-radius: 50px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        margin-top: 20px;
+                        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                    " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)'" 
+                       onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)'">
+                        <i class="fas fa-chart-bar"></i> View Detailed Results
+                    </button>
+                    
+                    <div style="margin-top: 20px;">
+                        <a href="/student/dashboard" style="
+                            color: #667eea;
+                            text-decoration: none;
+                            font-size: 16px;
+                            padding: 10px 20px;
+                            border: 2px solid #667eea;
+                            border-radius: 25px;
+                            display: inline-block;
+                            transition: all 0.3s ease;
+                        " onmouseover="this.style.background='#667eea'; this.style.color='white'" 
+                           onmouseout="this.style.background='transparent'; this.style.color='#667eea'">
+                            <i class="fas fa-home"></i> Return to Dashboard
+                        </a>
+                    </div>
+                </div>
+                
+                <style>
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(20px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                    @keyframes scaleIn {
+                        from { transform: scale(0); }
+                        to { transform: scale(1); }
+                    }
+                </style>
+            `;
+            
+            // Replace the quiz content with completion message
+            document.querySelector('.quiz-content').innerHTML = completionHTML;
+            
+            // Update the header to show completion
+            const quizHeader = document.querySelector('.quiz-header h2');
+            if (quizHeader) {
+                quizHeader.innerHTML = '<i class="fas fa-trophy"></i> Quiz Results';
+            }
+            
+            // Hide progress bar and timer
+            const progressBar = document.querySelector('.quiz-progress');
+            if (progressBar) {
+                progressBar.style.display = 'none';
+            }
+            
+            // Scroll to top smoothly
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Play a success sound if available
+            const audio = new Audio('data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoAAADmbP//2WD//11g//8=');
+            audio.play().catch(e => console.log('Audio play failed:', e));
+        }
+        
+        // Function to view detailed results
+        function viewDetailedResults(resultId) {
+            // Mark as submitted to prevent warning
+            quizSubmitted = true;
+            // Navigate to results page
+            window.location.href = `/quiz-result/${resultId}`;
+        }
     </script>
     
     <!-- Session timeout management -->
