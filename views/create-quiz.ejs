@@ -517,7 +517,15 @@
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
                                                 <label for="manualTitle" class="form-label">Quiz Title *</label>
-                                                <input type="text" class="form-control" id="manualTitle" required>
+                                                <input type="text" class="form-control" id="manualTitle" required onkeyup="updateTitlePreview()">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle"></i> Date & time will be automatically appended
+                                                </small>
+                                                <div id="titlePreview" class="mt-2" style="display: none;">
+                                                    <small class="text-success">
+                                                        <i class="fas fa-check-circle"></i> Will be saved as: <strong id="previewText"></strong>
+                                                    </small>
+                                                </div>
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label for="manualGrade" class="form-label">Grade Level *</label>
@@ -876,6 +884,30 @@
         let currentQuestionNumber = 1;
         let currentQuestionImage = null;
         
+        // Update title preview with current date/time
+        function updateTitlePreview() {
+            const titleInput = document.getElementById('manualTitle');
+            const previewDiv = document.getElementById('titlePreview');
+            const previewText = document.getElementById('previewText');
+            
+            if (titleInput.value.trim()) {
+                const now = new Date();
+                const dateTimeString = now.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                }).replace(/,/g, '');
+                
+                previewText.textContent = `${titleInput.value} - ${dateTimeString}`;
+                previewDiv.style.display = 'block';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        }
+        
         // Toggle between answer formats
         function toggleAnswerFormat() {
             const format = document.querySelector('input[name="answerFormat"]:checked').value;
@@ -1218,10 +1250,11 @@
                 
                 if (response.ok) {
                     const result = await response.json();
-                    showTempMessage('Quiz created successfully!', 'success');
+                    // Show success message with the final title that includes date/time
+                    showTempMessage(result.message || 'Quiz created successfully!', 'success', 5000);
                     setTimeout(() => {
                         window.location.href = '/teacher/dashboard';
-                    }, 1500);
+                    }, 2000);
                 } else {
                     const error = await response.text();
                     alert('Error creating quiz: ' + error);
@@ -1232,10 +1265,11 @@
         }
         
         // Show temporary message
-        function showTempMessage(message, type) {
+        function showTempMessage(message, type, duration = 3000) {
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
             alertDiv.style.zIndex = '9999';
+            alertDiv.style.maxWidth = '600px';
             alertDiv.innerHTML = `
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -1244,7 +1278,7 @@
             
             setTimeout(() => {
                 alertDiv.remove();
-            }, 3000);
+            }, duration);
         }
     </script>
 </body>

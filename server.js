@@ -1816,7 +1816,20 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
   try {
     const { title, description, gradeLevel, subjects, language, quizType, questions, isManuallyCreated } = req.body;
     
-    console.log('Manual quiz creation:', { title, quizType, questionsCount: questions.length });
+    // Append current date and time to the title
+    const now = new Date();
+    const dateTimeString = now.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).replace(/,/g, ''); // Remove commas for cleaner format
+    
+    const finalTitle = `${title} - ${dateTimeString}`;
+    
+    console.log('Manual quiz creation:', { originalTitle: title, finalTitle, quizType, questionsCount: questions.length });
     
     // Validate required fields
     if (!title || !gradeLevel || !subjects) {
@@ -1860,7 +1873,7 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     
     // Create the quiz
     const quiz = new Quiz({
-      title,
+      title: finalTitle,  // Use title with appended date/time
       description: description || '',
       gradeLevel,
       subjects: [subjects],
@@ -1878,11 +1891,13 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     
     await quiz.save();
     console.log('Manual quiz saved successfully with ID:', quiz._id);
+    console.log('Quiz saved with title:', finalTitle);
     
     res.json({ 
       success: true, 
       quizId: quiz._id,
-      message: 'Quiz created successfully'
+      finalTitle: finalTitle,  // Send back the final title with date/time
+      message: `Quiz created successfully as: ${finalTitle}`
     });
   } catch (error) {
     console.error('Error creating manual quiz:', error);
