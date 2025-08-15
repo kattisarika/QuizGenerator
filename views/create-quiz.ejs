@@ -224,10 +224,28 @@
                 <div class="card">
                     <div class="card-header text-center">
                         <h2><i class="fas fa-plus-circle me-2"></i>Create New Quiz</h2>
-                        <p class="mb-0">Upload question paper and answer key to automatically extract questions</p>
+                        <p class="mb-0">Choose how you want to create your quiz</p>
                     </div>
                     <div class="card-body p-4">
-                        <form action="/create-quiz" method="POST" enctype="multipart/form-data" id="quizForm">
+                        <!-- Tab Navigation -->
+                        <ul class="nav nav-tabs mb-4" id="quizCreationTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" aria-controls="upload" aria-selected="true">
+                                    <i class="fas fa-file-upload me-2"></i>Upload Documents
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab" aria-controls="manual" aria-selected="false">
+                                    <i class="fas fa-edit me-2"></i>Create Questions Manually
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content" id="quizCreationTabContent">
+                            <!-- Upload Documents Tab -->
+                            <div class="tab-pane fade show active" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                                <form action="/create-quiz" method="POST" enctype="multipart/form-data" id="quizForm">
                             <!-- Basic Quiz Information -->
                             <div class="mb-4">
                                 <h5 class="text-primary mb-3">
@@ -454,7 +472,233 @@
                                     <i class="fas fa-arrow-left me-2"></i>Cancel
                                 </a>
                             </div>
-                        </form>
+                                </form>
+                            </div>
+
+                            <!-- Create Questions Manually Tab -->
+                            <div class="tab-pane fade" id="manual" role="tabpanel" aria-labelledby="manual-tab">
+                                <form id="manualQuizForm">
+                                    <!-- Quiz Type Selection -->
+                                    <div class="mb-4">
+                                        <h5 class="text-primary mb-3">
+                                            <i class="fas fa-trophy me-2"></i>Quiz Type
+                                        </h5>
+                                        <div class="quiz-type-selector">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="manualQuizType" id="manualRegular" value="regular" checked>
+                                                        <label class="form-check-label" for="manualRegular">
+                                                            <strong><i class="fas fa-book me-2"></i>Regular Quiz</strong>
+                                                            <br>
+                                                            <small class="text-muted">Standard quiz for practice and assessment</small>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="manualQuizType" id="manualCompetitive" value="competitive">
+                                                        <label class="form-check-label" for="manualCompetitive">
+                                                            <strong><i class="fas fa-trophy me-2"></i>Competitive Quiz</strong>
+                                                            <br>
+                                                            <small class="text-muted">Real-time competition with leaderboard</small>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Quiz Basic Info -->
+                                    <div class="mb-4">
+                                        <h5 class="text-primary mb-3">
+                                            <i class="fas fa-info-circle me-2"></i>Quiz Information
+                                        </h5>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="manualTitle" class="form-label">Quiz Title *</label>
+                                                <input type="text" class="form-control" id="manualTitle" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="manualGrade" class="form-label">Grade Level *</label>
+                                                <select class="form-select" id="manualGrade" required>
+                                                    <option value="">Select Grade Level</option>
+                                                    <option value="1st grade">1st Grade</option>
+                                                    <option value="2nd grade">2nd Grade</option>
+                                                    <option value="3rd grade">3rd Grade</option>
+                                                    <option value="4th grade">4th Grade</option>
+                                                    <option value="5th grade">5th Grade</option>
+                                                    <option value="6th grade">6th Grade</option>
+                                                    <option value="7th grade">7th Grade</option>
+                                                    <option value="8th grade">8th Grade</option>
+                                                    <option value="9th grade">9th Grade</option>
+                                                    <option value="10th grade">10th Grade</option>
+                                                    <option value="11th grade">11th Grade</option>
+                                                    <option value="12th grade">12th Grade</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="manualSubject" class="form-label">Subject *</label>
+                                                <select class="form-select" id="manualSubject" required>
+                                                    <option value="">Select Subject</option>
+                                                    <option value="English">English</option>
+                                                    <option value="Science">Science</option>
+                                                    <option value="Math">Math</option>
+                                                    <option value="History">History</option>
+                                                    <option value="Geography">Geography</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="manualDescription" class="form-label">Description</label>
+                                                <textarea class="form-control" id="manualDescription" rows="1"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Question Entry Section -->
+                                    <div class="mb-4">
+                                        <h5 class="text-primary mb-3">
+                                            <i class="fas fa-question-circle me-2"></i>Question <span id="questionNumber">1</span>
+                                        </h5>
+                                        
+                                        <!-- Question Text -->
+                                        <div class="mb-3">
+                                            <label for="questionText" class="form-label">Enter your question: *</label>
+                                            <textarea class="form-control" id="questionText" rows="3" placeholder="Enter your question here..." required></textarea>
+                                        </div>
+
+                                        <!-- Answer Format Selection -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Answer Format: *</label>
+                                            <div class="d-flex gap-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="answerFormat" id="multipleChoice" value="multiple" checked onchange="toggleAnswerFormat()">
+                                                    <label class="form-check-label" for="multipleChoice">
+                                                        <i class="fas fa-list-ul me-1"></i>Multiple Choice
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="answerFormat" id="textAnswer" value="text" onchange="toggleAnswerFormat()">
+                                                    <label class="form-check-label" for="textAnswer">
+                                                        <i class="fas fa-keyboard me-1"></i>Text Answer
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Multiple Choice Options -->
+                                        <div id="multipleChoiceSection">
+                                            <div class="mb-3">
+                                                <label class="form-label">Answer Selection Type:</label>
+                                                <div class="d-flex gap-3">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="selectionType" id="singleAnswer" value="single" checked onchange="toggleSelectionType()">
+                                                        <label class="form-check-label" for="singleAnswer">
+                                                            Single Answer (Radio Button)
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="selectionType" id="multipleAnswers" value="multiple" onchange="toggleSelectionType()">
+                                                        <label class="form-check-label" for="multipleAnswers">
+                                                            Multiple Answers (Checkbox)
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label">Options: *</label>
+                                                <div id="optionsContainer">
+                                                    <div class="input-group mb-2">
+                                                        <span class="input-group-text">A.</span>
+                                                        <input type="text" class="form-control option-input" placeholder="Enter option A">
+                                                        <div class="input-group-text">
+                                                            <input class="form-check-input correct-answer-radio" type="radio" name="correctAnswer" value="0">
+                                                        </div>
+                                                    </div>
+                                                    <div class="input-group mb-2">
+                                                        <span class="input-group-text">B.</span>
+                                                        <input type="text" class="form-control option-input" placeholder="Enter option B">
+                                                        <div class="input-group-text">
+                                                            <input class="form-check-input correct-answer-radio" type="radio" name="correctAnswer" value="1">
+                                                        </div>
+                                                    </div>
+                                                    <div class="input-group mb-2">
+                                                        <span class="input-group-text">C.</span>
+                                                        <input type="text" class="form-control option-input" placeholder="Enter option C">
+                                                        <div class="input-group-text">
+                                                            <input class="form-check-input correct-answer-radio" type="radio" name="correctAnswer" value="2">
+                                                        </div>
+                                                    </div>
+                                                    <div class="input-group mb-2">
+                                                        <span class="input-group-text">D.</span>
+                                                        <input type="text" class="form-control option-input" placeholder="Enter option D">
+                                                        <div class="input-group-text">
+                                                            <input class="form-check-input correct-answer-radio" type="radio" name="correctAnswer" value="3">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addOption()">
+                                                    <i class="fas fa-plus me-1"></i>Add More Options
+                                                </button>
+                                                <small class="text-muted ms-2">Select the correct answer(s) using the radio/checkbox</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- Text Answer Section -->
+                                        <div id="textAnswerSection" style="display: none;">
+                                            <div class="mb-3">
+                                                <label for="expectedAnswer" class="form-label">Expected Answer: *</label>
+                                                <textarea class="form-control" id="expectedAnswer" rows="2" placeholder="Enter the expected answer"></textarea>
+                                            </div>
+                                        </div>
+
+                                        <!-- Image Upload -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Image/Drawing (Optional):</label>
+                                            <div class="file-upload-area" onclick="document.getElementById('questionImage').click()">
+                                                <input type="file" id="questionImage" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+                                                <div id="imageUploadContent">
+                                                    <i class="fas fa-image upload-icon"></i>
+                                                    <p class="mb-2">Click to upload an image or drawing</p>
+                                                    <small class="text-muted">Supports: JPG, PNG, GIF (Max 5MB)</small>
+                                                </div>
+                                                <div id="imagePreview" style="display: none;">
+                                                    <img id="previewImg" style="max-width: 100%; max-height: 200px;">
+                                                    <p class="mt-2">
+                                                        <button type="button" class="btn btn-sm btn-danger" onclick="removeImage(event)">
+                                                            <i class="fas fa-trash me-1"></i>Remove Image
+                                                        </button>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Questions List -->
+                                    <div id="questionsList" class="mb-4" style="display: none;">
+                                        <h5 class="text-primary mb-3">
+                                            <i class="fas fa-list me-2"></i>Questions Added
+                                        </h5>
+                                        <div id="questionsContainer" class="list-group">
+                                            <!-- Questions will be added here dynamically -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Navigation Buttons -->
+                                    <div class="d-flex justify-content-between mt-4">
+                                        <button type="button" class="btn btn-primary btn-lg" onclick="saveAndNext()">
+                                            <i class="fas fa-arrow-right me-2"></i>Next Question
+                                        </button>
+                                        <button type="button" class="btn btn-success btn-lg" onclick="finishQuiz()">
+                                            <i class="fas fa-check-circle me-2"></i>Finish Quiz
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -624,6 +868,384 @@
         document.addEventListener('DOMContentLoaded', function() {
             updateLanguageSelection(); // Show English as selected by default
         });
+
+        // ========= MANUAL QUIZ CREATION FUNCTIONS =========
+        
+        // Store questions temporarily
+        let manualQuestions = [];
+        let currentQuestionNumber = 1;
+        let currentQuestionImage = null;
+        
+        // Toggle between answer formats
+        function toggleAnswerFormat() {
+            const format = document.querySelector('input[name="answerFormat"]:checked').value;
+            const multipleChoiceSection = document.getElementById('multipleChoiceSection');
+            const textAnswerSection = document.getElementById('textAnswerSection');
+            
+            if (format === 'multiple') {
+                multipleChoiceSection.style.display = 'block';
+                textAnswerSection.style.display = 'none';
+            } else {
+                multipleChoiceSection.style.display = 'none';
+                textAnswerSection.style.display = 'block';
+            }
+        }
+        
+        // Toggle selection type (radio vs checkbox)
+        function toggleSelectionType() {
+            const selectionType = document.querySelector('input[name="selectionType"]:checked').value;
+            const correctAnswerInputs = document.querySelectorAll('.correct-answer-radio');
+            
+            correctAnswerInputs.forEach(input => {
+                if (selectionType === 'single') {
+                    input.type = 'radio';
+                    input.name = 'correctAnswer';
+                } else {
+                    input.type = 'checkbox';
+                    input.name = 'correctAnswer[]';
+                }
+            });
+        }
+        
+        // Add more options
+        let optionCount = 4;
+        function addOption() {
+            const container = document.getElementById('optionsContainer');
+            const selectionType = document.querySelector('input[name="selectionType"]:checked').value;
+            const optionLetter = String.fromCharCode(65 + optionCount); // A=65, B=66, etc.
+            
+            const newOption = document.createElement('div');
+            newOption.className = 'input-group mb-2';
+            newOption.innerHTML = `
+                <span class="input-group-text">${optionLetter}.</span>
+                <input type="text" class="form-control option-input" placeholder="Enter option ${optionLetter}">
+                <div class="input-group-text">
+                    <input class="form-check-input correct-answer-radio" 
+                           type="${selectionType === 'single' ? 'radio' : 'checkbox'}" 
+                           name="${selectionType === 'single' ? 'correctAnswer' : 'correctAnswer[]'}" 
+                           value="${optionCount}">
+                </div>
+                <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(newOption);
+            optionCount++;
+        }
+        
+        // Remove option
+        function removeOption(button) {
+            button.parentElement.remove();
+            // Recalculate option letters
+            const options = document.querySelectorAll('#optionsContainer .input-group');
+            options.forEach((option, index) => {
+                const letter = String.fromCharCode(65 + index);
+                option.querySelector('.input-group-text').textContent = letter + '.';
+                option.querySelector('.option-input').placeholder = 'Enter option ' + letter;
+                option.querySelector('.correct-answer-radio').value = index;
+            });
+            optionCount = options.length;
+        }
+        
+        // Handle image upload
+        function handleImageUpload(input) {
+            const file = input.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Image size must be less than 5MB');
+                    input.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentQuestionImage = e.target.result;
+                    document.getElementById('imageUploadContent').style.display = 'none';
+                    document.getElementById('imagePreview').style.display = 'block';
+                    document.getElementById('previewImg').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Remove image
+        function removeImage(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            currentQuestionImage = null;
+            document.getElementById('questionImage').value = '';
+            document.getElementById('imageUploadContent').style.display = 'block';
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+        
+        // Save current question and prepare for next
+        function saveAndNext() {
+            if (!validateCurrentQuestion()) {
+                return;
+            }
+            
+            const question = collectQuestionData();
+            manualQuestions.push(question);
+            
+            // Show questions list
+            document.getElementById('questionsList').style.display = 'block';
+            addQuestionToList(question, manualQuestions.length - 1);
+            
+            // Clear form for next question
+            clearQuestionForm();
+            currentQuestionNumber++;
+            document.getElementById('questionNumber').textContent = currentQuestionNumber;
+            
+            // Scroll to top of question form
+            document.querySelector('#manual .mb-4').scrollIntoView({ behavior: 'smooth' });
+            
+            // Show success message
+            showTempMessage('Question saved successfully!', 'success');
+        }
+        
+        // Validate current question
+        function validateCurrentQuestion() {
+            const questionText = document.getElementById('questionText').value.trim();
+            const answerFormat = document.querySelector('input[name="answerFormat"]:checked').value;
+            
+            if (!questionText) {
+                alert('Please enter a question text');
+                return false;
+            }
+            
+            if (answerFormat === 'multiple') {
+                const options = document.querySelectorAll('.option-input');
+                const filledOptions = Array.from(options).filter(opt => opt.value.trim());
+                
+                if (filledOptions.length < 2) {
+                    alert('Please provide at least 2 options');
+                    return false;
+                }
+                
+                const correctAnswers = document.querySelectorAll('.correct-answer-radio:checked');
+                if (correctAnswers.length === 0) {
+                    alert('Please select at least one correct answer');
+                    return false;
+                }
+            } else {
+                const expectedAnswer = document.getElementById('expectedAnswer').value.trim();
+                if (!expectedAnswer) {
+                    alert('Please provide the expected answer');
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // Collect question data
+        function collectQuestionData() {
+            const questionText = document.getElementById('questionText').value.trim();
+            const answerFormat = document.querySelector('input[name="answerFormat"]:checked').value;
+            
+            const question = {
+                questionText: questionText,
+                answerFormat: answerFormat,
+                image: currentQuestionImage
+            };
+            
+            if (answerFormat === 'multiple') {
+                const selectionType = document.querySelector('input[name="selectionType"]:checked').value;
+                const options = [];
+                const correctAnswers = [];
+                
+                document.querySelectorAll('.option-input').forEach((input, index) => {
+                    if (input.value.trim()) {
+                        options.push(input.value.trim());
+                        const isCorrect = document.querySelectorAll('.correct-answer-radio')[index].checked;
+                        if (isCorrect) {
+                            correctAnswers.push(index);
+                        }
+                    }
+                });
+                
+                question.selectionType = selectionType;
+                question.options = options;
+                question.correctAnswers = correctAnswers;
+            } else {
+                question.expectedAnswer = document.getElementById('expectedAnswer').value.trim();
+            }
+            
+            return question;
+        }
+        
+        // Add question to list display
+        function addQuestionToList(question, index) {
+            const container = document.getElementById('questionsContainer');
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'list-group-item';
+            
+            let questionHtml = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">Question ${index + 1}</h6>
+                        <p class="mb-1">${question.questionText}</p>
+            `;
+            
+            if (question.answerFormat === 'multiple') {
+                questionHtml += `<small class="text-muted">Multiple choice (${question.selectionType === 'single' ? 'Single' : 'Multiple'} answer) - ${question.options.length} options</small>`;
+            } else {
+                questionHtml += `<small class="text-muted">Text answer</small>`;
+            }
+            
+            if (question.image) {
+                questionHtml += `<br><small class="text-info"><i class="fas fa-image"></i> Has image</small>`;
+            }
+            
+            questionHtml += `
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(${index})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            questionDiv.innerHTML = questionHtml;
+            container.appendChild(questionDiv);
+        }
+        
+        // Remove question from list
+        function removeQuestion(index) {
+            if (confirm('Are you sure you want to remove this question?')) {
+                manualQuestions.splice(index, 1);
+                refreshQuestionsList();
+                
+                if (manualQuestions.length === 0) {
+                    document.getElementById('questionsList').style.display = 'none';
+                }
+            }
+        }
+        
+        // Refresh questions list display
+        function refreshQuestionsList() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+            manualQuestions.forEach((question, index) => {
+                addQuestionToList(question, index);
+            });
+        }
+        
+        // Clear question form
+        function clearQuestionForm() {
+            document.getElementById('questionText').value = '';
+            document.getElementById('multipleChoice').checked = true;
+            document.getElementById('singleAnswer').checked = true;
+            toggleAnswerFormat();
+            toggleSelectionType();
+            
+            // Clear options
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+            optionCount = 0;
+            
+            // Recreate default 4 options
+            for (let i = 0; i < 4; i++) {
+                const letter = String.fromCharCode(65 + i);
+                const option = document.createElement('div');
+                option.className = 'input-group mb-2';
+                option.innerHTML = `
+                    <span class="input-group-text">${letter}.</span>
+                    <input type="text" class="form-control option-input" placeholder="Enter option ${letter}">
+                    <div class="input-group-text">
+                        <input class="form-check-input correct-answer-radio" type="radio" name="correctAnswer" value="${i}">
+                    </div>
+                `;
+                container.appendChild(option);
+                optionCount++;
+            }
+            
+            // Clear text answer
+            document.getElementById('expectedAnswer').value = '';
+            
+            // Clear image
+            removeImage({ preventDefault: () => {}, stopPropagation: () => {} });
+        }
+        
+        // Finish quiz creation
+        async function finishQuiz() {
+            // Validate quiz info
+            const title = document.getElementById('manualTitle').value.trim();
+            const grade = document.getElementById('manualGrade').value;
+            const subject = document.getElementById('manualSubject').value;
+            const description = document.getElementById('manualDescription').value.trim();
+            const quizType = document.querySelector('input[name="manualQuizType"]:checked').value;
+            
+            if (!title || !grade || !subject) {
+                alert('Please fill in all required quiz information');
+                return;
+            }
+            
+            // Check if current question should be saved
+            const questionText = document.getElementById('questionText').value.trim();
+            if (questionText) {
+                if (confirm('Do you want to save the current question before finishing?')) {
+                    saveAndNext();
+                }
+            }
+            
+            if (manualQuestions.length === 0) {
+                alert('Please add at least one question to the quiz');
+                return;
+            }
+            
+            // Prepare quiz data
+            const quizData = {
+                title: title,
+                description: description,
+                gradeLevel: grade,
+                subjects: subject,
+                language: 'English',
+                quizType: quizType,
+                questions: manualQuestions,
+                isManuallyCreated: true
+            };
+            
+            // Submit quiz
+            try {
+                const response = await fetch('/create-quiz-manual', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(quizData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showTempMessage('Quiz created successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/teacher/dashboard';
+                    }, 1500);
+                } else {
+                    const error = await response.text();
+                    alert('Error creating quiz: ' + error);
+                }
+            } catch (error) {
+                alert('Error creating quiz: ' + error.message);
+            }
+        }
+        
+        // Show temporary message
+        function showTempMessage(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
     </script>
 </body>
 </html> 

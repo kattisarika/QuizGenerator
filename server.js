@@ -1811,6 +1811,85 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
   }
 });
 
+// Manual quiz creation route
+app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { title, description, gradeLevel, subjects, language, quizType, questions, isManuallyCreated } = req.body;
+    
+    console.log('Manual quiz creation:', { title, quizType, questionsCount: questions.length });
+    
+    // Validate required fields
+    if (!title || !gradeLevel || !subjects) {
+      return res.status(400).send('Missing required fields');
+    }
+    
+    if (!questions || questions.length === 0) {
+      return res.status(400).send('At least one question is required');
+    }
+    
+    // Transform questions to match the quiz schema
+    const extractedQuestions = questions.map((q, index) => {
+      const baseQuestion = {
+        questionText: q.questionText,
+        questionNumber: index + 1,
+        points: 1
+      };
+      
+      if (q.answerFormat === 'multiple') {
+        // Multiple choice question
+        return {
+          ...baseQuestion,
+          options: q.options,
+          correctAnswer: q.selectionType === 'single' 
+            ? q.correctAnswers[0]  // Single answer - store as number
+            : q.correctAnswers,     // Multiple answers - store as array
+          multipleCorrect: q.selectionType === 'multiple',
+          image: q.image || null
+        };
+      } else {
+        // Text answer question
+        return {
+          ...baseQuestion,
+          options: [],
+          correctAnswer: q.expectedAnswer,
+          isTextAnswer: true,
+          image: q.image || null
+        };
+      }
+    });
+    
+    // Create the quiz
+    const quiz = new Quiz({
+      title,
+      description: description || '',
+      gradeLevel,
+      subjects: [subjects],
+      language: language || 'English',
+      quizType: quizType || 'regular',
+      questions: extractedQuestions,
+      createdBy: req.user._id,
+      createdByName: req.user.displayName,
+      organizationId: req.user.organizationId,
+      isApproved: true,  // Auto-approve teacher quizzes
+      isManuallyCreated: true,
+      questionPaperUrl: null,
+      answerPaperUrl: null
+    });
+    
+    await quiz.save();
+    console.log('Manual quiz saved successfully with ID:', quiz._id);
+    
+    res.json({ 
+      success: true, 
+      quizId: quiz._id,
+      message: 'Quiz created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating manual quiz:', error);
+    res.status(500).send(`Error creating quiz: ${error.message}`);
+  }
+});
+
 
 
 // Route to check current user status
