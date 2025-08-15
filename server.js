@@ -1841,9 +1841,11 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     }
     
     // Transform questions to match the quiz schema
+    console.log('Transforming questions, received:', questions.length, 'questions');
     const extractedQuestions = questions.map((q, index) => {
+      console.log(`Processing question ${index + 1}:`, q.questionText.substring(0, 50) + '...');
       const baseQuestion = {
-        questionText: q.questionText,
+        question: q.questionText,  // Changed from questionText to question
         questionNumber: index + 1,
         points: 1
       };
@@ -1854,10 +1856,11 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
           ...baseQuestion,
           options: q.options,
           correctAnswer: q.selectionType === 'single' 
-            ? q.correctAnswers[0]  // Single answer - store as number
-            : q.correctAnswers,     // Multiple answers - store as array
+            ? q.options[q.correctAnswers[0]]  // Single answer - store the actual text
+            : q.correctAnswers.map(i => q.options[i]).join(','),  // Multiple answers - join as string
           multipleCorrect: q.selectionType === 'multiple',
-          image: q.image || null
+          image: q.image || null,
+          type: 'multiple-choice'
         };
       } else {
         // Text answer question
@@ -1866,7 +1869,8 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
           options: [],
           correctAnswer: q.expectedAnswer,
           isTextAnswer: true,
-          image: q.image || null
+          image: q.image || null,
+          type: 'short-answer'
         };
       }
     });
@@ -1874,7 +1878,7 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     // Create the quiz
     const quiz = new Quiz({
       title: finalTitle,  // Use title with appended date/time
-      description: description || '',
+      description: description || 'Manually created quiz',  // Ensure description is never empty
       gradeLevel,
       subjects: [subjects],
       language: language || 'English',
@@ -1892,6 +1896,7 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     await quiz.save();
     console.log('Manual quiz saved successfully with ID:', quiz._id);
     console.log('Quiz saved with title:', finalTitle);
+    console.log('Total questions saved:', extractedQuestions.length);
     
     res.json({ 
       success: true, 
@@ -1901,7 +1906,15 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     });
   } catch (error) {
     console.error('Error creating manual quiz:', error);
-    res.status(500).send(`Error creating quiz: ${error.message}`);
+    
+    // Provide more detailed error messages for validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(e => e.message);
+      console.error('Validation errors:', errors);
+      res.status(400).send(`Validation error: ${errors.join(', ')}`);
+    } else {
+      res.status(500).send(`Error creating quiz: ${error.message}`);
+    }
   }
 });
 
