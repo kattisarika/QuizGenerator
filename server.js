@@ -3408,6 +3408,20 @@ app.get('/take-quiz/:quizId', isAuthenticated, requireRole(['student']), async (
       });
     }
     
+    // Debug: Log quiz data to check if images are present
+    console.log('=== TAKE QUIZ DEBUG ===');
+    console.log('Quiz ID:', quiz._id);
+    console.log('Quiz title:', quiz.title);
+    console.log('Total questions:', quiz.questions.length);
+    quiz.questions.forEach((q, index) => {
+      console.log(`Question ${index + 1}:`, {
+        hasImage: !!q.image,
+        imageUrl: q.image,
+        questionText: q.question.substring(0, 50) + '...'
+      });
+    });
+    console.log('=== END TAKE QUIZ DEBUG ===');
+    
     res.render('take-quiz', { quiz, user: req.user });
   } catch (error) {
     console.error('Error starting quiz:', error);

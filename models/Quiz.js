@@ -39,6 +39,10 @@ const questionSchema = new mongoose.Schema({
     type: String,
     enum: ['single', 'multiple'],
     default: 'single'
+  },
+  image: {
+    type: String,
+    default: null
   }
 });
 
