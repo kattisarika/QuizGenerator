@@ -89,7 +89,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Multer configuration for file uploads (S3)
+// Multer configuration for document uploads (S3)
 const upload = multer({
   storage: multer.memoryStorage(), // Store in memory temporarily
   fileFilter: function (req, file, cb) {
@@ -103,6 +103,23 @@ const upload = multer({
   },
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
+
+// Multer configuration for quiz image uploads (S3)
+const quizImageUpload = multer({
+  storage: multer.memoryStorage(), // Store in memory temporarily
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPG, JPEG, PNG, GIF, and WebP image files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit for images
   }
 });
 
@@ -1906,7 +1923,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
 });
 
 // Manual quiz creation route
-app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, upload.array('questionImages', 50), async (req, res) => {
+app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, quizImageUpload.array('questionImages', 50), async (req, res) => {
   try {
     const { title, description, gradeLevel, subjects, language, quizType, isManuallyCreated } = req.body;
     const questions = JSON.parse(req.body.questions);
