@@ -549,9 +549,9 @@
         function updateTextAnswer(questionIndex, value) {
             questionIndex = parseInt(questionIndex);
             
-            // Store the text answer
+            // Store the text answer (trimmed to remove extra whitespace)
             answers[questionIndex] = {
-                selectedAnswer: value
+                selectedAnswer: value.trim()
             };
             
             // Update the question indicator to show it's been answered
@@ -586,10 +586,10 @@
                 richTextEditor.style.display = 'block';
                 
                 // Transfer content from textarea to rich text editor
-                richTextContent.innerHTML = textarea.value.replace(/\n/g, '<br>');
+                richTextContent.innerHTML = textarea.value.trim().replace(/\n/g, '<br>');
                 
                 // Update preview
-                updateAnswerPreview(questionIndex, richTextContent.innerText);
+                updateAnswerPreview(questionIndex, richTextContent.innerText.trim());
             } else {
                 // Switch to plain text editor
                 plainTextBtn.classList.add('active');
@@ -598,10 +598,10 @@
                 richTextEditor.style.display = 'none';
                 
                 // Transfer content from rich text editor to textarea
-                textarea.value = richTextContent.innerText;
+                textarea.value = richTextContent.innerText.trim();
                 
                 // Update preview
-                updateAnswerPreview(questionIndex, textarea.value);
+                updateAnswerPreview(questionIndex, textarea.value.trim());
             }
         }
 
@@ -655,7 +655,7 @@
         function updateStudentRichTextAnswer(questionIndex) {
             const richTextContent = document.getElementById(`richTextContent-${questionIndex}`);
             if (richTextContent) {
-                const answer = richTextContent.innerText;
+                const answer = richTextContent.innerText.trim(); // Trim whitespace
                 answers[questionIndex] = {
                     selectedAnswer: answer
                 };

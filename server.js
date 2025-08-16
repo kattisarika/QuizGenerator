@@ -3493,10 +3493,17 @@ app.post('/submit-quiz/:quizId', isAuthenticated, requireRole(['student']), asyn
         selectedAnswer = answersArray[index];
       }
       
-      // Debug: Log answer extraction
-      console.log(`Question ${index}: received answer object:`, answersArray[index], ', extracted answer:', selectedAnswer);
+      // Trim whitespace from both student answer and correct answer for comparison
+      const trimmedSelectedAnswer = selectedAnswer.trim();
+      const trimmedCorrectAnswer = question.correctAnswer.trim();
       
-      const isCorrect = selectedAnswer === question.correctAnswer;
+      // Debug: Log answer extraction and trimming
+      console.log(`Question ${index}: received answer object:`, answersArray[index]);
+      console.log(`Question ${index}: extracted answer: "${selectedAnswer}"`);
+      console.log(`Question ${index}: trimmed student answer: "${trimmedSelectedAnswer}"`);
+      console.log(`Question ${index}: trimmed correct answer: "${trimmedCorrectAnswer}"`);
+      
+      const isCorrect = trimmedSelectedAnswer === trimmedCorrectAnswer;
       
       if (isCorrect) {
         correctAnswers++;
