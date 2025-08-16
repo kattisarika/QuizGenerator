@@ -2070,30 +2070,67 @@ app.get('/api/recorrection-requests', isAuthenticated, requireRole(['teacher']),
   try {
     const QuizResult = require('./models/QuizResult');
     
-    // Pagination parameters
+    // Get grade filter and pagination parameters
+    const selectedGrade = req.query.grade || 'all';
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     
-    // Get total count for pagination
-    const totalRequests = await QuizResult.countDocuments({
+    // Build base query
+    let baseQuery = {
       teacherId: req.user._id,
       organizationId: req.user.organizationId,
       status: 'pending-recorrection',
       recorrectionRequested: true
-    });
+    };
+    
+    // Get total count for pagination
+    let totalRequests;
+    if (selectedGrade === 'all') {
+      totalRequests = await QuizResult.countDocuments(baseQuery);
+    } else {
+      // For grade-specific filtering, we need to join with Quiz collection
+      totalRequests = await QuizResult.aggregate([
+        { $match: baseQuery },
+        { $lookup: { from: 'quizzes', localField: 'quiz', foreignField: '_id', as: 'quizData' } },
+        { $unwind: '$quizData' },
+        { $match: { 'quizData.gradeLevel': selectedGrade } },
+        { $count: 'total' }
+      ]);
+      totalRequests = totalRequests.length > 0 ? totalRequests[0].total : 0;
+    }
     
     // Get paginated recorrection requests
-    const requests = await QuizResult.find({
-      teacherId: req.user._id,
-      organizationId: req.user.organizationId,
-      status: 'pending-recorrection',
-      recorrectionRequested: true
-    }).populate('student', 'displayName email')
-      .populate('quiz', 'title')
-      .sort({ recorrectionRequestedAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    let requests;
+    if (selectedGrade === 'all') {
+      requests = await QuizResult.find(baseQuery)
+        .populate('student', 'displayName email')
+        .populate('quiz', 'title gradeLevel')
+        .sort({ recorrectionRequestedAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    } else {
+      // For grade-specific filtering, use aggregation
+      requests = await QuizResult.aggregate([
+        { $match: baseQuery },
+        { $lookup: { from: 'quizzes', localField: 'quiz', foreignField: '_id', as: 'quizData' } },
+        { $unwind: '$quizData' },
+        { $match: { 'quizData.gradeLevel': selectedGrade } },
+        { $sort: { recorrectionRequestedAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        { $lookup: { from: 'users', localField: 'student', foreignField: '_id', as: 'studentData' } },
+        { $unwind: '$studentData' },
+        { $project: {
+          _id: 1,
+          score: 1,
+          percentage: 1,
+          recorrectionRequestedAt: 1,
+          student: { $arrayElemAt: ['$studentData', 0] },
+          quiz: { $arrayElemAt: ['$quizData', 0] }
+        }}
+      ]);
+    }
     
     // Calculate pagination info
     const totalPages = Math.ceil(totalRequests / limit);
@@ -2117,6 +2154,62 @@ app.get('/api/recorrection-requests', isAuthenticated, requireRole(['teacher']),
   } catch (error) {
     console.error('Error fetching recorrection requests:', error);
     res.status(500).json({ error: 'Error fetching recorrection requests' });
+  }
+});
+
+// API endpoint to get recorrection request counts by grade
+app.get('/api/recorrection-grade-counts', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const QuizResult = require('./models/QuizResult');
+    
+    // Get recorrection request counts by grade
+    const gradeCounts = await QuizResult.aggregate([
+      { $match: {
+        teacherId: req.user._id,
+        organizationId: req.user.organizationId,
+        status: 'pending-recorrection',
+        recorrectionRequested: true
+      }},
+      { $lookup: { from: 'quizzes', localField: 'quiz', foreignField: '_id', as: 'quizData' } },
+      { $unwind: '$quizData' },
+      { $group: { _id: '$quizData.gradeLevel', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    // Create grade tabs data with counts
+    const gradeTabs = [
+      { grade: 'all', label: 'All Grades', count: 0 },
+      { grade: '1st grade', label: '1st Grade', count: 0 },
+      { grade: '2nd grade', label: '2nd Grade', count: 0 },
+      { grade: '3rd grade', label: '3rd Grade', count: 0 },
+      { grade: '4th grade', label: '4th Grade', count: 0 },
+      { grade: '5th grade', label: '5th Grade', count: 0 },
+      { grade: '6th grade', label: '6th Grade', count: 0 },
+      { grade: '7th grade', label: '7th Grade', count: 0 },
+      { grade: '8th grade', label: '8th Grade', count: 0 },
+      { grade: '9th grade', label: '9th Grade', count: 0 },
+      { grade: '10th grade', label: '10th Grade', count: 0 },
+      { grade: '11th grade', label: '11th Grade', count: 0 },
+      { grade: '12th grade', label: '12th Grade', count: 0 }
+    ];
+    
+    // Update counts from aggregation results
+    gradeCounts.forEach(gradeCount => {
+      const tab = gradeTabs.find(tab => tab.grade === gradeCount._id);
+      if (tab) {
+        tab.count = gradeCount.count;
+      }
+    });
+    
+    // Calculate total count for "All Grades" tab
+    const totalCount = gradeCounts.reduce((sum, gradeCount) => sum + gradeCount.count, 0);
+    gradeTabs[0].count = totalCount;
+    
+    res.json({ gradeTabs });
+    
+  } catch (error) {
+    console.error('Error fetching recorrection grade counts:', error);
+    res.status(500).json({ error: 'Error fetching grade counts' });
   }
 });
 
