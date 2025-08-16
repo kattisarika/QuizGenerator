@@ -3371,6 +3371,33 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
   }
 });
 
+// Debug route to check quiz data structure
+app.get('/debug-quiz/:quizId', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    res.json({
+      quizId: quiz._id,
+      title: quiz.title,
+      questions: quiz.questions.map((q, index) => ({
+        questionNumber: index + 1,
+        question: q.question.substring(0, 100) + '...',
+        hasImage: !!q.image,
+        imageUrl: q.image,
+        imageField: q.image,
+        allFields: Object.keys(q),
+        fullQuestion: q
+      }))
+    });
+  } catch (error) {
+    console.error('Error debugging quiz:', error);
+    res.status(500).json({ error: 'Error debugging quiz' });
+  }
+});
+
 // Route to start taking a quiz
 app.get('/take-quiz/:quizId', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
@@ -3407,6 +3434,21 @@ app.get('/take-quiz/:quizId', isAuthenticated, requireRole(['student']), async (
         user: req.user
       });
     }
+    
+    // Debug: Log quiz data to check if images are present
+    console.log('=== TAKE QUIZ DEBUG ===');
+    console.log('Quiz ID:', quiz._id);
+    console.log('Quiz title:', quiz.title);
+    console.log('Total questions:', quiz.questions.length);
+    quiz.questions.forEach((q, index) => {
+      console.log(`Question ${index + 1}:`, {
+        hasImage: !!q.image,
+        imageUrl: q.image,
+        questionText: q.question.substring(0, 50) + '...',
+        questionObject: JSON.stringify(q, null, 2)
+      });
+    });
+    console.log('=== END TAKE QUIZ DEBUG ===');
     
     res.render('take-quiz', { quiz, user: req.user });
   } catch (error) {
