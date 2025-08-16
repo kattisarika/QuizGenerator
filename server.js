@@ -1906,9 +1906,10 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
 });
 
 // Manual quiz creation route
-app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, upload.array('questionImages', 50), async (req, res) => {
   try {
-    const { title, description, gradeLevel, subjects, language, quizType, questions, isManuallyCreated } = req.body;
+    const { title, description, gradeLevel, subjects, language, quizType, isManuallyCreated } = req.body;
+    const questions = JSON.parse(req.body.questions);
     
     // Append current date and time to the title
     const now = new Date();
@@ -1924,6 +1925,7 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     const finalTitle = `${title} - ${dateTimeString}`;
     
     console.log('Manual quiz creation:', { originalTitle: title, finalTitle, quizType, questionsCount: questions.length });
+    console.log('Uploaded files:', req.files ? req.files.length : 0);
     
     // Validate required fields
     if (!title || !gradeLevel || !subjects) {
@@ -1934,40 +1936,58 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
       return res.status(400).send('At least one question is required');
     }
     
-    // Transform questions to match the quiz schema
-    console.log('Transforming questions, received:', questions.length, 'questions');
-    const extractedQuestions = questions.map((q, index) => {
-      console.log(`Processing question ${index + 1}:`, q.questionText.substring(0, 50) + '...');
+    // Process questions and upload images to S3
+    console.log('Processing questions and uploading images...');
+    const extractedQuestions = [];
+    
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      console.log(`Processing question ${i + 1}:`, q.questionText.substring(0, 50) + '...');
+      
       const baseQuestion = {
-        question: q.questionText,  // Changed from questionText to question
-        questionNumber: index + 1,
+        question: q.questionText,
+        questionNumber: i + 1,
         points: 1
       };
       
+      // Handle image upload for this question
+      let imageUrl = null;
+      if (q.hasImage && req.files && req.files[i]) {
+        try {
+          const imageFile = req.files[i];
+          console.log(`Uploading image for question ${i + 1}:`, imageFile.originalname);
+          imageUrl = await uploadToS3(imageFile, 'question-images');
+          console.log(`Image uploaded successfully:`, imageUrl);
+        } catch (error) {
+          console.error(`Error uploading image for question ${i + 1}:`, error);
+          imageUrl = null;
+        }
+      }
+      
       if (q.answerFormat === 'multiple') {
         // Multiple choice question
-        return {
+        extractedQuestions.push({
           ...baseQuestion,
           options: q.options,
           correctAnswer: q.selectionType === 'single' 
-            ? q.options[q.correctAnswers[0]]  // Single answer - store the actual text
-            : q.correctAnswers.map(i => q.options[i]).join(','),  // Multiple answers - join as string
+            ? q.options[q.correctAnswers[0]]
+            : q.correctAnswers.map(i => q.options[i]).join(','),
           multipleCorrect: q.selectionType === 'multiple',
-          image: q.image || null,
+          image: imageUrl,
           type: 'multiple-choice'
-        };
+        });
       } else {
         // Text answer question
-        return {
+        extractedQuestions.push({
           ...baseQuestion,
           options: [],
           correctAnswer: q.expectedAnswer,
           isTextAnswer: true,
-          image: q.image || null,
+          image: imageUrl,
           type: 'short-answer'
-        };
+        });
       }
-    });
+    }
     
     // Create the quiz
     const quiz = new Quiz({

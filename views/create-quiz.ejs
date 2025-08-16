@@ -1373,9 +1373,12 @@
                     return;
                 }
 
+                // Store the file object instead of base64
+                currentQuestionImage = file;
+                
+                // Show preview
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    currentQuestionImage = e.target.result;
                     document.getElementById('imageUploadContent').style.display = 'none';
                     document.getElementById('imagePreview').style.display = 'block';
                     document.getElementById('previewImg').src = e.target.result;
@@ -1632,12 +1635,49 @@
 
             // Submit quiz
             try {
+                // Create FormData for file uploads
+                const formData = new FormData();
+                
+                // Add quiz metadata
+                formData.append('title', title);
+                formData.append('description', description);
+                formData.append('gradeLevel', grade);
+                formData.append('subjects', subject);
+                formData.append('language', 'English');
+                formData.append('quizType', quizType);
+                formData.append('isManuallyCreated', 'true');
+                
+                // Process questions and add images
+                const processedQuestions = [];
+                const imageFiles = [];
+                
+                manualQuestions.forEach((question, index) => {
+                    const processedQuestion = { ...question };
+                    
+                    if (question.image && question.image instanceof File) {
+                        // Mark question as having an image
+                        processedQuestion.hasImage = true;
+                        // Add image file to FormData
+                        formData.append('questionImages', question.image);
+                        imageFiles.push(question.image);
+                    } else {
+                        processedQuestion.hasImage = false;
+                    }
+                    
+                    processedQuestions.push(processedQuestion);
+                });
+                
+                // Add processed questions data
+                formData.append('questions', JSON.stringify(processedQuestions));
+                
+                console.log('Submitting quiz with:', {
+                    questionsCount: processedQuestions.length,
+                    imagesCount: imageFiles.length
+                });
+                
                 const response = await fetch('/create-quiz-manual', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(quizData)
+                    body: formData
                 });
 
                 if (response.ok) {
