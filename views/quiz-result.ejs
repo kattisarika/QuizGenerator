@@ -7,6 +7,141 @@
     <link rel="stylesheet" href="/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* Recorrection Section Styles */
+        .recorrection-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .recorrection-section h3 {
+            color: #1f2937;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .recorrection-status {
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid transparent;
+        }
+
+        .recorrection-status.pending {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+
+        .recorrection-status.completed {
+            background: #d1fae5;
+            border-color: #10b981;
+            color: #065f46;
+        }
+
+        .recorrection-status i {
+            font-size: 32px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .recorrection-status h4 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .recorrection-status p {
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .score-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .score-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .score-label {
+            display: block;
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .score-value {
+            font-size: 18px;
+            font-weight: 700;
+            display: block;
+        }
+
+        .score-value.original {
+            color: #6b7280;
+        }
+
+        .score-value.updated {
+            color: #10b981;
+        }
+
+        .score-change {
+            font-size: 18px;
+            font-weight: 700;
+            display: block;
+        }
+
+        .score-change.positive {
+            color: #10b981;
+        }
+
+        .score-change.negative {
+            color: #ef4444;
+        }
+
+        .score-change.neutral {
+            color: #6b7280;
+        }
+
+        .teacher-feedback {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .teacher-feedback h5 {
+            color: #065f46;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .teacher-feedback p {
+            color: #1f2937;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .recorrection-status small {
+            display: block;
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -122,31 +257,17 @@
                 <h3><i class="fas fa-lightbulb me-2"></i>Performance Insights</h3>
                 
                 <div class="insights-grid">
-                    <% if (result.percentage >= 80) { %>
-                        <div class="insight-item excellent">
-                            <i class="fas fa-star"></i>
-                            <h4>Excellent Performance!</h4>
-                            <p>You demonstrated a strong understanding of the material. Keep up the great work!</p>
-                        </div>
-                    <% } else if (result.percentage >= 60) { %>
-                        <div class="insight-item good">
-                            <i class="fas fa-thumbs-up"></i>
-                            <h4>Good Performance</h4>
-                            <p>You have a solid grasp of the concepts. Consider reviewing the incorrect answers to improve further.</p>
-                        </div>
-                    <% } else if (result.percentage >= 40) { %>
-                        <div class="insight-item average">
-                            <i class="fas fa-info-circle"></i>
-                            <h4>Average Performance</h4>
-                            <p>You have some understanding but need more practice. Review the material and try again.</p>
-                        </div>
-                    <% } else { %>
-                        <div class="insight-item poor">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <h4>Needs Improvement</h4>
-                            <p>You need to review the material more thoroughly. Consider studying the topics again.</p>
-                        </div>
-                    <% } %>
+                    <div class="insight-item">
+                        <i class="fas fa-chart-line"></i>
+                        <h4>Score Analysis</h4>
+                        <p>You scored <%= result.score %> out of <%= result.totalPoints %> points, achieving <%= result.percentage %>% accuracy.</p>
+                    </div>
+                    
+                    <div class="insight-item">
+                        <i class="fas fa-target"></i>
+                        <h4>Accuracy</h4>
+                        <p>You answered <%= result.correctAnswers %> out of <%= result.totalQuestions %> questions correctly.</p>
+                    </div>
                     
                     <div class="insight-item">
                         <i class="fas fa-clock"></i>
@@ -155,6 +276,52 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Recorrection Status and Feedback -->
+            <% if (result.recorrectionRequested || result.status === 'rechecked') { %>
+                <div class="recorrection-section">
+                    <h3><i class="fas fa-redo me-2"></i>Recorrection Information</h3>
+                    
+                    <% if (result.status === 'pending-recorrection') { %>
+                        <div class="recorrection-status pending">
+                            <i class="fas fa-clock"></i>
+                            <h4>Recorrection Requested</h4>
+                            <p>Your quiz has been sent for recorrection. The teacher will review your answers and provide feedback.</p>
+                            <small>Requested on: <%= new Date(result.recorrectionRequestedAt).toLocaleDateString() %></small>
+                        </div>
+                    <% } else if (result.status === 'rechecked') { %>
+                        <div class="recorrection-status completed">
+                            <i class="fas fa-check-double"></i>
+                            <h4>Recorrection Completed</h4>
+                            <div class="score-comparison">
+                                <div class="score-item">
+                                    <span class="score-label">Original Score:</span>
+                                    <span class="score-value original"><%= result.originalScore %> / <%= result.totalPoints %></span>
+                                </div>
+                                <div class="score-item">
+                                    <span class="score-label">Updated Score:</span>
+                                    <span class="score-value updated"><%= result.score %> / <%= result.totalPoints %></span>
+                                </div>
+                                <div class="score-item">
+                                    <span class="score-label">Score Change:</span>
+                                    <span class="score-change <%= result.score > result.originalScore ? 'positive' : result.score < result.originalScore ? 'negative' : 'neutral' %>">
+                                        <%= result.score > result.originalScore ? '+' : '' %><%= result.score - result.originalScore %> points
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <% if (result.teacherFeedback) { %>
+                                <div class="teacher-feedback">
+                                    <h5><i class="fas fa-comment"></i> Teacher Feedback:</h5>
+                                    <p><%= result.teacherFeedback %></p>
+                                </div>
+                            <% } %>
+                            
+                            <small>Recorrection completed on: <%= new Date(result.recorrectionCompletedAt).toLocaleDateString() %></small>
+                        </div>
+                    <% } %>
+                </div>
+            <% } %>
 
             <!-- Action Buttons -->
             <div class="result-actions">

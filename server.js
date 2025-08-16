@@ -1911,14 +1911,177 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(e => e.message);
       console.error('Validation errors:', errors);
-      res.status(400).send(`Validation error: ${errors.join(', ')}`);
-    } else {
-      res.status(500).send(`Error creating quiz: ${error.message}`);
+      return res.status(400).send(`Validation error: ${errors.join(', ')}`);
     }
+    
+    res.status(500).send('Error creating quiz: ' + error.message);
   }
 });
 
+// Recorrection system routes
+app.post('/request-recorrection', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const { resultId } = req.body;
+    
+    // Find the quiz result
+    const QuizResult = require('./models/QuizResult');
+    const result = await QuizResult.findById(resultId);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Quiz result not found' });
+    }
+    
+    // Check if student owns this result
+    if (result.student.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only request recorrection for your own results' });
+    }
+    
+    // Check if already requested
+    if (result.recorrectionRequested) {
+      return res.status(400).json({ error: 'Recorrection already requested for this result' });
+    }
+    
+    // Check if result is completed
+    if (result.status !== 'completed') {
+      return res.status(400).json({ error: 'Only completed results can be sent for recorrection' });
+    }
+    
+    // Update the result
+    result.recorrectionRequested = true;
+    result.recorrectionRequestedAt = new Date();
+    result.originalScore = result.score;
+    result.originalPercentage = result.percentage;
+    result.status = 'pending-recorrection';
+    
+    await result.save();
+    
+    res.json({ 
+      success: true, 
+      message: 'Recorrection request sent successfully' 
+    });
+    
+  } catch (error) {
+    console.error('Error requesting recorrection:', error);
+    res.status(500).json({ error: 'Error requesting recorrection' });
+  }
+});
 
+// API endpoint to get recorrection requests for teachers
+app.get('/api/recorrection-requests', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const QuizResult = require('./models/QuizResult');
+    
+    // Get all pending recorrection requests for this teacher
+    const requests = await QuizResult.find({
+      teacherId: req.user._id,
+      organizationId: req.user.organizationId,
+      status: 'pending-recorrection',
+      recorrectionRequested: true
+    }).populate('student', 'displayName email')
+      .populate('quiz', 'title')
+      .sort({ recorrectionRequestedAt: -1 });
+    
+    res.json(requests);
+    
+  } catch (error) {
+    console.error('Error fetching recorrection requests:', error);
+    res.status(500).json({ error: 'Error fetching recorrection requests' });
+  }
+});
+
+// Route to view recorrection details
+app.get('/recorrection-details/:resultId', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const QuizResult = require('./models/QuizResult');
+    const result = await QuizResult.findById(req.params.resultId)
+      .populate('student', 'displayName email')
+      .populate('quiz', 'title questions');
+    
+    if (!result) {
+      return res.status(404).render('error', { message: 'Result not found' });
+    }
+    
+    // Check if teacher owns this quiz
+    if (result.teacherId.toString() !== req.user._id.toString()) {
+      return res.status(403).render('error', { message: 'You can only view results for your own quizzes' });
+    }
+    
+    res.render('recorrection-details', { result });
+    
+  } catch (error) {
+    console.error('Error viewing recorrection details:', error);
+    res.status(500).render('error', { message: 'Error viewing recorrection details' });
+  }
+});
+
+// Route to process recorrection
+app.get('/process-recorrection/:resultId', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const QuizResult = require('./models/QuizResult');
+    const result = await QuizResult.findById(req.params.resultId)
+      .populate('student', 'displayName email')
+      .populate('quiz', 'title questions');
+    
+    if (!result) {
+      return res.status(404).render('error', { message: 'Result not found' });
+    }
+    
+    // Check if teacher owns this quiz
+    if (result.teacherId.toString() !== req.user._id.toString()) {
+      return res.status(403).render('error', { message: 'You can only process results for your own quizzes' });
+    }
+    
+    res.render('process-recorrection', { result });
+    
+  } catch (error) {
+    console.error('Error processing recorrection:', error);
+    res.status(500).render('error', { message: 'Error processing recorrection' });
+  }
+});
+
+// Route to save recorrection
+app.post('/save-recorrection', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { resultId, newScore, feedback } = req.body;
+    
+    const QuizResult = require('./models/QuizResult');
+    const result = await QuizResult.findById(resultId);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Result not found' });
+    }
+    
+    // Check if teacher owns this quiz
+    if (result.teacherId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only process results for your own quizzes' });
+    }
+    
+    // Update the result
+    result.score = parseInt(newScore);
+    result.percentage = Math.round((result.score / result.totalPoints) * 100);
+    result.teacherFeedback = feedback || '';
+    result.status = 'rechecked';
+    result.recorrectionCompletedAt = new Date();
+    result.recorrectionCompletedBy = req.user._id;
+    
+    // Recalculate correct answers based on new score
+    // This is a simplified approach - in a real system you might want to re-evaluate individual answers
+    result.correctAnswers = Math.round((result.score / result.totalPoints) * result.totalQuestions);
+    
+    await result.save();
+    
+    res.json({ 
+      success: true, 
+      message: 'Recorrection completed successfully',
+      newScore: result.score,
+      newPercentage: result.percentage
+    });
+    
+  } catch (error) {
+    console.error('Error saving recorrection:', error);
+    res.status(500).json({ error: 'Error saving recorrection' });
+  }
+});
 
 // Route to check current user status
 app.get('/check-user', isAuthenticated, async (req, res) => {

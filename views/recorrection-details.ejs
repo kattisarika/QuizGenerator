@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recorrection Details - <%= result.quizTitle %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- MathJax for Math Equation Support -->
+    <script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true,
+            processEnvironments: true
+        },
+        options: {
+            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+        }
+    };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+        }
+        
+        .nav-logo a {
+            font-size: 24px;
+            font-weight: 700;
+            color: #4f46e5;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: #4f46e5;
+        }
+        
+        .main-content {
+            margin-top: 90px;
+            padding: 20px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .recorrection-header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .header-title {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header-title h1 {
+            font-size: 28px;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        
+        .header-title p {
+            color: #6b7280;
+            font-size: 16px;
+        }
+        
+        .student-info {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .questions-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 24px;
+            color: #1f2937;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .question-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f9fafb;
+        }
+        
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .question-number {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .question-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-correct {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-incorrect {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .question-text {
+            font-size: 16px;
+            color: #1f2937;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .answer-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .answer-item {
+            background: white;
+            border-radius: 6px;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .answer-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .answer-content {
+            font-size: 16px;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+        
+        .correct-answer {
+            color: #059669;
+            font-weight: 500;
+        }
+        
+        .incorrect-answer {
+            color: #dc2626;
+            font-weight: 500;
+        }
+        
+        .student-answer {
+            color: #7c3aed;
+            font-weight: 500;
+        }
+        
+        .actions-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+        
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+        
+        .footer {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            margin-top: 50px;
+        }
+        
+        .footer-content p {
+            color: #6b7280;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/teacher/dashboard">
+                    <i class="fas fa-graduation-cap"></i>
+                    Teacher Dashboard
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="/teacher/dashboard" class="nav-link">Dashboard</a>
+                <a href="/create-quiz" class="nav-link">Create Quiz</a>
+                <a href="/select-role" class="nav-link">Change Role</a>
+                <a href="/logout" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <!-- Recorrection Header -->
+        <div class="recorrection-header">
+            <div class="header-title">
+                <h1><i class="fas fa-redo me-2"></i>Recorrection Details</h1>
+                <p>Review student answers and determine if recorrection is needed</p>
+            </div>
+            
+            <div class="student-info">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Student Name</div>
+                        <div class="info-value"><%= result.student.displayName %></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Quiz Title</div>
+                        <div class="info-value"><%= result.quizTitle %></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Original Score</div>
+                        <div class="info-value"><%= result.originalScore %> / <%= result.totalPoints %></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Original Percentage</div>
+                        <div class="info-value"><%= result.originalPercentage %>%</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Requested On</div>
+                        <div class="info-value"><%= new Date(result.recorrectionRequestedAt).toLocaleDateString() %></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions Review -->
+        <div class="questions-section">
+            <h2 class="section-title"><i class="fas fa-question-circle me-2"></i>Question Review</h2>
+            
+            <% result.answers.forEach((answer, index) => { %>
+                <div class="question-card">
+                    <div class="question-header">
+                        <div class="question-number">Question <%= index + 1 %></div>
+                        <span class="question-status <%= answer.isCorrect ? 'status-correct' : 'status-incorrect' %>">
+                            <i class="fas fa-<%= answer.isCorrect ? 'check' : 'times' %>"></i>
+                            <%= answer.isCorrect ? 'Correct' : 'Incorrect' %>
+                        </span>
+                    </div>
+                    
+                    <div class="question-text">
+                        <%= result.quiz.questions[index] ? result.quiz.questions[index].question : 'Question not available' %>
+                    </div>
+                    
+                    <div class="answer-details">
+                        <div class="answer-item">
+                            <div class="answer-label">Student's Answer</div>
+                            <div class="answer-content student-answer">
+                                <%= answer.selectedAnswer || 'Not answered' %>
+                            </div>
+                        </div>
+                        
+                        <div class="answer-item">
+                            <div class="answer-label">Correct Answer</div>
+                            <div class="answer-content correct-answer">
+                                <%= answer.correctAnswer %>
+                            </div>
+                        </div>
+                        
+                        <div class="answer-item">
+                            <div class="answer-label">Points</div>
+                            <div class="answer-content">
+                                <%= answer.isCorrect ? answer.points : 0 %> / <%= answer.points %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-section">
+            <h3>Ready to Process Recorrection?</h3>
+            <p>Review the student's answers above and click the button below to proceed with recorrection.</p>
+            
+            <a href="/process-recorrection/<%= result._id %>" class="btn btn-primary">
+                <i class="fas fa-check"></i> Process Recorrection
+            </a>
+            
+            <a href="/teacher/dashboard" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html> 

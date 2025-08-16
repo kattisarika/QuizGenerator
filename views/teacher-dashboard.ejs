@@ -404,6 +404,146 @@
             line-height: 1.6;
         }
 
+        /* Recorrection Requests Section */
+        .dashboard-section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .section-header {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .section-header h2 {
+            font-size: 24px;
+            color: var(--dark-color);
+            margin-bottom: 10px;
+        }
+
+        .section-header p {
+            color: #6B7280;
+            font-size: 16px;
+        }
+
+        .recorrection-requests {
+            min-height: 200px;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 40px;
+            color: #6B7280;
+        }
+
+        .loading-state i {
+            font-size: 32px;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .recorrection-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .recorrection-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .recorrection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .student-info h4 {
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .student-info p {
+            color: #6B7280;
+            font-size: 14px;
+        }
+
+        .recorrection-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #fbbf24;
+            color: #92400e;
+        }
+
+        .recorrection-details {
+            margin-bottom: 20px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .detail-value {
+            color: #6B7280;
+        }
+
+        .recorrection-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+        }
+
+        .btn-outline-primary {
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            border-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+
         /* Enhanced Buttons */
         .btn {
             padding: 12px 24px;
@@ -1100,6 +1240,23 @@
         </div>
     </div>
 
+    <!-- Recorrection Requests Section -->
+    <div class="dashboard-section">
+        <div class="section-header">
+            <h2><i class="fas fa-redo me-2"></i>Recorrection Requests</h2>
+            <p>Review and re-evaluate student quiz submissions</p>
+        </div>
+        
+        <div class="recorrection-requests" id="recorrectionRequests">
+            <!-- Recorrection requests will be loaded here -->
+            <div class="loading-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading recorrection requests...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
     <footer class="footer">
         <div class="footer-content">
             <p>&copy; 2024 Take Quiz Now!. All rights reserved.</p>
@@ -1476,5 +1633,96 @@
     
     <!-- Session timeout management -->
     <script src="/js/session-timeout.js"></script>
+    <script>
+        // Load recorrection requests when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRecorrectionRequests();
+        });
+
+        // Function to load recorrection requests
+        async function loadRecorrectionRequests() {
+            try {
+                const response = await fetch('/api/recorrection-requests');
+                if (response.ok) {
+                    const requests = await response.json();
+                    displayRecorrectionRequests(requests);
+                } else {
+                    document.getElementById('recorrectionRequests').innerHTML = 
+                        '<div class="error-state"><p>Error loading recorrection requests</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading recorrection requests:', error);
+                document.getElementById('recorrectionRequests').innerHTML = 
+                    '<div class="error-state"><p>Error loading recorrection requests</p></div>';
+            }
+        }
+
+        // Function to display recorrection requests
+        function displayRecorrectionRequests(requests) {
+            const container = document.getElementById('recorrectionRequests');
+            
+            if (requests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <p>No pending recorrection requests</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = requests.map(request => `
+                <div class="recorrection-card">
+                    <div class="recorrection-header">
+                        <div class="student-info">
+                            <h4>${request.studentName}</h4>
+                            <p>${request.quizTitle}</p>
+                        </div>
+                        <span class="recorrection-status">Pending Recorrection</span>
+                    </div>
+                    
+                    <div class="recorrection-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Original Score:</span>
+                            <span class="detail-value">${request.originalScore} / ${request.totalPoints}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Original Percentage:</span>
+                            <span class="detail-value">${request.originalPercentage}%</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Requested On:</span>
+                            <span class="detail-value">${new Date(request.recorrectionRequestedAt).toLocaleDateString()}</span>
+                        </div>
+                        ${request.recorrectionReason ? `
+                            <div class="detail-row">
+                                <span class="detail-label">Reason:</span>
+                                <span class="detail-value">${request.recorrectionReason}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="recorrection-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewRecorrectionDetails('${request._id}')">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                        <button class="btn btn-sm btn-success" onclick="processRecorrection('${request._id}')">
+                            <i class="fas fa-check"></i> Process Recorrection
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Function to view recorrection details
+        function viewRecorrectionDetails(resultId) {
+            window.open(`/recorrection-details/${resultId}`, '_blank');
+        }
+
+        // Function to process recorrection
+        function processRecorrection(resultId) {
+            window.location.href = `/process-recorrection/${resultId}`;
+        }
+    </script>
 </body>
 </html> 

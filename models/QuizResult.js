@@ -88,8 +88,42 @@ const quizResultSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['in-progress', 'completed', 'abandoned'],
+    enum: ['in-progress', 'completed', 'abandoned', 'pending-recorrection', 'rechecked'],
     default: 'completed'
+  },
+  // Recorrection system fields
+  recorrectionRequested: {
+    type: Boolean,
+    default: false
+  },
+  recorrectionRequestedAt: {
+    type: Date,
+    default: null
+  },
+  recorrectionReason: {
+    type: String,
+    default: ''
+  },
+  originalScore: {
+    type: Number,
+    default: null
+  },
+  originalPercentage: {
+    type: Number,
+    default: null
+  },
+  teacherFeedback: {
+    type: String,
+    default: ''
+  },
+  recorrectionCompletedAt: {
+    type: Date,
+    default: null
+  },
+  recorrectionCompletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   }
 }, {
   timestamps: true
