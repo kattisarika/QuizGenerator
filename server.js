@@ -1483,12 +1483,15 @@ app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (
       student: req.user._id,
       organizationId: { $in: organizationIds }
     });
-    const completedCount = quizResults.length;
     
-    // Calculate average score
+    // Calculate completed count excluding archived quizzes (attemptNumber > 1)
+    const completedCount = quizResults.filter(result => result.attemptNumber <= 1).length;
+    
+    // Calculate average score excluding archived quizzes
     let averageScore = 0;
     if (completedCount > 0) {
-      const totalScore = quizResults.reduce((sum, result) => sum + result.percentage, 0);
+      const nonArchivedResults = quizResults.filter(result => result.attemptNumber <= 1);
+      const totalScore = nonArchivedResults.reduce((sum, result) => sum + result.percentage, 0);
       averageScore = Math.round(totalScore / completedCount);
     }
     
@@ -1944,6 +1947,11 @@ app.post('/request-recorrection', isAuthenticated, requireRole(['student']), asy
     // Check if result is completed
     if (result.status !== 'completed') {
       return res.status(400).json({ error: 'Only completed results can be sent for recorrection' });
+    }
+    
+    // Check if this is an archived quiz (attemptNumber > 1)
+    if (result.attemptNumber > 1) {
+      return res.status(400).json({ error: 'Archived quizzes cannot be sent for recorrection' });
     }
     
     // Update the result
@@ -3425,7 +3433,15 @@ app.get('/my-results', isAuthenticated, requireRole(['student']), async (req, re
       .populate('quiz')
       .sort({ createdAt: -1 });
     
-    res.render('my-results', { results, user: req.user });
+    // Add isArchived property to each result
+    const resultsWithArchiveStatus = results.map(result => {
+      const resultObj = result.toObject();
+      // A quiz is considered archived if it has been taken more than once
+      resultObj.isArchived = result.attemptNumber > 1;
+      return resultObj;
+    });
+    
+    res.render('my-results', { results: resultsWithArchiveStatus, user: req.user });
   } catch (error) {
     console.error('Error fetching results:', error);
     res.status(500).send('Error fetching results');

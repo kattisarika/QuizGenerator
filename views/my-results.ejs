@@ -40,6 +40,11 @@
             border-color: #d97706;
             color: white;
         }
+        
+        .badge-secondary {
+            background: #6b7280;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -156,7 +161,7 @@
                                     <i class="fas fa-eye"></i> View Details
                                 </a>
                                 
-                                <% if (result.status === 'completed' && !result.recorrectionRequested) { %>
+                                <% if (result.status === 'completed' && !result.recorrectionRequested && !result.isArchived) { %>
                                     <button class="btn btn-sm btn-warning" onclick="requestRecorrection('<%= result._id %>')">
                                         <i class="fas fa-redo"></i> Send for Recorrection
                                     </button>
@@ -167,6 +172,10 @@
                                 <% } else if (result.status === 'rechecked') { %>
                                     <span class="badge badge-info">
                                         <i class="fas fa-check-double"></i> Rechecked
+                                    </span>
+                                <% } else if (result.isArchived) { %>
+                                    <span class="badge badge-secondary">
+                                        <i class="fas fa-archive"></i> Archived (No Recorrection)
                                     </span>
                                 <% } %>
                             </div>
