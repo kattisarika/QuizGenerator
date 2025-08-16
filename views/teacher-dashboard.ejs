@@ -544,6 +544,119 @@
             border-color: #059669;
         }
 
+        /* Pagination Styles */
+        .pagination-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .pagination-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-size-selector label {
+            font-size: 14px;
+            color: #4B5563;
+        }
+
+        .page-size-selector select {
+            padding: 8px 12px;
+            border: 1px solid #D1D5DB;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #374151;
+            background-color: #F9FAFB;
+        }
+
+        .pagination-info {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .page-indicator {
+            background: #f3f4f6;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .pagination-controls .btn {
+            min-width: 100px;
+        }
+
+        .pagination-controls .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-controls .btn:not(:disabled):hover {
+            transform: translateY(-1px);
+        }
+
+        /* Error and Empty States */
+        .error-state {
+            text-align: center;
+            padding: 40px;
+            color: #dc2626;
+        }
+
+        .error-state i {
+            font-size: 32px;
+            margin-bottom: 15px;
+            color: #dc2626;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #10b981;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #374151;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
         /* Enhanced Buttons */
         .btn {
             padding: 12px 24px;
@@ -714,23 +827,6 @@
         .bg-info {
             background: #DBEAFE;
             color: #1E40AF;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #6B7280;
-        }
-
-        .empty-state i {
-            font-size: 64px;
-            color: #D1D5DB;
-            margin-bottom: 20px;
-        }
-
-        .empty-state p {
-            font-size: 18px;
-            margin-bottom: 20px;
         }
 
         /* Footer Styles */
@@ -1254,6 +1350,35 @@
                 <p>Loading recorrection requests...</p>
             </div>
         </div>
+        
+        <!-- Pagination Controls -->
+        <div class="pagination-container" id="paginationContainer" style="display: none;">
+            <div class="pagination-header">
+                <div class="page-size-selector">
+                    <label for="pageSize">Show:</label>
+                    <select id="pageSize" onchange="changePageSize()">
+                        <option value="5">5 per page</option>
+                        <option value="10" selected>10 per page</option>
+                        <option value="20">20 per page</option>
+                        <option value="50">50 per page</option>
+                    </select>
+                </div>
+                <div class="pagination-info">
+                    <span id="paginationInfo">Showing 0 of 0 requests</span>
+                </div>
+            </div>
+            <div class="pagination-controls">
+                <button class="btn btn-sm btn-outline-primary" id="prevPageBtn" onclick="changePage('prev')" disabled>
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+                <span class="page-indicator">
+                    Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+                </span>
+                <button class="btn btn-sm btn-outline-primary" id="nextPageBtn" onclick="changePage('next')" disabled>
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1636,24 +1761,85 @@
     <script>
         // Load recorrection requests when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            loadRecorrectionRequests();
+            loadRecorrectionRequests(1);
         });
 
+        // Current page tracking
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalRequests = 0;
+
         // Function to load recorrection requests
-        async function loadRecorrectionRequests() {
+        async function loadRecorrectionRequests(page = 1, pageSize = 10) {
             try {
-                const response = await fetch('/api/recorrection-requests');
+                // Show loading state
+                const container = document.getElementById('recorrectionRequests');
+                container.innerHTML = `
+                    <div class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading recorrection requests...</p>
+                    </div>
+                `;
+                
+                currentPage = page;
+                const response = await fetch(`/api/recorrection-requests?page=${page}&limit=${pageSize}`);
                 if (response.ok) {
-                    const requests = await response.json();
-                    displayRecorrectionRequests(requests);
+                    const data = await response.json();
+                    displayRecorrectionRequests(data.requests);
+                    updatePagination(data.pagination);
                 } else {
-                    document.getElementById('recorrectionRequests').innerHTML = 
+                    container.innerHTML = 
                         '<div class="error-state"><p>Error loading recorrection requests</p></div>';
                 }
             } catch (error) {
                 console.error('Error loading recorrection requests:', error);
-                document.getElementById('recorrectionRequests').innerHTML = 
+                const container = document.getElementById('recorrectionRequests');
+                container.innerHTML = 
                     '<div class="error-state"><p>Error loading recorrection requests</p></div>';
+            }
+        }
+
+        // Function to change page
+        function changePage(direction) {
+            let newPage = currentPage;
+            
+            if (direction === 'next' && currentPage < totalPages) {
+                newPage = currentPage + 1;
+            } else if (direction === 'prev' && currentPage > 1) {
+                newPage = currentPage - 1;
+            }
+            
+            if (newPage !== currentPage) {
+                const pageSize = document.getElementById('pageSize').value;
+                loadRecorrectionRequests(newPage, pageSize);
+            }
+        }
+
+        // Function to update pagination controls
+        function updatePagination(pagination) {
+            currentPage = pagination.currentPage;
+            totalPages = pagination.totalPages;
+            totalRequests = pagination.totalRequests;
+            
+            // Update pagination info
+            const startItem = ((currentPage - 1) * pagination.limit) + 1;
+            const endItem = Math.min(currentPage * pagination.limit, totalRequests);
+            
+            document.getElementById('paginationInfo').textContent = 
+                `Showing ${startItem}-${endItem} of ${totalRequests} requests`;
+            document.getElementById('currentPage').textContent = currentPage;
+            document.getElementById('totalPages').textContent = totalPages;
+            
+            // Update button states
+            document.getElementById('prevPageBtn').disabled = !pagination.hasPrevPage;
+            document.getElementById('nextPageBtn').disabled = !pagination.hasNextPage;
+            
+            // Show pagination container if there are multiple pages
+            const paginationContainer = document.getElementById('paginationContainer');
+            if (totalPages > 1) {
+                paginationContainer.style.display = 'block';
+            } else {
+                paginationContainer.style.display = 'none';
             }
         }
 
@@ -1722,6 +1908,13 @@
         // Function to process recorrection
         function processRecorrection(resultId) {
             window.location.href = `/process-recorrection/${resultId}`;
+        }
+
+        // Function to change page size
+        function changePageSize() {
+            const pageSize = document.getElementById('pageSize').value;
+            // Reset to first page when changing page size
+            loadRecorrectionRequests(1, pageSize);
         }
     </script>
 </body>

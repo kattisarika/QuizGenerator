@@ -1971,7 +1971,20 @@ app.get('/api/recorrection-requests', isAuthenticated, requireRole(['teacher']),
   try {
     const QuizResult = require('./models/QuizResult');
     
-    // Get all pending recorrection requests for this teacher
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Get total count for pagination
+    const totalRequests = await QuizResult.countDocuments({
+      teacherId: req.user._id,
+      organizationId: req.user.organizationId,
+      status: 'pending-recorrection',
+      recorrectionRequested: true
+    });
+    
+    // Get paginated recorrection requests
     const requests = await QuizResult.find({
       teacherId: req.user._id,
       organizationId: req.user.organizationId,
@@ -1979,9 +1992,28 @@ app.get('/api/recorrection-requests', isAuthenticated, requireRole(['teacher']),
       recorrectionRequested: true
     }).populate('student', 'displayName email')
       .populate('quiz', 'title')
-      .sort({ recorrectionRequestedAt: -1 });
+      .sort({ recorrectionRequestedAt: -1 })
+      .skip(skip)
+      .limit(limit);
     
-    res.json(requests);
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalRequests / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+    
+    res.json({
+      requests,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalRequests,
+        limit,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null
+      }
+    });
     
   } catch (error) {
     console.error('Error fetching recorrection requests:', error);
