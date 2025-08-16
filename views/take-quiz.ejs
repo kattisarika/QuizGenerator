@@ -77,6 +77,110 @@
         .no-options-message i {
             color: #f39c12;
         }
+
+        /* Math Toolbar Styles */
+        .math-toolbar {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .math-toolbar .btn-group {
+            margin-bottom: 8px;
+        }
+
+        .math-toolbar .btn {
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .math-toolbar .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .math-toolbar .btn:active {
+            transform: translateY(0);
+        }
+
+        .math-help {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        /* Rich Text Editor Styles */
+        .rich-text-toolbar {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px 8px 0 0;
+            padding: 10px;
+            border-bottom: none;
+        }
+
+        .rich-text-toolbar .btn {
+            margin-right: 5px;
+            border-radius: 4px;
+        }
+
+        .rich-text-content {
+            border: 1px solid #dee2e6;
+            border-radius: 0 0 8px 8px;
+            min-height: 120px;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
+        .rich-text-content:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .rich-text-content ul, .rich-text-content ol {
+            margin-left: 20px;
+        }
+
+        .rich-text-content p {
+            margin-bottom: 8px;
+        }
+
+        /* Math Preview Styles */
+        .math-preview {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            min-height: 80px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .math-preview strong {
+            color: #495057;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* Editor Toggle Buttons */
+        .btn-group .btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-group .btn:not(.active):hover {
+            background: #e9ecef;
+            border-color: #667eea;
+            color: #667eea;
+        }
     </style>
 </head>
 <body>
@@ -154,22 +258,117 @@
                                         <% }); %>
                                     </div>
                                 <% } else if (question.type === 'short-answer' || question.isTextAnswer) { %>
-                                    <!-- Text Answer Input -->
+                                    <!-- Text Answer Input with Rich Text Editor and Math Support -->
                                     <div class="text-answer-section">
                                         <label for="text-answer-<%= index %>" class="text-answer-label">
                                             <i class="fas fa-keyboard me-2"></i>Your Answer:
                                         </label>
+                                        
+                                        <!-- Rich Text Editor Toggle -->
+                                        <div class="mb-2">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button type="button" class="btn btn-outline-primary active" id="plainTextBtn-<%= index %>" onclick="toggleStudentEditor('<%= index %>', 'plain')">
+                                                    <i class="fas fa-font"></i> Plain Text
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary" id="richTextBtn-<%= index %>" onclick="toggleStudentEditor('<%= index %>', 'rich')">
+                                                    <i class="fas fa-edit"></i> Rich Text
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Math Toolbar -->
+                                        <div class="math-toolbar">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\frac{a}{b}')" title="Fraction">
+                                                    <i class="fas fa-divide"></i> Fraction
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\sqrt{x}')" title="Square Root">
+                                                    √ Root
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', 'x^{2}')" title="Exponent">
+                                                    x² Power
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', 'x_{n}')" title="Subscript">
+                                                    x₁ Subscript
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\sum_{i=1}^{n}')" title="Sum">
+                                                    Σ Sum
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\int_{a}^{b}')" title="Integral">
+                                                    ∫ Integral
+                                                </button>
+                                            </div>
+                                            <div class="btn-group btn-group-sm mt-2" role="group">
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\alpha')" title="Alpha">
+                                                    α Alpha
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\beta')" title="Beta">
+                                                    β Beta
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\theta')" title="Theta">
+                                                    θ Theta
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\pi')" title="Pi">
+                                                    π Pi
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\pm')" title="Plus-Minus">
+                                                    ± Plus-Minus
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\neq')" title="Not Equal">
+                                                    ≠ Not Equal
+                                                </button>
+                                            </div>
+                                            <div class="math-help">
+                                                <i class="fas fa-info-circle"></i> Use $ for inline math: $x^2$ or $$ for display math: $$\frac{a}{b}$$
+                                                <br>
+                                                <small class="text-muted">Click any button above to insert common math symbols, or type LaTeX directly.</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Plain Text Input -->
                                         <textarea 
                                             id="text-answer-<%= index %>" 
                                             class="text-answer-input" 
-                                            placeholder="Type your answer here..."
-                                            rows="3"
+                                            placeholder="Type your answer here. Use $ for math: $x^2 + y^2 = z^2$"
+                                            rows="4"
                                             oninput="updateTextAnswer('<%= index %>', this.value)"
                                             data-question="<%= index %>">
                                         </textarea>
+                                        
+                                        <!-- Rich Text Editor (Hidden by default) -->
+                                        <div id="richTextEditor-<%= index %>" style="display: none;">
+                                            <div class="rich-text-toolbar mb-2">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execStudentCommand('<%= index %>', 'bold')" title="Bold">
+                                                    <i class="fas fa-bold"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execStudentCommand('<%= index %>', 'italic')" title="Italic">
+                                                    <i class="fas fa-italic"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execStudentCommand('<%= index %>', 'underline')" title="Underline">
+                                                    <i class="fas fa-underline"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execStudentCommand('<%= index %>', 'insertUnorderedList')" title="Bullet List">
+                                                    <i class="fas fa-list-ul"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execStudentCommand('<%= index %>', 'insertOrderedList')" title="Numbered List">
+                                                    <i class="fas fa-list-ol"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertMathInStudentEditor('<%= index %>', '\\frac{a}{b}')" title="Math">
+                                                    <i class="fas fa-square-root-alt"></i>
+                                                </button>
+                                            </div>
+                                            <div class="rich-text-content" id="richTextContent-<%= index %>" contenteditable="true" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem; min-height: 120px; background: white;" oninput="updateStudentRichTextAnswer('<%= index %>')"></div>
+                                        </div>
+                                        
+                                        <!-- Live Preview -->
+                                        <div id="answerPreview-<%= index %>" class="math-preview" style="display: none;">
+                                            <strong>Preview:</strong>
+                                            <div id="answerPreviewContent-<%= index %>">Your answer preview will appear here...</div>
+                                        </div>
+                                        
                                         <small class="text-muted">
                                             <i class="fas fa-info-circle me-1"></i>
-                                            This is a text answer question. Please provide a detailed response.
+                                            This is a text answer question. You can use rich text formatting and math equations.
                                         </small>
                                     </div>
                                 <% } else if (question.options && question.options.length > 0) { %>
@@ -339,9 +538,137 @@
                 indicator.classList.remove('answered');
             }
             
+            // Update preview if it exists
+            updateAnswerPreview(questionIndex, value);
+            
             // Debug log
             console.log(`Text answer for question ${questionIndex}:`, value);
             console.log('Current answers object:', answers);
+        }
+
+        // Rich Text Editor Toggle for Students
+        function toggleStudentEditor(questionIndex, type) {
+            const plainTextBtn = document.getElementById(`plainTextBtn-${questionIndex}`);
+            const richTextBtn = document.getElementById(`richTextBtn-${questionIndex}`);
+            const textarea = document.getElementById(`text-answer-${questionIndex}`);
+            const richTextEditor = document.getElementById(`richTextEditor-${questionIndex}`);
+            const richTextContent = document.getElementById(`richTextContent-${questionIndex}`);
+
+            if (type === 'rich') {
+                // Switch to rich text editor
+                plainTextBtn.classList.remove('active');
+                richTextBtn.classList.add('active');
+                textarea.style.display = 'none';
+                richTextEditor.style.display = 'block';
+                
+                // Transfer content from textarea to rich text editor
+                richTextContent.innerHTML = textarea.value.replace(/\n/g, '<br>');
+                
+                // Update preview
+                updateAnswerPreview(questionIndex, richTextContent.innerText);
+            } else {
+                // Switch to plain text editor
+                plainTextBtn.classList.add('active');
+                richTextBtn.classList.remove('active');
+                textarea.style.display = 'block';
+                richTextEditor.style.display = 'none';
+                
+                // Transfer content from rich text editor to textarea
+                textarea.value = richTextContent.innerText;
+                
+                // Update preview
+                updateAnswerPreview(questionIndex, textarea.value);
+            }
+        }
+
+        // Insert math in student rich text editor
+        function insertMathInStudentEditor(questionIndex, latex) {
+            const textarea = document.getElementById(`text-answer-${questionIndex}`);
+            const richTextContent = document.getElementById(`richTextContent-${questionIndex}`);
+            
+            if (richTextContent.style.display !== 'none') {
+                // Rich text editor is active
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const mathNode = document.createElement('span');
+                    mathNode.innerHTML = '$' + latex + '$';
+                    range.deleteContents();
+                    range.insertNode(mathNode);
+                    range.collapse(false);
+                    richTextContent.focus();
+                    
+                    // Update answer and preview
+                    updateStudentRichTextAnswer(questionIndex);
+                }
+            } else {
+                // Plain text editor is active
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                
+                // Insert LaTeX with $ delimiters
+                const insertion = '$' + latex + '$';
+                textarea.value = text.substring(0, start) + insertion + text.substring(end);
+                
+                // Update cursor position
+                textarea.selectionStart = start + insertion.length;
+                textarea.selectionEnd = start + insertion.length;
+                textarea.focus();
+                
+                // Update answer and preview
+                updateTextAnswer(questionIndex, textarea.value);
+            }
+        }
+
+        // Rich text editor commands for students
+        function execStudentCommand(questionIndex, command) {
+            document.execCommand(command, false, null);
+            updateStudentRichTextAnswer(questionIndex);
+        }
+
+        // Update student rich text answer
+        function updateStudentRichTextAnswer(questionIndex) {
+            const richTextContent = document.getElementById(`richTextContent-${questionIndex}`);
+            if (richTextContent) {
+                const answer = richTextContent.innerText;
+                answers[questionIndex] = {
+                    selectedAnswer: answer
+                };
+                
+                // Update preview
+                updateAnswerPreview(questionIndex, answer);
+                
+                // Update indicator
+                const indicator = document.getElementById(`indicator-${questionIndex}`);
+                if (indicator && answer.trim()) {
+                    indicator.classList.add('answered');
+                } else if (indicator) {
+                    indicator.classList.remove('answered');
+                }
+                
+                console.log(`Rich text answer for question ${questionIndex}:`, answer);
+            }
+        }
+
+        // Update answer preview with math rendering
+        function updateAnswerPreview(questionIndex, value) {
+            const previewDiv = document.getElementById(`answerPreview-${questionIndex}`);
+            const previewContent = document.getElementById(`answerPreviewContent-${questionIndex}`);
+            
+            if (previewDiv && previewContent) {
+                if (value.trim()) {
+                    previewContent.innerHTML = value;
+                    previewDiv.style.display = 'block';
+                    
+                    // Re-render math with MathJax
+                    if (window.MathJax) {
+                        MathJax.typesetPromise([previewContent]).catch((e) => console.log(e));
+                    }
+                } else {
+                    previewDiv.style.display = 'none';
+                }
+            }
         }
 
         function startTimer() {
