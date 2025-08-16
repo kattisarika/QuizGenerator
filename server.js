@@ -1168,16 +1168,23 @@ app.get('/competitive-quiz/:sessionId', isAuthenticated, requireRole(['student']
 // Role-specific dashboards
 app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
-    // Pagination parameters
+    // Get selected grade and pagination parameters
+    const selectedGrade = req.query.grade || 'all';
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     
+    // Build query based on selected grade
+    let query = { createdBy: req.user._id };
+    if (selectedGrade !== 'all') {
+      query.gradeLevel = selectedGrade;
+    }
+    
     // Get total count for pagination
-    const totalQuizzes = await Quiz.countDocuments({ createdBy: req.user._id });
+    const totalQuizzes = await Quiz.countDocuments(query);
     
     // Get paginated quizzes
-    const teacherQuizzes = await Quiz.find({ createdBy: req.user._id })
+    const teacherQuizzes = await Quiz.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -1186,6 +1193,38 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
     const totalPages = Math.ceil(totalQuizzes / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
+    
+    // Get quiz counts by grade for tabs
+    const gradeCounts = await Quiz.aggregate([
+      { $match: { createdBy: req.user._id } },
+      { $group: { _id: '$gradeLevel', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    // Create grade tabs data with counts
+    const gradeTabs = [
+      { grade: 'all', label: 'All Grades', count: totalQuizzes },
+      { grade: '1st grade', label: '1st Grade', count: 0 },
+      { grade: '2nd grade', label: '2nd Grade', count: 0 },
+      { grade: '3rd grade', label: '3rd Grade', count: 0 },
+      { grade: '4th grade', label: '4th Grade', count: 0 },
+      { grade: '5th grade', label: '5th Grade', count: 0 },
+      { grade: '6th grade', label: '6th Grade', count: 0 },
+      { grade: '7th grade', label: '7th Grade', count: 0 },
+      { grade: '8th grade', label: '8th Grade', count: 0 },
+      { grade: '9th grade', label: '9th Grade', count: 0 },
+      { grade: '10th grade', label: '10th Grade', count: 0 },
+      { grade: '11th grade', label: '11th Grade', count: 0 },
+      { grade: '12th grade', label: '12th Grade', count: 0 }
+    ];
+    
+    // Update counts from aggregation results
+    gradeCounts.forEach(gradeCount => {
+      const tab = gradeTabs.find(tab => tab.grade === gradeCount._id);
+      if (tab) {
+        tab.count = gradeCount.count;
+      }
+    });
     
     // Get organization information for the teacher
     let organization = null;
@@ -1197,16 +1236,18 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
       user: req.user, 
       quizzes: teacherQuizzes,
       organization: organization,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalQuizzes,
-        limit,
-        hasNextPage,
-        hasPrevPage,
-        nextPage: hasNextPage ? page + 1 : null,
-        prevPage: hasPrevPage ? page - 1 : null
-      }
+      selectedGrade: selectedGrade,
+      gradeTabs: gradeTabs,
+              pagination: {
+          currentPage: page,
+          totalPages,
+          totalQuizzes,
+          limit,
+          hasNextPage,
+          hasPrevPage,
+          nextPage: hasNextPage ? page + 1 : null,
+          prevPage: hasPrevPage ? page - 1 : null
+        }
     });
   } catch (error) {
     console.error('Error fetching teacher dashboard data:', error);
@@ -1214,6 +1255,8 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
       user: req.user, 
       quizzes: [],
       organization: null,
+      selectedGrade: 'all',
+      gradeTabs: [],
       pagination: {
         currentPage: 1,
         totalPages: 1,
@@ -1504,14 +1547,25 @@ app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (
     }
     
     // Get quizzes from all student's organizations (excluding competitive quizzes)
-    const availableQuizzes = await Quiz.find({ 
+    let quizQuery = { 
       isApproved: true,
       organizationId: { $in: organizationIds },
       $or: [
         { quizType: { $ne: 'competitive' } },  // Exclude competitive quizzes
         { quizType: { $exists: false } }       // Include old quizzes without quizType field
       ]
-    }).populate('createdBy', 'displayName')
+    };
+    
+    // Filter by student's grade level if it exists
+    if (req.user.gradeLevel) {
+      quizQuery.gradeLevel = req.user.gradeLevel;
+      console.log(`🎓 Filtering quizzes for student ${req.user.displayName} (${req.user.gradeLevel})`);
+    } else {
+      console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all quizzes`);
+    }
+    
+    const availableQuizzes = await Quiz.find(quizQuery)
+      .populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
       .sort({ createdAt: -1 });
     
@@ -3066,9 +3120,9 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
       console.log(`Student ${req.user.email} has no organization access!`);
     }
     
-    // Build filter for ALL organizations (don't filter by grade level or subjects here - show all available)
+    // Build filter for ALL organizations
     // Exclude competitive quizzes - they should only be accessed through sessions
-    const filter = { 
+    let filter = { 
       isApproved: true,
       organizationId: { $in: organizationIds },
       $or: [
@@ -3076,6 +3130,14 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
         { quizType: { $exists: false } }       // Include old quizzes without quizType field
       ]
     };
+    
+    // Filter by student's grade level if it exists
+    if (req.user.gradeLevel) {
+      filter.gradeLevel = req.user.gradeLevel;
+      console.log(`🎓 Filtering quizzes for student ${req.user.displayName} (${req.user.gradeLevel})`);
+    } else {
+      console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all quizzes`);
+    }
     
     console.log('Quiz filter (all organizations, excluding competitive):', filter);
     

@@ -621,6 +621,71 @@
             transform: translateY(-1px);
         }
 
+        /* Grade Tabs Styles */
+        .grade-tabs-section {
+            margin-bottom: 30px;
+        }
+
+        .grade-tabs-section h3 {
+            margin-bottom: 20px;
+            color: var(--dark-color);
+            font-size: 1.3rem;
+        }
+
+        .grade-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .grade-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .grade-tab:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        }
+
+        .grade-tab.active {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .grade-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .grade-count {
+            font-size: 12px;
+            opacity: 0.8;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            min-width: 20px;
+        }
+
+        .grade-tab:not(.active) .grade-count {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
         /* Error and Empty States */
         .error-state {
             text-align: center;
@@ -1248,8 +1313,23 @@
                     </div>
                 </div>
 
+                <!-- Grade Tabs for Quiz Organization -->
+                <div class="grade-tabs-section">
+                    <h3><i class="fas fa-layer-group me-2"></i>Quiz Organization by Grade</h3>
+                    <div class="grade-tabs">
+                        <% gradeTabs.forEach(tab => { %>
+                            <button class="grade-tab <%= tab.grade === selectedGrade ? 'active' : '' %>" 
+                                    onclick="switchGradeTab('<%= tab.grade %>')"
+                                    data-grade="<%= tab.grade %>">
+                                <span class="grade-label"><%= tab.label %></span>
+                                <span class="grade-count"><%= tab.count %></span>
+                            </button>
+                        <% }); %>
+                    </div>
+                </div>
+
                 <div class="recent-activity" id="recentQuizzesSection">
-                    <h3>Recent Quizzes</h3>
+                    <h3>Recent Quizzes <% if (selectedGrade !== 'all') { %><small class="text-muted">(<%= selectedGrade %>)</small><% } %></h3>
                     <% if (quizzes.length > 0) { %>
                         <div class="quiz-list">
                             <% quizzes.forEach(quiz => { %>
@@ -1329,13 +1409,13 @@
                             </div>
                         </div>
                         <div class="pagination-controls">
-                            <a href="?page=<%= pagination.prevPage %>&limit=<%= pagination.limit %>" class="btn btn-sm btn-outline-primary <%= !pagination.hasPrevPage ? 'disabled' : '' %>" <%= !pagination.hasPrevPage ? 'onclick="return false;"' : '' %>>
+                            <a href="?grade=<%= selectedGrade %>&page=<%= pagination.prevPage %>&limit=<%= pagination.limit %>" class="btn btn-sm btn-outline-primary <%= !pagination.hasPrevPage ? 'disabled' : '' %>" <%= !pagination.hasPrevPage ? 'onclick="return false;"' : '' %>>
                                 <i class="fas fa-chevron-left"></i> Previous
                             </a>
                             <span class="page-indicator">
                                 Page <span><%= pagination.currentPage %></span> of <span><%= pagination.totalPages %></span>
                             </span>
-                            <a href="?page=<%= pagination.nextPage %>&limit=<%= pagination.limit %>" class="btn btn-sm btn-outline-primary <%= !pagination.hasNextPage ? 'disabled' : '' %>" <%= !pagination.hasNextPage ? 'onclick="return false;"' : '' %>>
+                            <a href="?grade=<%= selectedGrade %>&page=<%= pagination.nextPage %>&limit=<%= pagination.limit %>" class="btn btn-sm btn-outline-primary <%= !pagination.hasNextPage ? 'disabled' : '' %>" <%= !pagination.hasNextPage ? 'onclick="return false;"' : '' %>>
                                 Next <i class="fas fa-chevron-right"></i>
                             </a>
                         </div>
@@ -1954,6 +2034,17 @@
             const currentUrl = new URL(window.location);
             currentUrl.searchParams.set('limit', pageSize);
             currentUrl.searchParams.set('page', '1');
+            // Preserve selected grade
+            const currentGrade = new URLSearchParams(window.location.search).get('grade') || 'all';
+            currentUrl.searchParams.set('grade', currentGrade);
+            window.location.href = currentUrl.toString();
+        }
+
+        // Function to switch grade tabs
+        function switchGradeTab(grade) {
+            const currentUrl = new URL(window.location);
+            currentUrl.searchParams.set('grade', grade);
+            currentUrl.searchParams.set('page', '1'); // Reset to first page when switching grades
             window.location.href = currentUrl.toString();
         }
     </script>
