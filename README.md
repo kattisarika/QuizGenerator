@@ -1,4 +1,4 @@
-# Take Quiz Now! 🎓
+# SkillOns 🎓
 
 A comprehensive quiz application with role-based access control, online database, and session management.
 

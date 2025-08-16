@@ -1,7 +1,7 @@
 {
   "name": "take-quiz-now",
   "version": "1.0.0",
-  "description": "Login system with Google OAuth for Take Quiz Now!",
+  "description": "Login system with Google OAuth for SkillOns",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

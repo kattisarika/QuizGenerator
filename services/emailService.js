@@ -125,7 +125,7 @@ class EmailService {
 
             <p>If you have any questions, please contact your teacher ${teacherName}.</p>
             
-            <p>Welcome to Take Quiz Now!<br>
+            <p>Welcome to SkillOns<br>
             The Learning Platform Team</p>
         </div>
     </div>
@@ -141,7 +141,7 @@ class EmailService {
     return `
 You're Invited to Join ${organizationName}!
 
-Hi there! Your teacher ${teacherName} has invited you to join ${organizationName} on Take Quiz Now!
+        Hi there! Your teacher ${teacherName} has invited you to join ${organizationName} on SkillOns
 
 Your Invitation Details:
 - Organization: ${organizationName}
@@ -167,7 +167,7 @@ What you can do:
 
 If you have any questions, please contact your teacher ${teacherName}.
 
-Welcome to Take Quiz Now!
+        Welcome to SkillOns
 The Learning Platform Team
 `;
   }
