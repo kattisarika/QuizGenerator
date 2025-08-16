@@ -2985,6 +2985,12 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
   try {
     console.log(`\n=== AVAILABLE QUIZZES DEBUG for ${req.user.email} ===`);
     
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const skip = (page - 1) * limit;
+    const tab = req.query.tab || 'available'; // 'available' or 'archived'
+    
     // Get all organization IDs the student belongs to
     let organizationIds = [];
     
@@ -3028,15 +3034,15 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
     
     console.log('Quiz filter (all organizations, excluding competitive):', filter);
     
-    const approvedQuizzes = await Quiz.find(filter)
+    const allQuizzes = await Quiz.find(filter)
       .populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
       .sort({ createdAt: -1 });
     
-    console.log('Found quizzes from all organizations:', approvedQuizzes.length);
+    console.log('Found quizzes from all organizations:', allQuizzes.length);
     console.log('Quiz breakdown by organization:');
     const quizByOrg = {};
-    approvedQuizzes.forEach(quiz => {
+    allQuizzes.forEach(quiz => {
       const orgName = quiz.organizationId?.name || 'Unknown';
       if (!quizByOrg[orgName]) quizByOrg[orgName] = 0;
       quizByOrg[orgName]++;
@@ -3047,35 +3053,78 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
     const studentResults = await QuizResult.find({ 
       student: req.user._id,
       organizationId: { $in: organizationIds }
-    }).select('quiz score percentage timeTaken createdAt');
+    }).select('quiz score percentage timeTaken createdAt attemptNumber');
     
     // Create a map of quiz IDs and their attempt counts
     const quizAttempts = {};
     studentResults.forEach(result => {
       const quizId = result.quiz.toString();
-      quizAttempts[quizId] = (quizAttempts[quizId] || 0) + 1;
+      if (!quizAttempts[quizId]) {
+        quizAttempts[quizId] = {
+          count: 0,
+          maxAttemptNumber: 0
+        };
+      }
+      quizAttempts[quizId].count++;
+      quizAttempts[quizId].maxAttemptNumber = Math.max(quizAttempts[quizId].maxAttemptNumber, result.attemptNumber || 1);
     });
     
+    // Separate available and archived quizzes
+    const availableQuizzes = [];
+    const archivedQuizzes = [];
+    
+    allQuizzes.forEach(quiz => {
+      const quizId = quiz._id.toString();
+      const attemptData = quizAttempts[quizId] || { count: 0, maxAttemptNumber: 0 };
+      const attemptCount = attemptData.count;
+      const isTaken = attemptCount > 0;
+      const canRetake = attemptCount < 3;
+      const previousResult = isTaken ? studentResults.find(result => result.quiz.toString() === quizId) : null;
+      
+      const quizData = {
+        ...quiz.toObject(),
+        createdByName: quiz.createdBy ? quiz.createdBy.displayName : 'Teacher',
+        organizationName: quiz.organizationId ? quiz.organizationId.name : 'Organization',
+        isTaken: isTaken,
+        attemptCount: attemptCount,
+        canRetake: canRetake,
+        previousScore: previousResult ? previousResult.percentage : null,
+        previousTime: previousResult ? previousResult.timeTaken : null
+      };
+      
+      if (isTaken) {
+        archivedQuizzes.push(quizData);
+      } else {
+        availableQuizzes.push(quizData);
+      }
+    });
+    
+    // Get quizzes for the selected tab
+    const quizzesToShow = tab === 'archived' ? archivedQuizzes : availableQuizzes;
+    const totalQuizzes = quizzesToShow.length;
+    const totalPages = Math.ceil(totalQuizzes / limit);
+    
+    // Apply pagination
+    const paginatedQuizzes = quizzesToShow.slice(skip, skip + limit);
+    
     res.render('available-quizzes', { 
-      quizzes: approvedQuizzes.map(quiz => {
-        const quizId = quiz._id.toString();
-        const attemptCount = quizAttempts[quizId] || 0;
-        const isTaken = attemptCount > 0;
-        const canRetake = attemptCount < 3;
-        const previousResult = isTaken ? studentResults.find(result => result.quiz.toString() === quizId) : null;
-        
-        return {
-          ...quiz.toObject(),
-          createdByName: quiz.createdBy ? quiz.createdBy.displayName : 'Teacher',
-          organizationName: quiz.organizationId ? quiz.organizationId.name : 'Organization',
-          isTaken: isTaken,
-          attemptCount: attemptCount,
-          canRetake: canRetake,
-          previousScore: previousResult ? previousResult.percentage : null,
-          previousTime: previousResult ? previousResult.timeTaken : null
-        };
-      }), 
-      user: req.user
+      quizzes: paginatedQuizzes,
+      user: req.user,
+      currentTab: tab,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalQuizzes,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+        nextPage: page < totalPages ? page + 1 : null,
+        prevPage: page > 1 ? page - 1 : null
+      },
+      counts: {
+        available: availableQuizzes.length,
+        archived: archivedQuizzes.length
+      }
     });
     
     console.log(`=== END AVAILABLE QUIZZES DEBUG ===\n`);
@@ -3187,6 +3236,13 @@ app.post('/submit-quiz/:quizId', isAuthenticated, requireRole(['student']), asyn
     const score = totalPoints;
     const percentage = Math.round((correctAnswers / quiz.questions.length) * 100);
     
+    // Get attempt number for this quiz
+    const existingResults = await QuizResult.find({
+      student: req.user._id,
+      quiz: quiz._id
+    });
+    const attemptNumber = existingResults.length + 1;
+    
     // Save quiz result
     const quizResult = new QuizResult({
       student: req.user._id,
@@ -3202,7 +3258,8 @@ app.post('/submit-quiz/:quizId', isAuthenticated, requireRole(['student']), asyn
       score: score,
       percentage: percentage,
       timeTaken: timeTaken || 0,
-      completedAt: new Date()
+      completedAt: new Date(),
+      attemptNumber: attemptNumber
     });
     
     await quizResult.save();

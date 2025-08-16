@@ -7,6 +7,143 @@
     <link rel="stylesheet" href="/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* Quiz Tabs Styles */
+        .quiz-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 25px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            color: #6b7280;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .tab-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .tab-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Pagination Styles */
+        .pagination-container {
+            margin-top: 40px;
+            padding: 25px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .pagination-info {
+            margin-bottom: 20px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .page-indicator {
+            background: #f3f4f6;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            min-width: 120px;
+        }
+
+        .btn-outline-primary {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn-outline-primary:hover:not(.disabled) {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .btn-outline-primary.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .quiz-tabs {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+
+            .tab-btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+
+            .pagination-controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .page-indicator {
+                order: -1;
+            }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -29,8 +166,22 @@
     <main class="main-content">
         <div class="quizzes-container">
             <div class="quizzes-header">
-                <h1><i class="fas fa-file-alt me-2"></i>Available Quizzes</h1>
+                <h1><i class="fas fa-file-alt me-2"></i>Browse Quizzes</h1>
                 <p>Choose a quiz to test your knowledge and track your progress</p>
+            </div>
+
+            <!-- Quiz Tabs -->
+            <div class="quiz-tabs">
+                <button class="tab-btn <%= currentTab === 'available' ? 'active' : '' %>" onclick="switchTab('available')">
+                    <i class="fas fa-play-circle"></i>
+                    Available Quizzes
+                    <span class="tab-count">(<%= counts.available %>)</span>
+                </button>
+                <button class="tab-btn <%= currentTab === 'archived' ? 'active' : '' %>" onclick="switchTab('archived')">
+                    <i class="fas fa-archive"></i>
+                    Archived Quizzes
+                    <span class="tab-count">(<%= counts.archived %>)</span>
+                </button>
             </div>
 
             <% if (quizzes.length > 0) { %>
@@ -116,7 +267,7 @@
                                             <i class="fas fa-ban"></i> Max Attempts Reached
                                         </button>
                                     <% } %>
-                                <% } else { %>
+                                <% } else %>
                                     <a href="/take-quiz/<%= quiz._id %>" class="btn btn-primary">
                                         <i class="fas fa-play"></i> Start Quiz
                                     </a>
@@ -125,22 +276,46 @@
                         </div>
                     <% }); %>
                 </div>
+
+                <!-- Pagination Controls -->
+                <% if (pagination.totalPages > 1) { %>
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            <span>Showing <%= ((pagination.currentPage - 1) * pagination.limit) + 1 %>-<%= Math.min(pagination.currentPage * pagination.limit, pagination.totalQuizzes) %> of <%= pagination.totalQuizzes %> quizzes</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <a href="?tab=<%= currentTab %>&page=<%= pagination.prevPage %>" class="btn btn-sm btn-outline-primary <%= !pagination.hasPrevPage ? 'disabled' : '' %>" <%= !pagination.hasPrevPage ? 'onclick="return false;"' : '' %>>
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </a>
+                            <span class="page-indicator">
+                                Page <span><%= pagination.currentPage %></span> of <span><%= pagination.totalPages %></span>
+                            </span>
+                            <a href="?tab=<%= currentTab %>&page=<%= pagination.nextPage %>" class="btn btn-sm btn-outline-primary <%= !pagination.hasNextPage ? 'disabled' : '' %>" <%= !pagination.hasNextPage ? 'onclick="return false;"' : '' %>>
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                <% } %>
             <% } else { %>
                 <div class="empty-state">
                     <div class="empty-icon">
-                        <i class="fas fa-file-alt"></i>
+                        <i class="fas fa-<%= currentTab === 'archived' ? 'archive' : 'file-alt' %>"></i>
                     </div>
-                    <h3>No Quizzes Available</h3>
-                    <p>No quizzes found for your grade level (<%= user.gradeLevel || 'Not Set' %>) and subjects (<%= (user.subjects || []).join(', ') || 'Not Set' %>).</p>
-                    <p>Please update your profile or check back later for new quizzes!</p>
-                    <div class="empty-state-actions">
-                        <button onclick="openStudentProfile()" class="btn btn-primary">
-                            <i class="fas fa-user-edit"></i> Update Profile
-                        </button>
-                        <a href="/student/dashboard" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    <h3><%= currentTab === 'archived' ? 'No Archived Quizzes' : 'No Quizzes Available' %></h3>
+                    <% if (currentTab === 'archived') { %>
+                        <p>You haven't completed any quizzes yet. Start by taking some available quizzes!</p>
+                        <a href="?tab=available" class="btn btn-primary">
+                            <i class="fas fa-play"></i> Browse Available Quizzes
                         </a>
-                    </div>
+                    <% } else { %>
+                        <p>No quizzes found for your grade level (<%= user.gradeLevel || 'Not Set' %>) and subjects (<%= (user.subjects || []).join(', ') || 'Not Set' %>).</p>
+                        <p>Please update your profile or check back later for new quizzes!</p>
+                        <div class="empty-state-actions">
+                            <button class="btn btn-primary" onclick="openStudentProfile()">
+                                <i class="fas fa-user-edit"></i> Update Profile
+                            </button>
+                        </div>
+                    <% } %>
                 </div>
             <% } %>
         </div>
@@ -208,6 +383,15 @@
     </footer>
 
     <script>
+        // Function to switch between Available and Archived quiz tabs
+        function switchTab(tab) {
+            // Update URL with new tab and reset to first page
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tab);
+            url.searchParams.set('page', '1');
+            window.location.href = url.toString();
+        }
+
         // Student Profile Modal Functions
         function openStudentProfile() {
             const modal = document.getElementById('studentProfileModal');

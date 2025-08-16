@@ -124,6 +124,11 @@ const quizResultSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null
+  },
+  // Attempt tracking for retakes
+  attemptNumber: {
+    type: Number,
+    default: 1
   }
 }, {
   timestamps: true
