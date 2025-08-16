@@ -2110,47 +2110,57 @@
                 return;
             }
 
-            container.innerHTML = requests.map(request => `
-                <div class="recorrection-card">
-                    <div class="recorrection-header">
-                        <div class="student-info">
-                            <h4>${request.studentName}</h4>
-                            <p>${request.quizTitle}</p>
-                        </div>
-                        <span class="recorrection-status">Pending Recorrection</span>
-                    </div>
-                    
-                    <div class="recorrection-details">
-                        <div class="detail-row">
-                            <span class="detail-label">Original Score:</span>
-                            <span class="detail-value">${request.originalScore} / ${request.totalPoints}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Original Percentage:</span>
-                            <span class="detail-value">${request.originalPercentage}%</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Requested On:</span>
-                            <span class="detail-value">${new Date(request.recorrectionRequestedAt).toLocaleDateString()}</span>
-                        </div>
-                        ${request.recorrectionReason ? `
-                            <div class="detail-row">
-                                <span class="detail-label">Reason:</span>
-                                <span class="detail-value">${request.recorrectionReason}</span>
+            container.innerHTML = requests.map(request => {
+                // Handle both populate and aggregation data formats
+                const studentName = request.studentName || (request.student && request.student.displayName) || 'Unknown Student';
+                const quizTitle = request.quizTitle || (request.quiz && request.quiz.title) || 'Unknown Quiz';
+                const score = request.originalScore || request.score || 0;
+                const percentage = request.originalPercentage || request.percentage || 0;
+                const totalPoints = request.totalPoints || 0;
+                const recorrectionReason = request.recorrectionReason || '';
+                
+                return `
+                    <div class="recorrection-card">
+                        <div class="recorrection-header">
+                            <div class="student-info">
+                                <h4>${studentName}</h4>
+                                <p>${quizTitle}</p>
                             </div>
-                        ` : ''}
+                            <span class="recorrection-status">Pending Recorrection</span>
+                        </div>
+                        
+                        <div class="recorrection-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Original Score:</span>
+                                <span class="detail-value">${score} / ${totalPoints}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Original Percentage:</span>
+                                <span class="detail-value">${percentage}%</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Requested On:</span>
+                                <span class="detail-value">${new Date(request.recorrectionRequestedAt).toLocaleDateString()}</span>
+                            </div>
+                            ${recorrectionReason ? `
+                                <div class="detail-row">
+                                    <span class="detail-label">Reason:</span>
+                                    <span class="detail-value">${recorrectionReason}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="recorrection-actions">
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewRecorrectionDetails('${request._id}')">
+                                <i class="fas fa-eye"></i> View Details
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="processRecorrection('${request._id}')">
+                                <i class="fas fa-check"></i> Process Recorrection
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div class="recorrection-actions">
-                        <button class="btn btn-sm btn-outline-primary" onclick="viewRecorrectionDetails('${request._id}')">
-                            <i class="fas fa-eye"></i> View Details
-                        </button>
-                        <button class="btn btn-sm btn-success" onclick="processRecorrection('${request._id}')">
-                            <i class="fas fa-check"></i> Process Recorrection
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Function to view recorrection details

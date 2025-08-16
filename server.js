@@ -2126,8 +2126,8 @@ app.get('/api/recorrection-requests', isAuthenticated, requireRole(['teacher']),
           score: 1,
           percentage: 1,
           recorrectionRequestedAt: 1,
-          student: { $arrayElemAt: ['$studentData', 0] },
-          quiz: { $arrayElemAt: ['$quizData', 0] }
+          student: '$studentData',
+          quiz: '$quizData'
         }}
       ]);
     }
