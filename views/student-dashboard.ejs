@@ -743,7 +743,7 @@
                             <p class="stat-number"><%= quizzes.length %></p>
                         </div>
                     </div>
-                    
+
                     <div class="stat-card">
                         <div class="stat-icon">
                             <i class="fas fa-check-circle"></i>
@@ -753,7 +753,7 @@
                             <p class="stat-number"><%= completedCount %></p>
                         </div>
                     </div>
-                    
+
                     <div class="stat-card">
                         <div class="stat-icon">
                             <i class="fas fa-chart-line"></i>
@@ -776,7 +776,7 @@
                             <i class="fas fa-arrow-right"></i> Browse Quizzes
                         </a>
                     </div>
-                    
+
                     <div class="action-card">
                         <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                             <i class="fas fa-trophy"></i>
@@ -787,7 +787,7 @@
                             <i class="fas fa-bolt"></i> Join Session
                         </a>
                     </div>
-                    
+
                     <div class="action-card">
                         <div style="font-size: 48px; margin-bottom: 15px; color: var(--success-color);">
                             <i class="fas fa-chart-line"></i>
@@ -798,7 +798,7 @@
                             <i class="fas fa-chart-bar"></i> View Results
                         </a>
                     </div>
-                    
+
                     <div class="action-card">
                         <div style="font-size: 48px; margin-bottom: 15px; color: var(--warning-color);">
                             <i class="fas fa-graduation-cap"></i>
@@ -838,8 +838,8 @@
                 </div>
                 <% } %>
 
-                <div class="recent-activity">
-                    <h3>Available Quizzes 
+              <!--  <div class="recent-activity">
+                    <h3>Available Quizzes
                         <% if (organizations && organizations.length > 1) { %>
                             <small class="text-muted">(from all your organizations)</small>
                         <% } %>
@@ -885,7 +885,7 @@
                             <p>No quizzes available at the moment. Check back later!</p>
                         </div>
                     <% } %>
-                </div>
+                </div> -->
             </div>
         </div>
     </main>
@@ -917,7 +917,7 @@
                             <option value="12th grade">12th Grade</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Subjects:</label>
                         <div class="checkbox-group">
@@ -935,7 +935,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Save Profile</button>
                         <button type="button" class="btn btn-secondary" onclick="closeStudentProfile()">Cancel</button>
@@ -957,11 +957,11 @@
             const hamburger = document.querySelector('.hamburger');
             const navMenu = document.getElementById('navMenu');
             const overlay = document.querySelector('.mobile-menu-overlay');
-            
+
             hamburger.classList.toggle('active');
             navMenu.classList.toggle('active');
             overlay.classList.toggle('active');
-            
+
             // Prevent body scroll when menu is open
             if (navMenu.classList.contains('active')) {
                 document.body.style.overflow = 'hidden';
@@ -969,7 +969,7 @@
                 document.body.style.overflow = 'auto';
             }
         }
-        
+
         // Close mobile menu when clicking on a link
         document.addEventListener('DOMContentLoaded', function() {
             const navLinks = document.querySelectorAll('.nav-menu .nav-link');
@@ -983,14 +983,14 @@
                     }
                 });
             });
-            
+
             // Close menu on window resize if open
             window.addEventListener('resize', function() {
                 if (window.innerWidth > 768) {
                     const hamburger = document.querySelector('.hamburger');
                     const navMenu = document.getElementById('navMenu');
                     const overlay = document.querySelector('.mobile-menu-overlay');
-                    
+
                     hamburger.classList.remove('active');
                     navMenu.classList.remove('active');
                     overlay.classList.remove('active');
@@ -998,7 +998,7 @@
                 }
             });
         });
-        
+
         // Student Profile Modal Functions
         function openStudentProfile() {
             console.log('Opening student profile modal from dashboard');
@@ -1007,13 +1007,13 @@
             modal.classList.add('show');
             loadStudentProfile();
         }
-        
+
         function closeStudentProfile() {
             const modal = document.getElementById('studentProfileModal');
             modal.style.display = 'none';
             modal.classList.remove('show');
         }
-        
+
         function loadStudentProfile() {
             console.log('Loading student profile...');
             fetch('/student-profile')
@@ -1025,14 +1025,14 @@
                 })
                 .then(data => {
                     console.log('Profile data received:', data);
-                    
+
                     // Set grade level
                     const gradeSelect = document.getElementById('gradeLevel');
                     if (gradeSelect) {
                         gradeSelect.value = data.gradeLevel || '';
                         console.log('Set grade level to:', data.gradeLevel);
                     }
-                    
+
                     // Set subjects
                     const subjectCheckboxes = document.querySelectorAll('input[name="subjects"]');
                     subjectCheckboxes.forEach(checkbox => {
@@ -1044,17 +1044,17 @@
                     console.error('Error loading student profile:', error);
                 });
         }
-        
+
         // Handle form submission
         document.getElementById('studentProfileForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             const gradeLevel = document.getElementById('gradeLevel').value;
             const subjectCheckboxes = document.querySelectorAll('input[name="subjects"]:checked');
             const subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
-            
+
             console.log('Submitting profile update:', { gradeLevel, subjects });
-            
+
             fetch('/update-student-profile', {
                 method: 'POST',
                 headers: {
@@ -1089,7 +1089,7 @@
                 showNotification('Error updating profile', 'error');
             });
         });
-        
+
         // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('studentProfileModal');
@@ -1097,7 +1097,7 @@
                 closeStudentProfile();
             }
         }
-        
+
         // Notification function
         function showNotification(message, type) {
             // Create notification element
@@ -1107,15 +1107,15 @@
                 <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
                 <span>${message}</span>
             `;
-            
+
             // Add to page
             document.body.appendChild(notification);
-            
+
             // Show notification
             setTimeout(() => {
                 notification.classList.add('show');
             }, 100);
-            
+
             // Remove notification after 3 seconds
             setTimeout(() => {
                 notification.classList.remove('show');
@@ -1125,10 +1125,10 @@
             }, 3000);
         }
     </script>
-    
+
     <!-- Session timeout management -->
     <script src="/js/session-timeout.js"></script>
-    
+
     <script>
         // Global function to ensure modal is hidden
         function ensureProfileModalHidden() {
@@ -1145,20 +1145,20 @@
             console.log('Student dashboard page loaded');
             console.log('User grade level:', '<%= user.gradeLevel || "Not Set" %>');
             console.log('User subjects:', '<%= (user.subjects || []).join(", ") || "Not Set" %>');
-            
+
             // Explicitly ensure modal is hidden on page load
             ensureProfileModalHidden();
-            
+
             // Add additional safety check after a short delay
             setTimeout(ensureProfileModalHidden, 100);
             setTimeout(ensureProfileModalHidden, 500);
         });
-        
+
         function migrateAccount() {
             const button = event.target;
             button.disabled = true;
             button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Migrating...';
-            
+
             fetch('/api/migrate-multi-org-account', {
                 method: 'POST',
                 headers: {
@@ -1185,4 +1185,4 @@
         }
     </script>
 </body>
-</html> 
+</html>
