@@ -1311,6 +1311,36 @@
                     <% } %>
                 </div>
 
+                <!-- Pagination Controls for Recent Quizzes -->
+                <% if (pagination.totalPages > 1) { %>
+                    <div class="pagination-container">
+                        <div class="pagination-header">
+                            <div class="page-size-selector">
+                                <label for="quizPageSize">Show:</label>
+                                <select id="quizPageSize" onchange="changeQuizPageSize()">
+                                    <option value="5">5 per page</option>
+                                    <option value="10" selected>10 per page</option>
+                                    <option value="20">20 per page</option>
+                                    <option value="50">50 per page</option>
+                                </select>
+                            </div>
+                            <div class="pagination-info">
+                                <span>Showing <%= ((pagination.currentPage - 1) * pagination.limit) + 1 %>-<%= Math.min(pagination.currentPage * pagination.limit, pagination.totalQuizzes) %> of <%= pagination.totalQuizzes %> quizzes</span>
+                            </div>
+                        </div>
+                        <div class="pagination-controls">
+                            <a href="?page=<%= pagination.prevPage %>&limit=<%= pagination.limit %>" class="btn btn-sm btn-outline-primary <%= !pagination.hasPrevPage ? 'disabled' : '' %>" <%= !pagination.hasPrevPage ? 'onclick="return false;"' : '' %>>
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </a>
+                            <span class="page-indicator">
+                                Page <span><%= pagination.currentPage %></span> of <span><%= pagination.totalPages %></span>
+                            </span>
+                            <a href="?page=<%= pagination.nextPage %>&limit=<%= pagination.limit %>" class="btn btn-sm btn-outline-primary <%= !pagination.hasNextPage ? 'disabled' : '' %>" <%= !pagination.hasNextPage ? 'onclick="return false;"' : '' %>>
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                <% } %>
 
             </div>
         </div>
@@ -1915,6 +1945,16 @@
             const pageSize = document.getElementById('pageSize').value;
             // Reset to first page when changing page size
             loadRecorrectionRequests(1, pageSize);
+        }
+
+        // Function to change quiz page size
+        function changeQuizPageSize() {
+            const pageSize = document.getElementById('quizPageSize').value;
+            // Reset to first page when changing page size
+            const currentUrl = new URL(window.location);
+            currentUrl.searchParams.set('limit', pageSize);
+            currentUrl.searchParams.set('page', '1');
+            window.location.href = currentUrl.toString();
         }
     </script>
 </body>

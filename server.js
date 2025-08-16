@@ -1168,7 +1168,24 @@ app.get('/competitive-quiz/:sessionId', isAuthenticated, requireRole(['student']
 // Role-specific dashboards
 app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
-    const teacherQuizzes = await Quiz.find({ createdBy: req.user._id });
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Get total count for pagination
+    const totalQuizzes = await Quiz.countDocuments({ createdBy: req.user._id });
+    
+    // Get paginated quizzes
+    const teacherQuizzes = await Quiz.find({ createdBy: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalQuizzes / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
     
     // Get organization information for the teacher
     let organization = null;
@@ -1179,14 +1196,34 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
     res.render('teacher-dashboard', { 
       user: req.user, 
       quizzes: teacherQuizzes,
-      organization: organization
+      organization: organization,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalQuizzes,
+        limit,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null
+      }
     });
   } catch (error) {
     console.error('Error fetching teacher dashboard data:', error);
     res.render('teacher-dashboard', { 
       user: req.user, 
       quizzes: [],
-      organization: null
+      organization: null,
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        totalQuizzes: 0,
+        limit: 10,
+        hasNextPage: false,
+        hasPrevPage: false,
+        nextPage: null,
+        prevPage: null
+      }
     });
   }
 });
