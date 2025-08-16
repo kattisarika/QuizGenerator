@@ -21,6 +21,24 @@ const questionSchema = new mongoose.Schema({
   points: {
     type: Number,
     default: 1
+  },
+  // Additional fields for better answer format support
+  isTextAnswer: {
+    type: Boolean,
+    default: false
+  },
+  multipleCorrect: {
+    type: Boolean,
+    default: false
+  },
+  expectedAnswer: {
+    type: String,
+    default: ''
+  },
+  selectionType: {
+    type: String,
+    enum: ['single', 'multiple'],
+    default: 'single'
   }
 });
 

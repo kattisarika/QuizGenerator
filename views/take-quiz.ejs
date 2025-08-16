@@ -24,6 +24,60 @@
     </script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        /* Text Answer Styles */
+        .text-answer-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .text-answer-label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .text-answer-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .text-answer-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .no-options-message {
+            margin-top: 20px;
+            padding: 20px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .no-options-message p {
+            margin: 0;
+            color: #856404;
+        }
+        
+        .no-options-message i {
+            color: #f39c12;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -81,22 +135,70 @@
                                     <%= question.question %>
                                 </div>
                                 
-                                <div class="options-list">
-                                    <% question.options.forEach((option, optionIndex) => { %>
-                                        <div class="option-item" onclick="selectOption('<%= index %>', '<%= optionIndex %>')" data-question="<%= index %>" data-option="<%= optionIndex %>">
-                                            <input type="radio" 
-                                                   id="q<%= index %>-opt<%= optionIndex %>" 
-                                                   name="question-<%= index %>" 
-                                                   value="<%= option %>"
-                                                   data-question="<%= index %>"
-                                                   data-option="<%= optionIndex %>">
-                                            <label for="q<%= index %>-opt<%= optionIndex %>" class="option-label">
-                                                <%= String.fromCharCode(65 + optionIndex) %>)
-                                            </label>
-                                            <span class="option-text"><%= option %></span>
-                                        </div>
-                                    <% }); %>
-                                </div>
+                                <% if (question.type === 'multiple-choice' && question.options && question.options.length > 0) { %>
+                                    <!-- Multiple Choice Options -->
+                                    <div class="options-list">
+                                        <% question.options.forEach((option, optionIndex) => { %>
+                                            <div class="option-item" onclick="selectOption('<%= index %>', '<%= optionIndex %>')" data-question="<%= index %>" data-option="<%= optionIndex %>">
+                                                <input type="radio" 
+                                                       id="q<%= index %>-opt<%= optionIndex %>" 
+                                                       name="question-<%= index %>" 
+                                                       value="<%= option %>"
+                                                       data-question="<%= index %>"
+                                                       data-option="<%= optionIndex %>">
+                                                <label for="q<%= index %>-opt<%= optionIndex %>" class="option-label">
+                                                    <%= String.fromCharCode(65 + optionIndex) %>)
+                                                </label>
+                                                <span class="option-text"><%= option %></span>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                <% } else if (question.type === 'short-answer' || question.isTextAnswer) { %>
+                                    <!-- Text Answer Input -->
+                                    <div class="text-answer-section">
+                                        <label for="text-answer-<%= index %>" class="text-answer-label">
+                                            <i class="fas fa-keyboard me-2"></i>Your Answer:
+                                        </label>
+                                        <textarea 
+                                            id="text-answer-<%= index %>" 
+                                            class="text-answer-input" 
+                                            placeholder="Type your answer here..."
+                                            rows="3"
+                                            oninput="updateTextAnswer('<%= index %>', this.value)"
+                                            data-question="<%= index %>">
+                                        </textarea>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            This is a text answer question. Please provide a detailed response.
+                                        </small>
+                                    </div>
+                                <% } else if (question.options && question.options.length > 0) { %>
+                                    <!-- Fallback to multiple choice if type is not specified but options exist -->
+                                    <div class="options-list">
+                                        <% question.options.forEach((option, optionIndex) => { %>
+                                            <div class="option-item" onclick="selectOption('<%= index %>', '<%= optionIndex %>')" data-question="<%= index %>" data-option="<%= optionIndex %>">
+                                                <input type="radio" 
+                                                       id="q<%= index %>-opt<%= optionIndex %>" 
+                                                       name="question-<%= index %>" 
+                                                       value="<%= option %>"
+                                                       data-question="<%= index %>"
+                                                       data-option="<%= optionIndex %>">
+                                                <label for="q<%= index %>-opt<%= optionIndex %>" class="option-label">
+                                                    <%= String.fromCharCode(65 + optionIndex) %>)
+                                                </label>
+                                                <span class="option-text"><%= option %></span>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                <% } else { %>
+                                    <!-- No options available - show message -->
+                                    <div class="no-options-message">
+                                        <p class="text-muted">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            No answer options available for this question.
+                                        </p>
+                                    </div>
+                                <% } %>
                             </div>
                         <% }); %>
                     </div>
@@ -218,6 +320,28 @@
                 console.log(`Selected option for question ${questionIndex}:`, radioButton.value);
                 console.log('Current answers object:', answers);
             }
+        }
+
+        // Function to handle text answer updates
+        function updateTextAnswer(questionIndex, value) {
+            questionIndex = parseInt(questionIndex);
+            
+            // Store the text answer
+            answers[questionIndex] = {
+                selectedAnswer: value
+            };
+            
+            // Update the question indicator to show it's been answered
+            const indicator = document.getElementById(`indicator-${questionIndex}`);
+            if (indicator && value.trim()) {
+                indicator.classList.add('answered');
+            } else if (indicator) {
+                indicator.classList.remove('answered');
+            }
+            
+            // Debug log
+            console.log(`Text answer for question ${questionIndex}:`, value);
+            console.log('Current answers object:', answers);
         }
 
         function startTimer() {
