@@ -690,7 +690,9 @@
                 <a href="/student/dashboard" class="nav-link">
                     <i class="fas fa-home"></i> Dashboard
                 </a>
-                <!-- Available Quizzes navigation link removed -->
+                <a href="/available-quizzes" class="nav-link">
+                    <i class="fas fa-book"></i> Browse Quizzes
+                </a>
                 <a href="/student/study-material" class="nav-link">
                     <i class="fas fa-graduation-cap"></i> Study Material
                 </a>
@@ -732,7 +734,15 @@
 
             <div class="dashboard-content">
                 <div class="stats-grid">
-                    <!-- Available Quizzes stat card removed -->
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Available Quizzes</h3>
+                            <p class="stat-number"><%= quizzes.length %></p>
+                        </div>
+                    </div>
                     
                     <div class="stat-card">
                         <div class="stat-icon">
@@ -756,7 +766,16 @@
                 </div>
 
                 <div class="action-cards">
-                    <!-- Take a Quiz action card removed -->
+                    <div class="action-card">
+                        <div style="font-size: 48px; margin-bottom: 15px; color: var(--primary-color);">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                        <h3>Take a Quiz</h3>
+                        <p>Browse and take available quizzes to test your knowledge</p>
+                        <a href="/available-quizzes" class="btn btn-primary">
+                            <i class="fas fa-arrow-right"></i> Browse Quizzes
+                        </a>
+                    </div>
                     
                     <div class="action-card">
                         <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
@@ -802,9 +821,71 @@
                 </div>
                 <% } %>
 
-                <!-- Organization info section removed since quizzes are no longer shown -->
+                <% if (organizations && organizations.length > 1) { %>
+                <div class="organization-info">
+                    <h3><i class="fas fa-school me-2"></i>Your Organizations</h3>
+                    <div class="org-badges">
+                        <% organizations.forEach(org => { %>
+                            <span class="badge bg-primary me-2 mb-2">
+                                <i class="fas fa-building me-1"></i><%= org.name %>
+                            </span>
+                        <% }); %>
+                    </div>
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        You're enrolled in <%= organizations.length %> organization(s). Quizzes from all your organizations are shown below.
+                    </p>
+                </div>
+                <% } %>
 
-                <!-- Available Quizzes recent activity section removed -->
+                <div class="recent-activity">
+                    <h3>Available Quizzes 
+                        <% if (organizations && organizations.length > 1) { %>
+                            <small class="text-muted">(from all your organizations)</small>
+                        <% } %>
+                    </h3>
+                    <% if (quizzes.length > 0) { %>
+                        <div class="quiz-list">
+                            <% quizzes.forEach(quiz => { %>
+                                <div class="quiz-item">
+                                    <div class="quiz-icon">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    <div class="quiz-content">
+                                        <h4><%= quiz.title %></h4>
+                                        <p><%= quiz.description %></p>
+                                        <div class="quiz-meta">
+                                            <span class="quiz-teacher">
+                                                <i class="fas fa-user me-1"></i>
+                                                By: <%= quiz.createdBy ? quiz.createdBy.displayName : 'Teacher' %>
+                                            </span>
+                                            <% if (organizations && organizations.length > 1) { %>
+                                            <span class="quiz-organization">
+                                                <i class="fas fa-school me-1"></i>
+                                                <%= quiz.organizationId ? quiz.organizationId.name : 'Organization' %>
+                                            </span>
+                                            <% } %>
+                                            <span class="quiz-date">
+                                                <i class="fas fa-calendar me-1"></i>
+                                                <%= new Date(quiz.createdAt).toLocaleDateString() %>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="quiz-actions">
+                                        <a href="/take-quiz/<%= quiz._id %>" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-play"></i> Take Quiz
+                                        </a>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } else { %>
+                        <div class="empty-state">
+                            <i class="fas fa-file-alt"></i>
+                            <p>No quizzes available at the moment. Check back later!</p>
+                        </div>
+                    <% } %>
+                </div>
             </div>
         </div>
     </main>
