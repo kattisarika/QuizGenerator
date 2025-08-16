@@ -181,6 +181,24 @@
             border-color: #667eea;
             color: #667eea;
         }
+
+        /* Question Image Styles */
+        .question-image-container {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .question-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .question-image:hover {
+            transform: scale(1.02);
+        }
     </style>
 </head>
 <body>
@@ -237,6 +255,12 @@
                                 
                                 <div class="question-text">
                                     <%= question.question %>
+                                    
+                                    <% if (question.image) { %>
+                                        <div class="question-image-container">
+                                            <img src="<%= question.image %>" alt="Question Image" class="question-image" style="max-width: 100%; max-height: 300px; margin-top: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                        </div>
+                                    <% } %>
                                 </div>
                                 
                                 <% if (question.type === 'multiple-choice' && question.options && question.options.length > 0) { %>
