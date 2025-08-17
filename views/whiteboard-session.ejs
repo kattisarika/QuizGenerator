@@ -754,6 +754,9 @@
             <button class="btn btn-sm btn-warning" onclick="testDrawing()" style="margin-left: 10px;">
                 <i class="fas fa-pen"></i> Test Drawing
             </button>
+            <button class="btn btn-sm btn-primary" onclick="forceDrawingMode()" style="margin-left: 10px;">
+                <i class="fas fa-magic"></i> Force Draw Mode
+            </button>
         </div>
             
             <% if (isTeacher) { %>
@@ -1393,6 +1396,40 @@
             }
         }
 
+        function forceDrawingMode() {
+            console.log('🔵 Force drawing mode function called');
+            addDebugEvent('Force drawing mode called');
+            
+            // Force enable drawing mode
+            canvas.isDrawingMode = true;
+            currentTool = 'pen';
+            
+            // Ensure drawing brush is ready
+            if (!canvas.freeDrawingBrush) {
+                console.log('🔵 Creating freeDrawingBrush');
+                canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+                addDebugEvent('FreeDrawingBrush created');
+            }
+            
+            // Update brush settings
+            canvas.freeDrawingBrush.color = currentColor;
+            canvas.freeDrawingBrush.width = currentSize;
+            
+            // Update UI
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-tool="pen"]').classList.add('active');
+            
+            console.log('🔵 Drawing mode forced enabled');
+            addDebugEvent('Drawing mode forced enabled');
+            
+            // Update debug panel
+            updateDebugPanel();
+            
+            showMessage('Drawing mode forced enabled! Try drawing now.', 'success');
+        }
+
         function emitCanvasUpdate(type, object) {
             console.log('🔵 emitCanvasUpdate called:', { type, object, isConnected, hasSocket: !!socket });
             addDebugEvent(`emitCanvasUpdate called: ${type}`);
@@ -1520,6 +1557,14 @@
                 selection: true
             });
 
+            // Initialize drawing brush for real-time sync
+            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+            canvas.freeDrawingBrush.color = currentColor;
+            canvas.freeDrawingBrush.width = currentSize;
+            
+            console.log('🔵 Canvas initialized with drawing brush');
+            addDebugEvent('Canvas initialized with drawing brush');
+
             // Set canvas background
             canvas.setBackgroundColor('#ffffff', function() {
                 canvas.renderAll();
@@ -1527,6 +1572,15 @@
 
             // Set initial dimensions
             resizeCanvas();
+            
+            // Set default tool to pen for teachers
+            <% if (isTeacher) { %>
+            setTimeout(() => {
+                setTool('pen');
+                console.log('🔵 Default tool set to pen for teacher');
+                addDebugEvent('Default tool set to pen for teacher');
+            }, 100);
+            <% } %>
         }
 
         function setupEventListeners() {
@@ -1952,40 +2006,42 @@
             console.log('🔵 Canvas: Mouse up event', { isDrawingMode: canvas.isDrawingMode, isConnected, hasSocket: !!socket });
             addDebugEvent(`Canvas: Mouse up - Drawing mode: ${canvas.isDrawingMode}`);
             
-            if (isConnected && socket && canvas.isDrawingMode) {
-                // Capture the last drawn path
+            if (isConnected && socket) {
+                // Capture the last drawn path regardless of drawing mode
                 const objects = canvas.getObjects();
                 const lastObject = objects[objects.length - 1];
                 console.log('🔵 Last object after mouse up:', lastObject);
                 
-                if (lastObject && lastObject.type === 'path') {
+                if (lastObject && lastObject.type === 'path' && !lastObject.isRemote) {
                     console.log('🔵 Emitting draw event from mouse:up');
                     addDebugEvent(`Emitting draw from mouse:up - Path object found`);
                     emitCanvasUpdate('draw', lastObject);
+                } else if (lastObject && lastObject.type === 'path' && lastObject.isRemote) {
+                    console.log('🔵 Remote path object - not emitting');
+                    addDebugEvent('Remote path object - not emitting');
                 } else {
-                    console.log('🔴 No path object found after mouse up');
-                    addDebugEvent(`No path object found after mouse up - Last object: ${lastObject ? lastObject.type : 'none'}`);
+                    console.log('🔴 No local path object found after mouse up');
+                    addDebugEvent(`No local path object found after mouse up - Last object: ${lastObject ? lastObject.type : 'none'}`);
                 }
             } else {
                 console.log('🔴 Mouse up conditions not met', { 
                     isConnected, 
-                    hasSocket: !!socket, 
-                    isDrawingMode: canvas.isDrawingMode 
+                    hasSocket: !!socket
                 });
-                addDebugEvent(`Mouse up conditions not met: Connected=${isConnected}, Socket=${!!socket}, DrawingMode=${canvas.isDrawingMode}`);
+                addDebugEvent(`Mouse up conditions not met: Connected=${isConnected}, Socket=${!!socket}`);
             }
         });
 
         // Enhanced drawing event handling for real-time sync
         canvas.on('after:render', function() {
-            if (isConnected && socket && canvas.isDrawingMode) {
-                // Check if there are new drawing objects
+            if (isConnected && socket) {
+                // Check if there are new drawing objects regardless of drawing mode
                 const objects = canvas.getObjects();
-                const drawingObjects = objects.filter(obj => obj.type === 'path' && !obj.isRemote);
+                const drawingObjects = objects.filter(obj => obj.type === 'path' && !obj.isRemote && !obj.synced);
                 
                 if (drawingObjects.length > 0) {
                     const lastDrawing = drawingObjects[drawingObjects.length - 1];
-                    if (lastDrawing && !lastDrawing.synced) {
+                    if (lastDrawing) {
                         console.log('🔵 Emitting draw event from after:render');
                         addDebugEvent(`Emitting draw from after:render - New unsynced path`);
                         lastDrawing.synced = true;
@@ -2023,6 +2079,46 @@
             console.log('🔵 Canvas: Brush modified', e);
             addDebugEvent('Canvas: Brush modified');
         });
+
+        // Direct drawing event handler for real-time sync
+        canvas.on('path:created', function(e) {
+            console.log('🔵 Canvas: Path created event', e);
+            addDebugEvent('Path created event fired');
+            
+            if (isConnected && socket && e.path && !e.path.isRemote) {
+                console.log('🔵 Emitting draw event from path:created');
+                addDebugEvent('Emitting draw from path:created');
+                
+                // Mark as synced immediately to prevent duplicate emissions
+                e.path.synced = true;
+                emitCanvasUpdate('draw', e.path);
+            } else {
+                console.log('🔴 Cannot emit from path:created:', { 
+                    isConnected, 
+                    hasSocket: !!socket, 
+                    hasPath: !!e.path,
+                    isRemote: e.path ? e.path.isRemote : 'no path'
+                });
+                addDebugEvent(`Cannot emit from path:created: Connected=${isConnected}, Socket=${!!socket}, Path=${!!e.path}`);
+            }
+        });
+
+        // Monitor free drawing brush events
+        if (canvas.freeDrawingBrush) {
+            canvas.freeDrawingBrush.on('path:created', function(e) {
+                console.log('🔵 FreeDrawingBrush: Path created', e);
+                addDebugEvent('FreeDrawingBrush path created');
+                
+                if (isConnected && socket && e.path && !e.path.isRemote) {
+                    console.log('🔵 Emitting draw event from FreeDrawingBrush');
+                    addDebugEvent('Emitting draw from FreeDrawingBrush');
+                    
+                    // Mark as synced immediately
+                    e.path.synced = true;
+                    emitCanvasUpdate('draw', e.path);
+                }
+            });
+        }
     </script>
 </body>
 </html> 
