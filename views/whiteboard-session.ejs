@@ -502,6 +502,92 @@
             border-radius: 6px;
             margin: 10px 0;
         }
+
+        /* Student-specific styles */
+        .student-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .session-status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-live {
+            color: var(--success-color);
+        }
+
+        .status-paused {
+            color: var(--warning-color);
+        }
+
+        .status-recorded {
+            color: var(--info-color);
+        }
+
+        .collaboration-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 8px 12px;
+            background: #f0f9ff;
+            border-radius: 6px;
+            color: var(--info-color);
+        }
+
+        .session-info-card {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .session-info-card p {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .session-info-card p:last-child {
+            margin-bottom: 0;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .text-success {
+            color: var(--success-color);
+        }
+
+        .text-info {
+            color: var(--info-color);
+        }
     </style>
 </head>
 <body>
@@ -547,13 +633,26 @@
                 <button class="btn btn-danger" onclick="endSession()">
                     <i class="fas fa-stop"></i> End Session
                 </button>
+                <button class="btn btn-secondary" onclick="takeSnapshot()">
+                    <i class="fas fa-camera"></i> Snapshot
+                </button>
+                <button class="btn btn-primary" onclick="exportSession()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            <% } else { %>
+                <div class="student-controls">
+                    <span class="session-status-badge">
+                        <i class="fas fa-circle"></i> 
+                        <% if (session.status === 'active') { %>
+                            <span class="status-live">Live</span>
+                        <% } else if (session.status === 'paused') { %>
+                            <span class="status-paused">Paused</span>
+                        <% } else { %>
+                            <span class="status-recorded">Recorded</span>
+                        <% } %>
+                    </span>
+                </div>
             <% } %>
-            <button class="btn btn-secondary" onclick="takeSnapshot()">
-                <i class="fas fa-camera"></i> Snapshot
-            </button>
-            <button class="btn btn-primary" onclick="exportSession()">
-                <i class="fas fa-download"></i> Export
-            </button>
         </div>
     </div>
 
@@ -564,42 +663,58 @@
             <button class="tool-btn active" onclick="setTool('select')" data-tool="select">
                 <i class="fas fa-mouse-pointer"></i> Select
             </button>
-            <button class="tool-btn" onclick="setTool('pen')" data-tool="pen">
-                <i class="fas fa-pen"></i> Pen
-            </button>
-            <button class="tool-btn" onclick="setTool('eraser')" data-tool="eraser">
-                <i class="fas fa-eraser"></i> Eraser
-            </button>
-            <button class="tool-btn" onclick="setTool('text')" data-tool="text">
-                <i class="fas fa-font"></i> Text
-            </button>
-            <button class="tool-btn" onclick="setTool('shape')" data-tool="shape">
-                <i class="fas fa-shapes"></i> Shapes
-            </button>
+            <% if (isTeacher || (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled)) { %>
+                <button class="tool-btn" onclick="setTool('pen')" data-tool="pen">
+                    <i class="fas fa-pen"></i> Pen
+                </button>
+                <button class="tool-btn" onclick="setTool('eraser')" data-tool="eraser">
+                    <i class="fas fa-eraser"></i> Eraser
+                </button>
+                <button class="tool-btn" onclick="setTool('text')" data-tool="text">
+                    <i class="fas fa-font"></i> Text
+                </button>
+                <button class="tool-btn" onclick="setTool('shape')" data-tool="shape">
+                    <i class="fas fa-shapes"></i> Shapes
+                </button>
+            <% } %>
         </div>
 
-        <div class="tool-group">
-            <label>Color:</label>
-            <input type="color" class="color-picker" id="colorPicker" value="#000000">
-        </div>
+        <% if (isTeacher || (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled)) { %>
+            <div class="tool-group">
+                <label>Color:</label>
+                <input type="color" class="color-picker" id="colorPicker" value="#000000">
+            </div>
 
-        <div class="tool-group">
-            <label>Size:</label>
-            <input type="range" class="size-slider" id="sizeSlider" min="1" max="20" value="3">
-            <span id="sizeValue">3</span>
-        </div>
+            <div class="tool-group">
+                <label>Size:</label>
+                <input type="range" class="size-slider" id="sizeSlider" min="1" max="20" value="3">
+                <span id="sizeValue">3</span>
+            </div>
 
-        <div class="tool-group">
-            <button class="btn btn-secondary" onclick="clearCanvas()">
-                <i class="fas fa-trash"></i> Clear
-            </button>
-            <button class="btn btn-secondary" onclick="undo()">
-                <i class="fas fa-undo"></i> Undo
-            </button>
-            <button class="btn btn-secondary" onclick="redo()">
-                <i class="fas fa-redo"></i> Redo
-            </button>
-        </div>
+            <div class="tool-group">
+                <button class="btn btn-secondary" onclick="clearCanvas()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+                <button class="btn btn-secondary" onclick="undo()">
+                    <i class="fas fa-undo"></i> Undo
+                </button>
+                <button class="btn btn-secondary" onclick="redo()">
+                    <i class="fas fa-redo"></i> Redo
+                </button>
+            </div>
+        <% } %>
+        
+        <% if (!isTeacher) { %>
+            <div class="tool-group">
+                <span class="collaboration-status">
+                    <% if (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled) { %>
+                        <i class="fas fa-check-circle text-success"></i> Drawing Enabled
+                    <% } else { %>
+                        <i class="fas fa-eye text-info"></i> View Only Mode
+                    <% } %>
+                </span>
+            </div>
+        <% } %>
     </div>
 
     <!-- Main Layout -->
@@ -641,6 +756,34 @@
                         <p>Click to upload PDF, images, or PowerPoint</p>
                     </div>
                     <input type="file" id="fileInput" style="display: none" accept=".pdf,.jpg,.jpeg,.png,.gif,.ppt,.pptx" onchange="handleFileUpload(event)">
+                </div>
+            <% } else { %>
+                <!-- Student View -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-info-circle"></i> Session Information</h3>
+                    <div class="session-info-card">
+                        <p><strong>Mode:</strong> 
+                            <% if (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled) { %>
+                                <span class="badge badge-success">Interactive</span>
+                            <% } else { %>
+                                <span class="badge badge-info">View Only</span>
+                            <% } %>
+                        </p>
+                        <p><strong>Drawing:</strong> 
+                            <% if (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled) { %>
+                                <span class="badge badge-success">Enabled</span>
+                            <% } else { %>
+                                <span class="badge badge-secondary">Disabled</span>
+                            <% } %>
+                        </p>
+                        <p><strong>Writing:</strong> 
+                            <% if (session.collaborationSettings && session.collaborationSettings.studentWritingEnabled) { %>
+                                <span class="badge badge-success">Enabled</span>
+                            <% } else { %>
+                                <span class="badge badge-secondary">Disabled</span>
+                            <% } %>
+                        </p>
+                    </div>
                 </div>
             <% } %>
 

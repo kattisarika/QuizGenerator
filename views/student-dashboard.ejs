@@ -620,6 +620,146 @@
             transform: translateY(-2px);
         }
 
+        /* Whiteboard Section */
+        .whiteboard-section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .whiteboard-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            color: #6b7280;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary-color);
+            background: #f0f9ff;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background: #f0f9ff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .whiteboard-filters {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .whiteboard-sessions-container {
+            min-height: 200px;
+        }
+
+        .whiteboard-session-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .whiteboard-session-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .whiteboard-session-card.live {
+            border-left-color: var(--success-color);
+        }
+
+        .whiteboard-session-card.recorded {
+            border-left-color: var(--info-color);
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .session-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .session-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-live {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-recorded {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .session-meta {
+            margin-bottom: 15px;
+        }
+
+        .session-meta span {
+            display: inline-block;
+            margin-right: 15px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .session-meta i {
+            margin-right: 5px;
+            color: #9ca3af;
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 10px;
+        }
+
         .podcast-info {
             flex: 1;
             margin-right: 20px;
@@ -1276,6 +1416,17 @@
                             <i class="fas fa-headphones" aria-hidden="true"></i> Browse Podcasts
                         </button>
                     </div>
+
+                    <div class="action-card" role="region" aria-labelledby="whiteboard-action">
+                        <div style="font-size: 48px; margin-bottom: 15px; color: var(--info-color);" aria-hidden="true">
+                            <i class="fas fa-chalkboard"></i>
+                        </div>
+                        <h3 id="whiteboard-action">Interactive Whiteboard</h3>
+                        <p>Join live whiteboard sessions and access recorded lessons from your teachers</p>
+                        <button onclick="showWhiteboardSection()" class="btn btn-primary" aria-label="Access interactive whiteboard sessions and recorded lessons">
+                            <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i> View Whiteboards
+                        </button>
+                    </div>
                 </section>
 
                 <!-- Podcasts Section -->
@@ -1328,6 +1479,90 @@
                         <div class="loading-state">
                             <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
                             <p>Loading podcasts...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Whiteboard Section -->
+                <section id="whiteboardSection" class="whiteboard-section" style="display: none;" aria-labelledby="whiteboard-heading">
+                    <div class="section-header">
+                        <h2 id="whiteboard-heading"><i class="fas fa-chalkboard" aria-hidden="true"></i> Interactive Whiteboard Sessions</h2>
+                        <p>Join live whiteboard sessions and access recorded lessons from your teachers</p>
+                    </div>
+                    
+                    <div class="whiteboard-tabs" role="tablist" aria-label="Whiteboard session types">
+                        <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="live-sessions" onclick="switchWhiteboardTab('live')">
+                            <i class="fas fa-broadcast-tower" aria-hidden="true"></i> Live Sessions
+                        </button>
+                        <button class="tab-btn" role="tab" aria-selected="false" aria-controls="recorded-sessions" onclick="switchWhiteboardTab('recorded')">
+                            <i class="fas fa-play-circle" aria-hidden="true"></i> Recorded Sessions
+                        </button>
+                    </div>
+                    
+                    <div class="whiteboard-filters" role="group" aria-labelledby="whiteboard-filter-heading">
+                        <h3 id="whiteboard-filter-heading" class="sr-only">Filter Whiteboard Sessions</h3>
+                        <div class="filter-group">
+                            <label for="whiteboardGradeFilter">Grade Level:</label>
+                            <select id="whiteboardGradeFilter" onchange="filterWhiteboardSessions()" aria-label="Filter whiteboard sessions by grade level">
+                                <option value="all">All Grades</option>
+                                <option value="1st grade">1st Grade</option>
+                                <option value="2nd grade">2nd Grade</option>
+                                <option value="3rd grade">3rd Grade</option>
+                                <option value="4th grade">4th Grade</option>
+                                <option value="5th grade">5th Grade</option>
+                                <option value="6th grade">6th Grade</option>
+                                <option value="7th grade">7th Grade</option>
+                                <option value="8th grade">8th Grade</option>
+                                <option value="9th grade">9th Grade</option>
+                                <option value="10th grade">10th Grade</option>
+                                <option value="11th grade">11th Grade</option>
+                                <option value="12th grade">12th Grade</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="whiteboardSubjectFilter">Subject:</label>
+                            <select id="whiteboardSubjectFilter" onchange="filterWhiteboardSessions()" aria-label="Filter whiteboard sessions by subject">
+                                <option value="all">All Subjects</option>
+                                <option value="English">English</option>
+                                <option value="Science">Science</option>
+                                <option value="Math">Math</option>
+                                <option value="History">History</option>
+                                <option value="Geography">Geography</option>
+                                <option value="Literature">Literature</option>
+                                <option value="Art">Art</option>
+                                <option value="Music">Music</option>
+                                <option value="Physical Education">Physical Education</option>
+                                <option value="Computer Science">Computer Science</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Live Sessions Tab -->
+                    <div id="live-sessions" class="tab-content active" role="tabpanel" aria-labelledby="live-sessions-tab">
+                        <div class="section-header">
+                            <h3><i class="fas fa-broadcast-tower" aria-hidden="true"></i> Live Whiteboard Sessions</h3>
+                            <p>Join active whiteboard sessions in real-time</p>
+                        </div>
+                        <div id="liveSessionsContainer" class="whiteboard-sessions-container" role="region" aria-live="polite" aria-label="Live whiteboard sessions">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                                <p>Loading live sessions...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recorded Sessions Tab -->
+                    <div id="recorded-sessions" class="tab-content" role="tabpanel" aria-labelledby="recorded-sessions-tab" aria-hidden="true">
+                        <div class="section-header">
+                            <h3><i class="fas fa-play-circle" aria-hidden="true"></i> Recorded Whiteboard Sessions</h3>
+                            <p>Review recorded lessons and explanations from your teachers</p>
+                        </div>
+                        <div id="recordedSessionsContainer" class="whiteboard-sessions-container" role="region" aria-live="polite" aria-label="Recorded whiteboard sessions">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                                <p>Loading recorded sessions...</p>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -1850,6 +2085,197 @@
 
         function filterPodcasts() {
             loadStudentPodcasts();
+        }
+
+        // Whiteboard Functions
+        function showWhiteboardSection() {
+            const whiteboardSection = document.getElementById('whiteboardSection');
+            whiteboardSection.style.display = 'block';
+            loadLiveWhiteboardSessions();
+            
+            // Announce to screen readers
+            announceToScreenReader('Whiteboard section opened. Use tabs to switch between live and recorded sessions.');
+            
+            // Focus on first filter for keyboard navigation
+            setTimeout(() => {
+                const gradeFilter = document.getElementById('whiteboardGradeFilter');
+                if (gradeFilter) gradeFilter.focus();
+            }, 100);
+        }
+
+        function switchWhiteboardTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            event.target.classList.add('active');
+            event.target.setAttribute('aria-selected', 'true');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.setAttribute('aria-hidden', 'true');
+            });
+
+            if (tab === 'live') {
+                document.getElementById('live-sessions').classList.add('active');
+                document.getElementById('live-sessions').setAttribute('aria-hidden', 'false');
+                loadLiveWhiteboardSessions();
+            } else {
+                document.getElementById('recorded-sessions').classList.add('active');
+                document.getElementById('recorded-sessions').setAttribute('aria-hidden', 'false');
+                loadRecordedWhiteboardSessions();
+            }
+        }
+
+        async function loadLiveWhiteboardSessions() {
+            try {
+                const container = document.getElementById('liveSessionsContainer');
+                container.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading live sessions...</p></div>';
+                
+                const response = await fetch('/api/whiteboard/student/sessions?status=active');
+                if (response.ok) {
+                    const data = await response.json();
+                    displayLiveWhiteboardSessions(data.sessions);
+                } else {
+                    console.error('Error loading live whiteboard sessions:', response.status);
+                    container.innerHTML = '<div class="error-state"><p>Error loading live sessions</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading live whiteboard sessions:', error);
+                document.getElementById('liveSessionsContainer').innerHTML = 
+                    '<div class="error-state"><p>Error loading live sessions: ' + error.message + '</p></div>';
+            }
+        }
+
+        async function loadRecordedWhiteboardSessions() {
+            try {
+                const container = document.getElementById('recordedSessionsContainer');
+                container.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading recorded sessions...</p></div>';
+                
+                const response = await fetch('/api/whiteboard/student/sessions?status=recorded');
+                if (response.ok) {
+                    const data = await response.json();
+                    displayRecordedWhiteboardSessions(data.sessions);
+                } else {
+                    console.error('Error loading recorded whiteboard sessions:', response.status);
+                    container.innerHTML = '<div class="error-state"><p>Error loading recorded sessions</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading recorded whiteboard sessions:', error);
+                document.getElementById('recordedSessionsContainer').innerHTML = 
+                    '<div class="error-state"><p>Error loading recorded sessions: ' + error.message + '</p></div>';
+            }
+        }
+
+        function displayLiveWhiteboardSessions(sessions) {
+            const container = document.getElementById('liveSessionsContainer');
+            
+            if (!sessions || sessions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-broadcast-tower" aria-hidden="true"></i>
+                        <h3>No Live Sessions</h3>
+                        <p>No live whiteboard sessions are currently available.</p>
+                    </div>
+                `;
+                announceToScreenReader('No live whiteboard sessions available.');
+                return;
+            }
+
+            container.innerHTML = sessions.map((session, index) => `
+                <div class="whiteboard-session-card live" role="article" aria-labelledby="live-session-title-${index}">
+                    <div class="session-header">
+                        <div>
+                            <div class="session-title" id="live-session-title-${index}">${session.title}</div>
+                            <div class="session-status status-live">Live</div>
+                        </div>
+                    </div>
+                    
+                    <div class="session-meta">
+                        <span><i class="fas fa-graduation-cap"></i> ${session.gradeLevel}</span>
+                        <span><i class="fas fa-book"></i> ${session.subject}</span>
+                        <span><i class="fas fa-clock"></i> ${session.sessionMode}</span>
+                        <span><i class="fas fa-user"></i> ${session.teacher.displayName}</span>
+                    </div>
+
+                    <div class="session-actions">
+                        <button class="btn btn-primary" 
+                                onclick="joinLiveWhiteboardSession('${session._id}')"
+                                aria-label="Join live whiteboard session: ${session.title}">
+                            <i class="fas fa-sign-in-alt" aria-hidden="true"></i> Join Session
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            announceToScreenReader(`Found ${sessions.length} live whiteboard session${sessions.length === 1 ? '' : 's'}. Use tab to navigate through the list.`);
+        }
+
+        function displayRecordedWhiteboardSessions(sessions) {
+            const container = document.getElementById('recordedSessionsContainer');
+            
+            if (!sessions || sessions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-play-circle" aria-hidden="true"></i>
+                        <h3>No Recorded Sessions</h3>
+                        <p>No recorded whiteboard sessions are available yet.</p>
+                    </div>
+                `;
+                announceToScreenReader('No recorded whiteboard sessions available.');
+                return;
+            }
+
+            container.innerHTML = sessions.map((session, index) => `
+                <div class="whiteboard-session-card recorded" role="article" aria-labelledby="recorded-session-title-${index}">
+                    <div class="session-header">
+                        <div>
+                            <div class="session-title" id="recorded-session-title-${index}">${session.title}</div>
+                            <div class="session-status status-recorded">Recorded</div>
+                        </div>
+                    </div>
+                    
+                    <div class="session-meta">
+                        <span><i class="fas fa-graduation-cap"></i> ${session.gradeLevel}</span>
+                        <span><i class="fas fa-book"></i> ${session.subject}</span>
+                        <span><i class="fas fa-clock"></i> ${new Date(session.createdAt).toLocaleDateString()}</span>
+                        <span><i class="fas fa-user"></i> ${session.teacher.displayName}</span>
+                    </div>
+
+                    <div class="session-actions">
+                        <button class="btn btn-primary" 
+                                onclick="viewRecordedWhiteboardSession('${session._id}')"
+                                aria-label="View recorded whiteboard session: ${session.title}">
+                            <i class="fas fa-play" aria-hidden="true"></i> View Session
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            announceToScreenReader(`Found ${sessions.length} recorded whiteboard session${sessions.length === 1 ? '' : 's'}. Use tab to navigate through the list.`);
+        }
+
+        function joinLiveWhiteboardSession(sessionId) {
+            // Open whiteboard session in new tab
+            window.open(`/whiteboard/${sessionId}`, '_blank');
+            announceToScreenReader('Opening live whiteboard session in new tab.');
+        }
+
+        function viewRecordedWhiteboardSession(sessionId) {
+            // Open recorded whiteboard session in new tab
+            window.open(`/whiteboard/${sessionId}`, '_blank');
+            announceToScreenReader('Opening recorded whiteboard session in new tab.');
+        }
+
+        function filterWhiteboardSessions() {
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab.textContent.includes('Live')) {
+                loadLiveWhiteboardSessions();
+            } else {
+                loadRecordedWhiteboardSessions();
+            }
         }
 
         async function playStudentPodcast(podcastId) {

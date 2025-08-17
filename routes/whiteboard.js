@@ -196,12 +196,33 @@ router.get('/whiteboard/:id',
         });
       }
 
+      // For students, check additional access requirements
+      if (isStudent) {
+        // Check if session is for student's grade level
+        if (req.user.gradeLevel && session.gradeLevel !== req.user.gradeLevel) {
+          return res.status(403).render('error', {
+            title: 'Access Denied',
+            message: 'This whiteboard session is not for your grade level.',
+            error: { status: 403 }
+          });
+        }
+
+        // Check if session is public or active
+        if (session.status === 'ended' && !session.isPublic) {
+          return res.status(403).render('error', {
+            title: 'Access Denied',
+            message: 'This whiteboard session is not publicly available.',
+            error: { status: 403 }
+          });
+        }
+      }
+
       // Add user as participant if not already
       if (!isParticipant) {
         await session.addParticipant(req.user._id, req.user.role, {
-          canWrite: isTeacher || session.collaborationSettings.studentWritingEnabled,
-          canDraw: isTeacher || session.collaborationSettings.studentDrawingEnabled,
-          canErase: isTeacher
+          canWrite: isTeacher || (isStudent && session.collaborationSettings?.studentWritingEnabled),
+          canDraw: isTeacher || (isStudent && session.collaborationSettings?.studentDrawingEnabled),
+          canErase: isTeacher || (isStudent && session.collaborationSettings?.studentDrawingEnabled)
         });
       }
 
@@ -400,20 +421,39 @@ router.get('/api/whiteboard/student/sessions',
   requireRole(['student']), 
   async (req, res) => {
     try {
-      const { grade, subject } = req.query;
+      const { grade, subject, status } = req.query;
       
       let query = {
-        organizationId: req.user.organizationId,
-        status: { $in: ['ended', 'archived'] },
-        isPublic: true
+        organizationId: req.user.organizationId
       };
 
+      // Filter by status
+      if (status === 'active') {
+        query.status = { $in: ['active', 'paused'] };
+      } else if (status === 'recorded') {
+        query.status = { $in: ['ended', 'archived'] };
+        query.isPublic = true;
+      } else {
+        // Default: show all available sessions
+        query.$or = [
+          { status: { $in: ['active', 'paused'] } },
+          { status: { $in: ['ended', 'archived'] }, isPublic: true }
+        ];
+      }
+
+      // Filter by grade if specified
       if (grade && grade !== 'all') {
         query.gradeLevel = grade;
       }
 
+      // Filter by subject if specified
       if (subject && subject !== 'all') {
         query.subject = subject;
+      }
+
+      // Only show sessions for student's grade level
+      if (req.user.gradeLevel) {
+        query.gradeLevel = req.user.gradeLevel;
       }
 
       const sessions = await WhiteboardSession.find(query)
