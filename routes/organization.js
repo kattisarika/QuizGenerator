@@ -26,37 +26,29 @@ router.get('/api/check-subdomain/:subdomain', async (req, res) => {
   try {
     const { subdomain } = req.params;
     
-    // Validate subdomain format (allow mixed case, will be converted to lowercase)
-    if (!/^[a-zA-Z0-9-]+$/.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
+    // Validate subdomain format
+    if (!/^[a-z0-9-]+$/.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
       return res.json({ 
         available: false, 
-        error: 'Subdomain must be 3-50 characters long and contain only letters, numbers, and hyphens.' 
+        error: 'Subdomain must be 3-50 characters long and contain only lowercase letters, numbers, and hyphens.' 
       });
     }
     
-    // Check reserved subdomains (case-insensitive)
+    // Check reserved subdomains
     const reserved = ['www', 'app', 'api', 'admin', 'mail', 'ftp', 'blog', 'help', 'support', 'docs'];
-    const normalizedSubdomain = subdomain.toLowerCase();
-    if (reserved.includes(normalizedSubdomain)) {
+    if (reserved.includes(subdomain)) {
       return res.json({ 
         available: false, 
         error: 'This subdomain is reserved.' 
       });
     }
     
-    // Check if subdomain exists (case-insensitive)
-    const existing = await Organization.findOne({ subdomain: normalizedSubdomain });
-    
-    console.log('Subdomain check:', { 
-      original: subdomain, 
-      normalized: normalizedSubdomain, 
-      available: !existing 
-    });
+    // Check if subdomain exists
+    const existing = await Organization.findOne({ subdomain });
     
     res.json({ 
       available: !existing,
-      subdomain: subdomain,
-      normalizedSubdomain: normalizedSubdomain
+      subdomain: subdomain
     });
   } catch (error) {
     console.error('Error checking subdomain:', error);
@@ -107,44 +99,16 @@ router.post('/api/create-organization', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
     
-    // Validate subdomain format (allow mixed case, will be converted to lowercase)
-    if (!/^[a-zA-Z0-9-]+$/.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
-      return res.status(400).json({ 
-        error: 'Invalid subdomain format. Use only letters, numbers, and hyphens (3-50 characters).' 
-      });
+    // Validate subdomain
+    if (!/^[a-z0-9-]+$/.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
+      return res.status(400).json({ error: 'Invalid subdomain format' });
     }
     
-    // Check if subdomain is available (case-insensitive)
-    const normalizedSubdomain = subdomain.toLowerCase();
-    console.log('Checking subdomain availability:', { 
-      original: subdomain, 
-      normalized: normalizedSubdomain 
-    });
-    
-    const existingOrg = await Organization.findOne({ subdomain: normalizedSubdomain });
+    // Check if subdomain is available
+    const existingOrg = await Organization.findOne({ subdomain });
     if (existingOrg) {
-      console.log('Subdomain conflict found:', { 
-        requested: normalizedSubdomain, 
-        existingOrgId: existingOrg._id,
-        existingOrgName: existingOrg.name 
-      });
-      
-      // Suggest alternative subdomains
-      const alternatives = [
-        `${normalizedSubdomain}1`,
-        `${normalizedSubdomain}2`,
-        `${normalizedSubdomain}2025`,
-        `${normalizedSubdomain}edu`,
-        `${normalizedSubdomain}school`
-      ];
-      
-      return res.status(400).json({ 
-        error: 'Subdomain already taken. Please choose a different one.',
-        suggestions: alternatives
-      });
+      return res.status(400).json({ error: 'Subdomain already taken' });
     }
-    
-    console.log('Subdomain is available:', normalizedSubdomain);
     
     // Check if user already exists
     const existingUser = await User.findOne({ email });
