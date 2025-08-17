@@ -23,7 +23,7 @@ const {
 } = require('./middleware/tenancy');
 const organizationRoutes = require('./routes/organization');
 const quizSessionRoutes = require('./routes/quizSession');
-const whiteboardRoutes = require('./routes/whiteboard');
+
 
 // AWS S3 configuration
 const AWS = require('aws-sdk');
@@ -90,9 +90,7 @@ const io = require('socket.io')(server, {
   }
 });
 
-// Socket.IO whiteboard event handlers
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+
 
   // Join whiteboard session
   socket.on('join-whiteboard', (data) => {
@@ -191,11 +189,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Handle user disconnection
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
-});
+
 
 // Import models
 const User = require('./models/User');
@@ -552,8 +546,7 @@ app.use('/', organizationRoutes);
 // Quiz Session routes for competitive quizzes
 app.use('/api/quiz-session', quizSessionRoutes);
 
-// Whiteboard routes
-app.use('/', whiteboardRoutes);
+
 
 // Helper functions for file processing
 async function extractTextFromFile(fileBuffer, originalName) {
@@ -4536,7 +4529,7 @@ const startServer = () => {
   server.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
     console.log('✅ Google OAuth is configured and ready!');
-    console.log('✅ Socket.IO is configured for real-time whiteboard!');
+    
     console.log('👥 Role-based system: Teachers, Students, and Admins');
     console.log(`🗄️  MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
   });
