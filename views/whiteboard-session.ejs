@@ -757,6 +757,12 @@
             <button class="btn btn-sm btn-primary" onclick="forceDrawingMode()" style="margin-left: 10px;">
                 <i class="fas fa-magic"></i> Force Draw Mode
             </button>
+            <button class="btn btn-sm btn-danger" onclick="testCompleteFlow()" style="margin-left: 10px;">
+                <i class="fas fa-play"></i> Test Flow
+            </button>
+            <button class="btn btn-sm btn-info" onclick="testSocketConnection()" style="margin-left: 10px;">
+                <i class="fas fa-wifi"></i> Test Socket
+            </button>
         </div>
             
             <% if (isTeacher) { %>
@@ -880,6 +886,14 @@
                     <p>No events yet</p>
                 </div>
             </div>
+            <div class="debug-section">
+                <h5>Socket.IO Status</h5>
+                <p>Connection ID: <span id="debugSocketId">Unknown</span></p>
+                <p>Session Room: <span id="debugSessionRoom">Unknown</span></p>
+                <p>Last Event: <span id="debugLastEvent">None</span></p>
+                <p>Events Sent: <span id="debugEventsSent">0</span></p>
+                <p>Events Received: <span id="debugEventsReceived">0</span></p>
+            </div>
         </div>
     </div>
 
@@ -998,6 +1012,11 @@
         let lastSaveTime = Date.now();
         let socket;
         let isConnected = false;
+        
+        // Socket.IO event tracking
+        let lastSocketEvent = 'None';
+        let socketEventsSent = 0;
+        let socketEventsReceived = 0;
 
         // Initialize whiteboard
         document.addEventListener('DOMContentLoaded', function() {
@@ -1041,14 +1060,21 @@
 
             // Listen for whiteboard updates from other users
             socket.on('whiteboard-update', (data) => {
-                console.log('Received whiteboard update:', data);
+                console.log('🔵 Received whiteboard update:', data);
                 addDebugEvent(`Received: ${data.type} from ${data.userId}`);
+                lastSocketEvent = `Received: ${data.type}`;
+                socketEventsReceived++;
+                updateDebugPanel();
                 handleRemoteUpdate(data);
             });
 
             // Listen for user join notifications
             socket.on('user-joined', (data) => {
-                console.log('User joined:', data);
+                console.log('🔵 User joined:', data);
+                addDebugEvent(`User joined: ${data.userRole} (${data.userId})`);
+                lastSocketEvent = `User joined: ${data.userRole}`;
+                socketEventsReceived++;
+                updateDebugPanel();
                 showMessage(`${data.userRole} joined the session`, 'info');
             });
         }
@@ -1285,6 +1311,32 @@
             if (canvasSize && canvas) {
                 canvasSize.textContent = `${canvas.width}x${canvas.height}`;
             }
+
+            // Update Socket.IO status
+            const socketId = document.getElementById('debugSocketId');
+            if (socketId && socket) {
+                socketId.textContent = socket.id || 'Unknown';
+            }
+
+            const sessionRoom = document.getElementById('debugSessionRoom');
+            if (sessionRoom) {
+                sessionRoom.textContent = '<%= session._id %>';
+            }
+
+            const lastEvent = document.getElementById('debugLastEvent');
+            if (lastEvent) {
+                lastEvent.textContent = lastSocketEvent || 'None';
+            }
+
+            const eventsSent = document.getElementById('debugEventsSent');
+            if (eventsSent) {
+                eventsSent.textContent = socketEventsSent || 0;
+            }
+
+            const eventsReceived = document.getElementById('debugEventsReceived');
+            if (eventsReceived) {
+                eventsReceived.textContent = socketEventsReceived || 0;
+            }
         }
 
         function addDebugEvent(message) {
@@ -1430,6 +1482,110 @@
             showMessage('Drawing mode forced enabled! Try drawing now.', 'success');
         }
 
+        function testCompleteFlow() {
+            console.log('🔵 Testing complete real-time flow');
+            addDebugEvent('Testing complete real-time flow');
+            
+            // Step 1: Check connection
+            if (!isConnected || !socket) {
+                console.log('🔴 Step 1 FAILED: Socket not connected');
+                addDebugEvent('Step 1 FAILED: Socket not connected');
+                showMessage('Socket not connected!', 'error');
+                return;
+            }
+            console.log('🔵 Step 1 PASSED: Socket connected');
+            addDebugEvent('Step 1 PASSED: Socket connected');
+            
+            // Step 2: Check drawing mode
+            if (!canvas.isDrawingMode) {
+                console.log('🔴 Step 2 FAILED: Drawing mode not enabled');
+                addDebugEvent('Step 2 FAILED: Drawing mode not enabled');
+                forceDrawingMode();
+                setTimeout(() => testCompleteFlow(), 200);
+                return;
+            }
+            console.log('🔵 Step 2 PASSED: Drawing mode enabled');
+            addDebugEvent('Step 2 PASSED: Drawing mode enabled');
+            
+            // Step 3: Create test drawing
+            console.log('🔵 Step 3: Creating test drawing');
+            addDebugEvent('Step 3: Creating test drawing');
+            
+            const testPath = new fabric.Path('M 100 100 L 200 200', {
+                stroke: 'red',
+                strokeWidth: 5,
+                selectable: false,
+                evented: false
+            });
+            
+            // Add to canvas
+            canvas.add(testPath);
+            canvas.renderAll();
+            
+            console.log('🔵 Test drawing added to canvas');
+            addDebugEvent('Test drawing added to canvas');
+            
+            // Step 4: Emit drawing event
+            setTimeout(() => {
+                console.log('🔵 Step 4: Emitting drawing event');
+                addDebugEvent('Step 4: Emitting drawing event');
+                
+                if (isConnected && socket) {
+                    emitCanvasUpdate('draw', testPath);
+                    console.log('🔵 Drawing event emitted successfully');
+                    addDebugEvent('Drawing event emitted successfully');
+                    
+                    showMessage('Complete flow test completed! Check debug panel for results.', 'success');
+                } else {
+                    console.log('🔴 Step 4 FAILED: Socket disconnected during test');
+                    addDebugEvent('Step 4 FAILED: Socket disconnected during test');
+                }
+            }, 500);
+        }
+
+        function testSocketConnection() {
+            console.log('🔵 Testing Socket.IO connection');
+            addDebugEvent('Testing Socket.IO connection');
+            
+            if (!socket) {
+                console.log('🔴 No socket object');
+                addDebugEvent('No socket object');
+                showMessage('No socket object!', 'error');
+                return;
+            }
+            
+            console.log('🔵 Socket object exists:', socket);
+            addDebugEvent('Socket object exists');
+            
+            if (!isConnected) {
+                console.log('🔴 Socket not connected');
+                addDebugEvent('Socket not connected');
+                showMessage('Socket not connected!', 'error');
+                return;
+            }
+            
+            console.log('🔵 Socket connected, ID:', socket.id);
+            addDebugEvent(`Socket connected, ID: ${socket.id}`);
+            
+            // Test emit
+            const testData = {
+                sessionId: '<%= session._id %>',
+                userId: '<%= user._id %>',
+                test: true,
+                timestamp: Date.now()
+            };
+            
+            console.log('🔵 Emitting test event:', testData);
+            addDebugEvent('Emitting test event');
+            
+            socket.emit('test-connection', testData);
+            
+            console.log('🔵 Test event emitted');
+            addDebugEvent('Test event emitted');
+            
+            showMessage('Socket connection test completed!', 'success');
+        }
+
         function emitCanvasUpdate(type, object) {
             console.log('🔵 emitCanvasUpdate called:', { type, object, isConnected, hasSocket: !!socket });
             addDebugEvent(`emitCanvasUpdate called: ${type}`);
@@ -1475,6 +1631,9 @@
                     // Verify emission
                     console.log('🔵 whiteboard-draw event emitted successfully');
                     addDebugEvent('whiteboard-draw event emitted successfully');
+                    lastSocketEvent = 'Sent: whiteboard-draw';
+                    socketEventsSent++;
+                    updateDebugPanel();
                     break;
                     
                 case 'add-element':
@@ -2100,6 +2259,22 @@
                     isRemote: e.path ? e.path.isRemote : 'no path'
                 });
                 addDebugEvent(`Cannot emit from path:created: Connected=${isConnected}, Socket=${!!socket}, Path=${!!e.path}`);
+            }
+        });
+
+        // Enhanced drawing event handler with comprehensive logging
+        canvas.on('object:added', function(e) {
+            console.log('🔵 Canvas: Object added event', e.target);
+            addDebugEvent(`Object added: ${e.target.type}`);
+            
+            // Check if this is a new drawing path
+            if (e.target && e.target.type === 'path' && !e.target.isRemote && !e.target.synced) {
+                console.log('🔵 New drawing path detected, marking for sync');
+                addDebugEvent('New drawing path detected for sync');
+                
+                // Mark for sync and emit
+                e.target.synced = true;
+                emitCanvasUpdate('draw', e.target);
             }
         });
 
