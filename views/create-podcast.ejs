@@ -709,6 +709,11 @@
 
         // Create podcast function
         async function createPodcast() {
+            console.log('=== PODCAST CREATION DEBUG ===');
+            console.log('Current audio file:', currentAudioFile);
+            console.log('Audio file type:', currentAudioFile ? currentAudioFile.type : 'No file');
+            console.log('Audio file size:', currentAudioFile ? currentAudioFile.size : 'No file');
+            
             if (!currentAudioFile) {
                 updateSubmitStatus('Please record or upload an audio file first.', 'error');
                 return;
@@ -717,6 +722,8 @@
             const title = document.getElementById('podcastTitle').value.trim();
             const description = document.getElementById('podcastDescription').value.trim();
             const gradeLevel = document.getElementById('gradeLevel').value;
+            
+            console.log('Form data:', { title, description, gradeLevel });
             
             if (!title || !description || !gradeLevel) {
                 updateSubmitStatus('Please fill in all required fields.', 'error');
@@ -735,10 +742,7 @@
             const transcription = document.getElementById('transcriptionText').value.trim();
             const isTranscriptionEnabled = document.getElementById('enableTranscription').checked;
             
-            // Get audio settings
-            const trimStart = parseFloat(document.getElementById('trimStart').value) || 0;
-            const trimEnd = parseFloat(document.getElementById('trimEnd').value) || 0;
-            const noiseReduction = document.getElementById('noiseReduction').checked;
+            console.log('Additional data:', { subjects, tags, transcription, isTranscriptionEnabled, currentAudioDuration });
             
             try {
                 const formData = new FormData();
@@ -752,25 +756,33 @@
                 formData.append('isTranscriptionEnabled', isTranscriptionEnabled);
                 formData.append('duration', currentAudioDuration);
                 
+                console.log('FormData created, sending request...');
+                
                 const response = await fetch('/api/create-podcast', {
                     method: 'POST',
                     body: formData
                 });
                 
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
                 const data = await response.json();
+                console.log('Response data:', data);
                 
                 if (data.success) {
-                    updateSubmitStatus('Podcast created successfully!', 'success');
+                    updateSubmitStatus('Podcast created successfully! Redirecting to dashboard...', 'success');
+                    console.log('Podcast created successfully, redirecting...');
                     // Reset form
                     setTimeout(() => {
                         window.location.href = '/teacher/dashboard';
                     }, 2000);
                 } else {
                     updateSubmitStatus('Error: ' + data.message, 'error');
+                    console.error('Podcast creation failed:', data.message);
                 }
             } catch (error) {
                 console.error('Error creating podcast:', error);
-                updateSubmitStatus('Error creating podcast. Please try again.', 'error');
+                updateSubmitStatus('Error creating podcast: ' + error.message, 'error');
             }
         }
 

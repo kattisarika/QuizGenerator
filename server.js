@@ -123,6 +123,23 @@ const quizImageUpload = multer({
   }
 });
 
+// Multer configuration for audio uploads (S3)
+const audioUpload = multer({
+  storage: multer.memoryStorage(), // Store in memory temporarily
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = ['.mp3', '.wav', '.ogg', '.m4a', '.aac'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only MP3, WAV, OGG, M4A, and AAC audio files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB limit for audio files
+  }
+});
+
 // Helper function to upload file to S3
 async function uploadToS3(file, folder = 'uploads') {
   const params = {
@@ -130,7 +147,7 @@ async function uploadToS3(file, folder = 'uploads') {
     Key: `${folder}/${Date.now()}-${file.originalname}`,
     Body: file.buffer,
     ContentType: file.mimetype,
-    ACL: folder === 'question-images' ? 'public-read' : 'private'
+    ACL: (folder === 'question-images' || folder === 'podcasts') ? 'public-read' : 'private'
   };
 
   try {
@@ -4184,7 +4201,7 @@ app.get('/api/student-podcasts', isAuthenticated, requireRole(['student']), asyn
 });
 
 // Create new podcast
-app.post('/api/create-podcast', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, upload.single('audioFile'), async (req, res) => {
+app.post('/api/create-podcast', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, audioUpload.single('audioFile'), async (req, res) => {
   try {
     const Podcast = require('./models/Podcast');
     const { title, description, gradeLevel, subjects, tags, transcription, isTranscriptionEnabled } = req.body;
