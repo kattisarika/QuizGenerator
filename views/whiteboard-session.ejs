@@ -763,6 +763,12 @@
             <button class="btn btn-sm btn-info" onclick="testSocketConnection()" style="margin-left: 10px;">
                 <i class="fas fa-wifi"></i> Test Socket
             </button>
+            <button class="btn btn-sm btn-warning" onclick="verifySessionRoom()" style="margin-left: 10px;">
+                <i class="fas fa-check-circle"></i> Verify Room
+            </button>
+            <button class="btn btn-sm btn-success" onclick="toggleNetworkMonitoring()" style="margin-left: 10px;">
+                <i class="fas fa-network-wired"></i> Network
+            </button>
         </div>
             
             <% if (isTeacher) { %>
@@ -894,6 +900,13 @@
                 <p>Events Sent: <span id="debugEventsSent">0</span></p>
                 <p>Events Received: <span id="debugEventsReceived">0</span></p>
             </div>
+            <div class="debug-section">
+                <h5>Network Status</h5>
+                <p>Latency: <span id="debugLatency">Unknown</span></p>
+                <p>Quality: <span id="debugQuality">Unknown</span></p>
+                <p>Monitoring: <span id="debugMonitoring">Stopped</span></p>
+                <p>Last Ping: <span id="debugLastPing">Never</span></p>
+            </div>
         </div>
     </div>
 
@@ -1017,6 +1030,12 @@
         let lastSocketEvent = 'None';
         let socketEventsSent = 0;
         let socketEventsReceived = 0;
+        
+        // Network monitoring
+        let networkLatency = 0;
+        let connectionQuality = 'Unknown';
+        let lastPingTime = 0;
+        let pingInterval;
 
         // Initialize whiteboard
         document.addEventListener('DOMContentLoaded', function() {
@@ -1027,35 +1046,105 @@
         });
 
         function initializeSocketIO() {
-            // Connect to Socket.IO server
-            socket = io();
+            console.log('🔵 Initializing Socket.IO connection');
+            addDebugEvent('Initializing Socket.IO connection');
             
-                    socket.on('connect', () => {
-            console.log('🔵 Connected to Socket.IO server');
-            addDebugEvent('Socket.IO connected');
+            // Connect to Socket.IO server with enhanced options
+            socket = io({
+                transports: ['websocket', 'polling'], // Fallback to polling if WebSocket fails
+                upgrade: true,
+                rememberUpgrade: true,
+                timeout: 20000,
+                forceNew: true
+            });
+            
+            // Connection event handlers
+            socket.on('connect', () => {
+                console.log('🔵 Connected to Socket.IO server');
+                addDebugEvent('Socket.IO connected');
+                isConnected = true;
+                lastSocketEvent = 'Connected';
+                updateConnectionIndicator('connected');
+                
+                const joinData = {
+                    sessionId: '<%= session._id %>',
+                    userId: '<%= user._id %>',
+                    userRole: '<%= user.role %>'
+                };
+                
+                console.log('🔵 Joining whiteboard session:', joinData);
+                addDebugEvent(`Joining session: ${joinData.sessionId} as ${joinData.userRole}`);
+                
+                // Join the whiteboard session
+                socket.emit('join-whiteboard', joinData);
+                
+                console.log('🔵 join-whiteboard event emitted');
+                addDebugEvent('join-whiteboard event emitted');
+                
+                // Update debug panel
+                updateDebugPanel();
+            });
+
+        socket.on('disconnect', (reason) => {
+            console.log('🔴 Disconnected from Socket.IO server:', reason);
+            addDebugEvent(`Disconnected: ${reason}`);
+            isConnected = false;
+            lastSocketEvent = `Disconnected: ${reason}`;
+            updateConnectionIndicator('disconnected');
+            
+            // Attempt reconnection for certain disconnect reasons
+            if (reason === 'io server disconnect' || reason === 'io client disconnect') {
+                console.log('🔵 Attempting to reconnect...');
+                addDebugEvent('Attempting to reconnect...');
+                socket.connect();
+            }
+        });
+
+        socket.on('connect_error', (error) => {
+            console.log('🔴 Socket.IO connection error:', error);
+            addDebugEvent(`Connection error: ${error.message}`);
+            lastSocketEvent = `Connection error: ${error.message}`;
+            updateConnectionIndicator('error');
+            
+            // Retry connection after delay
+            setTimeout(() => {
+                if (!isConnected) {
+                    console.log('🔵 Retrying connection...');
+                    addDebugEvent('Retrying connection...');
+                    socket.connect();
+                }
+            }, 3000);
+        });
+
+        socket.on('reconnect', (attemptNumber) => {
+            console.log('🔵 Reconnected to Socket.IO server after', attemptNumber, 'attempts');
+            addDebugEvent(`Reconnected after ${attemptNumber} attempts`);
             isConnected = true;
+            lastSocketEvent = `Reconnected (attempt ${attemptNumber})`;
             updateConnectionIndicator('connected');
             
+            // Rejoin session after reconnection
             const joinData = {
                 sessionId: '<%= session._id %>',
                 userId: '<%= user._id %>',
                 userRole: '<%= user.role %>'
             };
             
-            console.log('🔵 Joining whiteboard session:', joinData);
-            addDebugEvent(`Joining session: ${joinData.sessionId} as ${joinData.userRole}`);
-            
-            // Join the whiteboard session
             socket.emit('join-whiteboard', joinData);
-            
-            console.log('🔵 join-whiteboard event emitted');
-            addDebugEvent('join-whiteboard event emitted');
+            addDebugEvent('Rejoined session after reconnection');
         });
 
-        socket.on('disconnect', () => {
-            console.log('Disconnected from Socket.IO server');
-            isConnected = false;
-            updateConnectionIndicator('disconnected');
+        socket.on('reconnect_error', (error) => {
+            console.log('🔴 Reconnection error:', error);
+            addDebugEvent(`Reconnection error: ${error.message}`);
+            lastSocketEvent = `Reconnection error: ${error.message}`;
+        });
+
+        socket.on('reconnect_failed', () => {
+            console.log('🔴 Reconnection failed after maximum attempts');
+            addDebugEvent('Reconnection failed after maximum attempts');
+            lastSocketEvent = 'Reconnection failed';
+            updateConnectionIndicator('failed');
         });
 
             // Listen for whiteboard updates from other users
@@ -1076,6 +1165,51 @@
                 socketEventsReceived++;
                 updateDebugPanel();
                 showMessage(`${data.userRole} joined the session`, 'info');
+            });
+
+            // Listen for session room verification
+            socket.on('session-verified', (data) => {
+                console.log('🔵 Session room verified:', data);
+                addDebugEvent(`Session verified: ${data.sessionId}`);
+                lastSocketEvent = `Session verified: ${data.sessionId}`;
+                socketEventsReceived++;
+                updateDebugPanel();
+                
+                if (data.verified) {
+                    showMessage('Successfully joined whiteboard session!', 'success');
+                } else {
+                    showMessage('Failed to join session. Please refresh.', 'error');
+                }
+            });
+
+            // Listen for room join confirmation
+            socket.on('room-joined', (data) => {
+                console.log('🔵 Successfully joined room:', data);
+                addDebugEvent(`Room joined: ${data.roomId}`);
+                lastSocketEvent = `Room joined: ${data.roomId}`;
+                socketEventsReceived++;
+                updateDebugPanel();
+                
+                // Verify we're in the correct session
+                if (data.sessionId === '<%= session._id %>') {
+                    console.log('🔵 Session ID matches, room join successful');
+                    addDebugEvent('Session ID matches, room join successful');
+                } else {
+                    console.log('🔴 Session ID mismatch!', { 
+                        expected: '<%= session._id %>', 
+                        received: data.sessionId 
+                    });
+                    addDebugEvent(`Session ID mismatch: Expected ${'<%= session._id %>'}, Got ${data.sessionId}`);
+                }
+            });
+
+            // Listen for connection status updates
+            socket.on('connection-status', (data) => {
+                console.log('🔵 Connection status update:', data);
+                addDebugEvent(`Connection status: ${data.status}`);
+                lastSocketEvent = `Status: ${data.status}`;
+                socketEventsReceived++;
+                updateDebugPanel();
             });
         }
 
@@ -1337,6 +1471,32 @@
             if (eventsReceived) {
                 eventsReceived.textContent = socketEventsReceived || 0;
             }
+
+            // Update network status
+            const latency = document.getElementById('debugLatency');
+            if (latency) {
+                latency.textContent = networkLatency ? `${networkLatency}ms` : 'Unknown';
+            }
+
+            const quality = document.getElementById('debugQuality');
+            if (quality) {
+                quality.textContent = connectionQuality;
+                quality.style.color = connectionQuality === 'Excellent' ? 'green' : 
+                                   connectionQuality === 'Good' ? 'blue' : 
+                                   connectionQuality === 'Fair' ? 'orange' : 
+                                   connectionQuality === 'Poor' ? 'red' : 'black';
+            }
+
+            const monitoring = document.getElementById('debugMonitoring');
+            if (monitoring) {
+                monitoring.textContent = pingInterval ? 'Active' : 'Stopped';
+                monitoring.style.color = pingInterval ? 'green' : 'red';
+            }
+
+            const lastPing = document.getElementById('debugLastPing');
+            if (lastPing) {
+                lastPing.textContent = lastPingTime ? new Date(lastPingTime).toLocaleTimeString() : 'Never';
+            }
         }
 
         function addDebugEvent(message) {
@@ -1584,6 +1744,114 @@
             addDebugEvent('Test event emitted');
             
             showMessage('Socket connection test completed!', 'success');
+        }
+
+        function verifySessionRoom() {
+            console.log('🔵 Verifying session room');
+            addDebugEvent('Verifying session room');
+            
+            if (!isConnected || !socket) {
+                console.log('🔴 Cannot verify: Socket not connected');
+                addDebugEvent('Cannot verify: Socket not connected');
+                showMessage('Socket not connected!', 'error');
+                return;
+            }
+            
+            // Request session verification
+            const verifyData = {
+                sessionId: '<%= session._id %>',
+                userId: '<%= user._id %>',
+                userRole: '<%= user.role %>',
+                timestamp: Date.now()
+            };
+            
+            console.log('🔵 Requesting session verification:', verifyData);
+            addDebugEvent('Requesting session verification');
+            
+            socket.emit('verify-session', verifyData);
+            
+            // Also emit a test drawing to verify room communication
+            setTimeout(() => {
+                if (isConnected) {
+                    console.log('🔵 Testing room communication with test drawing');
+                    addDebugEvent('Testing room communication');
+                    
+                    const testPath = new fabric.Path('M 10 10 L 50 50', {
+                        stroke: 'green',
+                        strokeWidth: 3,
+                        selectable: false,
+                        evented: false
+                    });
+                    
+                    canvas.add(testPath);
+                    canvas.renderAll();
+                    
+                    emitCanvasUpdate('draw', testPath);
+                    
+                    showMessage('Session verification and room communication test sent!', 'success');
+                }
+            }, 1000);
+        }
+
+        function startNetworkMonitoring() {
+            console.log('🔵 Starting network monitoring');
+            addDebugEvent('Starting network monitoring');
+            
+            // Start ping interval
+            pingInterval = setInterval(() => {
+                if (isConnected && socket) {
+                    const pingData = {
+                        sessionId: '<%= session._id %>',
+                        userId: '<%= user._id %>',
+                        timestamp: Date.now()
+                    };
+                    
+                    lastPingTime = Date.now();
+                    socket.emit('ping', pingData);
+                }
+            }, 5000); // Ping every 5 seconds
+            
+            // Listen for pong responses
+            socket.on('pong', (data) => {
+                const latency = Date.now() - lastPingTime;
+                networkLatency = latency;
+                
+                // Determine connection quality
+                if (latency < 100) {
+                    connectionQuality = 'Excellent';
+                } else if (latency < 300) {
+                    connectionQuality = 'Good';
+                } else if (latency < 500) {
+                    connectionQuality = 'Fair';
+                } else {
+                    connectionQuality = 'Poor';
+                }
+                
+                console.log('🔵 Network ping response:', { latency, quality: connectionQuality });
+                addDebugEvent(`Network ping: ${latency}ms (${connectionQuality})`);
+                
+                // Update debug panel
+                updateDebugPanel();
+            });
+        }
+
+        function stopNetworkMonitoring() {
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+                console.log('🔵 Network monitoring stopped');
+                addDebugEvent('Network monitoring stopped');
+            }
+        }
+
+        function toggleNetworkMonitoring() {
+            if (pingInterval) {
+                stopNetworkMonitoring();
+                showMessage('Network monitoring stopped', 'info');
+            } else {
+                startNetworkMonitoring();
+                showMessage('Network monitoring started', 'success');
+            }
         }
 
         function emitCanvasUpdate(type, object) {
