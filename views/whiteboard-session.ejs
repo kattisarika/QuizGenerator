@@ -632,6 +632,80 @@
         .connection-indicator i {
             font-size: 8px;
         }
+
+        /* Debug Panel Styles */
+        .debug-panel {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            width: 350px;
+            max-height: 500px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .debug-header {
+            background: #f3f4f6;
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .debug-header h4 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--dark-color);
+        }
+
+        .debug-content {
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .debug-section {
+            margin-bottom: 20px;
+        }
+
+        .debug-section h5 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: var(--primary-color);
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 5px;
+        }
+
+        .debug-section p {
+            margin: 5px 0;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .debug-events {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .debug-events p {
+            margin: 2px 0;
+            font-size: 11px;
+            font-family: monospace;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -667,11 +741,17 @@
                     </div>
         </div>
         <div class="session-controls">
-            <div class="connection-status">
-                <span id="connectionIndicator" class="connection-indicator">
-                    <i class="fas fa-circle"></i> Connecting...
-                </span>
-            </div>
+                    <div class="connection-status">
+            <span id="connectionIndicator" class="connection-indicator">
+                <i class="fas fa-circle"></i> Connecting...
+            </span>
+            <button class="btn btn-sm btn-info" onclick="toggleDebugPanel()" style="margin-left: 10px;">
+                <i class="fas fa-bug"></i> Debug
+            </button>
+            <button class="btn btn-sm btn-success" onclick="testRealTimeSync()" style="margin-left: 10px;">
+                <i class="fas fa-broadcast-tower"></i> Test Sync
+            </button>
+        </div>
             
             <% if (isTeacher) { %>
                 <button class="btn btn-warning" onclick="pauseSession()" id="pauseBtn">
@@ -765,6 +845,34 @@
                 </span>
             </div>
         <% } %>
+    </div>
+
+    <!-- Debug Panel -->
+    <div id="debugPanel" class="debug-panel" style="display: none;">
+        <div class="debug-header">
+            <h4><i class="fas fa-bug"></i> Debug Panel</h4>
+            <button onclick="toggleDebugPanel()" class="btn btn-sm btn-secondary">×</button>
+        </div>
+        <div class="debug-content">
+            <div class="debug-section">
+                <h5>Connection Status</h5>
+                <p>Socket Connected: <span id="debugSocketStatus">Checking...</span></p>
+                <p>Session ID: <span id="debugSessionId"><%= session._id %></span></p>
+                <p>User Role: <span id="debugUserRole"><%= user.role %></span></p>
+            </div>
+            <div class="debug-section">
+                <h5>Canvas Info</h5>
+                <p>Objects Count: <span id="debugObjectCount">0</span></p>
+                <p>Drawing Mode: <span id="debugDrawingMode">false</span></p>
+                <p>Current Tool: <span id="debugCurrentTool">select</span>
+            </div>
+            <div class="debug-section">
+                <h5>Real-Time Events</h5>
+                <div id="debugEvents" class="debug-events">
+                    <p>No events yet</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Main Layout -->
@@ -917,6 +1025,7 @@
             // Listen for whiteboard updates from other users
             socket.on('whiteboard-update', (data) => {
                 console.log('Received whiteboard update:', data);
+                addDebugEvent(`Received: ${data.type} from ${data.userId}`);
                 handleRemoteUpdate(data);
             });
 
@@ -930,16 +1039,28 @@
         function handleRemoteUpdate(data) {
             switch (data.type) {
                 case 'draw':
-                    // Handle remote drawing
+                    // Handle remote drawing with enhanced data
                     if (data.data && data.data.path) {
                         const path = new fabric.Path(data.data.path, {
-                            stroke: data.data.stroke,
-                            strokeWidth: data.data.strokeWidth,
-                            fill: data.data.fill,
-                            selectable: false
+                            stroke: data.data.stroke || currentColor,
+                            strokeWidth: data.data.strokeWidth || currentSize,
+                            fill: data.data.fill || 'transparent',
+                            left: data.data.left || 0,
+                            top: data.data.top || 0,
+                            scaleX: data.data.scaleX || 1,
+                            scaleY: data.data.scaleY || 1,
+                            selectable: false,
+                            evented: false
                         });
+                        
+                        // Add unique ID for tracking
+                        path.id = `remote-${Date.now()}-${Math.random()}`;
+                        
                         canvas.add(path);
                         canvas.renderAll();
+                        
+                        console.log('Remote drawing added:', path);
+                        addDebugEvent(`Remote drawing added: ${path.id}`);
                     }
                     break;
                     
@@ -1079,25 +1200,126 @@
                     indicator.innerHTML = '<i class="fas fa-circle"></i> Connecting...';
                 }
             }
+            
+            // Update debug panel
+            updateDebugPanel();
+        }
+
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debugPanel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                updateDebugPanel();
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function updateDebugPanel() {
+            // Update connection status
+            const socketStatus = document.getElementById('debugSocketStatus');
+            if (socketStatus) {
+                socketStatus.textContent = isConnected ? 'Connected' : 'Disconnected';
+                socketStatus.style.color = isConnected ? 'green' : 'red';
+            }
+
+            // Update canvas info
+            const objectCount = document.getElementById('debugObjectCount');
+            if (objectCount && canvas) {
+                objectCount.textContent = canvas.getObjects().length;
+            }
+
+            const drawingMode = document.getElementById('debugDrawingMode');
+            if (drawingMode && canvas) {
+                drawingMode.textContent = canvas.isDrawingMode ? 'true' : 'false';
+            }
+
+            const currentTool = document.getElementById('debugCurrentTool');
+            if (currentTool) {
+                currentTool.textContent = currentTool;
+            }
+        }
+
+        function addDebugEvent(message) {
+            const eventsContainer = document.getElementById('debugEvents');
+            if (eventsContainer) {
+                const timestamp = new Date().toLocaleTimeString();
+                const eventElement = document.createElement('p');
+                eventElement.textContent = `[${timestamp}] ${message}`;
+                eventsContainer.appendChild(eventElement);
+                
+                // Keep only last 20 events
+                if (eventsContainer.children.length > 20) {
+                    eventsContainer.removeChild(eventsContainer.firstChild);
+                }
+                
+                // Auto-scroll to bottom
+                eventsContainer.scrollTop = eventsContainer.scrollHeight;
+            }
+        }
+
+        function testRealTimeSync() {
+            if (!isConnected || !socket) {
+                addDebugEvent('Test failed: Socket not connected');
+                return;
+            }
+
+            // Test drawing event
+            const testPath = new fabric.Path('M 10 10 L 100 100', {
+                stroke: 'red',
+                strokeWidth: 3,
+                selectable: false,
+                evented: false
+            });
+            
+            canvas.add(testPath);
+            canvas.renderAll();
+            
+            // Emit test event
+            socket.emit('whiteboard-draw', {
+                sessionId: '<%= session._id %>',
+                userId: '<%= user._id %>',
+                drawingData: {
+                    path: 'M 10 10 L 100 100',
+                    stroke: 'red',
+                    strokeWidth: 3,
+                    fill: 'transparent'
+                }
+            });
+            
+            addDebugEvent('Test sync event sent');
+            showMessage('Test sync event sent!', 'success');
         }
 
         function emitCanvasUpdate(type, object) {
-            if (!isConnected || !socket) return;
+            if (!isConnected || !socket) {
+                addDebugEvent(`Cannot emit: ${type} - Socket not connected`);
+                return;
+            }
             
             const sessionId = '<%= session._id %>';
             const userId = '<%= user._id %>';
             
+            addDebugEvent(`Emitting: ${type} to session ${sessionId}`);
+            
             switch (type) {
                 case 'draw':
+                    // Enhanced drawing data capture
+                    const drawingData = {
+                        path: object.path,
+                        stroke: object.stroke || currentColor,
+                        strokeWidth: object.strokeWidth || currentSize,
+                        fill: object.fill || 'transparent',
+                        left: object.left,
+                        top: object.top,
+                        scaleX: object.scaleX || 1,
+                        scaleY: object.scaleY || 1
+                    };
+                    
                     socket.emit('whiteboard-draw', {
                         sessionId,
                         userId,
-                        drawingData: {
-                            path: object.path,
-                            stroke: object.stroke,
-                            strokeWidth: object.strokeWidth,
-                            fill: object.fill
-                        }
+                        drawingData
                     });
                     break;
                     
@@ -1530,6 +1752,35 @@
         canvas.on('path:created', function(e) {
             if (isConnected && socket) {
                 emitCanvasUpdate('draw', e.path);
+            }
+        });
+
+        // Alternative drawing event handling for better compatibility
+        canvas.on('mouse:up', function(e) {
+            if (isConnected && socket && canvas.isDrawingMode) {
+                // Capture the last drawn path
+                const objects = canvas.getObjects();
+                const lastObject = objects[objects.length - 1];
+                if (lastObject && lastObject.type === 'path') {
+                    emitCanvasUpdate('draw', lastObject);
+                }
+            }
+        });
+
+        // Enhanced drawing event handling for real-time sync
+        canvas.on('after:render', function() {
+            if (isConnected && socket && canvas.isDrawingMode) {
+                // Check if there are new drawing objects
+                const objects = canvas.getObjects();
+                const drawingObjects = objects.filter(obj => obj.type === 'path' && !obj.isRemote);
+                
+                if (drawingObjects.length > 0) {
+                    const lastDrawing = drawingObjects[drawingObjects.length - 1];
+                    if (lastDrawing && !lastDrawing.synced) {
+                        lastDrawing.synced = true;
+                        emitCanvasUpdate('draw', lastDrawing);
+                    }
+                }
             }
         });
     </script>
