@@ -476,6 +476,96 @@
             width: 100%;
         }
 
+        /* Podcast Player Modal */
+        .podcast-player-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .podcast-player-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .podcast-player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .podcast-player-header h3 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .podcast-player-body {
+            padding: 25px;
+        }
+
+        .podcast-player-body .podcast-description {
+            margin-bottom: 20px;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .podcast-player-body .podcast-meta {
+            margin-bottom: 20px;
+        }
+
+        .audio-player-container {
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        .audio-player-container audio {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .podcast-player-body .podcast-stats {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
         /* Recorrection Requests Section */
         .dashboard-section {
             background: white;
@@ -2289,9 +2379,71 @@
         }
 
         // Podcast action functions
-        function playPodcast(podcastId) {
-            // Open podcast in new tab or modal
-            window.open(`/api/podcast/${podcastId}`, '_blank');
+        async function playPodcast(podcastId) {
+            try {
+                // Fetch podcast details
+                const response = await fetch(`/api/podcast/${podcastId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        showPodcastPlayer(data.podcast);
+                        // Update play count
+                        fetch(`/api/podcast-play/${podcastId}`, { method: 'POST' });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading podcast:', error);
+                alert('Error loading podcast');
+            }
+        }
+
+        // Function to show podcast player modal
+        function showPodcastPlayer(podcast) {
+            const modal = document.createElement('div');
+            modal.className = 'podcast-player-modal';
+            modal.innerHTML = `
+                <div class="podcast-player-content">
+                    <div class="podcast-player-header">
+                        <h3>${podcast.title}</h3>
+                        <button class="close-btn" onclick="closePodcastPlayer()">&times;</button>
+                    </div>
+                    <div class="podcast-player-body">
+                        <p class="podcast-description">${podcast.description}</p>
+                        <div class="podcast-meta">
+                            <span class="badge badge-primary">${podcast.gradeLevel}</span>
+                            ${podcast.subjects.map(subject => `<span class="badge badge-secondary">${subject}</span>`).join('')}
+                            <span class="badge badge-info">${podcast.duration ? formatDuration(podcast.duration) : 'Unknown duration'}</span>
+                        </div>
+                        <div class="audio-player-container">
+                            <audio controls autoplay>
+                                <source src="${podcast.audioUrl}" type="audio/${podcast.audioFormat}">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                        <div class="podcast-stats">
+                            <small><i class="fas fa-play"></i> ${podcast.playCount || 0} plays</small>
+                            <small><i class="fas fa-calendar"></i> ${new Date(podcast.createdAt).toLocaleDateString()}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Add event listener for clicking outside modal to close
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closePodcastPlayer();
+                }
+            });
+        }
+
+        // Function to close podcast player modal
+        function closePodcastPlayer() {
+            const modal = document.querySelector('.podcast-player-modal');
+            if (modal) {
+                modal.remove();
+            }
         }
 
         function editPodcast(podcastId) {
