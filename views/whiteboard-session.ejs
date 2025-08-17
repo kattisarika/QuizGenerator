@@ -11,6 +11,25 @@
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Fallback Socket.IO client if server version fails
+        if (typeof io === 'undefined') {
+            console.log('🔵 Loading fallback Socket.IO client from CDN');
+            const script = document.createElement('script');
+            script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+            script.onload = function() {
+                console.log('🔵 Fallback Socket.IO client loaded successfully');
+                // Reinitialize if already tried
+                if (typeof initializeSocketIO === 'function') {
+                    initializeSocketIO();
+                }
+            };
+            script.onerror = function() {
+                console.error('🔴 Failed to load fallback Socket.IO client');
+            };
+            document.head.appendChild(script);
+        }
+    </script>
     <style>
         :root {
             --primary-color: #4F46E5;
@@ -769,6 +788,12 @@
             <button class="btn btn-sm btn-success" onclick="toggleNetworkMonitoring()" style="margin-left: 10px;">
                 <i class="fas fa-network-wired"></i> Network
             </button>
+            <button class="btn btn-sm btn-danger" onclick="retrySocketIO()" style="margin-left: 10px;">
+                <i class="fas fa-redo"></i> Retry Socket
+            </button>
+            <button class="btn btn-sm btn-info" onclick="checkServerStatus()" style="margin-left: 10px;">
+                <i class="fas fa-server"></i> Server Status
+            </button>
         </div>
             
             <% if (isTeacher) { %>
@@ -1039,24 +1064,48 @@
 
         // Initialize whiteboard
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔵 DOM Content Loaded - Starting whiteboard initialization');
+            
+            // Initialize components
             initializeCanvas();
             setupEventListeners();
             loadSessionData();
-            initializeSocketIO();
+            
+            // Delay Socket.IO initialization to ensure all dependencies are loaded
+            setTimeout(() => {
+                console.log('🔵 Delayed Socket.IO initialization');
+                initializeSocketIO();
+            }, 500);
         });
 
         function initializeSocketIO() {
-            console.log('🔵 Initializing Socket.IO connection');
-            addDebugEvent('Initializing Socket.IO connection');
-            
-            // Connect to Socket.IO server with enhanced options
-            socket = io({
-                transports: ['websocket', 'polling'], // Fallback to polling if WebSocket fails
-                upgrade: true,
-                rememberUpgrade: true,
-                timeout: 20000,
-                forceNew: true
-            });
+            try {
+                console.log('🔵 Initializing Socket.IO connection');
+                
+                // Check if Socket.IO client is available
+                if (typeof io === 'undefined') {
+                    console.error('🔴 Socket.IO client library not loaded!');
+                    showMessage('Socket.IO client library not loaded. Please refresh the page.', 'error');
+                    return;
+                }
+                
+                addDebugEvent('Initializing Socket.IO connection');
+                
+                // Connect to Socket.IO server with enhanced options
+                socket = io({
+                    transports: ['websocket', 'polling'], // Fallback to polling if WebSocket fails
+                    upgrade: true,
+                    rememberUpgrade: true,
+                    timeout: 20000,
+                    forceNew: true
+                });
+                
+                console.log('🔵 Socket.IO client created successfully');
+            } catch (error) {
+                console.error('🔴 Error initializing Socket.IO:', error);
+                showMessage(`Socket.IO initialization failed: ${error.message}`, 'error');
+            }
+        }
             
             // Connection event handlers
             socket.on('connect', () => {
@@ -1852,6 +1901,70 @@
                 startNetworkMonitoring();
                 showMessage('Network monitoring started', 'success');
             }
+        }
+
+        function retrySocketIO() {
+            console.log('🔵 Retrying Socket.IO initialization');
+            addDebugEvent('Retrying Socket.IO initialization');
+            
+            // Stop existing monitoring
+            stopNetworkMonitoring();
+            
+            // Reset connection state
+            isConnected = false;
+            lastSocketEvent = 'Retrying...';
+            updateConnectionIndicator('connecting');
+            
+            // Try to reinitialize
+            try {
+                if (socket) {
+                    socket.disconnect();
+                    socket = null;
+                }
+                
+                // Wait a moment then retry
+                setTimeout(() => {
+                    initializeSocketIO();
+                }, 1000);
+                
+                showMessage('Socket.IO reinitialization started...', 'info');
+            } catch (error) {
+                console.error('🔴 Error retrying Socket.IO:', error);
+                addDebugEvent(`Retry error: ${error.message}`);
+                showMessage(`Retry failed: ${error.message}`, 'error');
+            }
+        }
+
+        function checkServerStatus() {
+            console.log('🔵 Checking server status');
+            addDebugEvent('Checking server status');
+            
+            // Check if Socket.IO client is available
+            if (typeof io === 'undefined') {
+                console.log('🔴 Socket.IO client not available');
+                addDebugEvent('Socket.IO client not available');
+                showMessage('Socket.IO client not available', 'error');
+                return;
+            }
+            
+            // Check if we can reach the server
+            fetch('/api/health')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('🔵 Server health check passed');
+                        addDebugEvent('Server health check passed');
+                        showMessage('Server is healthy', 'success');
+                    } else {
+                        console.log('🔴 Server health check failed:', response.status);
+                        addDebugEvent(`Server health check failed: ${response.status}`);
+                        showMessage(`Server health check failed: ${response.status}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.log('🔴 Server health check error:', error);
+                    addDebugEvent(`Server health check error: ${error.message}`);
+                    showMessage(`Server health check error: ${error.message}`, 'error');
+                });
         }
 
         function emitCanvasUpdate(type, object) {
