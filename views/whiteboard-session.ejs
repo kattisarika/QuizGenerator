@@ -588,6 +588,17 @@
         .text-info {
             color: var(--info-color);
         }
+
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -615,12 +626,12 @@
     <div class="session-header">
         <div class="session-info">
             <h1><%= session.title %></h1>
-            <div class="session-meta">
-                <span><i class="fas fa-graduation-cap"></i> <%= session.gradeLevel %></span>
-                <span><i class="fas fa-book"></i> <%= session.subject %></span>
-                <span><i class="fas fa-users"></i> <%= session.participants.length %> participants</span>
-                <span><i class="fas fa-clock"></i> <%= session.sessionMode %></span>
-            </div>
+                                <div class="session-meta">
+                        <span><i class="fas fa-graduation-cap"></i> <%= session.gradeLevel || 'Not specified' %></span>
+                        <span><i class="fas fa-book"></i> <%= session.subject || 'Not specified' %></span>
+                        <span><i class="fas fa-users"></i> <%= session.participants ? session.participants.length : 0 %> participants</span>
+                        <span><i class="fas fa-clock"></i> <%= session.sessionMode || 'live' %></span>
+                    </div>
         </div>
         <div class="session-controls">
             <% if (isTeacher) { %>
@@ -663,7 +674,7 @@
             <button class="tool-btn active" onclick="setTool('select')" data-tool="select">
                 <i class="fas fa-mouse-pointer"></i> Select
             </button>
-            <% if (isTeacher || (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled)) { %>
+            <% if (isTeacher || (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled === true)) { %>
                 <button class="tool-btn" onclick="setTool('pen')" data-tool="pen">
                     <i class="fas fa-pen"></i> Pen
                 </button>
@@ -679,7 +690,7 @@
             <% } %>
         </div>
 
-        <% if (isTeacher || (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled)) { %>
+        <% if (isTeacher || (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled === true)) { %>
             <div class="tool-group">
                 <label>Color:</label>
                 <input type="color" class="color-picker" id="colorPicker" value="#000000">
@@ -707,7 +718,7 @@
         <% if (!isTeacher) { %>
             <div class="tool-group">
                 <span class="collaboration-status">
-                    <% if (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled) { %>
+                    <% if (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled === true) { %>
                         <i class="fas fa-check-circle text-success"></i> Drawing Enabled
                     <% } else { %>
                         <i class="fas fa-eye text-info"></i> View Only Mode
@@ -732,18 +743,26 @@
             <div class="sidebar-section">
                 <h3><i class="fas fa-users"></i> Participants</h3>
                 <div class="participants-list" id="participantsList">
-                    <% session.participants.forEach(participant => { %>
-                        <div class="participant-item">
-                            <div class="participant-avatar">
-                                <%= participant.user.displayName.charAt(0).toUpperCase() %>
-                            </div>
-                            <div class="participant-info">
-                                <div class="participant-name"><%= participant.user.displayName %></div>
-                                <div class="participant-role"><%= participant.role %></div>
-                            </div>
-                            <div class="participant-status"></div>
+                    <% if (session.participants && session.participants.length > 0) { %>
+                        <% session.participants.forEach(participant => { %>
+                            <% if (participant.user && participant.user.displayName) { %>
+                                <div class="participant-item">
+                                    <div class="participant-avatar">
+                                        <%= participant.user.displayName.charAt(0).toUpperCase() %>
+                                    </div>
+                                    <div class="participant-info">
+                                        <div class="participant-name"><%= participant.user.displayName %></div>
+                                        <div class="participant-role"><%= participant.role || 'Student' %></div>
+                                    </div>
+                                    <div class="participant-status"></div>
+                                </div>
+                            <% } %>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="empty-state">
+                            <p>No participants yet</p>
                         </div>
-                    <% }); %>
+                    <% } %>
                 </div>
             </div>
 
@@ -763,21 +782,21 @@
                     <h3><i class="fas fa-info-circle"></i> Session Information</h3>
                     <div class="session-info-card">
                         <p><strong>Mode:</strong> 
-                            <% if (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled) { %>
-                                <span class="badge badge-success">Interactive</span>
-                            <% } else { %>
-                                <span class="badge badge-info">View Only</span>
-                            <% } %>
+                                                    <% if (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled === true) { %>
+                            <span class="badge badge-success">Interactive</span>
+                        <% } else { %>
+                            <span class="badge badge-info">View Only</span>
+                        <% } %>
                         </p>
                         <p><strong>Drawing:</strong> 
-                            <% if (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled) { %>
+                            <% if (session.collaborationSettings && session.collaborationSettings.studentDrawingEnabled === true) { %>
                                 <span class="badge badge-success">Enabled</span>
                             <% } else { %>
                                 <span class="badge badge-secondary">Disabled</span>
                             <% } %>
                         </p>
                         <p><strong>Writing:</strong> 
-                            <% if (session.collaborationSettings && session.collaborationSettings.studentWritingEnabled) { %>
+                            <% if (session.collaborationSettings && session.collaborationSettings.studentWritingEnabled === true) { %>
                                 <span class="badge badge-success">Enabled</span>
                             <% } else { %>
                                 <span class="badge badge-secondary">Disabled</span>
@@ -802,9 +821,9 @@
             <!-- Session Info -->
             <div class="sidebar-section">
                 <h3><i class="fas fa-info-circle"></i> Session Info</h3>
-                <p><strong>Created:</strong> <%= new Date(session.createdAt).toLocaleDateString() %></p>
-                <p><strong>Status:</strong> <span class="badge badge-<%= session.status %>"><%= session.status %></span></p>
-                <p><strong>Mode:</strong> <%= session.sessionMode %></p>
+                <p><strong>Created:</strong> <%= session.createdAt ? new Date(session.createdAt).toLocaleDateString() : 'Not specified' %></p>
+                <p><strong>Status:</strong> <span class="badge badge-<%= session.status || 'active' %>"><%= session.status || 'active' %></span></p>
+                <p><strong>Mode:</strong> <%= session.sessionMode || 'live' %></p>
                 <% if (session.description) { %>
                     <p><strong>Description:</strong> <%= session.description %></p>
                 <% } %>
