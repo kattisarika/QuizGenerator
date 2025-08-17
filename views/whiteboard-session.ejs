@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= session.title %> - Whiteboard Session - SkillOns</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --primary-dark: #4338CA;
+            --secondary-color: #7C3AED;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
+            --info-color: #3B82F6;
+            --dark-color: #1F2937;
+            --light-color: #F9FAFB;
+            --border-radius: 8px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            color: var(--dark-color);
+            overflow: hidden;
+        }
+
+        /* Enhanced Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-md);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+        }
+
+        .nav-logo a {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-logo a::before {
+            content: "👨‍🏫";
+            font-size: 28px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .nav-link {
+            padding: 10px 16px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-link:hover {
+            background: #f9fafb;
+            color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .nav-link.logout-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .nav-link.logout-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        /* Session Header */
+        .session-header {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 70px;
+        }
+
+        .session-info h1 {
+            font-size: 20px;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .session-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .session-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tool-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            padding: 5px 10px;
+            border-radius: 6px;
+            background: #f9fafb;
+        }
+
+        .tool-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-right: 5px;
+        }
+
+        .tool-btn {
+            padding: 8px 12px;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+
+        .tool-btn:hover {
+            border-color: var(--primary-color);
+            background: #f0f9ff;
+        }
+
+        .tool-btn.active {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .tool-btn i {
+            font-size: 16px;
+        }
+
+        .color-picker {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            background: #000;
+        }
+
+        .size-slider {
+            width: 80px;
+        }
+
+        /* Canvas Container */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #fafafa;
+            overflow: hidden;
+        }
+
+        #whiteboard-canvas {
+            border: 1px solid #e5e7eb;
+            cursor: crosshair;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-left: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .sidebar-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .participants-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .participant-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            background: #f9fafb;
+        }
+
+        .participant-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .participant-info {
+            flex: 1;
+        }
+
+        .participant-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--dark-color);
+        }
+
+        .participant-role {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .participant-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-color);
+        }
+
+        .participant-status.offline {
+            background: #9ca3af;
+        }
+
+        /* File Upload */
+        .file-upload {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary-color);
+            background: #f0f9ff;
+        }
+
+        .file-upload i {
+            font-size: 24px;
+            color: #9ca3af;
+            margin-bottom: 10px;
+        }
+
+        .file-upload p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* Math Input */
+        .math-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .math-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .math-input button {
+            padding: 8px 16px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* Main Layout */
+        .whiteboard-layout {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .whiteboard-layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 200px;
+            }
+
+            .toolbar {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .tool-group {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .session-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .session-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #6b7280;
+        }
+
+        .loading i {
+            font-size: 24px;
+            margin-right: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error States */
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+
+        /* Success States */
+        .success-message {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">SkillOns</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/whiteboard" class="nav-link">
+                    <i class="fas fa-arrow-left"></i> Back to Whiteboard
+                </a>
+                <a href="/teacher/dashboard" class="nav-link">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="/logout" class="nav-link logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Session Header -->
+    <div class="session-header">
+        <div class="session-info">
+            <h1><%= session.title %></h1>
+            <div class="session-meta">
+                <span><i class="fas fa-graduation-cap"></i> <%= session.gradeLevel %></span>
+                <span><i class="fas fa-book"></i> <%= session.subject %></span>
+                <span><i class="fas fa-users"></i> <%= session.participants.length %> participants</span>
+                <span><i class="fas fa-clock"></i> <%= session.sessionMode %></span>
+            </div>
+        </div>
+        <div class="session-controls">
+            <% if (isTeacher) { %>
+                <button class="btn btn-warning" onclick="pauseSession()" id="pauseBtn">
+                    <i class="fas fa-pause"></i> Pause
+                </button>
+                <button class="btn btn-success" onclick="resumeSession()" id="resumeBtn" style="display: none;">
+                    <i class="fas fa-play"></i> Resume
+                </button>
+                <button class="btn btn-danger" onclick="endSession()">
+                    <i class="fas fa-stop"></i> End Session
+                </button>
+            <% } %>
+            <button class="btn btn-secondary" onclick="takeSnapshot()">
+                <i class="fas fa-camera"></i> Snapshot
+            </button>
+            <button class="btn btn-primary" onclick="exportSession()">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="tool-group">
+            <label>Tools:</label>
+            <button class="tool-btn active" onclick="setTool('select')" data-tool="select">
+                <i class="fas fa-mouse-pointer"></i> Select
+            </button>
+            <button class="tool-btn" onclick="setTool('pen')" data-tool="pen">
+                <i class="fas fa-pen"></i> Pen
+            </button>
+            <button class="tool-btn" onclick="setTool('eraser')" data-tool="eraser">
+                <i class="fas fa-eraser"></i> Eraser
+            </button>
+            <button class="tool-btn" onclick="setTool('text')" data-tool="text">
+                <i class="fas fa-font"></i> Text
+            </button>
+            <button class="tool-btn" onclick="setTool('shape')" data-tool="shape">
+                <i class="fas fa-shapes"></i> Shapes
+            </button>
+        </div>
+
+        <div class="tool-group">
+            <label>Color:</label>
+            <input type="color" class="color-picker" id="colorPicker" value="#000000">
+        </div>
+
+        <div class="tool-group">
+            <label>Size:</label>
+            <input type="range" class="size-slider" id="sizeSlider" min="1" max="20" value="3">
+            <span id="sizeValue">3</span>
+        </div>
+
+        <div class="tool-group">
+            <button class="btn btn-secondary" onclick="clearCanvas()">
+                <i class="fas fa-trash"></i> Clear
+            </button>
+            <button class="btn btn-secondary" onclick="undo()">
+                <i class="fas fa-undo"></i> Undo
+            </button>
+            <button class="btn btn-secondary" onclick="redo()">
+                <i class="fas fa-redo"></i> Redo
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="whiteboard-layout">
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="whiteboard-canvas" width="1200" height="800"></canvas>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Participants -->
+            <div class="sidebar-section">
+                <h3><i class="fas fa-users"></i> Participants</h3>
+                <div class="participants-list" id="participantsList">
+                    <% session.participants.forEach(participant => { %>
+                        <div class="participant-item">
+                            <div class="participant-avatar">
+                                <%= participant.user.displayName.charAt(0).toUpperCase() %>
+                            </div>
+                            <div class="participant-info">
+                                <div class="participant-name"><%= participant.user.displayName %></div>
+                                <div class="participant-role"><%= participant.role %></div>
+                            </div>
+                            <div class="participant-status"></div>
+                        </div>
+                    <% }); %>
+                </div>
+            </div>
+
+            <!-- File Upload -->
+            <% if (isTeacher) { %>
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-upload"></i> Upload Files</h3>
+                    <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click to upload PDF, images, or PowerPoint</p>
+                    </div>
+                    <input type="file" id="fileInput" style="display: none" accept=".pdf,.jpg,.jpeg,.png,.gif,.ppt,.pptx" onchange="handleFileUpload(event)">
+                </div>
+            <% } %>
+
+            <!-- Math Equations -->
+            <div class="sidebar-section">
+                <h3><i class="fas fa-square-root-alt"></i> Math Equations</h3>
+                <div class="math-input">
+                    <input type="text" id="mathInput" placeholder="Enter LaTeX equation...">
+                    <button onclick="addMathEquation()">Add</button>
+                </div>
+                <div class="help-text">
+                    <small>Use LaTeX syntax: \frac{a}{b}, \sqrt{x}, \int_0^1 dx</small>
+                </div>
+            </div>
+
+            <!-- Session Info -->
+            <div class="sidebar-section">
+                <h3><i class="fas fa-info-circle"></i> Session Info</h3>
+                <p><strong>Created:</strong> <%= new Date(session.createdAt).toLocaleDateString() %></p>
+                <p><strong>Status:</strong> <span class="badge badge-<%= session.status %>"><%= session.status %></span></p>
+                <p><strong>Mode:</strong> <%= session.sessionMode %></p>
+                <% if (session.description) { %>
+                    <p><strong>Description:</strong> <%= session.description %></p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let canvas;
+        let currentTool = 'select';
+        let currentColor = '#000000';
+        let currentSize = 3;
+        let isDrawing = false;
+        let undoStack = [];
+        let redoStack = [];
+        let lastSaveTime = Date.now();
+
+        // Initialize whiteboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCanvas();
+            setupEventListeners();
+            loadSessionData();
+        });
+
+        function initializeCanvas() {
+            canvas = new fabric.Canvas('whiteboard-canvas', {
+                isDrawingMode: false,
+                selection: true
+            });
+
+            // Set canvas background
+            canvas.setBackgroundColor('#ffffff', function() {
+                canvas.renderAll();
+            });
+
+            // Set initial dimensions
+            resizeCanvas();
+        }
+
+        function setupEventListeners() {
+            // Color picker
+            document.getElementById('colorPicker').addEventListener('change', function(e) {
+                currentColor = e.target.value;
+                updateCanvasSettings();
+            });
+
+            // Size slider
+            document.getElementById('sizeSlider').addEventListener('change', function(e) {
+                currentSize = parseInt(e.target.value);
+                document.getElementById('sizeValue').textContent = currentSize;
+                updateCanvasSettings();
+            });
+
+            // Window resize
+            window.addEventListener('resize', resizeCanvas);
+
+            // Auto-save every 30 seconds
+            setInterval(autoSave, 30000);
+        }
+
+        function resizeCanvas() {
+            const container = document.querySelector('.canvas-container');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+
+            canvas.setWidth(containerWidth);
+            canvas.setHeight(containerHeight);
+            canvas.renderAll();
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            
+            // Update active button
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Configure canvas based on tool
+            switch(tool) {
+                case 'select':
+                    canvas.isDrawingMode = false;
+                    canvas.selection = true;
+                    break;
+                case 'pen':
+                    canvas.isDrawingMode = true;
+                    canvas.selection = false;
+                    updateCanvasSettings();
+                    break;
+                case 'eraser':
+                    canvas.isDrawingMode = true;
+                    canvas.selection = false;
+                    canvas.freeDrawingBrush.color = '#ffffff';
+                    canvas.freeDrawingBrush.width = currentSize * 2;
+                    break;
+                case 'text':
+                    canvas.isDrawingMode = false;
+                    canvas.selection = true;
+                    break;
+                case 'shape':
+                    canvas.isDrawingMode = false;
+                    canvas.selection = true;
+                    break;
+            }
+        }
+
+        function updateCanvasSettings() {
+            if (canvas.isDrawingMode) {
+                canvas.freeDrawingBrush.color = currentColor;
+                canvas.freeDrawingBrush.width = currentSize;
+            }
+        }
+
+        function clearCanvas() {
+            if (confirm('Are you sure you want to clear the entire canvas?')) {
+                saveToUndoStack();
+                canvas.clear();
+                canvas.setBackgroundColor('#ffffff', function() {
+                    canvas.renderAll();
+                });
+            }
+        }
+
+        function undo() {
+            if (undoStack.length > 0) {
+                const currentState = canvas.toJSON();
+                redoStack.push(currentState);
+                
+                const previousState = undoStack.pop();
+                canvas.loadFromJSON(previousState, function() {
+                    canvas.renderAll();
+                });
+            }
+        }
+
+        function redo() {
+            if (redoStack.length > 0) {
+                const currentState = canvas.toJSON();
+                undoStack.push(currentState);
+                
+                const nextState = redoStack.pop();
+                canvas.loadFromJSON(nextState, function() {
+                    canvas.renderAll();
+                });
+            }
+        }
+
+        function saveToUndoStack() {
+            const currentState = canvas.toJSON();
+            undoStack.push(currentState);
+            
+            // Limit undo stack size
+            if (undoStack.length > 20) {
+                undoStack.shift();
+            }
+            
+            // Clear redo stack when new action is performed
+            redoStack = [];
+        }
+
+        function addMathEquation() {
+            const mathInput = document.getElementById('mathInput');
+            const equation = mathInput.value.trim();
+            
+            if (!equation) return;
+
+            const textbox = new fabric.Textbox('\\(' + equation + '\\)', {
+                left: 100,
+                top: 100,
+                fontSize: 20,
+                fill: currentColor,
+                fontFamily: 'serif'
+            });
+
+            canvas.add(textbox);
+            canvas.setActiveObject(textbox);
+            canvas.renderAll();
+            
+            // Render MathJax
+            MathJax.typesetPromise([textbox.element]).then(() => {
+                canvas.renderAll();
+            });
+
+            mathInput.value = '';
+            saveToUndoStack();
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (file.type.startsWith('image/')) {
+                    fabric.Image.fromURL(e.target.result, function(img) {
+                        img.scaleToWidth(400);
+                        canvas.add(img);
+                        canvas.renderAll();
+                        saveToUndoStack();
+                    });
+                } else {
+                    // For PDFs and other files, show message
+                    alert('File uploaded successfully! You can now reference it during your session.');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function takeSnapshot() {
+            const snapshotName = prompt('Enter snapshot name:');
+            if (!snapshotName) return;
+
+            const dataURL = canvas.toDataURL('image/png');
+            
+            // Save snapshot to server
+            fetch(`/api/whiteboard/<%= session._id %>/snapshot`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    pageNumber: 1,
+                    name: snapshotName,
+                    description: 'Canvas snapshot'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Snapshot saved successfully!', 'success');
+                } else {
+                    showMessage('Failed to save snapshot: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error saving snapshot: ' + error.message, 'error');
+            });
+        }
+
+        function exportSession() {
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = '<%= session.title %>-whiteboard.png';
+            link.href = dataURL;
+            link.click();
+        }
+
+        function pauseSession() {
+            updateSessionStatus('paused');
+        }
+
+        function resumeSession() {
+            updateSessionStatus('active');
+        }
+
+        function endSession() {
+            if (confirm('Are you sure you want to end this session? This action cannot be undone.')) {
+                updateSessionStatus('ended');
+            }
+        }
+
+        async function updateSessionStatus(status) {
+            try {
+                const response = await fetch(`/api/whiteboard/<%= session._id %>/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status })
+                });
+
+                if (response.ok) {
+                    if (status === 'paused') {
+                        document.getElementById('pauseBtn').style.display = 'none';
+                        document.getElementById('resumeBtn').style.display = 'inline-flex';
+                        showMessage('Session paused', 'success');
+                    } else if (status === 'active') {
+                        document.getElementById('pauseBtn').style.display = 'inline-flex';
+                        document.getElementById('resumeBtn').style.display = 'none';
+                        showMessage('Session resumed', 'success');
+                    } else if (status === 'ended') {
+                        showMessage('Session ended. Redirecting...', 'success');
+                        setTimeout(() => {
+                            window.location.href = '/whiteboard';
+                        }, 2000);
+                    }
+                } else {
+                    const error = await response.json();
+                    showMessage('Error: ' + error.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error updating session status:', error);
+                showMessage('Failed to update session status', 'error');
+            }
+        }
+
+        function loadSessionData() {
+            // Load existing board content if any
+            <% if (session.boardContent && session.boardContent.pages && session.boardContent.pages.length > 0) { %>
+                const pageData = <%- JSON.stringify(session.boardContent.pages[0]) %>;
+                if (pageData.elements && pageData.elements.length > 0) {
+                    // Load elements from session data
+                    pageData.elements.forEach(element => {
+                        // Recreate fabric objects from saved data
+                        // This is a simplified version - you'd need more complex logic for full reconstruction
+                    });
+                }
+            <% } %>
+        }
+
+        function autoSave() {
+            const currentTime = Date.now();
+            if (currentTime - lastSaveTime > 30000) { // 30 seconds
+                saveToUndoStack();
+                lastSaveTime = currentTime;
+                console.log('Auto-saved whiteboard state');
+            }
+        }
+
+        function showMessage(message, type) {
+            // Create message element
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `${type}-message`;
+            messageDiv.textContent = message;
+            
+            // Insert at top of canvas container
+            const container = document.querySelector('.canvas-container');
+            container.insertBefore(messageDiv, container.firstChild);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // Canvas event listeners for undo/redo
+        canvas.on('object:added', saveToUndoStack);
+        canvas.on('object:modified', saveToUndoStack);
+        canvas.on('object:removed', saveToUndoStack);
+    </script>
+</body>
+</html> 
