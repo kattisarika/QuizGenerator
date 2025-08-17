@@ -874,6 +874,9 @@
                 <button class="btn btn-secondary" onclick="redo()">
                     <i class="fas fa-redo"></i> Redo
                 </button>
+                <button class="btn btn-primary" onclick="testCanvas()">
+                    <i class="fas fa-vial"></i> Test Canvas
+                </button>
             </div>
         <% } %>
         
@@ -2277,56 +2280,179 @@
         }
 
         function initializeCanvas() {
-            canvas = new fabric.Canvas('whiteboard-canvas', {
-                isDrawingMode: false,
-                selection: true
-            });
-
-            // Initialize drawing brush for real-time sync
-            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-            canvas.freeDrawingBrush.color = currentColor;
-            canvas.freeDrawingBrush.width = currentSize;
+            console.log('🔵 Starting canvas initialization...');
+            addDebugEvent('Starting canvas initialization');
             
-            console.log('🔵 Canvas initialized with drawing brush');
-            addDebugEvent('Canvas initialized with drawing brush');
-
-            // Set canvas background
-            canvas.setBackgroundColor('#ffffff', function() {
-                canvas.renderAll();
-            });
-
-            // Set initial dimensions
-            resizeCanvas();
-            
-            // Set default tool to pen for teachers
-            <% if (isTeacher) { %>
-            setTimeout(() => {
-                setTool('pen');
-                console.log('🔵 Default tool set to pen for teacher');
-                addDebugEvent('Default tool set to pen for teacher');
-            }, 100);
-            <% } %>
+            try {
+                // Check if canvas element exists
+                const canvasElement = document.getElementById('whiteboard-canvas');
+                if (!canvasElement) {
+                    throw new Error('Canvas element not found');
+                }
+                
+                console.log('🔵 Canvas element found, creating Fabric.js canvas');
+                addDebugEvent('Canvas element found');
+                
+                // Create Fabric.js canvas
+                canvas = new fabric.Canvas('whiteboard-canvas', {
+                    isDrawingMode: false,
+                    selection: true
+                });
+                
+                console.log('🔵 Fabric.js canvas created successfully');
+                addDebugEvent('Fabric.js canvas created');
+                
+                // Initialize drawing brush
+                if (!canvas.freeDrawingBrush) {
+                    console.log('🔵 Creating freeDrawingBrush');
+                    canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+                    addDebugEvent('FreeDrawingBrush created');
+                }
+                
+                // Set initial brush properties
+                canvas.freeDrawingBrush.color = currentColor;
+                canvas.freeDrawingBrush.width = currentSize;
+                
+                console.log('🔵 Drawing brush configured');
+                addDebugEvent('Drawing brush configured');
+                
+                // Set canvas background
+                canvas.setBackgroundColor('#ffffff', function() {
+                    canvas.renderAll();
+                    console.log('🔵 Canvas background set');
+                });
+                
+                // Set initial dimensions
+                resizeCanvas();
+                
+                // Set default tool to pen for teachers
+                <% if (isTeacher) { %>
+                setTimeout(() => {
+                    console.log('🔵 Setting default pen tool for teacher');
+                    setTool('pen');
+                }, 200);
+                <% } %>
+                
+                console.log('🔵 Canvas initialization completed successfully');
+                addDebugEvent('Canvas initialization completed');
+                showMessage('Canvas initialized successfully!', 'success');
+                
+            } catch (error) {
+                console.error('🔴 Canvas initialization failed:', error);
+                addDebugEvent(`Canvas initialization failed: ${error.message}`);
+                showMessage(`Canvas initialization failed: ${error.message}`, 'error');
+            }
         }
 
         function setupEventListeners() {
-            // Color picker
-            document.getElementById('colorPicker').addEventListener('change', function(e) {
-                currentColor = e.target.value;
-                updateCanvasSettings();
-            });
+            console.log('🔵 Setting up event listeners...');
+            addDebugEvent('Setting up event listeners');
+            
+            try {
+                // Tool buttons
+                const toolButtons = document.querySelectorAll('.tool-btn');
+                console.log('🔵 Found tool buttons:', toolButtons.length);
+                
+                toolButtons.forEach(btn => {
+                    const tool = btn.getAttribute('data-tool');
+                    console.log('🔵 Setting up tool button:', tool);
+                    
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        console.log('🔵 Tool button clicked:', tool);
+                        setTool(tool);
+                    });
+                });
+                
+                // Color picker
+                const colorPicker = document.getElementById('colorPicker');
+                if (colorPicker) {
+                    colorPicker.addEventListener('change', function(e) {
+                        currentColor = e.target.value;
+                        console.log('🔵 Color changed to:', currentColor);
+                        updateCanvasSettings();
+                    });
+                    console.log('🔵 Color picker event listener added');
+                } else {
+                    console.log('🔴 Color picker not found');
+                }
 
-            // Size slider
-            document.getElementById('sizeSlider').addEventListener('change', function(e) {
-                currentSize = parseInt(e.target.value);
-                document.getElementById('sizeValue').textContent = currentSize;
-                updateCanvasSettings();
-            });
+                // Size slider
+                const sizeSlider = document.getElementById('sizeSlider');
+                if (sizeSlider) {
+                    sizeSlider.addEventListener('change', function(e) {
+                        currentSize = parseInt(e.target.value);
+                        const sizeValue = document.getElementById('sizeValue');
+                        if (sizeValue) {
+                            sizeValue.textContent = currentSize;
+                        }
+                        console.log('🔵 Size changed to:', currentSize);
+                        updateCanvasSettings();
+                    });
+                    console.log('🔵 Size slider event listener added');
+                } else {
+                    console.log('🔴 Size slider not found');
+                }
 
-            // Window resize
-            window.addEventListener('resize', resizeCanvas);
+                // Window resize
+                window.addEventListener('resize', resizeCanvas);
+                console.log('🔵 Window resize event listener added');
 
-            // Auto-save every 30 seconds
-            setInterval(autoSave, 30000);
+                // Auto-save every 30 seconds
+                setInterval(autoSave, 30000);
+                console.log('🔵 Auto-save interval set');
+                
+                addDebugEvent('Event listeners setup completed');
+                console.log('🔵 All event listeners setup completed');
+                
+            } catch (error) {
+                console.error('🔴 Error setting up event listeners:', error);
+                addDebugEvent(`Event listeners error: ${error.message}`);
+            }
+        }
+
+        // Simple auto-save function
+        function autoSave() {
+            try {
+                if (canvas && canvas.getObjects().length > 0) {
+                    console.log('🔵 Auto-saving canvas...');
+                    addDebugEvent('Auto-saving canvas');
+                    // For now, just log the save
+                    lastSaveTime = Date.now();
+                }
+            } catch (error) {
+                console.log('🔴 Auto-save failed:', error);
+            }
+        }
+
+        // Test function to verify canvas is working
+        function testCanvas() {
+            console.log('🔵 Testing canvas functionality...');
+            addDebugEvent('Testing canvas functionality');
+            
+            try {
+                if (!canvas) {
+                    throw new Error('Canvas not initialized');
+                }
+                
+                // Test drawing a simple line
+                const line = new fabric.Line([50, 50, 200, 200], {
+                    stroke: 'red',
+                    strokeWidth: 5
+                });
+                
+                canvas.add(line);
+                canvas.renderAll();
+                
+                console.log('🔵 Test line added successfully');
+                addDebugEvent('Test line added successfully');
+                showMessage('Canvas test successful!', 'success');
+                
+            } catch (error) {
+                console.error('🔴 Canvas test failed:', error);
+                addDebugEvent(`Canvas test failed: ${error.message}`);
+                showMessage(`Canvas test failed: ${error.message}`, 'error');
+            }
         }
 
         function resizeCanvas() {
@@ -2345,38 +2471,50 @@
             
             currentTool = tool;
             
-            // Update active button
+            // Update active button (find by data-tool attribute)
             document.querySelectorAll('.tool-btn').forEach(btn => {
                 btn.classList.remove('active');
+                if (btn.getAttribute('data-tool') === tool) {
+                    btn.classList.add('active');
+                }
             });
-            event.target.classList.add('active');
 
             // Configure canvas based on tool
             switch(tool) {
                 case 'select':
                     console.log('🔵 Setting select tool');
-                    canvas.isDrawingMode = false;
-                    canvas.selection = true;
+                    if (canvas) {
+                        canvas.isDrawingMode = false;
+                        canvas.selection = true;
+                    }
                     break;
                 case 'pen':
                     console.log('🔵 Setting pen tool - Initializing drawing mode');
                     addDebugEvent('Initializing pen tool and drawing mode');
                     
-                    canvas.isDrawingMode = true;
-                    canvas.selection = false;
-                    
-                    // Ensure freeDrawingBrush exists
-                    if (!canvas.freeDrawingBrush) {
-                        console.log('🔵 Creating freeDrawingBrush');
-                        canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-                        addDebugEvent('FreeDrawingBrush created');
+                    if (canvas) {
+                        canvas.isDrawingMode = true;
+                        canvas.selection = false;
+                        
+                        // Ensure freeDrawingBrush exists
+                        if (!canvas.freeDrawingBrush) {
+                            console.log('🔵 Creating freeDrawingBrush');
+                            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+                            addDebugEvent('FreeDrawingBrush created');
+                        }
+                        
+                        updateCanvasSettings();
+                        console.log('🔵 Drawing mode enabled:', canvas.isDrawingMode);
+                        console.log('🔵 Free drawing brush:', canvas.freeDrawingBrush);
                     }
-                    
-                    updateCanvasSettings();
-                    console.log('🔵 Drawing mode enabled:', canvas.isDrawingMode);
-                    console.log('🔵 Free drawing brush:', canvas.freeDrawingBrush);
-                    addDebugEvent(`Drawing mode: ${canvas.isDrawingMode}, Brush: ${canvas.freeDrawingBrush ? 'Ready' : 'Failed'}`);
                     break;
+                default:
+                    console.log('🔵 Unknown tool:', tool);
+                    break;
+            }
+            
+            addDebugEvent(`Drawing mode: ${canvas ? canvas.isDrawingMode : 'N/A'}, Brush: ${canvas && canvas.freeDrawingBrush ? 'Ready' : 'Failed'}`);
+        }
                 case 'eraser':
                     console.log('🔵 Setting eraser tool');
                     canvas.isDrawingMode = true;
