@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         :root {
             --primary-color: #4F46E5;
@@ -599,6 +600,38 @@
             margin: 0;
             font-style: italic;
         }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+
+        .connection-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .connection-indicator.connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .connection-indicator.disconnected {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .connection-indicator i {
+            font-size: 8px;
+        }
     </style>
 </head>
 <body>
@@ -634,6 +667,12 @@
                     </div>
         </div>
         <div class="session-controls">
+            <div class="connection-status">
+                <span id="connectionIndicator" class="connection-indicator">
+                    <i class="fas fa-circle"></i> Connecting...
+                </span>
+            </div>
+            
             <% if (isTeacher) { %>
                 <button class="btn btn-warning" onclick="pauseSession()" id="pauseBtn">
                     <i class="fas fa-pause"></i> Pause
@@ -841,13 +880,291 @@
         let undoStack = [];
         let redoStack = [];
         let lastSaveTime = Date.now();
+        let socket;
+        let isConnected = false;
 
         // Initialize whiteboard
         document.addEventListener('DOMContentLoaded', function() {
             initializeCanvas();
             setupEventListeners();
             loadSessionData();
+            initializeSocketIO();
         });
+
+        function initializeSocketIO() {
+            // Connect to Socket.IO server
+            socket = io();
+            
+                    socket.on('connect', () => {
+            console.log('Connected to Socket.IO server');
+            isConnected = true;
+            updateConnectionIndicator('connected');
+            
+            // Join the whiteboard session
+            socket.emit('join-whiteboard', {
+                sessionId: '<%= session._id %>',
+                userId: '<%= user._id %>',
+                userRole: '<%= user.role %>'
+            });
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from Socket.IO server');
+            isConnected = false;
+            updateConnectionIndicator('disconnected');
+        });
+
+            // Listen for whiteboard updates from other users
+            socket.on('whiteboard-update', (data) => {
+                console.log('Received whiteboard update:', data);
+                handleRemoteUpdate(data);
+            });
+
+            // Listen for user join notifications
+            socket.on('user-joined', (data) => {
+                console.log('User joined:', data);
+                showMessage(`${data.userRole} joined the session`, 'info');
+            });
+        }
+
+        function handleRemoteUpdate(data) {
+            switch (data.type) {
+                case 'draw':
+                    // Handle remote drawing
+                    if (data.data && data.data.path) {
+                        const path = new fabric.Path(data.data.path, {
+                            stroke: data.data.stroke,
+                            strokeWidth: data.data.strokeWidth,
+                            fill: data.data.fill,
+                            selectable: false
+                        });
+                        canvas.add(path);
+                        canvas.renderAll();
+                    }
+                    break;
+                    
+                case 'add-element':
+                    // Handle remote element addition
+                    if (data.data && data.data.elementType) {
+                        addRemoteElement(data.data);
+                    }
+                    break;
+                    
+                case 'modify-element':
+                    // Handle remote element modification
+                    if (data.data && data.data.elementId) {
+                        modifyRemoteElement(data.data);
+                    }
+                    break;
+                    
+                case 'delete-element':
+                    // Handle remote element deletion
+                    if (data.data && data.data.elementId) {
+                        deleteRemoteElement(data.data.elementId);
+                    }
+                    break;
+                    
+                case 'clear':
+                    // Handle remote clear
+                    canvas.clear();
+                    canvas.setBackgroundColor('#ffffff', function() {
+                        canvas.renderAll();
+                    });
+                    break;
+                    
+                case 'undo-redo':
+                    // Handle remote undo/redo
+                    if (data.data && data.data.action) {
+                        if (data.data.action === 'undo') {
+                            undo();
+                        } else if (data.data.action === 'redo') {
+                            redo();
+                        }
+                    }
+                    break;
+            }
+        }
+
+        function addRemoteElement(elementData) {
+            let element;
+            
+            switch (elementData.elementType) {
+                case 'text':
+                    element = new fabric.Textbox(elementData.text, {
+                        left: elementData.left,
+                        top: elementData.top,
+                        fontSize: elementData.fontSize,
+                        fill: elementData.fill,
+                        selectable: false
+                    });
+                    break;
+                    
+                case 'image':
+                    fabric.Image.fromURL(elementData.src, (img) => {
+                        img.set({
+                            left: elementData.left,
+                            top: elementData.top,
+                            scaleX: elementData.scaleX,
+                            scaleY: elementData.scaleY,
+                            selectable: false
+                        });
+                        canvas.add(img);
+                        canvas.renderAll();
+                    });
+                    return;
+                    
+                case 'shape':
+                    if (elementData.shapeType === 'rect') {
+                        element = new fabric.Rect({
+                            left: elementData.left,
+                            top: elementData.top,
+                            width: elementData.width,
+                            height: elementData.height,
+                            fill: elementData.fill,
+                            stroke: elementData.stroke,
+                            selectable: false
+                        });
+                    } else if (elementData.shapeType === 'circle') {
+                        element = new fabric.Circle({
+                            left: elementData.left,
+                            top: elementData.top,
+                            radius: elementData.radius,
+                            fill: elementData.fill,
+                            stroke: elementData.stroke,
+                            selectable: false
+                        });
+                    }
+                    break;
+            }
+            
+            if (element) {
+                canvas.add(element);
+                canvas.renderAll();
+            }
+        }
+
+        function modifyRemoteElement(elementData) {
+            // Find and modify the remote element
+            const objects = canvas.getObjects();
+            for (let obj of objects) {
+                if (obj.id === elementData.elementId) {
+                    obj.set(elementData.properties);
+                    canvas.renderAll();
+                    break;
+                }
+            }
+        }
+
+        function deleteRemoteElement(elementId) {
+            // Find and delete the remote element
+            const objects = canvas.getObjects();
+            for (let obj of objects) {
+                if (obj.id === elementId) {
+                    canvas.remove(obj);
+                    canvas.renderAll();
+                    break;
+                }
+            }
+        }
+
+        function updateConnectionIndicator(status) {
+            const indicator = document.getElementById('connectionIndicator');
+            if (indicator) {
+                indicator.className = `connection-indicator ${status}`;
+                if (status === 'connected') {
+                    indicator.innerHTML = '<i class="fas fa-circle"></i> Connected';
+                } else if (status === 'disconnected') {
+                    indicator.innerHTML = '<i class="fas fa-circle"></i> Disconnected';
+                } else {
+                    indicator.innerHTML = '<i class="fas fa-circle"></i> Connecting...';
+                }
+            }
+        }
+
+        function emitCanvasUpdate(type, object) {
+            if (!isConnected || !socket) return;
+            
+            const sessionId = '<%= session._id %>';
+            const userId = '<%= user._id %>';
+            
+            switch (type) {
+                case 'draw':
+                    socket.emit('whiteboard-draw', {
+                        sessionId,
+                        userId,
+                        drawingData: {
+                            path: object.path,
+                            stroke: object.stroke,
+                            strokeWidth: object.strokeWidth,
+                            fill: object.fill
+                        }
+                    });
+                    break;
+                    
+                case 'add-element':
+                    const elementData = {
+                        elementType: object.type,
+                        left: object.left,
+                        top: object.top,
+                        fill: object.fill,
+                        stroke: object.stroke
+                    };
+                    
+                    if (object.type === 'textbox') {
+                        elementData.elementType = 'text';
+                        elementData.text = object.text;
+                        elementData.fontSize = object.fontSize;
+                    } else if (object.type === 'image') {
+                        elementData.elementType = 'image';
+                        elementData.src = object.src;
+                        elementData.scaleX = object.scaleX;
+                        elementData.scaleY = object.scaleY;
+                    } else if (object.type === 'rect') {
+                        elementData.elementType = 'shape';
+                        elementData.shapeType = 'rect';
+                        elementData.width = object.width;
+                        elementData.height = object.height;
+                    } else if (object.type === 'circle') {
+                        elementData.elementType = 'shape';
+                        elementData.shapeType = 'circle';
+                        elementData.radius = object.radius;
+                    }
+                    
+                    socket.emit('whiteboard-add-element', {
+                        sessionId,
+                        userId,
+                        elementData
+                    });
+                    break;
+                    
+                case 'modify-element':
+                    socket.emit('whiteboard-modify-element', {
+                        sessionId,
+                        userId,
+                        elementData: {
+                            elementId: object.id,
+                            properties: {
+                                left: object.left,
+                                top: object.top,
+                                scaleX: object.scaleX,
+                                scaleY: object.scaleY,
+                                angle: object.angle,
+                                fill: object.fill,
+                                stroke: object.stroke
+                            }
+                        }
+                    });
+                    break;
+                    
+                case 'delete-element':
+                    socket.emit('whiteboard-delete-element', {
+                        sessionId,
+                        userId,
+                        elementId: object.id
+                    });
+                    break;
+            }
+        }
 
         function initializeCanvas() {
             canvas = new fabric.Canvas('whiteboard-canvas', {
@@ -946,6 +1263,14 @@
                 canvas.setBackgroundColor('#ffffff', function() {
                     canvas.renderAll();
                 });
+                
+                // Emit clear event
+                if (isConnected && socket) {
+                    socket.emit('whiteboard-clear', {
+                        sessionId: '<%= session._id %>',
+                        userId: '<%= user._id %>'
+                    });
+                }
             }
         }
 
@@ -958,6 +1283,15 @@
                 canvas.loadFromJSON(previousState, function() {
                     canvas.renderAll();
                 });
+                
+                // Emit undo event
+                if (isConnected && socket) {
+                    socket.emit('whiteboard-undo-redo', {
+                        sessionId: '<%= session._id %>',
+                        userId: '<%= user._id %>',
+                        action: 'undo'
+                    });
+                }
             }
         }
 
@@ -970,6 +1304,15 @@
                 canvas.loadFromJSON(nextState, function() {
                     canvas.renderAll();
                 });
+                
+                // Emit redo event
+                if (isConnected && socket) {
+                    socket.emit('whiteboard-undo-redo', {
+                        sessionId: '<%= session._id %>',
+                        userId: '<%= user._id %>',
+                        action: 'redo'
+                    });
+                }
             }
         }
 
@@ -1161,10 +1504,34 @@
             }, 3000);
         }
 
-        // Canvas event listeners for undo/redo
-        canvas.on('object:added', saveToUndoStack);
-        canvas.on('object:modified', saveToUndoStack);
-        canvas.on('object:removed', saveToUndoStack);
+        // Canvas event listeners for undo/redo and real-time sync
+        canvas.on('object:added', function(e) {
+            saveToUndoStack();
+            if (isConnected && socket) {
+                emitCanvasUpdate('add-element', e.target);
+            }
+        });
+        
+        canvas.on('object:modified', function(e) {
+            saveToUndoStack();
+            if (isConnected && socket) {
+                emitCanvasUpdate('modify-element', e.target);
+            }
+        });
+        
+        canvas.on('object:removed', function(e) {
+            saveToUndoStack();
+            if (isConnected && socket) {
+                emitCanvasUpdate('delete-element', e.target);
+            }
+        });
+
+        // Drawing events for real-time sync
+        canvas.on('path:created', function(e) {
+            if (isConnected && socket) {
+                emitCanvasUpdate('draw', e.path);
+            }
+        });
     </script>
 </body>
 </html> 
