@@ -36,9 +36,7 @@ const s3 = new AWS.S3({
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Create HTTP server for Socket.IO
-const http = require('http');
-const server = http.createServer(app);
+
 
 // MongoDB connection with retry
 const connectDB = async () => {
@@ -82,112 +80,7 @@ const connectDB = async () => {
 
 connectDB();
 
-// Socket.IO initialization
-const io = require('socket.io')(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
 
-
-
-  // Join whiteboard session
-  socket.on('join-whiteboard', (data) => {
-    const { sessionId, userId, userRole } = data;
-    socket.join(`whiteboard-${sessionId}`);
-    console.log(`User ${userId} (${userRole}) joined whiteboard session ${sessionId}`);
-    
-    // Notify other users in the session
-    socket.to(`whiteboard-${sessionId}`).emit('user-joined', {
-      userId,
-      userRole,
-      timestamp: new Date()
-    });
-  });
-
-  // Handle whiteboard drawing events
-  socket.on('whiteboard-draw', (data) => {
-    const { sessionId, drawingData, userId } = data;
-    console.log(`Drawing event from user ${userId} in session ${sessionId}`);
-    
-    // Broadcast drawing to all other users in the session
-    socket.to(`whiteboard-${sessionId}`).emit('whiteboard-update', {
-      type: 'draw',
-      data: drawingData,
-      userId,
-      timestamp: new Date()
-    });
-  });
-
-  // Handle whiteboard element additions
-  socket.on('whiteboard-add-element', (data) => {
-    const { sessionId, elementData, userId } = data;
-    console.log(`Element added by user ${userId} in session ${sessionId}`);
-    
-    // Broadcast element addition to all other users in the session
-    socket.to(`whiteboard-${sessionId}`).emit('whiteboard-update', {
-      type: 'add-element',
-      data: elementData,
-      userId,
-      timestamp: new Date()
-    });
-  });
-
-  // Handle whiteboard element modifications
-  socket.on('whiteboard-modify-element', (data) => {
-    const { sessionId, elementData, userId } = data;
-    console.log(`Element modified by user ${userId} in session ${sessionId}`);
-    
-    // Broadcast element modification to all other users in the session
-    socket.to(`whiteboard-${sessionId}`).emit('whiteboard-update', {
-      type: 'modify-element',
-      data: elementData,
-      userId,
-      timestamp: new Date()
-    });
-  });
-
-  // Handle whiteboard element deletions
-  socket.on('whiteboard-delete-element', (data) => {
-    const { sessionId, elementId, userId } = data;
-    console.log(`Element deleted by user ${userId} in session ${sessionId}`);
-    
-    // Broadcast element deletion to all other users in the session
-    socket.to(`whiteboard-${sessionId}`).emit('whiteboard-update', {
-      type: 'delete-element',
-      data: { elementId },
-      userId,
-      timestamp: new Date()
-    });
-  });
-
-  // Handle whiteboard clear
-  socket.on('whiteboard-clear', (data) => {
-    const { sessionId, userId } = data;
-    console.log(`Whiteboard cleared by user ${userId} in session ${sessionId}`);
-    
-    // Broadcast clear event to all other users in the session
-    socket.to(`whiteboard-${sessionId}`).emit('whiteboard-update', {
-      type: 'clear',
-      userId,
-      timestamp: new Date()
-    });
-  });
-
-  // Handle whiteboard undo/redo
-  socket.on('whiteboard-undo-redo', (data) => {
-    const { sessionId, action, userId } = data;
-    console.log(`Undo/Redo action ${action} by user ${userId} in session ${sessionId}`);
-    
-    // Broadcast undo/redo to all other users in the session
-    socket.to(`whiteboard-${sessionId}`).emit('whiteboard-update', {
-      type: 'undo-redo',
-      data: { action },
-      userId,
-      timestamp: new Date()
-    });
-  });
 
 
 
@@ -4526,7 +4419,7 @@ app.post('/temp-login', (req, res) => {
 
 // Start server with MongoDB connection check
 const startServer = () => {
-  server.listen(PORT, () => {
+  app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
     console.log('✅ Google OAuth is configured and ready!');
     
