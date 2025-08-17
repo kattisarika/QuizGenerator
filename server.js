@@ -1008,9 +1008,9 @@ app.get('/dashboard', isAuthenticated, (req, res) => {
     return res.redirect('/login?error=Authentication failed');
   }
   
-  // If user doesn't have a role, redirect to role selection
+  // If user doesn't have a role, redirect to login with error
   if (!req.user.role) {
-    return res.redirect('/select-role');
+    return res.redirect('/login?error=User role not set. Please contact administrator.');
   }
   
   // Auto-redirect based on role
@@ -1748,34 +1748,7 @@ app.get('/admin/dashboard', isAuthenticated, requireRole(['admin', 'super_admin'
   }
 });
 
-// Role selection page
-app.get('/select-role', isAuthenticated, (req, res) => {
-  res.render('select-role', { user: req.user });
-});
 
-app.post('/select-role', isAuthenticated, async (req, res) => {
-  try {
-    const { role } = req.body;
-
-    if (['student', 'teacher'].includes(role)) {
-      req.user.role = role;
-      
-      if (role === 'teacher') {
-        req.user.isApproved = false; // Teachers need approval
-      } else {
-        req.user.isApproved = true; // Students are auto-approved
-      }
-
-      await req.user.save();
-      res.redirect('/dashboard');
-    } else {
-      res.redirect('/select-role');
-    }
-  } catch (error) {
-    console.error('Error updating user role:', error);
-    res.redirect('/select-role');
-  }
-});
 
 // Quiz management routes
 app.get('/create-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
@@ -3930,7 +3903,7 @@ app.get('/debug-user', async (req, res) => {
         <hr>
         <h2>Actions</h2>
         <p><a href="/create-admin">Create Admin User</a></p>
-        <p><a href="/select-role">Select Role</a></p>
+
         <p><a href="/login">Go to Login</a></p>
       `);
     } else {
@@ -4136,7 +4109,7 @@ app.get('/auth/google/callback', (req, res) => {
     
     // Add null check for req.user.role
     if (!req.user || !req.user.role) {
-      return res.redirect('/select-role');
+      return res.redirect('/login?error=User role not set. Please contact administrator.');
     }
     
     // Redirect based on role and organization context
