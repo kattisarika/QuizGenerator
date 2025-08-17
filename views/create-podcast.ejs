@@ -280,6 +280,28 @@
             cursor: not-allowed;
         }
         
+        .audio-status {
+            margin: 15px 0;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .audio-status.text-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .audio-status.text-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
         .status-message {
             padding: 15px;
             border-radius: 8px;
@@ -524,6 +546,11 @@
                         <input type="text" id="podcastTags" class="form-input" placeholder="Enter tags separated by commas (e.g., math, algebra, equations)">
                     </div>
                     
+                    <!-- Audio Status Indicator -->
+                    <div id="audioStatus" class="audio-status text-warning">
+                        <i class="fas fa-exclamation-circle"></i> No audio file
+                    </div>
+                    
                     <button id="submitBtn" class="submit-btn" onclick="createPodcast()" disabled>
                         <i class="fas fa-save"></i> Create Podcast
                     </button>
@@ -585,10 +612,14 @@
                 
                 mediaRecorder.onstop = () => {
                     audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    currentAudioFile = audioBlob;
+                    // Convert Blob to File object for proper form submission
+                    currentAudioFile = new File([audioBlob], 'recorded-audio.wav', { type: 'audio/wav' });
                     currentAudioDuration = Math.round(audioBlob.size / 16000); // Rough estimate
                     updateRecordingStatus('Recording completed!', 'success');
                     enableRecordingControls(false);
+                    
+                    // Enable submit button since we now have audio
+                    checkFormValidity();
                 };
                 
                 mediaRecorder.start();
@@ -722,6 +753,8 @@
             console.log('Current audio file:', currentAudioFile);
             console.log('Audio file type:', currentAudioFile ? currentAudioFile.type : 'No file');
             console.log('Audio file size:', currentAudioFile ? currentAudioFile.size : 'No file');
+            console.log('Audio file name:', currentAudioFile ? currentAudioFile.name : 'No file');
+            console.log('Audio file constructor:', currentAudioFile ? currentAudioFile.constructor.name : 'No file');
             
             if (!currentAudioFile) {
                 updateSubmitStatus('Please record or upload an audio file first.', 'error');
@@ -811,6 +844,18 @@
             const hasGrade = document.getElementById('gradeLevel').value !== '';
             
             submitBtn.disabled = !(hasAudio && hasTitle && hasDescription && hasGrade);
+            
+            // Update audio status indicator
+            const audioStatus = document.getElementById('audioStatus');
+            if (audioStatus) {
+                if (hasAudio) {
+                    audioStatus.innerHTML = '<i class="fas fa-check-circle text-success"></i> Audio ready';
+                    audioStatus.className = 'audio-status text-success';
+                } else {
+                    audioStatus.innerHTML = '<i class="fas fa-exclamation-circle text-warning"></i> No audio file';
+                    audioStatus.className = 'audio-status text-warning';
+                }
+            }
         }
 
         // Add event listeners for form validation
@@ -821,6 +866,7 @@
         // Load existing podcasts when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadExistingPodcasts();
+            checkFormValidity(); // Set initial form state
         });
 
         // Function to load existing podcasts into dropdown
