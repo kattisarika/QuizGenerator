@@ -83,6 +83,21 @@ router.post('/api/create-organization', async (req, res) => {
       });
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
+    // Validate planType
+    const validPlanTypes = ['free', 'basic', 'premium', 'enterprise'];
+    if (planType && !validPlanTypes.includes(planType)) {
+      return res.status(400).json({ 
+        error: 'Invalid plan type', 
+        validPlanTypes: validPlanTypes 
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
     
     // Validate subdomain
     if (!/^[a-z0-9-]+$/.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
@@ -113,10 +128,21 @@ router.post('/api/create-organization', async (req, res) => {
         bio: bio || ''
       },
       // Temporary googleId - will be updated during OAuth
-      googleId: `temp_${Date.now()}_${Math.random()}`
+      googleId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     });
     
-    await tempUser.save();
+    try {
+      await tempUser.save();
+    } catch (userError) {
+      console.error('Error saving temporary user:', userError);
+      if (userError.code === 11000 && userError.keyPattern?.googleId) {
+        // Duplicate googleId, try again with a different one
+        tempUser.googleId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        await tempUser.save();
+      } else {
+        throw userError;
+      }
+    }
     
     // Get plan limits and structure them properly
     const planLimits = Organization.getPlanLimits(planType);
@@ -146,6 +172,12 @@ router.post('/api/create-organization', async (req, res) => {
     
     // Log organization creation
     console.log(`New organization created: ${organizationName} (${subdomain}) by ${email}`);
+    console.log('Organization details:', {
+      id: organization._id,
+      planType: organization.planType,
+      ownerId: organization.ownerId,
+      settings: organization.settings
+    });
     
     res.json({
       success: true,
@@ -155,7 +187,28 @@ router.post('/api/create-organization', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating organization:', error);
-    res.status(500).json({ error: 'Failed to create organization' });
+    
+    // Provide more specific error messages
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: validationErrors 
+      });
+    }
+    
+    if (error.code === 11000) {
+      // Duplicate key error
+      if (error.keyPattern?.subdomain) {
+        return res.status(400).json({ error: 'Subdomain already taken' });
+      }
+      if (error.keyPattern?.email) {
+        return res.status(400).json({ error: 'Email already exists' });
+      }
+      return res.status(400).json({ error: 'Duplicate entry found' });
+    }
+    
+    res.status(500).json({ error: 'Failed to create organization. Please try again.' });
   }
 });
 
