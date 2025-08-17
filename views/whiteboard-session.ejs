@@ -751,6 +751,9 @@
             <button class="btn btn-sm btn-success" onclick="testRealTimeSync()" style="margin-left: 10px;">
                 <i class="fas fa-broadcast-tower"></i> Test Sync
             </button>
+            <button class="btn btn-sm btn-warning" onclick="testDrawing()" style="margin-left: 10px;">
+                <i class="fas fa-pen"></i> Test Drawing
+            </button>
         </div>
             
             <% if (isTeacher) { %>
@@ -864,7 +867,9 @@
                 <h5>Canvas Info</h5>
                 <p>Objects Count: <span id="debugObjectCount">0</span></p>
                 <p>Drawing Mode: <span id="debugDrawingMode">false</span></p>
-                <p>Current Tool: <span id="debugCurrentTool">select</span>
+                <p>Current Tool: <span id="debugCurrentTool">select</span></p>
+                <p>Drawing Brush: <span id="debugDrawingBrush">Not set</span></p>
+                <p>Canvas Size: <span id="debugCanvasSize">0x0</span></p>
             </div>
             <div class="debug-section">
                 <h5>Real-Time Events</h5>
@@ -1004,16 +1009,25 @@
             socket = io();
             
                     socket.on('connect', () => {
-            console.log('Connected to Socket.IO server');
+            console.log('🔵 Connected to Socket.IO server');
+            addDebugEvent('Socket.IO connected');
             isConnected = true;
             updateConnectionIndicator('connected');
             
-            // Join the whiteboard session
-            socket.emit('join-whiteboard', {
+            const joinData = {
                 sessionId: '<%= session._id %>',
                 userId: '<%= user._id %>',
                 userRole: '<%= user.role %>'
-            });
+            };
+            
+            console.log('🔵 Joining whiteboard session:', joinData);
+            addDebugEvent(`Joining session: ${joinData.sessionId} as ${joinData.userRole}`);
+            
+            // Join the whiteboard session
+            socket.emit('join-whiteboard', joinData);
+            
+            console.log('🔵 join-whiteboard event emitted');
+            addDebugEvent('join-whiteboard event emitted');
         });
 
         socket.on('disconnect', () => {
@@ -1037,10 +1051,19 @@
         }
 
         function handleRemoteUpdate(data) {
+            console.log('🔵 handleRemoteUpdate called:', data);
+            addDebugEvent(`Remote update received: ${data.type} from ${data.userId}`);
+            
             switch (data.type) {
                 case 'draw':
+                    console.log('🔵 Processing remote draw event:', data.data);
+                    addDebugEvent(`Processing remote draw: ${data.data.path ? 'Path found' : 'No path'}`);
+                    
                     // Handle remote drawing with enhanced data
                     if (data.data && data.data.path) {
+                        console.log('🔵 Creating remote path object');
+                        addDebugEvent('Creating remote path object');
+                        
                         const path = new fabric.Path(data.data.path, {
                             stroke: data.data.stroke || currentColor,
                             strokeWidth: data.data.strokeWidth || currentSize,
@@ -1055,12 +1078,19 @@
                         
                         // Add unique ID for tracking
                         path.id = `remote-${Date.now()}-${Math.random()}`;
+                        path.isRemote = true; // Mark as remote object
+                        
+                        console.log('🔵 Adding remote path to canvas:', path);
+                        addDebugEvent(`Adding remote path: ${path.id}`);
                         
                         canvas.add(path);
                         canvas.renderAll();
                         
-                        console.log('Remote drawing added:', path);
+                        console.log('🔵 Remote drawing added successfully:', path);
                         addDebugEvent(`Remote drawing added: ${path.id}`);
+                    } else {
+                        console.log('🔴 Remote draw data missing or invalid:', data.data);
+                        addDebugEvent(`Remote draw data invalid: ${JSON.stringify(data.data)}`);
                     }
                     break;
                     
@@ -1234,9 +1264,23 @@
                 drawingMode.textContent = canvas.isDrawingMode ? 'true' : 'false';
             }
 
-            const currentTool = document.getElementById('debugCurrentTool');
-            if (currentTool) {
-                currentTool.textContent = currentTool;
+            const currentToolElement = document.getElementById('debugCurrentTool');
+            if (currentToolElement) {
+                currentToolElement.textContent = currentTool;
+            }
+
+            const drawingBrush = document.getElementById('debugDrawingBrush');
+            if (drawingBrush && canvas) {
+                if (canvas.freeDrawingBrush) {
+                    drawingBrush.textContent = `Color: ${canvas.freeDrawingBrush.color}, Width: ${canvas.freeDrawingBrush.width}`;
+                } else {
+                    drawingBrush.textContent = 'Not initialized';
+                }
+            }
+
+            const canvasSize = document.getElementById('debugCanvasSize');
+            if (canvasSize && canvas) {
+                canvasSize.textContent = `${canvas.width}x${canvas.height}`;
             }
         }
 
@@ -1291,8 +1335,70 @@
             showMessage('Test sync event sent!', 'success');
         }
 
+        function testDrawing() {
+            console.log('🔵 Test drawing function called');
+            addDebugEvent('Test drawing function called');
+            
+            // Test if drawing mode works
+            console.log('🔵 Current drawing mode:', canvas.isDrawingMode);
+            console.log('🔵 Current tool:', currentTool);
+            console.log('🔵 Canvas objects count:', canvas.getObjects().length);
+            
+            addDebugEvent(`Drawing mode: ${canvas.isDrawingMode}, Tool: ${currentTool}, Objects: ${canvas.getObjects().length}`);
+            
+            // Try to enable drawing mode
+            if (currentTool === 'pen') {
+                canvas.isDrawingMode = true;
+                console.log('🔵 Drawing mode enabled');
+                addDebugEvent('Drawing mode enabled');
+                
+                // Test drawing a simple path
+                const testPath = new fabric.Path('M 50 50 L 150 150', {
+                    stroke: 'blue',
+                    strokeWidth: 5,
+                    selectable: false,
+                    evented: false
+                });
+                
+                console.log('🔵 Test path created:', testPath);
+                addDebugEvent('Test path created');
+                
+                canvas.add(testPath);
+                canvas.renderAll();
+                
+                console.log('🔵 Test path added to canvas');
+                addDebugEvent('Test path added to canvas');
+                
+                // Try to emit this as a drawing event
+                if (isConnected && socket) {
+                    console.log('🔵 Emitting test drawing event');
+                    emitCanvasUpdate('draw', testPath);
+                } else {
+                    console.log('🔴 Cannot emit: Socket not ready');
+                    addDebugEvent('Cannot emit test drawing: Socket not ready');
+                }
+            } else {
+                console.log('🔴 Current tool is not pen:', currentTool);
+                addDebugEvent(`Current tool is not pen: ${currentTool}`);
+                
+                // Switch to pen tool
+                setTool('pen');
+                console.log('🔵 Switched to pen tool');
+                addDebugEvent('Switched to pen tool');
+                
+                // Try drawing again
+                setTimeout(() => {
+                    testDrawing();
+                }, 100);
+            }
+        }
+
         function emitCanvasUpdate(type, object) {
+            console.log('🔵 emitCanvasUpdate called:', { type, object, isConnected, hasSocket: !!socket });
+            addDebugEvent(`emitCanvasUpdate called: ${type}`);
+            
             if (!isConnected || !socket) {
+                console.log('🔴 Cannot emit: Socket not ready', { isConnected, socket: !!socket });
                 addDebugEvent(`Cannot emit: ${type} - Socket not connected`);
                 return;
             }
@@ -1300,6 +1406,7 @@
             const sessionId = '<%= session._id %>';
             const userId = '<%= user._id %>';
             
+            console.log('🔵 Emitting event:', { type, sessionId, userId });
             addDebugEvent(`Emitting: ${type} to session ${sessionId}`);
             
             switch (type) {
@@ -1316,14 +1423,27 @@
                         scaleY: object.scaleY || 1
                     };
                     
-                    socket.emit('whiteboard-draw', {
+                    console.log('🔵 Drawing data prepared:', drawingData);
+                    addDebugEvent(`Drawing data: ${JSON.stringify(drawingData).substring(0, 100)}...`);
+                    
+                    const drawEvent = {
                         sessionId,
                         userId,
                         drawingData
-                    });
+                    };
+                    
+                    console.log('🔵 Emitting whiteboard-draw event:', drawEvent);
+                    socket.emit('whiteboard-draw', drawEvent);
+                    
+                    // Verify emission
+                    console.log('🔵 whiteboard-draw event emitted successfully');
+                    addDebugEvent('whiteboard-draw event emitted successfully');
                     break;
                     
                 case 'add-element':
+                    console.log('🔵 Preparing add-element data for:', object.type);
+                    addDebugEvent(`Preparing add-element: ${object.type}`);
+                    
                     const elementData = {
                         elementType: object.type,
                         left: object.left,
@@ -1352,11 +1472,17 @@
                         elementData.radius = object.radius;
                     }
                     
+                    console.log('🔵 Element data prepared:', elementData);
+                    addDebugEvent(`Element data: ${JSON.stringify(elementData).substring(0, 100)}...`);
+                    
                     socket.emit('whiteboard-add-element', {
                         sessionId,
                         userId,
                         elementData
                     });
+                    
+                    console.log('🔵 whiteboard-add-element event emitted successfully');
+                    addDebugEvent('whiteboard-add-element event emitted successfully');
                     break;
                     
                 case 'modify-element':
@@ -1435,6 +1561,9 @@
         }
 
         function setTool(tool) {
+            console.log('🔵 setTool called:', tool);
+            addDebugEvent(`Tool changed to: ${tool}`);
+            
             currentTool = tool;
             
             // Update active button
@@ -1446,35 +1575,74 @@
             // Configure canvas based on tool
             switch(tool) {
                 case 'select':
+                    console.log('🔵 Setting select tool');
                     canvas.isDrawingMode = false;
                     canvas.selection = true;
                     break;
                 case 'pen':
+                    console.log('🔵 Setting pen tool - Initializing drawing mode');
+                    addDebugEvent('Initializing pen tool and drawing mode');
+                    
                     canvas.isDrawingMode = true;
                     canvas.selection = false;
+                    
+                    // Ensure freeDrawingBrush exists
+                    if (!canvas.freeDrawingBrush) {
+                        console.log('🔵 Creating freeDrawingBrush');
+                        canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+                        addDebugEvent('FreeDrawingBrush created');
+                    }
+                    
                     updateCanvasSettings();
+                    console.log('🔵 Drawing mode enabled:', canvas.isDrawingMode);
+                    console.log('🔵 Free drawing brush:', canvas.freeDrawingBrush);
+                    addDebugEvent(`Drawing mode: ${canvas.isDrawingMode}, Brush: ${canvas.freeDrawingBrush ? 'Ready' : 'Failed'}`);
                     break;
                 case 'eraser':
+                    console.log('🔵 Setting eraser tool');
                     canvas.isDrawingMode = true;
                     canvas.selection = false;
-                    canvas.freeDrawingBrush.color = '#ffffff';
-                    canvas.freeDrawingBrush.width = currentSize * 2;
+                    if (canvas.freeDrawingBrush) {
+                        canvas.freeDrawingBrush.color = '#ffffff';
+                        canvas.freeDrawingBrush.width = currentSize * 2;
+                    }
                     break;
                 case 'text':
+                    console.log('🔵 Setting text tool');
                     canvas.isDrawingMode = false;
                     canvas.selection = true;
                     break;
                 case 'shape':
+                    console.log('🔵 Setting shape tool');
                     canvas.isDrawingMode = false;
                     canvas.selection = true;
                     break;
             }
+            
+            // Update debug panel
+            updateDebugPanel();
         }
 
         function updateCanvasSettings() {
+            console.log('🔵 updateCanvasSettings called');
+            addDebugEvent('Canvas settings updated');
+            
             if (canvas.isDrawingMode) {
-                canvas.freeDrawingBrush.color = currentColor;
-                canvas.freeDrawingBrush.width = currentSize;
+                console.log('🔵 Updating drawing brush settings:', { color: currentColor, width: currentSize });
+                addDebugEvent(`Brush settings: Color=${currentColor}, Width=${currentSize}`);
+                
+                if (canvas.freeDrawingBrush) {
+                    canvas.freeDrawingBrush.color = currentColor;
+                    canvas.freeDrawingBrush.width = currentSize;
+                    console.log('🔵 Drawing brush settings updated successfully');
+                    addDebugEvent('Drawing brush settings updated successfully');
+                } else {
+                    console.log('🔴 No freeDrawingBrush available');
+                    addDebugEvent('No freeDrawingBrush available');
+                }
+            } else {
+                console.log('🔴 Canvas not in drawing mode');
+                addDebugEvent('Canvas not in drawing mode');
             }
         }
 
@@ -1728,42 +1896,83 @@
 
         // Canvas event listeners for undo/redo and real-time sync
         canvas.on('object:added', function(e) {
+            console.log('🔵 Canvas: Object added', e.target);
+            addDebugEvent(`Canvas: Object added - ${e.target.type}`);
             saveToUndoStack();
             if (isConnected && socket) {
+                console.log('🔵 Emitting add-element event');
                 emitCanvasUpdate('add-element', e.target);
+            } else {
+                console.log('🔴 Cannot emit: Socket not ready', { isConnected, socket: !!socket });
+                addDebugEvent(`Cannot emit add-element: Connected=${isConnected}, Socket=${!!socket}`);
             }
         });
         
         canvas.on('object:modified', function(e) {
+            console.log('🔵 Canvas: Object modified', e.target);
+            addDebugEvent(`Canvas: Object modified - ${e.target.type}`);
             saveToUndoStack();
             if (isConnected && socket) {
+                console.log('🔵 Emitting modify-element event');
                 emitCanvasUpdate('modify-element', e.target);
+            } else {
+                console.log('🔴 Cannot emit: Socket not ready', { isConnected, socket: !!socket });
+                addDebugEvent(`Cannot emit modify-element: Connected=${isConnected}, Socket=${!!socket}`);
             }
         });
         
         canvas.on('object:removed', function(e) {
+            console.log('🔵 Canvas: Object removed', e.target);
+            addDebugEvent(`Canvas: Object removed - ${e.target.type}`);
             saveToUndoStack();
             if (isConnected && socket) {
+                console.log('🔵 Emitting delete-element event');
                 emitCanvasUpdate('delete-element', e.target);
+            } else {
+                console.log('🔴 Cannot emit: Socket not ready', { isConnected, socket: !!socket });
+                addDebugEvent(`Cannot emit delete-element: Connected=${isConnected}, Socket=${!!socket}`);
             }
         });
 
         // Drawing events for real-time sync
         canvas.on('path:created', function(e) {
+            console.log('🔵 Canvas: Path created', e.path);
+            addDebugEvent(`Canvas: Path created - ${e.path.type}`);
             if (isConnected && socket) {
+                console.log('🔵 Emitting draw event from path:created');
                 emitCanvasUpdate('draw', e.path);
+            } else {
+                console.log('🔴 Cannot emit: Socket not ready', { isConnected, socket: !!socket });
+                addDebugEvent(`Cannot emit draw from path:created: Connected=${isConnected}, Socket=${!!socket}`);
             }
         });
 
         // Alternative drawing event handling for better compatibility
         canvas.on('mouse:up', function(e) {
+            console.log('🔵 Canvas: Mouse up event', { isDrawingMode: canvas.isDrawingMode, isConnected, hasSocket: !!socket });
+            addDebugEvent(`Canvas: Mouse up - Drawing mode: ${canvas.isDrawingMode}`);
+            
             if (isConnected && socket && canvas.isDrawingMode) {
                 // Capture the last drawn path
                 const objects = canvas.getObjects();
                 const lastObject = objects[objects.length - 1];
+                console.log('🔵 Last object after mouse up:', lastObject);
+                
                 if (lastObject && lastObject.type === 'path') {
+                    console.log('🔵 Emitting draw event from mouse:up');
+                    addDebugEvent(`Emitting draw from mouse:up - Path object found`);
                     emitCanvasUpdate('draw', lastObject);
+                } else {
+                    console.log('🔴 No path object found after mouse up');
+                    addDebugEvent(`No path object found after mouse up - Last object: ${lastObject ? lastObject.type : 'none'}`);
                 }
+            } else {
+                console.log('🔴 Mouse up conditions not met', { 
+                    isConnected, 
+                    hasSocket: !!socket, 
+                    isDrawingMode: canvas.isDrawingMode 
+                });
+                addDebugEvent(`Mouse up conditions not met: Connected=${isConnected}, Socket=${!!socket}, DrawingMode=${canvas.isDrawingMode}`);
             }
         });
 
@@ -1777,11 +1986,42 @@
                 if (drawingObjects.length > 0) {
                     const lastDrawing = drawingObjects[drawingObjects.length - 1];
                     if (lastDrawing && !lastDrawing.synced) {
+                        console.log('🔵 Emitting draw event from after:render');
+                        addDebugEvent(`Emitting draw from after:render - New unsynced path`);
                         lastDrawing.synced = true;
                         emitCanvasUpdate('draw', lastDrawing);
                     }
                 }
             }
+        });
+
+        // Additional drawing event handlers for comprehensive coverage
+        canvas.on('mouse:down', function(e) {
+            console.log('🔵 Canvas: Mouse down event', { 
+                isDrawingMode: canvas.isDrawingMode, 
+                currentTool, 
+                isConnected, 
+                hasSocket: !!socket 
+            });
+            addDebugEvent(`Canvas: Mouse down - Tool: ${currentTool}, Drawing mode: ${canvas.isDrawingMode}`);
+        });
+
+        canvas.on('mouse:move', function(e) {
+            if (canvas.isDrawingMode && isConnected && socket) {
+                console.log('🔵 Canvas: Mouse move while drawing');
+                addDebugEvent('Canvas: Mouse move while drawing');
+            }
+        });
+
+        // Monitor drawing brush changes
+        canvas.on('brush:created', function(e) {
+            console.log('🔵 Canvas: Brush created', e);
+            addDebugEvent('Canvas: Brush created');
+        });
+
+        canvas.on('brush:modified', function(e) {
+            console.log('🔵 Canvas: Brush modified', e);
+            addDebugEvent('Canvas: Brush modified');
         });
     </script>
 </body>
