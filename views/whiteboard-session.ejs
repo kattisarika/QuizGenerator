@@ -1066,16 +1066,21 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔵 DOM Content Loaded - Starting whiteboard initialization');
             
-            // Initialize components
-            initializeCanvas();
-            setupEventListeners();
-            loadSessionData();
-            
-            // Delay Socket.IO initialization to ensure all dependencies are loaded
-            setTimeout(() => {
-                console.log('🔵 Delayed Socket.IO initialization');
-                initializeSocketIO();
-            }, 500);
+            try {
+                // Initialize components
+                initializeCanvas();
+                setupEventListeners();
+                loadSessionData();
+                
+                // Delay Socket.IO initialization to ensure all dependencies are loaded
+                setTimeout(() => {
+                    console.log('🔵 Delayed Socket.IO initialization');
+                    initializeSocketIO();
+                }, 500);
+            } catch (error) {
+                console.error('🔴 Error during whiteboard initialization:', error);
+                showMessage(`Initialization error: ${error.message}`, 'error');
+            }
         });
 
         function initializeSocketIO() {
@@ -1965,6 +1970,186 @@
                     addDebugEvent(`Server health check error: ${error.message}`);
                     showMessage(`Server health check error: ${error.message}`, 'error');
                 });
+        }
+
+        // Simple message display function
+        function showMessage(message, type = 'info') {
+            console.log(`🔵 Message [${type}]:`, message);
+            
+            // Create a simple message element
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                max-width: 300px;
+                word-wrap: break-word;
+            `;
+            
+            // Set background color based on type
+            switch(type) {
+                case 'success':
+                    messageDiv.style.backgroundColor = '#10B981';
+                    break;
+                case 'error':
+                    messageDiv.style.backgroundColor = '#EF4444';
+                    break;
+                case 'warning':
+                    messageDiv.style.backgroundColor = '#F59E0B';
+                    break;
+                default:
+                    messageDiv.style.backgroundColor = '#3B82F6';
+            }
+            
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
+        }
+
+        // Simple debug event function
+        function addDebugEvent(message) {
+            console.log(`🔵 Debug: ${message}`);
+            
+            // Try to update debug panel if it exists
+            try {
+                const eventsContainer = document.getElementById('debugEvents');
+                if (eventsContainer) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    const eventElement = document.createElement('p');
+                    eventElement.textContent = `[${timestamp}] ${message}`;
+                    eventsContainer.appendChild(eventElement);
+                    
+                    // Keep only last 20 events
+                    if (eventsContainer.children.length > 20) {
+                        eventsContainer.removeChild(eventsContainer.firstChild);
+                    }
+                    
+                    // Auto-scroll to bottom
+                    eventsContainer.scrollTop = eventsContainer.scrollHeight;
+                }
+            } catch (error) {
+                console.log('🔴 Debug panel update failed:', error);
+            }
+        }
+
+        // Simple connection indicator function
+        function updateConnectionIndicator(status) {
+            console.log(`🔵 Connection indicator updated: ${status}`);
+            
+            try {
+                const indicator = document.getElementById('connectionIndicator');
+                if (indicator) {
+                    indicator.className = `connection-indicator ${status}`;
+                    if (status === 'connected') {
+                        indicator.innerHTML = '<i class="fas fa-circle"></i> Connected';
+                    } else if (status === 'disconnected') {
+                        indicator.innerHTML = '<i class="fas fa-circle"></i> Disconnected';
+                    } else {
+                        indicator.innerHTML = '<i class="fas fa-circle"></i> Connecting...';
+                    }
+                }
+            } catch (error) {
+                console.log('🔴 Connection indicator update failed:', error);
+            }
+        }
+
+        // Simple debug panel update function
+        function updateDebugPanel() {
+            console.log('🔵 Updating debug panel');
+            
+            try {
+                // Update connection status
+                const socketStatus = document.getElementById('debugSocketStatus');
+                if (socketStatus) {
+                    socketStatus.textContent = isConnected ? 'Connected' : 'Disconnected';
+                    socketStatus.style.color = isConnected ? 'green' : 'red';
+                }
+
+                // Update canvas info
+                const objectCount = document.getElementById('debugObjectCount');
+                if (objectCount && canvas) {
+                    objectCount.textContent = canvas.getObjects().length;
+                }
+
+                const drawingMode = document.getElementById('debugDrawingMode');
+                if (drawingMode && canvas) {
+                    drawingMode.textContent = canvas.isDrawingMode ? 'true' : 'false';
+                }
+
+                const currentToolElement = document.getElementById('debugCurrentTool');
+                if (currentToolElement) {
+                    currentToolElement.textContent = currentTool;
+                }
+            } catch (error) {
+                console.log('🔴 Debug panel update failed:', error);
+            }
+        }
+
+        // Simple session data loader
+        function loadSessionData() {
+            console.log('🔵 Loading session data');
+            addDebugEvent('Loading session data');
+            
+            try {
+                // Basic session info
+                console.log('🔵 Session ID:', '<%= session._id %>');
+                console.log('🔵 User ID:', '<%= user._id %>');
+                console.log('🔵 User Role:', '<%= user.role %>');
+                
+                addDebugEvent('Session data loaded successfully');
+            } catch (error) {
+                console.error('🔴 Error loading session data:', error);
+                addDebugEvent(`Session data error: ${error.message}`);
+            }
+        }
+
+        // Simple event listeners setup
+        function setupEventListeners() {
+            console.log('🔵 Setting up event listeners');
+            addDebugEvent('Setting up event listeners');
+            
+            try {
+                // Color picker
+                const colorPicker = document.getElementById('colorPicker');
+                if (colorPicker) {
+                    colorPicker.addEventListener('change', function(e) {
+                        currentColor = e.target.value;
+                        console.log('🔵 Color changed to:', currentColor);
+                        addDebugEvent(`Color changed to: ${currentColor}`);
+                    });
+                }
+                
+                // Size slider
+                const sizeSlider = document.getElementById('sizeSlider');
+                if (sizeSlider) {
+                    sizeSlider.addEventListener('change', function(e) {
+                        currentSize = parseInt(e.target.value);
+                        console.log('🔵 Size changed to:', currentSize);
+                        addDebugEvent(`Size changed to: ${currentSize}`);
+                        
+                        const sizeValue = document.getElementById('sizeValue');
+                        if (sizeValue) {
+                            sizeValue.textContent = currentSize;
+                        }
+                    });
+                }
+                
+                addDebugEvent('Event listeners setup completed');
+            } catch (error) {
+                console.error('🔴 Error setting up event listeners:', error);
+                addDebugEvent(`Event listeners error: ${error.message}`);
+            }
         }
 
         function emitCanvasUpdate(type, object) {
