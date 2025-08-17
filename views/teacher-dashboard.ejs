@@ -2507,6 +2507,30 @@
             console.log('Audio URL:', podcast.audioUrl);
             console.log('Audio Format:', podcast.audioFormat);
             
+            // Test if audio URL is accessible
+            testAudioUrl(podcast.audioUrl).then(isAccessible => {
+                if (!isAccessible) {
+                    console.error('Audio URL is not accessible');
+                    loading.style.display = 'none';
+                    error.style.display = 'block';
+                                    error.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i> Audio file not accessible
+                    <br><small>URL: ${podcast.audioUrl}</small>
+                    <br>
+                    <button class="btn btn-sm btn-outline-primary" onclick="retryAudio('${podcast._id}')">
+                        <i class="fas fa-redo"></i> Retry
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="testAudioPlayback('${podcast.audioUrl}')">
+                        <i class="fas fa-bug"></i> Test Audio
+                    </button>
+                `;
+                    playPauseBtn.disabled = true;
+                    return;
+                }
+                
+                console.log('Audio URL is accessible, proceeding with loading');
+            });
+            
             // Audio event listeners
             audio.addEventListener('loadstart', () => {
                 console.log('Audio loading started');
@@ -2522,9 +2546,19 @@
             });
             
             audio.addEventListener('error', (e) => {
-                console.error('Audio error:', e);
+                console.error('Audio error event:', e);
+                console.error('Audio error code:', audio.error ? audio.error.code : 'No error code');
+                console.error('Audio error message:', audio.error ? audio.error.message : 'No error message');
+                
                 loading.style.display = 'none';
                 error.style.display = 'block';
+                error.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i> Error loading audio
+                    <br><small>Error: ${audio.error ? audio.error.message : 'Unknown error'}</small>
+                    <br><button class="btn btn-sm btn-outline-primary" onclick="retryAudio('${podcast._id}')">
+                        <i class="fas fa-redo"></i> Retry
+                    </button>
+                `;
                 playPauseBtn.disabled = true;
             });
             
@@ -2545,6 +2579,57 @@
             
             // Try to load audio
             audio.load();
+        }
+
+        // Function to test if audio URL is accessible
+        async function testAudioUrl(url) {
+            try {
+                console.log('Testing audio URL accessibility:', url);
+                const response = await fetch(url, { method: 'HEAD' });
+                console.log('URL test response status:', response.status);
+                console.log('URL test response headers:', response.headers);
+                
+                if (response.ok) {
+                    console.log('Audio URL is accessible');
+                    return true;
+                } else {
+                    console.error('Audio URL returned status:', response.status);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error testing audio URL:', error);
+                return false;
+            }
+        }
+
+        // Function to manually test audio playback
+        function testAudioPlayback(audioUrl) {
+            console.log('=== MANUAL AUDIO TEST ===');
+            console.log('Testing audio URL:', audioUrl);
+            
+            // Create a test audio element
+            const testAudio = new Audio();
+            testAudio.src = audioUrl;
+            
+            testAudio.addEventListener('loadstart', () => console.log('Test audio: loadstart'));
+            testAudio.addEventListener('canplay', () => console.log('Test audio: canplay'));
+            testAudio.addEventListener('error', (e) => {
+                console.error('Test audio error:', e);
+                console.error('Test audio error code:', testAudio.error ? testAudio.error.code : 'No error code');
+                console.error('Test audio error message:', testAudio.error ? testAudio.error.message : 'No error message');
+            });
+            
+            testAudio.load();
+            
+            // Try to play after a short delay
+            setTimeout(() => {
+                testAudio.play().then(() => {
+                    console.log('Test audio: play successful');
+                    testAudio.pause();
+                }).catch(error => {
+                    console.error('Test audio: play failed:', error);
+                });
+            }, 1000);
         }
 
         // Function to toggle audio play/pause
