@@ -25,7 +25,7 @@ const podcastSchema = new mongoose.Schema({
   },
   audioFormat: {
     type: String,
-    enum: ['mp3', 'wav', 'ogg', 'm4a'],
+    enum: ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm'],
     default: 'mp3'
   },
   gradeLevel: {

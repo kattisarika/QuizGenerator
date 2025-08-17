@@ -4217,13 +4217,37 @@ app.post('/api/create-podcast', isAuthenticated, requireRole(['teacher']), requi
     const subjectsArray = subjects ? JSON.parse(subjects) : [];
     const tagsArray = tags ? JSON.parse(tags) : [];
     
+    // Map MIME type to audio format
+    const mimeToFormat = {
+      'audio/mp3': 'mp3',
+      'audio/mpeg': 'mp3',
+      'audio/wav': 'wav',
+      'audio/x-wav': 'wav',
+      'audio/ogg': 'ogg',
+      'audio/m4a': 'm4a',
+      'audio/x-m4a': 'm4a',
+      'audio/aac': 'aac',
+      'audio/mp4': 'm4a',
+      'audio/flac': 'flac',
+      'audio/webm': 'webm',
+      'audio/x-aac': 'aac'
+    };
+    
+    const audioFormat = mimeToFormat[req.file.mimetype] || 'mp3';
+    
+    console.log('=== PODCAST CREATION DEBUG ===');
+    console.log('File MIME type:', req.file.mimetype);
+    console.log('Mapped audio format:', audioFormat);
+    console.log('File size:', req.file.size);
+    console.log('Duration from form:', req.body.duration);
+    
     const podcast = new Podcast({
       title,
       description,
       audioUrl,
       duration: req.body.duration || 0,
       fileSize: req.file.size,
-      audioFormat: req.file.mimetype.split('/')[1],
+      audioFormat: audioFormat,
       gradeLevel,
       subjects: subjectsArray,
       tags: tagsArray,
