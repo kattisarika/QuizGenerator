@@ -23,6 +23,7 @@ const {
 } = require('./middleware/tenancy');
 const organizationRoutes = require('./routes/organization');
 const quizSessionRoutes = require('./routes/quizSession');
+const whiteboardRoutes = require('./routes/whiteboard');
 
 // AWS S3 configuration
 const AWS = require('aws-sdk');
@@ -431,6 +432,9 @@ app.use('/', organizationRoutes);
 
 // Quiz Session routes for competitive quizzes
 app.use('/api/quiz-session', quizSessionRoutes);
+
+// Whiteboard routes
+app.use('/', whiteboardRoutes);
 
 // Helper functions for file processing
 async function extractTextFromFile(fileBuffer, originalName) {
