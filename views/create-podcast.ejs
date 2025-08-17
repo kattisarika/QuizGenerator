@@ -464,6 +464,15 @@
                     <h2><i class="fas fa-info-circle"></i> Podcast Information</h2>
                     <p>Fill in the details for your podcast.</p>
                     
+                    <!-- Existing Podcasts Dropdown -->
+                    <div class="form-group">
+                        <label class="form-label">Select Existing Podcast (Optional)</label>
+                        <select id="existingPodcastSelect" class="form-select" onchange="loadExistingPodcast()">
+                            <option value="">-- Create New Podcast --</option>
+                        </select>
+                        <small class="form-text">Choose an existing podcast to edit, or leave as "Create New Podcast" to create a new one.</small>
+                    </div>
+                    
                     <div class="form-group">
                         <label class="form-label">Podcast Title *</label>
                         <input type="text" id="podcastTitle" class="form-input" placeholder="Enter podcast title" required>
@@ -808,6 +817,205 @@
         document.getElementById('podcastTitle').addEventListener('input', checkFormValidity);
         document.getElementById('podcastDescription').addEventListener('input', checkFormValidity);
         document.getElementById('gradeLevel').addEventListener('change', checkFormValidity);
+
+        // Load existing podcasts when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExistingPodcasts();
+        });
+
+        // Function to load existing podcasts into dropdown
+        async function loadExistingPodcasts() {
+            try {
+                const response = await fetch('/api/teacher-podcasts');
+                if (response.ok) {
+                    const data = await response.json();
+                    populateExistingPodcastsDropdown(data.podcasts);
+                } else {
+                    console.error('Failed to load existing podcasts');
+                }
+            } catch (error) {
+                console.error('Error loading existing podcasts:', error);
+            }
+        }
+
+        // Function to populate the existing podcasts dropdown
+        function populateExistingPodcastsDropdown(podcasts) {
+            const select = document.getElementById('existingPodcastSelect');
+            
+            // Clear existing options except the first one
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            if (podcasts && podcasts.length > 0) {
+                podcasts.forEach(podcast => {
+                    const option = document.createElement('option');
+                    option.value = podcast._id;
+                    option.textContent = `${podcast.title} (${podcast.gradeLevel}) - ${new Date(podcast.createdAt).toLocaleDateString()}`;
+                    select.appendChild(option);
+                });
+            } else {
+                // Add a "no podcasts" option
+                const option = document.createElement('option');
+                option.value = "";
+                option.textContent = "No existing podcasts found";
+                option.disabled = true;
+                select.appendChild(option);
+            }
+        }
+
+        // Function to load an existing podcast for editing
+        function loadExistingPodcast() {
+            const selectedId = document.getElementById('existingPodcastSelect').value;
+            
+            if (!selectedId) {
+                // Create new podcast mode
+                resetForm();
+                return;
+            }
+            
+            // Load existing podcast data
+            loadPodcastForEditing(selectedId);
+        }
+
+        // Function to load podcast data for editing
+        async function loadPodcastForEditing(podcastId) {
+            try {
+                const response = await fetch(`/api/podcast/${podcastId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    populateFormWithPodcast(data.podcast);
+                } else {
+                    alert('Error loading podcast data');
+                }
+            } catch (error) {
+                console.error('Error loading podcast for editing:', error);
+                alert('Error loading podcast data');
+            }
+        }
+
+        // Function to populate form with existing podcast data
+        function populateFormWithPodcast(podcast) {
+            document.getElementById('podcastTitle').value = podcast.title;
+            document.getElementById('podcastDescription').value = podcast.description;
+            document.getElementById('gradeLevel').value = podcast.gradeLevel;
+            
+            // Set subjects
+            const subjectsSelect = document.getElementById('subjects');
+            Array.from(subjectsSelect.options).forEach(option => {
+                option.selected = podcast.subjects.includes(option.value);
+            });
+            
+            // Set tags
+            document.getElementById('podcastTags').value = podcast.tags.join(', ');
+            
+            // Set transcription
+            if (podcast.transcription) {
+                document.getElementById('transcriptionText').value = podcast.transcription;
+                document.getElementById('enableTranscription').checked = true;
+                document.getElementById('transcriptionSection').style.display = 'block';
+            }
+            
+            // Update submit button
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Update Podcast';
+            document.getElementById('submitBtn').onclick = updateExistingPodcast;
+            
+            // Store podcast ID for update
+            window.currentPodcastId = podcast._id;
+            
+            console.log('Form populated with podcast data:', podcast);
+        }
+
+        // Function to reset form to create new podcast
+        function resetForm() {
+            document.getElementById('podcastTitle').value = '';
+            document.getElementById('podcastDescription').value = '';
+            document.getElementById('gradeLevel').value = '';
+            
+            // Clear subjects
+            const subjectsSelect = document.getElementById('subjects');
+            Array.from(subjectsSelect.options).forEach(option => {
+                option.selected = false;
+            });
+            
+            // Clear tags
+            document.getElementById('podcastTags').value = '';
+            
+            // Clear transcription
+            document.getElementById('transcriptionText').value = '';
+            document.getElementById('enableTranscription').checked = false;
+            document.getElementById('transcriptionSection').style.display = 'none';
+            
+            // Reset submit button
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Create Podcast';
+            document.getElementById('submitBtn').onclick = createPodcast;
+            
+            // Clear current podcast ID
+            window.currentPodcastId = null;
+            
+            console.log('Form reset for new podcast creation');
+        }
+
+        // Function to update existing podcast
+        async function updateExistingPodcast() {
+            if (!window.currentPodcastId) {
+                alert('No podcast selected for update');
+                return;
+            }
+            
+            const title = document.getElementById('podcastTitle').value.trim();
+            const description = document.getElementById('podcastDescription').value.trim();
+            const gradeLevel = document.getElementById('gradeLevel').value;
+            
+            if (!title || !description || !gradeLevel) {
+                updateSubmitStatus('Please fill in all required fields.', 'error');
+                return;
+            }
+            
+            // Get selected subjects
+            const subjectsSelect = document.getElementById('subjects');
+            const subjects = Array.from(subjectsSelect.selectedOptions).map(option => option.value);
+            
+            // Get tags
+            const tagsInput = document.getElementById('podcastTags').value.trim();
+            const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()) : [];
+            
+            // Get transcription
+            const transcription = document.getElementById('transcriptionText').value.trim();
+            const isTranscriptionEnabled = document.getElementById('enableTranscription').checked;
+            
+            try {
+                const response = await fetch(`/api/update-podcast/${window.currentPodcastId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title,
+                        description,
+                        gradeLevel,
+                        subjects: JSON.stringify(subjects),
+                        tags: JSON.stringify(tags),
+                        transcription,
+                        isTranscriptionEnabled
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateSubmitStatus('Podcast updated successfully! Redirecting to dashboard...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/teacher/dashboard';
+                    }, 2000);
+                } else {
+                    updateSubmitStatus('Error: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error updating podcast:', error);
+                updateSubmitStatus('Error updating podcast: ' + error.message, 'error');
+            }
+        }
 
         // Drag and drop functionality
         const fileUploadArea = document.getElementById('fileUploadArea');

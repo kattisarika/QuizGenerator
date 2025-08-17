@@ -1588,10 +1588,13 @@
     </div>
 
     <!-- Podcast Management Section -->
-    <div class="dashboard-section">
+    <div class="dashboard-section" style="border: 3px solid #ff6b6b; background: #fff5f5;">
         <div class="section-header">
             <h2><i class="fas fa-podcast me-2"></i>My Podcasts</h2>
             <p>Manage your educational podcasts</p>
+            <div style="background: #ff6b6b; color: white; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                🎙️ PODCAST SECTION - This should be visible!
+            </div>
         </div>
         
         <div id="podcastsContainer" class="podcasts-container">
@@ -2190,7 +2193,14 @@
         // Function to load teacher podcasts
         async function loadTeacherPodcasts() {
             try {
+                console.log('=== LOADING TEACHER PODCASTS ===');
                 const container = document.getElementById('podcastsContainer');
+                
+                if (!container) {
+                    console.error('Podcast container not found!');
+                    return;
+                }
+                
                 container.innerHTML = `
                     <div class="loading-state">
                         <i class="fas fa-spinner fa-spin"></i>
@@ -2198,19 +2208,28 @@
                     </div>
                 `;
                 
+                console.log('Fetching podcasts from /api/teacher-podcasts...');
                 const response = await fetch('/api/teacher-podcasts');
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('Podcast data received:', data);
+                    console.log('Number of podcasts:', data.podcasts ? data.podcasts.length : 'No podcasts array');
                     displayTeacherPodcasts(data.podcasts);
                 } else {
+                    console.error('Error response:', response.status, response.statusText);
                     container.innerHTML = 
-                        '<div class="error-state"><p>Error loading podcasts</p></div>';
+                        '<div class="error-state"><p>Error loading podcasts: ' + response.status + '</p></div>';
                 }
             } catch (error) {
                 console.error('Error loading podcasts:', error);
                 const container = document.getElementById('podcastsContainer');
-                container.innerHTML = 
-                    '<div class="error-state"><p>Error loading podcasts</p></div>';
+                if (container) {
+                    container.innerHTML = 
+                        '<div class="error-state"><p>Error loading podcasts: ' + error.message + '</p></div>';
+                }
             }
         }
 
