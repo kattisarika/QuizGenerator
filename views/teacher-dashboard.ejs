@@ -559,6 +559,33 @@
             max-width: 400px;
         }
 
+        .audio-loading {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        .audio-error {
+            text-align: center;
+            padding: 20px;
+            color: #dc3545;
+            font-size: 16px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .audio-controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .audio-controls .btn {
+            margin: 0 8px;
+        }
+
         .podcast-player-body .podcast-stats {
             display: flex;
             gap: 20px;
@@ -2415,10 +2442,27 @@
                             <span class="badge badge-info">${podcast.duration ? formatDuration(podcast.duration) : 'Unknown duration'}</span>
                         </div>
                         <div class="audio-player-container">
-                            <audio controls autoplay>
+                            <div class="audio-loading" id="audioLoading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading audio...
+                            </div>
+                            <div class="audio-error" id="audioError" style="display: none;">
+                                <i class="fas fa-exclamation-triangle"></i> Error loading audio
+                                <button class="btn btn-sm btn-outline-primary" onclick="retryAudio('${podcast._id}')">
+                                    <i class="fas fa-redo"></i> Retry
+                                </button>
+                            </div>
+                            <audio id="podcastAudio" controls preload="metadata">
                                 <source src="${podcast.audioUrl}" type="audio/${podcast.audioFormat}">
                                 Your browser does not support the audio element.
                             </audio>
+                            <div class="audio-controls">
+                                <button class="btn btn-primary" id="playPauseBtn" onclick="toggleAudioPlay()">
+                                    <i class="fas fa-play"></i> Play
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="restartAudio()">
+                                    <i class="fas fa-redo"></i> Restart
+                                </button>
+                            </div>
                         </div>
                         <div class="podcast-stats">
                             <small><i class="fas fa-play"></i> ${podcast.playCount || 0} plays</small>
@@ -2429,6 +2473,9 @@
             `;
             
             document.body.appendChild(modal);
+            
+            // Initialize audio player after modal is added
+            initializeAudioPlayer(podcast);
             
             // Add event listener for clicking outside modal to close
             modal.addEventListener('click', (e) => {
@@ -2444,6 +2491,99 @@
             if (modal) {
                 modal.remove();
             }
+        }
+
+        // Function to initialize audio player
+        function initializeAudioPlayer(podcast) {
+            const audio = document.getElementById('podcastAudio');
+            const loading = document.getElementById('audioLoading');
+            const error = document.getElementById('audioError');
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            
+            if (!audio) return;
+            
+            console.log('=== AUDIO PLAYER DEBUG ===');
+            console.log('Podcast:', podcast.title);
+            console.log('Audio URL:', podcast.audioUrl);
+            console.log('Audio Format:', podcast.audioFormat);
+            
+            // Audio event listeners
+            audio.addEventListener('loadstart', () => {
+                console.log('Audio loading started');
+                loading.style.display = 'block';
+                error.style.display = 'none';
+            });
+            
+            audio.addEventListener('canplay', () => {
+                console.log('Audio can play');
+                loading.style.display = 'none';
+                error.style.display = 'none';
+                playPauseBtn.disabled = false;
+            });
+            
+            audio.addEventListener('error', (e) => {
+                console.error('Audio error:', e);
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                playPauseBtn.disabled = true;
+            });
+            
+            audio.addEventListener('play', () => {
+                console.log('Audio started playing');
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            });
+            
+            audio.addEventListener('pause', () => {
+                console.log('Audio paused');
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i> Play';
+            });
+            
+            audio.addEventListener('ended', () => {
+                console.log('Audio ended');
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i> Play';
+            });
+            
+            // Try to load audio
+            audio.load();
+        }
+
+        // Function to toggle audio play/pause
+        function toggleAudioPlay() {
+            const audio = document.getElementById('podcastAudio');
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            
+            if (!audio) return;
+            
+            if (audio.paused) {
+                playPauseBtn.disabled = true;
+                audio.play().catch(error => {
+                    console.error('Error playing audio:', error);
+                    alert('Error playing audio. Please try again.');
+                    playPauseBtn.disabled = false;
+                });
+            } else {
+                audio.pause();
+            }
+        }
+
+        // Function to restart audio
+        function restartAudio() {
+            const audio = document.getElementById('podcastAudio');
+            if (!audio) return;
+            
+            audio.currentTime = 0;
+            if (!audio.paused) {
+                audio.play().catch(error => {
+                    console.error('Error restarting audio:', error);
+                });
+            }
+        }
+
+        // Function to retry audio loading
+        function retryAudio(podcastId) {
+            console.log('Retrying audio for podcast:', podcastId);
+            // Reload the podcast player
+            playPodcast(podcastId);
         }
 
         function editPodcast(podcastId) {
