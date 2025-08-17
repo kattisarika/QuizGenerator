@@ -179,6 +179,15 @@
             margin: 15px 0;
         }
         
+        .upload-actions {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .upload-actions .btn {
+            margin: 0 5px;
+        }
+        
         .editing-tools {
             background: #f8f9fa;
             padding: 30px;
@@ -436,6 +445,13 @@
                     </div>
                     
                     <div id="uploadStatus" class="status-message"></div>
+                    
+                    <!-- Clear Upload Button -->
+                    <div class="upload-actions" style="margin-top: 15px;">
+                        <button type="button" class="btn btn-outline-secondary" onclick="clearUploadedFile()">
+                            <i class="fas fa-times"></i> Clear Upload
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -718,6 +734,12 @@
                     return;
                 }
                 
+                console.log('=== FILE UPLOAD DEBUG ===');
+                console.log('File uploaded:', file);
+                console.log('File name:', file.name);
+                console.log('File type:', file.type);
+                console.log('File size:', file.size);
+                
                 currentAudioFile = file;
                 currentAudioDuration = 0; // Will be calculated when audio loads
                 
@@ -725,12 +747,31 @@
                 const audioPlayer = document.getElementById('audioPlayer');
                 audioPlayer.src = URL.createObjectURL(file);
                 
+                // Calculate duration when audio loads
                 audioPlayer.onloadedmetadata = () => {
                     currentAudioDuration = Math.round(audioPlayer.duration);
+                    console.log('Audio duration calculated:', currentAudioDuration, 'seconds');
+                    
+                    // Update form validation after duration is calculated
+                    checkFormValidity();
                 };
                 
+                // Handle audio load errors
+                audioPlayer.onerror = () => {
+                    console.error('Error loading audio file');
+                    updateUploadStatus('Error loading audio file. Please try a different file.', 'error');
+                    currentAudioFile = null;
+                    checkFormValidity();
+                };
+                
+                // Show audio preview
                 document.getElementById('audioPreview').style.display = 'block';
-                updateUploadStatus('File uploaded successfully!', 'success');
+                updateUploadStatus('File uploaded successfully! Audio duration: Calculating...', 'success');
+                
+                // Update form validation immediately
+                checkFormValidity();
+                
+                console.log('File upload completed. currentAudioFile:', currentAudioFile);
             }
         }
 
@@ -739,6 +780,30 @@
             statusDiv.textContent = message;
             statusDiv.className = `status-message status-${type}`;
             statusDiv.style.display = 'block';
+        }
+
+        // Function to clear uploaded file
+        function clearUploadedFile() {
+            currentAudioFile = null;
+            currentAudioDuration = 0;
+            
+            // Clear file input
+            document.getElementById('audioFile').value = '';
+            
+            // Hide audio preview
+            document.getElementById('audioPreview').style.display = 'none';
+            
+            // Clear audio player
+            const audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.src = '';
+            
+            // Update form validation
+            checkFormValidity();
+            
+            // Update upload status
+            updateUploadStatus('No file uploaded', 'warning');
+            
+            console.log('Uploaded file cleared');
         }
 
         // Transcription toggle
@@ -1081,7 +1146,14 @@
             
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                document.getElementById('audioFile').files = files;
+                console.log('=== DRAG & DROP DEBUG ===');
+                console.log('Files dropped:', files);
+                
+                // Set the file input value
+                const fileInput = document.getElementById('audioFile');
+                fileInput.files = files;
+                
+                // Process the uploaded file
                 handleFileUpload({ target: { files: files } });
             }
         });
