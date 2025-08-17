@@ -3398,6 +3398,11 @@ app.get('/debug-quiz/:quizId', isAuthenticated, requireRole(['teacher']), async 
   }
 });
 
+// Route to create podcast page
+app.get('/create-podcast', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('create-podcast', { user: req.user });
+});
+
 // Route to start taking a quiz
 app.get('/take-quiz/:quizId', isAuthenticated, requireRole(['student']), async (req, res) => {
   try {
@@ -4131,6 +4136,176 @@ app.post('/api/activity-update', isAuthenticated, (req, res) => {
     req.session.lastActivity = Date.now();
   }
   res.json({ success: true });
+});
+
+// ===== PODCAST ROUTES =====
+
+// Get all podcasts for a teacher
+app.get('/api/teacher-podcasts', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const Podcast = require('./models/Podcast');
+    const podcasts = await Podcast.find({ createdBy: req.user._id })
+      .sort({ createdAt: -1 });
+    
+    res.json({ success: true, podcasts });
+  } catch (error) {
+    console.error('Error fetching teacher podcasts:', error);
+    res.status(500).json({ success: false, message: 'Error fetching podcasts' });
+  }
+});
+
+// Get podcasts for students (filtered by grade and organization)
+app.get('/api/student-podcasts', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const Podcast = require('./models/Podcast');
+    const { grade, subject } = req.query;
+    
+    let query = {
+      isPublished: true,
+      organizationId: req.user.organizationId
+    };
+    
+    if (grade && grade !== 'all') {
+      query.gradeLevel = grade;
+    }
+    
+    if (subject && subject !== 'all') {
+      query.subjects = subject;
+    }
+    
+    const podcasts = await Podcast.find(query)
+      .sort({ createdAt: -1 });
+    
+    res.json({ success: true, podcasts });
+  } catch (error) {
+    console.error('Error fetching student podcasts:', error);
+    res.status(500).json({ success: false, message: 'Error fetching podcasts' });
+  }
+});
+
+// Create new podcast
+app.post('/api/create-podcast', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, upload.single('audioFile'), async (req, res) => {
+  try {
+    const Podcast = require('./models/Podcast');
+    const { title, description, gradeLevel, subjects, tags, transcription, isTranscriptionEnabled } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No audio file provided' });
+    }
+    
+    // Upload audio file to S3
+    const audioUrl = await uploadToS3(req.file, 'podcasts');
+    
+    // Parse subjects and tags arrays
+    const subjectsArray = subjects ? JSON.parse(subjects) : [];
+    const tagsArray = tags ? JSON.parse(tags) : [];
+    
+    const podcast = new Podcast({
+      title,
+      description,
+      audioUrl,
+      duration: req.body.duration || 0,
+      fileSize: req.file.size,
+      audioFormat: req.file.mimetype.split('/')[1],
+      gradeLevel,
+      subjects: subjectsArray,
+      tags: tagsArray,
+      transcription: transcription || '',
+      isTranscriptionEnabled: isTranscriptionEnabled === 'true',
+      createdBy: req.user._id,
+      createdByName: req.user.displayName,
+      organizationId: req.user.organizationId
+    });
+    
+    await podcast.save();
+    
+    res.json({ success: true, podcast, message: 'Podcast created successfully' });
+  } catch (error) {
+    console.error('Error creating podcast:', error);
+    res.status(500).json({ success: false, message: 'Error creating podcast' });
+  }
+});
+
+// Update podcast
+app.put('/api/update-podcast/:id', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const Podcast = require('./models/Podcast');
+    const { title, description, gradeLevel, subjects, tags, transcription, isTranscriptionEnabled } = req.body;
+    
+    const podcast = await Podcast.findOneAndUpdate(
+      { _id: req.params.id, createdBy: req.user._id },
+      {
+        title,
+        description,
+        gradeLevel,
+        subjects: JSON.parse(subjects || '[]'),
+        tags: JSON.parse(tags || '[]'),
+        transcription,
+        isTranscriptionEnabled: isTranscriptionEnabled === 'true'
+      },
+      { new: true, runValidators: true }
+    );
+    
+    if (!podcast) {
+      return res.status(404).json({ success: false, message: 'Podcast not found' });
+    }
+    
+    res.json({ success: true, podcast, message: 'Podcast updated successfully' });
+  } catch (error) {
+    console.error('Error updating podcast:', error);
+    res.status(500).json({ success: false, message: 'Error updating podcast' });
+  }
+});
+
+// Delete podcast
+app.delete('/api/delete-podcast/:id', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const Podcast = require('./models/Podcast');
+    const podcast = await Podcast.findOneAndDelete({ _id: req.params.id, createdBy: req.user._id });
+    
+    if (!podcast) {
+      return res.status(404).json({ success: false, message: 'Podcast not found' });
+    }
+    
+    // Delete audio file from S3
+    if (podcast.audioUrl) {
+      await deleteFromS3(podcast.audioUrl);
+    }
+    
+    res.json({ success: true, message: 'Podcast deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting podcast:', error);
+    res.status(500).json({ success: false, message: 'Error deleting podcast' });
+  }
+});
+
+// Get single podcast details
+app.get('/api/podcast/:id', isAuthenticated, async (req, res) => {
+  try {
+    const Podcast = require('./models/Podcast');
+    const podcast = await Podcast.findById(req.params.id);
+    
+    if (!podcast) {
+      return res.status(404).json({ success: false, message: 'Podcast not found' });
+    }
+    
+    res.json({ success: true, podcast });
+  } catch (error) {
+    console.error('Error fetching podcast:', error);
+    res.status(500).json({ success: false, message: 'Error fetching podcast' });
+  }
+});
+
+// Update podcast play count
+app.post('/api/podcast-play/:id', isAuthenticated, async (req, res) => {
+  try {
+    const Podcast = require('./models/Podcast');
+    await Podcast.findByIdAndUpdate(req.params.id, { $inc: { playCount: 1 } });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating play count:', error);
+    res.status(500).json({ success: false });
+  }
 });
 
 app.post('/api/extend-session', isAuthenticated, (req, res) => {
