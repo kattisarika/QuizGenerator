@@ -1,28 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard - SkillOns</title>
+    <title>Student Dashboard - SkillOns - Educational Platform for Students</title>
+    <meta name="description" content="Student dashboard for accessing quizzes, study materials, and educational podcasts">
+    <meta name="keywords" content="student, education, quizzes, podcasts, learning">
     <link rel="stylesheet" href="/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Enhanced Professional Styles */
+        /* Enhanced Professional Styles - 508 Compliant Colors */
         :root {
-            --primary-color: #4F46E5;
-            --primary-dark: #4338CA;
+            --primary-color: #2563EB; /* Improved contrast ratio */
+            --primary-dark: #1D4ED8; /* Improved contrast ratio */
             --secondary-color: #7C3AED;
-            --success-color: #10B981;
-            --warning-color: #F59E0B;
-            --danger-color: #EF4444;
-            --dark-color: #1F2937;
+            --success-color: #059669; /* Improved contrast ratio */
+            --warning-color: #D97706; /* Improved contrast ratio */
+            --danger-color: #DC2626; /* Improved contrast ratio */
+            --dark-color: #111827; /* Improved contrast ratio */
             --light-color: #F9FAFB;
             --border-radius: 12px;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
             --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
             --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
             --shadow-xl: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        /* Accessibility Styles */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            background: var(--primary-color);
+            color: white;
+            padding: 8px;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 10000;
+            transition: top 0.3s;
+        }
+
+        .skip-link:focus {
+            top: 6px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Focus styles for keyboard navigation */
+        .btn:focus,
+        .nav-link:focus,
+        select:focus,
+        button:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
+        .action-card:focus-within {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 4px;
+        }
+
+        /* Enhanced focus styles for keyboard navigation */
+        .keyboard-navigation .btn:focus,
+        .keyboard-navigation .nav-link:focus,
+        .keyboard-navigation select:focus,
+        .keyboard-navigation button:focus {
+            outline: 3px solid var(--primary-color);
+            outline-offset: 3px;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Focus indicator for podcast cards */
+        .podcast-card:focus-within {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 4px;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        }
+
+        /* High Contrast Mode Styles */
+        .high-contrast {
+            --primary-color: #000080;
+            --primary-dark: #000060;
+            --secondary-color: #800080;
+            --success-color: #008000;
+            --warning-color: #FF8C00;
+            --danger-color: #FF0000;
+            --dark-color: #000000;
+            --light-color: #FFFFFF;
+        }
+
+        .high-contrast .navbar {
+            background: #000000;
+            border-bottom: 3px solid #FFFFFF;
+        }
+
+        .high-contrast .nav-logo a {
+            color: #FFFFFF;
+        }
+
+        .high-contrast .nav-link {
+            color: #FFFFFF;
+            border: 2px solid transparent;
+        }
+
+        .high-contrast .nav-link:hover,
+        .high-contrast .nav-link:focus {
+            background: #FFFFFF;
+            color: #000000;
+            border-color: #FFFFFF;
+        }
+
+        .high-contrast .action-card {
+            background: #FFFFFF;
+            border: 3px solid #000000;
+        }
+
+        .high-contrast .stat-card {
+            background: #FFFFFF;
+            border: 3px solid #000000;
+        }
+
+        .high-contrast .podcast-card {
+            background: #FFFFFF;
+            border: 3px solid #000000;
+        }
+
+        .high-contrast .btn {
+            border: 3px solid #000000;
+        }
+
+        .high-contrast .btn-primary {
+            background: #000080;
+            color: #FFFFFF;
+        }
+
+        .high-contrast .btn-secondary {
+            background: #800080;
+            color: #FFFFFF;
+        }
+
+        /* Accessibility toggle button styles */
+        .accessibility-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: inherit;
+            color: inherit;
+            padding: 0;
+            margin: 0;
+        }
+
+        .accessibility-toggle:hover,
+        .accessibility-toggle:focus {
+            background: var(--primary-color);
+            color: white;
         }
 
         * {
@@ -320,7 +463,7 @@
 
         .stat-info h3 {
             font-size: 14px;
-            color: #6B7280;
+            color: #374151; /* Improved contrast ratio */
             margin-bottom: 5px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -373,7 +516,7 @@
         }
 
         .action-card p {
-            color: #6B7280;
+            color: #374151; /* Improved contrast ratio */
             margin-bottom: 20px;
             line-height: 1.6;
         }
@@ -403,7 +546,7 @@
         }
 
         .section-header p {
-            color: #6B7280;
+            color: #374151; /* Improved contrast ratio */
             font-size: 16px;
         }
 
@@ -450,7 +593,7 @@
         .loading-state {
             text-align: center;
             padding: 40px;
-            color: #6B7280;
+            color: #374151; /* Improved contrast ratio */
         }
 
         .loading-state i {
@@ -489,7 +632,7 @@
         }
 
         .podcast-description {
-            color: #6b7280;
+            color: #374151; /* Improved contrast ratio */
             margin-bottom: 15px;
             line-height: 1.5;
         }
@@ -509,7 +652,7 @@
         }
 
         .podcast-stats small {
-            color: #9ca3af;
+            color: #6b7280; /* Improved contrast ratio */
             display: flex;
             align-items: center;
             gap: 5px;
@@ -591,7 +734,7 @@
             border: none;
             font-size: 24px;
             cursor: pointer;
-            color: #6b7280;
+            color: #374151; /* Improved contrast ratio */
             padding: 0;
             width: 30px;
             height: 30px;
@@ -604,7 +747,7 @@
 
         .close-btn:hover {
             background: #f3f4f6;
-            color: #374151;
+            color: #111827; /* Improved contrast ratio */
         }
 
         .podcast-player-body {
@@ -613,7 +756,7 @@
 
         .podcast-player-body .podcast-description {
             margin-bottom: 20px;
-            color: #6b7280;
+            color: #374151; /* Improved contrast ratio */
             line-height: 1.6;
         }
 
@@ -962,163 +1105,191 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
+    <!-- Skip Navigation Link for Screen Readers -->
+    <a href="#main-content" class="skip-link" id="skip-link">Skip to main content</a>
+    
+    <nav class="navbar" role="navigation" aria-label="Main navigation">
         <div class="nav-container">
             <div class="nav-logo">
-                <a href="/">SkillOns</a>
+                <a href="/" aria-label="SkillOns - Return to home page">
+                    <span aria-hidden="true">🎓</span>
+                    <span>SkillOns</span>
+                </a>
             </div>
-            <div class="hamburger" onclick="toggleMobileMenu()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-            <div class="nav-menu" id="navMenu">
-                <a href="/student/dashboard" class="nav-link">
-                    <i class="fas fa-home"></i> Dashboard
+            <button class="hamburger" 
+                    onclick="toggleMobileMenu()" 
+                    aria-label="Toggle navigation menu"
+                    aria-expanded="false"
+                    aria-controls="navMenu"
+                    type="button">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </button>
+            <div class="nav-menu" id="navMenu" role="menubar">
+                <a href="/student/dashboard" class="nav-link" role="menuitem" aria-current="page">
+                    <i class="fas fa-home" aria-hidden="true"></i> 
+                    <span>Dashboard</span>
                 </a>
-                <a href="/available-quizzes" class="nav-link">
-                    <i class="fas fa-book"></i> Browse Quizzes
+                <a href="/available-quizzes" class="nav-link" role="menuitem">
+                    <i class="fas fa-book" aria-hidden="true"></i> 
+                    <span>Browse Quizzes</span>
                 </a>
-                <a href="/student/study-material" class="nav-link">
-                    <i class="fas fa-graduation-cap"></i> Study Material
+                <a href="/student/study-material" class="nav-link" role="menuitem">
+                    <i class="fas fa-graduation-cap" aria-hidden="true"></i> 
+                    <span>Study Material</span>
                 </a>
-                <a href="/my-results" class="nav-link">
-                    <i class="fas fa-chart-bar"></i> My Results
+                <a href="/my-results" class="nav-link" role="menuitem">
+                    <i class="fas fa-chart-bar" aria-hidden="true"></i> 
+                    <span>My Results</span>
                 </a>
-                <a href="#" class="nav-link" onclick="openStudentProfile()">
-                    <i class="fas fa-user-edit"></i> Profile
+                <a href="#" class="nav-link" role="menuitem" onclick="openStudentProfile()" aria-label="Open student profile settings">
+                    <i class="fas fa-user-edit" aria-hidden="true"></i> 
+                    <span>Profile</span>
                 </a>
-                <a href="/select-role" class="nav-link">
-                    <i class="fas fa-exchange-alt"></i> Change Role
+                <a href="/select-role" class="nav-link" role="menuitem">
+                    <i class="fas fa-exchange-alt" aria-hidden="true"></i> 
+                    <span>Change Role</span>
                 </a>
-                <a href="/logout" class="nav-link logout-btn">
-                    <i class="fas fa-sign-out-alt"></i> Logout
+                <button class="nav-link accessibility-toggle" 
+                        role="menuitem" 
+                        onclick="toggleHighContrast()" 
+                        aria-label="Toggle high contrast mode">
+                    <i class="fas fa-adjust" aria-hidden="true"></i> 
+                    <span>High Contrast</span>
+                </button>
+                <a href="/logout" class="nav-link logout-btn" role="menuitem">
+                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i> 
+                    <span>Logout</span>
                 </a>
             </div>
         </div>
     </nav>
     <div class="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
 
-    <main class="main-content">
+    <main class="main-content" id="main-content" role="main" tabindex="-1">
         <div class="dashboard-container">
             <div class="dashboard-header">
                 <div class="user-info">
                     <% if (user.photos && user.photos.length > 0) { %>
-                        <img src="<%= user.photos[0].value %>" alt="Profile" class="user-avatar">
+                        <img src="<%= user.photos[0].value %>" alt="Profile photo of <%= user.displayName %>" class="user-avatar">
                     <% } else { %>
-                        <div class="user-avatar-placeholder">
-                            <i class="fas fa-user-graduate"></i>
+                        <div class="user-avatar-placeholder" aria-label="Default profile avatar">
+                            <i class="fas fa-user-graduate" aria-hidden="true"></i>
                         </div>
                     <% } %>
                     <div class="user-details">
-                        <h1>Welcome, <%= user.displayName %>!</h1>
-                        <p><%= user.email %></p>
-                        <span class="role-badge student-badge">Student</span>
+                        <h1 id="welcome-heading">Welcome, <%= user.displayName %>!</h1>
+                        <p id="user-email"><%= user.email %></p>
+                        <span class="role-badge student-badge" aria-label="Role: Student">Student</span>
                     </div>
                 </div>
             </div>
 
             <div class="dashboard-content">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">
+                <section class="stats-grid" aria-labelledby="stats-heading">
+                    <h2 id="stats-heading" class="sr-only">Dashboard Statistics</h2>
+                    <div class="stat-card" role="region" aria-labelledby="quizzes-stat">
+                        <div class="stat-icon" aria-hidden="true">
                             <i class="fas fa-file-alt"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>Available Quizzes</h3>
-                            <p class="stat-number"><%= quizzes.length %></p>
+                            <h3 id="quizzes-stat">Available Quizzes</h3>
+                            <p class="stat-number" aria-label="Number of available quizzes"><%= quizzes.length %></p>
                         </div>
                     </div>
 
-                    <div class="stat-card">
-                        <div class="stat-icon">
+                    <div class="stat-card" role="region" aria-labelledby="completed-stat">
+                        <div class="stat-icon" aria-hidden="true">
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>Completed</h3>
-                            <p class="stat-number"><%= completedCount %></p>
+                            <h3 id="completed-stat">Completed</h3>
+                            <p class="stat-number" aria-label="Number of completed quizzes"><%= completedCount %></p>
                         </div>
                     </div>
 
-                    <div class="stat-card">
-                        <div class="stat-icon">
+                    <div class="stat-card" role="region" aria-labelledby="score-stat">
+                        <div class="stat-icon" aria-hidden="true">
                             <i class="fas fa-chart-line"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>Average Score</h3>
-                            <p class="stat-number"><%= averageScore > 0 ? averageScore + '%' : '--' %></p>
+                            <h3 id="score-stat">Average Score</h3>
+                            <p class="stat-number" aria-label="Average quiz score"><%= averageScore > 0 ? averageScore + '%' : '--' %></p>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="action-cards">
-                    <div class="action-card">
-                        <div style="font-size: 48px; margin-bottom: 15px; color: var(--primary-color);">
+                <section class="action-cards" aria-labelledby="actions-heading">
+                    <h2 id="actions-heading" class="sr-only">Quick Actions</h2>
+                    <div class="action-card" role="region" aria-labelledby="quiz-action">
+                        <div style="font-size: 48px; margin-bottom: 15px; color: var(--primary-color);" aria-hidden="true">
                             <i class="fas fa-book-open"></i>
                         </div>
-                        <h3>Take a Quiz</h3>
+                        <h3 id="quiz-action">Take a Quiz</h3>
                         <p>Browse and take available quizzes to test your knowledge</p>
-                        <a href="/available-quizzes" class="btn btn-primary">
-                            <i class="fas fa-arrow-right"></i> Browse Quizzes
+                        <a href="/available-quizzes" class="btn btn-primary" aria-label="Browse and take available quizzes">
+                            <i class="fas fa-arrow-right" aria-hidden="true"></i> Browse Quizzes
                         </a>
                     </div>
 
-                    <div class="action-card">
-                        <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    <div class="action-card" role="region" aria-labelledby="competitive-action">
+                        <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" aria-hidden="true">
                             <i class="fas fa-trophy"></i>
                         </div>
-                        <h3>Competitive Quiz</h3>
+                        <h3 id="competitive-action">Competitive Quiz</h3>
                         <p>Join live competitive sessions and compete with classmates</p>
-                        <a href="/join-competitive" class="btn btn-primary">
-                            <i class="fas fa-bolt"></i> Join Session
+                        <a href="/join-competitive" class="btn btn-primary" aria-label="Join live competitive quiz sessions">
+                            <i class="fas fa-bolt" aria-hidden="true"></i> Join Session
                         </a>
                     </div>
 
-                    <div class="action-card">
-                        <div style="font-size: 48px; margin-bottom: 15px; color: var(--success-color);">
+                    <div class="action-card" role="region" aria-labelledby="results-action">
+                        <div style="font-size: 48px; margin-bottom: 15px; color: var(--success-color);" aria-hidden="true">
                             <i class="fas fa-chart-line"></i>
                         </div>
-                        <h3>My Results</h3>
+                        <h3 id="results-action">My Results</h3>
                         <p>Track your progress and review past quiz performances</p>
-                        <a href="/my-results" class="btn btn-secondary">
-                            <i class="fas fa-chart-bar"></i> View Results
+                        <a href="/my-results" class="btn btn-secondary" aria-label="View your quiz results and progress">
+                            <i class="fas fa-chart-bar" aria-hidden="true"></i> View Results
                         </a>
                     </div>
 
-                    <div class="action-card">
-                        <div style="font-size: 48px; margin-bottom: 15px; color: var(--warning-color);">
+                    <div class="action-card" role="region" aria-labelledby="material-action">
+                        <div style="font-size: 48px; margin-bottom: 15px; color: var(--warning-color);" aria-hidden="true">
                             <i class="fas fa-graduation-cap"></i>
                         </div>
-                        <h3>Study Material</h3>
+                        <h3 id="material-action">Study Material</h3>
                         <p>Access educational resources shared by your teachers</p>
-                        <a href="/student/study-material" class="btn btn-secondary">
-                            <i class="fas fa-folder-open"></i> View Material
+                        <a href="/student/study-material" class="btn btn-secondary" aria-label="Access study materials shared by teachers">
+                            <i class="fas fa-folder-open" aria-hidden="true"></i> View Material
                         </a>
                     </div>
 
-                    <div class="action-card">
-                        <div style="font-size: 48px; margin-bottom: 15px; color: var(--secondary-color);">
+                    <div class="action-card" role="region" aria-labelledby="podcast-action">
+                        <div style="font-size: 48px; margin-bottom: 15px; color: var(--secondary-color);" aria-hidden="true">
                             <i class="fas fa-podcast"></i>
                         </div>
-                        <h3>Educational Podcasts</h3>
+                        <h3 id="podcast-action">Educational Podcasts</h3>
                         <p>Listen to audio lessons and educational content from your teachers</p>
-                        <button onclick="showPodcastsSection()" class="btn btn-primary">
-                            <i class="fas fa-headphones"></i> Browse Podcasts
+                        <button onclick="showPodcastsSection()" class="btn btn-primary" aria-label="Browse and listen to educational podcasts">
+                            <i class="fas fa-headphones" aria-hidden="true"></i> Browse Podcasts
                         </button>
                     </div>
-                </div>
+                </section>
 
                 <!-- Podcasts Section -->
-                <div id="podcastsSection" class="podcasts-section" style="display: none;">
+                <section id="podcastsSection" class="podcasts-section" style="display: none;" aria-labelledby="podcasts-heading">
                     <div class="section-header">
-                        <h2><i class="fas fa-podcast"></i> Educational Podcasts</h2>
+                        <h2 id="podcasts-heading"><i class="fas fa-podcast" aria-hidden="true"></i> Educational Podcasts</h2>
                         <p>Listen to audio lessons created by your teachers</p>
                     </div>
                     
-                    <div class="podcast-filters">
+                    <div class="podcast-filters" role="group" aria-labelledby="filter-heading">
+                        <h3 id="filter-heading" class="sr-only">Filter Podcasts</h3>
                         <div class="filter-group">
                             <label for="gradeFilter">Grade Level:</label>
-                            <select id="gradeFilter" onchange="filterPodcasts()">
+                            <select id="gradeFilter" onchange="filterPodcasts()" aria-label="Filter podcasts by grade level">
                                 <option value="all">All Grades</option>
                                 <option value="1st grade">1st Grade</option>
                                 <option value="2nd grade">2nd Grade</option>
@@ -1137,7 +1308,7 @@
                         
                         <div class="filter-group">
                             <label for="subjectFilter">Subject:</label>
-                            <select id="subjectFilter" onchange="filterPodcasts()">
+                            <select id="subjectFilter" onchange="filterPodcasts()" aria-label="Filter podcasts by subject">
                                 <option value="all">All Subjects</option>
                                 <option value="English">English</option>
                                 <option value="Science">Science</option>
@@ -1153,13 +1324,13 @@
                         </div>
                     </div>
                     
-                    <div id="podcastsContainer" class="podcasts-container">
+                    <div id="podcastsContainer" class="podcasts-container" role="region" aria-live="polite" aria-label="Podcast list">
                         <div class="loading-state">
-                            <i class="fas fa-spinner fa-spin"></i>
+                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
                             <p>Loading podcasts...</p>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <% if (typeof needsMigration !== 'undefined' && needsMigration) { %>
                 <div class="alert alert-warning">
@@ -1312,11 +1483,22 @@
             navMenu.classList.toggle('active');
             overlay.classList.toggle('active');
 
+            // Update ARIA attributes
+            const isExpanded = navMenu.classList.contains('active');
+            hamburger.setAttribute('aria-expanded', isExpanded);
+
             // Prevent body scroll when menu is open
-            if (navMenu.classList.contains('active')) {
+            if (isExpanded) {
                 document.body.style.overflow = 'hidden';
+                // Focus first menu item for keyboard navigation
+                setTimeout(() => {
+                    const firstMenuItem = navMenu.querySelector('.nav-link');
+                    if (firstMenuItem) firstMenuItem.focus();
+                }, 100);
             } else {
                 document.body.style.overflow = 'auto';
+                // Return focus to hamburger button
+                hamburger.focus();
             }
         }
 
@@ -1344,10 +1526,45 @@
                     hamburger.classList.remove('active');
                     navMenu.classList.remove('active');
                     overlay.classList.remove('active');
+                    hamburger.setAttribute('aria-expanded', 'false');
                     document.body.style.overflow = 'auto';
                 }
             });
+
+            // Add keyboard navigation support
+            document.addEventListener('keydown', function(e) {
+                // Tab key navigation
+                if (e.key === 'Tab') {
+                    // Ensure focus is visible
+                    document.body.classList.add('keyboard-navigation');
+                }
+            });
+
+                    // Remove keyboard navigation class on mouse use
+        document.addEventListener('mousedown', function() {
+            document.body.classList.remove('keyboard-navigation');
         });
+    });
+
+    // High Contrast Toggle Function
+    function toggleHighContrast() {
+        document.body.classList.toggle('high-contrast');
+        const isHighContrast = document.body.classList.contains('high-contrast');
+        
+        // Announce to screen readers
+        announceToScreenReader(isHighContrast ? 'High contrast mode enabled' : 'High contrast mode disabled');
+        
+        // Save preference to localStorage
+        localStorage.setItem('highContrast', isHighContrast);
+    }
+
+    // Load high contrast preference on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedHighContrast = localStorage.getItem('highContrast') === 'true';
+        if (savedHighContrast) {
+            document.body.classList.add('high-contrast');
+        }
+    });
 
         // Student Profile Modal Functions
         function openStudentProfile() {
@@ -1502,6 +1719,9 @@
             // Add additional safety check after a short delay
             setTimeout(ensureProfileModalHidden, 100);
             setTimeout(ensureProfileModalHidden, 500);
+
+            // Announce page load to screen readers
+            announceToScreenReader('Student dashboard loaded. Welcome to SkillOns educational platform.');
         });
 
         function migrateAccount() {
@@ -1539,6 +1759,15 @@
             const podcastsSection = document.getElementById('podcastsSection');
             podcastsSection.style.display = 'block';
             loadStudentPodcasts();
+            
+            // Announce to screen readers
+            announceToScreenReader('Podcasts section opened. Use filters to find content.');
+            
+            // Focus on first filter for keyboard navigation
+            setTimeout(() => {
+                const gradeFilter = document.getElementById('gradeFilter');
+                if (gradeFilter) gradeFilter.focus();
+            }, 100);
         }
 
         async function loadStudentPodcasts() {
@@ -1574,37 +1803,43 @@
             if (!podcasts || podcasts.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <i class="fas fa-podcast fa-3x text-muted mb-3"></i>
+                        <i class="fas fa-podcast fa-3x text-muted mb-3" aria-hidden="true"></i>
                         <h4>No Podcasts Available</h4>
                         <p>No podcasts are available for your current filters.</p>
                     </div>
                 `;
+                announceToScreenReader('No podcasts found for the selected filters.');
                 return;
             }
 
-            container.innerHTML = podcasts.map(podcast => `
-                <div class="podcast-card">
+            container.innerHTML = podcasts.map((podcast, index) => `
+                <div class="podcast-card" role="article" aria-labelledby="podcast-title-${index}">
                     <div class="podcast-info">
-                        <h4>${podcast.title}</h4>
+                        <h4 id="podcast-title-${index}">${podcast.title}</h4>
                         <p class="podcast-description">${podcast.description}</p>
-                        <div class="podcast-meta">
-                            <span class="badge badge-primary">${podcast.gradeLevel}</span>
-                            ${podcast.subjects.map(subject => `<span class="badge badge-secondary">${subject}</span>`).join('')}
-                            <span class="badge badge-info">${podcast.duration ? formatDuration(podcast.duration) : 'Unknown duration'}</span>
+                        <div class="podcast-meta" aria-label="Podcast metadata">
+                            <span class="badge badge-primary" aria-label="Grade level: ${podcast.gradeLevel}">${podcast.gradeLevel}</span>
+                            ${podcast.subjects.map(subject => `<span class="badge badge-secondary" aria-label="Subject: ${subject}">${subject}</span>`).join('')}
+                            <span class="badge badge-info" aria-label="Duration: ${podcast.duration ? formatDuration(podcast.duration) : 'Unknown duration'}">${podcast.duration ? formatDuration(podcast.duration) : 'Unknown duration'}</span>
                         </div>
-                        <div class="podcast-stats">
-                            <small><i class="fas fa-play"></i> ${podcast.playCount || 0} plays</small>
-                            <small><i class="fas fa-calendar"></i> ${new Date(podcast.createdAt).toLocaleDateString()}</small>
-                            <small><i class="fas fa-user"></i> ${podcast.createdByName}</small>
+                        <div class="podcast-stats" aria-label="Podcast statistics">
+                            <small><i class="fas fa-play" aria-hidden="true"></i> ${podcast.playCount || 0} plays</small>
+                            <small><i class="fas fa-calendar" aria-hidden="true"></i> ${new Date(podcast.createdAt).toLocaleDateString()}</small>
+                            <small><i class="fas fa-user" aria-hidden="true"></i> ${podcast.createdByName}</small>
                         </div>
                     </div>
                     <div class="podcast-actions">
-                        <button class="btn btn-primary" onclick="playStudentPodcast('${podcast._id}')">
-                            <i class="fas fa-play"></i> Play
+                        <button class="btn btn-primary" 
+                                onclick="playStudentPodcast('${podcast._id}')"
+                                aria-label="Play podcast: ${podcast.title}">
+                            <i class="fas fa-play" aria-hidden="true"></i> Play
                         </button>
                     </div>
                 </div>
             `).join('');
+            
+            // Announce results to screen readers
+            announceToScreenReader(`Found ${podcasts.length} podcast${podcasts.length === 1 ? '' : 's'}. Use tab to navigate through the list.`);
         }
 
         function formatDuration(seconds) {
@@ -1637,30 +1872,41 @@
         function showStudentPodcastPlayer(podcast) {
             const modal = document.createElement('div');
             modal.className = 'podcast-player-modal';
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+            modal.setAttribute('aria-labelledby', 'podcast-modal-title');
+            modal.setAttribute('aria-describedby', 'podcast-modal-description');
+            
             modal.innerHTML = `
                 <div class="podcast-player-content">
                     <div class="podcast-player-header">
-                        <h3>${podcast.title}</h3>
-                        <button class="close-btn" onclick="closeStudentPodcastPlayer()">&times;</button>
+                        <h3 id="podcast-modal-title">${podcast.title}</h3>
+                        <button class="close-btn" 
+                                onclick="closeStudentPodcastPlayer()" 
+                                aria-label="Close podcast player">&times;</button>
                     </div>
                     <div class="podcast-player-body">
-                        <p class="podcast-description">${podcast.description}</p>
-                        <div class="podcast-meta">
-                            <span class="badge badge-primary">${podcast.gradeLevel}</span>
-                            ${podcast.subjects.map(subject => `<span class="badge badge-secondary">${subject}</span>`).join('')}
-                            <span class="badge badge-info">${podcast.duration ? formatDuration(podcast.duration) : 'Unknown duration'}</span>
+                        <p id="podcast-modal-description" class="podcast-description">${podcast.description}</p>
+                        <div class="podcast-meta" aria-label="Podcast metadata">
+                            <span class="badge badge-primary" aria-label="Grade level: ${podcast.gradeLevel}">${podcast.gradeLevel}</span>
+                            ${podcast.subjects.map(subject => `<span class="badge badge-secondary" aria-label="Subject: ${subject}">${subject}</span>`).join('')}
+                            <span class="badge badge-info" aria-label="Duration: ${podcast.duration ? formatDuration(podcast.duration) : 'Unknown duration'}">${podcast.duration ? formatDuration(podcast.duration) : 'Unknown duration'}</span>
                         </div>
-                        <div class="audio-player-container">
-                            <audio id="studentPodcastAudio" controls preload="metadata" crossorigin="anonymous">
+                        <div class="audio-player-container" aria-label="Audio player for ${podcast.title}">
+                            <audio id="studentPodcastAudio" 
+                                   controls 
+                                   preload="metadata" 
+                                   crossorigin="anonymous"
+                                   aria-label="Audio player for ${podcast.title}">
                                 <source src="${podcast.audioUrl}" type="audio/${podcast.audioFormat}">
                                 <source src="${podcast.audioUrl}" type="audio/*">
                                 Your browser does not support the audio element.
                             </audio>
                         </div>
-                        <div class="podcast-stats">
-                            <small><i class="fas fa-play"></i> ${podcast.playCount || 0} plays</small>
-                            <small><i class="fas fa-calendar"></i> ${new Date(podcast.createdAt).toLocaleDateString()}</small>
-                            <small><i class="fas fa-user"></i> ${podcast.createdByName}</small>
+                        <div class="podcast-stats" aria-label="Podcast statistics">
+                            <small><i class="fas fa-play" aria-hidden="true"></i> ${podcast.playCount || 0} plays</small>
+                            <small><i class="fas fa-calendar" aria-hidden="true"></i> ${new Date(podcast.createdAt).toLocaleDateString()}</small>
+                            <small><i class="fas fa-user" aria-hidden="true"></i> ${podcast.createdByName}</small>
                         </div>
                     </div>
                 </div>
@@ -1668,19 +1914,58 @@
             
             document.body.appendChild(modal);
             
+            // Announce to screen readers
+            announceToScreenReader(`Podcast player opened for ${podcast.title}. Use the audio controls to play, pause, and adjust volume.`);
+            
             // Add event listener for clicking outside modal to close
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     closeStudentPodcastPlayer();
                 }
             });
+            
+            // Add keyboard navigation support
+            modal.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeStudentPodcastPlayer();
+                }
+            });
+            
+            // Focus on close button for keyboard navigation
+            setTimeout(() => {
+                const closeBtn = modal.querySelector('.close-btn');
+                if (closeBtn) closeBtn.focus();
+            }, 100);
         }
 
         function closeStudentPodcastPlayer() {
             const modal = document.querySelector('.podcast-player-modal');
             if (modal) {
+                announceToScreenReader('Podcast player closed');
                 modal.remove();
             }
+        }
+
+        // Screen Reader Announcement Function
+        function announceToScreenReader(message) {
+            // Create a live region for screen reader announcements
+            let liveRegion = document.getElementById('sr-announcements');
+            if (!liveRegion) {
+                liveRegion = document.createElement('div');
+                liveRegion.id = 'sr-announcements';
+                liveRegion.setAttribute('aria-live', 'polite');
+                liveRegion.setAttribute('aria-atomic', 'true');
+                liveRegion.className = 'sr-only';
+                document.body.appendChild(liveRegion);
+            }
+            
+            // Update the live region with the new message
+            liveRegion.textContent = message;
+            
+            // Clear the message after a short delay
+            setTimeout(() => {
+                liveRegion.textContent = '';
+            }, 1000);
         }
     </script>
 </body>
