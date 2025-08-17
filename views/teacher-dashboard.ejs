@@ -2451,8 +2451,9 @@
                                     <i class="fas fa-redo"></i> Retry
                                 </button>
                             </div>
-                            <audio id="podcastAudio" controls preload="metadata">
+                            <audio id="podcastAudio" controls preload="metadata" crossorigin="anonymous">
                                 <source src="${podcast.audioUrl}" type="audio/${podcast.audioFormat}">
+                                <source src="${podcast.audioUrl}" type="audio/*">
                                 Your browser does not support the audio element.
                             </audio>
                             <div class="audio-controls">
@@ -2522,6 +2523,9 @@
                     </button>
                     <button class="btn btn-sm btn-outline-secondary" onclick="testAudioPlayback('${podcast.audioUrl}')">
                         <i class="fas fa-bug"></i> Test Audio
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" onclick="window.open('${podcast.audioUrl}', '_blank')">
+                        <i class="fas fa-external-link-alt"></i> Open in New Tab
                     </button>
                 `;
                     playPauseBtn.disabled = true;
@@ -2607,8 +2611,21 @@
             console.log('=== MANUAL AUDIO TEST ===');
             console.log('Testing audio URL:', audioUrl);
             
-            // Create a test audio element
+            // Test 1: Direct URL access
+            console.log('Test 1: Checking URL accessibility...');
+            fetch(audioUrl, { method: 'HEAD' })
+                .then(response => {
+                    console.log('URL Status:', response.status);
+                    console.log('Content-Type:', response.headers.get('content-type'));
+                    console.log('Content-Length:', response.headers.get('content-length'));
+                    console.log('Access-Control-Allow-Origin:', response.headers.get('access-control-allow-origin'));
+                })
+                .catch(error => console.error('URL fetch error:', error));
+            
+            // Test 2: Create a test audio element
+            console.log('Test 2: Creating test audio element...');
             const testAudio = new Audio();
+            testAudio.crossOrigin = 'anonymous';
             testAudio.src = audioUrl;
             
             testAudio.addEventListener('loadstart', () => console.log('Test audio: loadstart'));
@@ -2621,15 +2638,21 @@
             
             testAudio.load();
             
-            // Try to play after a short delay
+            // Test 3: Try to play after a short delay
             setTimeout(() => {
+                console.log('Test 3: Attempting to play...');
                 testAudio.play().then(() => {
                     console.log('Test audio: play successful');
                     testAudio.pause();
                 }).catch(error => {
                     console.error('Test audio: play failed:', error);
+                    console.error('Play error details:', {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack
+                    });
                 });
-            }, 1000);
+            }, 2000);
         }
 
         // Function to toggle audio play/pause
