@@ -1344,10 +1344,20 @@
                             throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
                         }
 
-                        const data = await response.json();
-                        console.log(`📦 API response data:`, data);
+                        let data;
+                        const contentType = response.headers.get('content-type');
                         
-                        if (data.presignedUrl) {
+                        if (contentType && contentType.includes('application/json')) {
+                            data = await response.json();
+                            console.log(`📦 API response data:`, data);
+                        } else {
+                            // Handle HTML responses (likely error pages)
+                            const responseText = await response.text();
+                            console.error(`❌ API returned HTML instead of JSON:`, responseText.substring(0, 200) + '...');
+                            throw new Error(`API returned HTML instead of JSON. Status: ${response.status}`);
+                        }
+                        
+                        if (data && data.presignedUrl) {
                             // Test if the image loads successfully
                             await testImageLoad(data.presignedUrl);
                             
