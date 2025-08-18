@@ -456,67 +456,257 @@ async function extractTextFromFile(fileBuffer, originalName) {
   }
 }
 
-// Helper function to extract images from PDF
-async function extractImagesFromPDF(fileBuffer, quizId) {
+// Helper function to extract images from DOCX files
+async function extractImagesFromDOCX(fileBuffer, quizId) {
   try {
-    const { PDFDocument } = require('pdf-lib');
-    const pdfDoc = await PDFDocument.load(fileBuffer);
-    const pages = pdfDoc.getPages();
+    console.log(`📄 Starting DOCX image extraction for quiz: ${quizId}`);
+    
+    // Check if mammoth is available
+    let mammoth;
+    try {
+      mammoth = require('mammoth');
+      console.log('✅ mammoth library loaded successfully');
+    } catch (libError) {
+      console.error('❌ mammoth library not available:', libError.message);
+      return [];
+    }
+    
+    // Extract both text and images from DOCX
+    const result = await mammoth.extractRawText({ 
+      buffer: fileBuffer,
+      includeDefaultStyleMap: true
+    });
+    
+    // Extract images using mammoth's image extraction
     const images = [];
     
-    console.log(`📄 Processing PDF with ${pages.length} pages for images`);
-    
-    for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-      const page = pages[pageIndex];
-      const { width, height } = page.getSize();
+    try {
+      // Use mammoth's convertToHtml to get image data
+      const htmlResult = await mammoth.convertToHtml({ 
+        buffer: fileBuffer,
+        convertImage: mammoth.images.imgElement
+      });
       
-      // Convert PDF page to image using pdf2pic
-      const options = {
-        density: 150,           // Output resolution
-        saveFilename: `page_${pageIndex + 1}`,
-        savePath: `/tmp/`,      // Temporary directory
-        format: "png",
-        width: Math.round(width),
-        height: Math.round(height)
-      };
-      
-      try {
-        const convert = require('pdf2pic').fromBuffer(fileBuffer, options);
-        const pageImages = await convert(pageIndex + 1, { responseType: "array" });
+      if (htmlResult.value) {
+        // Parse HTML to find image elements
+        const imageRegex = /<img[^>]+src="data:image\/([^;]+);base64,([^"]+)"/g;
+        let match;
+        let imageIndex = 1;
         
-        if (pageImages && pageImages.length > 0) {
-          for (let imgIndex = 0; imgIndex < pageImages.length; imgIndex++) {
-            const imageBuffer = Buffer.from(pageImages[imgIndex].data);
-            const imageFileName = `quiz_${quizId}_page_${pageIndex + 1}_img_${imgIndex + 1}.png`;
+        while ((match = imageRegex.exec(htmlResult.value)) !== null) {
+          try {
+            const imageType = match[1];
+            const base64Data = match[2];
+            const imageBuffer = Buffer.from(base64Data, 'base64');
             
-            // Upload image to S3
+            if (imageBuffer.length > 0) {
+              const imageFileName = `quiz_${quizId}_docx_img_${imageIndex}.${imageType}`;
+              
+              // Upload image to S3
+              const imageUrl = await uploadToS3({
+                buffer: imageBuffer,
+                originalname: imageFileName,
+                mimetype: `image/${imageType}`
+              }, 'quiz-images');
+              
+              console.log(`✅ DOCX image ${imageIndex} uploaded to S3: ${imageUrl}`);
+              
+              images.push({
+                page: 1, // DOCX doesn't have pages like PDF
+                imageIndex: imageIndex,
+                url: imageUrl,
+                width: 800, // Default width
+                height: 600, // Default height
+                originalName: imageFileName,
+                source: 'docx'
+              });
+              
+              imageIndex++;
+            }
+          } catch (imgError) {
+            console.error(`❌ Error processing DOCX image ${imageIndex}:`, imgError.message);
+            continue;
+          }
+        }
+      }
+      
+      console.log(`🎯 DOCX image extraction completed. Total images: ${images.length}`);
+      return images;
+      
+    } catch (htmlError) {
+      console.error('❌ Error converting DOCX to HTML for image extraction:', htmlError.message);
+      return [];
+    }
+    
+  } catch (error) {
+    console.error('❌ Critical error in extractImagesFromDOCX:', error);
+    console.error('❌ Error stack:', error.stack);
+    return [];
+  }
+}
+
+// Enhanced function to extract images from PDF
+async function extractImagesFromPDF(fileBuffer, quizId) {
+  try {
+    console.log(`📄 Starting PDF image extraction for quiz: ${quizId}`);
+    console.log(`📄 File buffer size: ${fileBuffer.length} bytes`);
+    
+    // Check if pdf2pic is available
+    let pdf2pic;
+    try {
+      pdf2pic = require('pdf2pic');
+      console.log('✅ pdf2pic library loaded successfully');
+    } catch (libError) {
+      console.error('❌ pdf2pic library not available:', libError.message);
+      return [];
+    }
+    
+    const images = [];
+    const options = {
+      density: 200,           // Higher resolution for better quality
+      saveFilename: `quiz_${quizId}_page`,
+      savePath: '/tmp/',      // Temporary directory
+      format: "png",
+      width: 800,             // Fixed width for consistency
+      height: 1000,           // Fixed height for consistency
+      quality: 100            // Maximum quality
+    };
+    
+    console.log('📄 PDF2Pic options:', options);
+    
+    try {
+      // Create converter instance
+      const convert = pdf2pic.fromBuffer(fileBuffer, options);
+      console.log('✅ PDF converter created successfully');
+      
+      // Get page count (estimate based on file size and typical page size)
+      const estimatedPages = Math.max(1, Math.ceil(fileBuffer.length / 50000)); // Rough estimate
+      console.log(`📄 Estimated pages: ${estimatedPages}`);
+      
+      // Process each page
+      for (let pageIndex = 1; pageIndex <= estimatedPages; pageIndex++) {
+        try {
+          console.log(`📄 Processing page ${pageIndex}...`);
+          
+          // Convert page to image
+          const pageImages = await convert(pageIndex, { responseType: "array" });
+          
+          if (pageImages && pageImages.length > 0) {
+            console.log(`✅ Page ${pageIndex} converted successfully, got ${pageImages.length} images`);
+            
+            for (let imgIndex = 0; imgIndex < pageImages.length; imgIndex++) {
+              try {
+                const imageData = pageImages[imgIndex];
+                
+                if (imageData && imageData.data) {
+                  const imageBuffer = Buffer.from(imageData.data);
+                  console.log(`📸 Image ${imgIndex + 1} buffer size: ${imageBuffer.length} bytes`);
+                  
+                  if (imageBuffer.length > 0) {
+                    const imageFileName = `quiz_${quizId}_page_${pageIndex}_img_${imgIndex + 1}.png`;
+                    
+                    // Upload image to S3
+                    const imageUrl = await uploadToS3({
+                      buffer: imageBuffer,
+                      originalname: imageFileName,
+                      mimetype: 'image/png'
+                    }, 'quiz-images');
+                    
+                    console.log(`✅ Image uploaded to S3: ${imageUrl}`);
+                    
+                    images.push({
+                      page: pageIndex,
+                      imageIndex: imgIndex + 1,
+                      url: imageUrl,
+                      width: options.width,
+                      height: options.height,
+                      originalName: imageFileName
+                    });
+                    
+                    console.log(`✅ Successfully processed image ${imgIndex + 1} from page ${pageIndex}`);
+                  } else {
+                    console.log(`⚠️  Image ${imgIndex + 1} from page ${pageIndex} has empty buffer`);
+                  }
+                } else {
+                  console.log(`⚠️  No image data for page ${pageIndex}, image ${imgIndex + 1}`);
+                }
+              } catch (imgError) {
+                console.error(`❌ Error processing image ${imgIndex + 1} from page ${pageIndex}:`, imgError.message);
+                continue;
+              }
+            }
+          } else {
+            console.log(`⚠️  No images generated for page ${pageIndex}`);
+          }
+        } catch (pageError) {
+          console.error(`❌ Error processing page ${pageIndex}:`, pageError.message);
+          continue;
+        }
+      }
+      
+      console.log(`🎯 Image extraction completed. Total images: ${images.length}`);
+      
+      // Log all extracted images for debugging
+      images.forEach((img, index) => {
+        console.log(`📸 Image ${index + 1}: Page ${img.page}, URL: ${img.url}`);
+      });
+      
+      return images;
+      
+    } catch (conversionError) {
+      console.error('❌ Error during PDF conversion:', conversionError);
+      
+      // Fallback: try to extract at least one image from the first page
+      try {
+        console.log('🔄 Attempting fallback image extraction...');
+        const fallbackOptions = {
+          density: 150,
+          saveFilename: `quiz_${quizId}_fallback`,
+          savePath: '/tmp/',
+          format: "png",
+          width: 600,
+          height: 800
+        };
+        
+        const fallbackConvert = pdf2pic.fromBuffer(fileBuffer, fallbackOptions);
+        const fallbackImages = await fallbackConvert(1, { responseType: "array" });
+        
+        if (fallbackImages && fallbackImages.length > 0) {
+          const fallbackImage = fallbackImages[0];
+          if (fallbackImage && fallbackImage.data) {
+            const imageBuffer = Buffer.from(fallbackImage.data);
+            const imageFileName = `quiz_${quizId}_fallback.png`;
+            
             const imageUrl = await uploadToS3({
               buffer: imageBuffer,
               originalname: imageFileName,
               mimetype: 'image/png'
             }, 'quiz-images');
             
-            images.push({
-              page: pageIndex + 1,
-              imageIndex: imgIndex + 1,
+            const fallbackImageObj = {
+              page: 1,
+              imageIndex: 1,
               url: imageUrl,
-              width: Math.round(width),
-              height: Math.round(height)
-            });
+              width: fallbackOptions.width,
+              height: fallbackOptions.height,
+              originalName: imageFileName,
+              isFallback: true
+            };
             
-            console.log(`✅ Extracted image ${imgIndex + 1} from page ${pageIndex + 1}`);
+            console.log('✅ Fallback image extraction successful:', fallbackImageObj.url);
+            return [fallbackImageObj];
           }
         }
-      } catch (pageError) {
-        console.error(`⚠️  Error processing page ${pageIndex + 1}:`, pageError.message);
-        continue;
+      } catch (fallbackError) {
+        console.error('❌ Fallback image extraction failed:', fallbackError.message);
       }
+      
+      return [];
     }
     
-    console.log(`🎯 Total images extracted: ${images.length}`);
-    return images;
   } catch (error) {
-    console.error('❌ Error extracting images from PDF:', error);
+    console.error('❌ Critical error in extractImagesFromPDF:', error);
+    console.error('❌ Error stack:', error.stack);
     return [];
   }
 }
@@ -1887,12 +2077,37 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
         extractedQuestions = parseQuestionsFromText(questionText, language);
         console.log('Parsed questions count:', extractedQuestions.length);
         
-        // Extract images from PDF if it's a PDF file
-        let pdfImages = [];
-        if (path.extname(questionFile.originalname).toLowerCase() === '.pdf') {
+        // Extract images from uploaded documents
+        let documentImages = [];
+        const fileExtension = path.extname(questionFile.originalname).toLowerCase();
+        
+        if (fileExtension === '.pdf') {
           console.log('📄 PDF detected, extracting images...');
-          pdfImages = await extractImagesFromPDF(questionFile.buffer, 'temp_' + Date.now());
-          console.log(`🎯 Extracted ${pdfImages.length} images from PDF`);
+          documentImages = await extractImagesFromPDF(questionFile.buffer, 'temp_' + Date.now());
+          console.log(`🎯 Extracted ${documentImages.length} images from PDF`);
+        } else if (fileExtension === '.docx') {
+          console.log('📄 DOCX detected, extracting images...');
+          documentImages = await extractImagesFromDOCX(questionFile.buffer, 'temp_' + Date.now());
+          console.log(`🎯 Extracted ${documentImages.length} images from DOCX`);
+        } else if (fileExtension === '.doc') {
+          console.log('📄 DOC detected, attempting image extraction...');
+          // DOC files are more limited, but we can try
+          try {
+            documentImages = await extractImagesFromDOCX(questionFile.buffer, 'temp_' + Date.now());
+            console.log(`🎯 Extracted ${documentImages.length} images from DOC`);
+          } catch (docError) {
+            console.log('⚠️  DOC image extraction not supported, continuing without images');
+            documentImages = [];
+          }
+        }
+        
+        if (documentImages.length > 0) {
+          console.log('📸 Document images extracted successfully:');
+          documentImages.forEach((img, index) => {
+            console.log(`  - Image ${index + 1}: ${img.url} (${img.width}x${img.height})`);
+          });
+        } else {
+          console.log('📸 No images found in the uploaded document');
         }
         
         if (extractedQuestions.length === 0) {
@@ -1978,7 +2193,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       isApproved: true,  // Auto-approve teacher quizzes
       questionPaperUrl: questionFileUrl, // Store S3 URL
       answerPaperUrl: answerFileUrl || null, // Store S3 URL if provided
-      pdfImages: pdfImages // Store extracted PDF images
+      pdfImages: documentImages // Store extracted document images
     });
 
     await quiz.save();
