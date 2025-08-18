@@ -309,6 +309,19 @@
                                             </div>
                                         </div>
                                     <% } %>
+
+                                    <!-- Question Images Display -->
+                                    <div id="questionImagesContainer" class="question-images-container" style="display: none;">
+                                        <h4 class="question-images-title">
+                                            <i class="fas fa-image"></i> Question Images
+                                        </h4>
+                                        <div id="questionImagesGrid" class="question-images-grid">
+                                            <!-- Question images will be loaded dynamically -->
+                                        </div>
+                                        <div class="question-images-loading" style="text-align: center; padding: 20px;">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading question images...
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <% if (question.type === 'multiple-choice' && question.options && question.options.length > 0) { %>
@@ -1172,7 +1185,100 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Load images after a short delay to ensure page is fully loaded
             setTimeout(loadDocumentImages, 500);
+            // Also load question images
+            setTimeout(loadQuestionImages, 800);
         });
+
+        // Function to load question images dynamically with pre-signed URLs
+        async function loadQuestionImages() {
+            try {
+                const quizId = '<%= quiz._id %>';
+                if (!quizId) {
+                    console.log('No quiz ID found, skipping question image loading');
+                    return;
+                }
+
+                console.log('🔗 Loading question images for quiz:', quizId);
+                
+                // Check if quiz has questions with images
+                const hasQuestionImages = <%= quiz.questions && quiz.questions.some(q => q.image) ? 'true' : 'false' %>;
+                if (!hasQuestionImages) {
+                    console.log('No question images found in quiz');
+                    return;
+                }
+
+                // Show the container
+                const container = document.getElementById('questionImagesContainer');
+                if (container) {
+                    container.style.display = 'block';
+                }
+
+                // Fetch pre-signed URLs for question images
+                const response = await fetch(`/api/quiz/${quizId}/question-images?expiresIn=3600`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('📸 Received question image data:', data);
+
+                if (data.questionImages && data.questionImages.length > 0) {
+                    // Hide loading spinner
+                    const loadingDiv = container.querySelector('.question-images-loading');
+                    if (loadingDiv) {
+                        loadingDiv.style.display = 'none';
+                    }
+
+                    // Render question images
+                    const grid = document.getElementById('questionImagesGrid');
+                    grid.innerHTML = '';
+
+                    data.questionImages.forEach((image, index) => {
+                        const imageItem = document.createElement('div');
+                        imageItem.className = 'question-image-item';
+                        
+                        imageItem.innerHTML = `
+                            <div class="question-image-header">
+                                <span class="question-image-label">
+                                    <i class="fas fa-image"></i> Question ${image.questionNumber}
+                                </span>
+                                <span class="question-image-type">${image.type}</span>
+                            </div>
+                            <img src="${image.url}" 
+                                 alt="Question ${image.questionNumber} Image" 
+                                 class="question-image-display" 
+                                 style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
+                                 onclick="openImageModal('${image.url}', 'Question ${image.questionNumber} Image')">
+                            <div class="image-info">
+                                <small class="text-muted">
+                                    Question ${image.questionNumber} • ${image.type}
+                                </small>
+                            </div>
+                        `;
+                        
+                        grid.appendChild(imageItem);
+                    });
+
+                    console.log(`✅ Loaded ${data.questionImages.length} question images`);
+                } else {
+                    console.log('No question images found in response');
+                    const loadingDiv = container.querySelector('.question-images-loading');
+                    if (loadingDiv) {
+                        loadingDiv.innerHTML = '<i class="fas fa-info-circle"></i> No question images found';
+                    }
+                }
+
+            } catch (error) {
+                console.error('❌ Error loading question images:', error);
+                const container = document.getElementById('questionImagesContainer');
+                if (container) {
+                    const loadingDiv = container.querySelector('.question-images-loading');
+                    if (loadingDiv) {
+                        loadingDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error loading question images';
+                    }
+                }
+            }
+        }
     </script>
     
     <!-- Image Modal -->

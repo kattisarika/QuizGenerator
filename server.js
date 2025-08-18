@@ -349,6 +349,67 @@ app.get('/api/image/:s3Key', isAuthenticated, async (req, res) => {
   }
 });
 
+// API endpoint to get pre-signed URLs for quiz question images
+app.get('/api/quiz/:quizId/question-images', isAuthenticated, async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { expiresIn = 3600 } = req.query; // Default 1 hour
+
+    console.log(`🔗 Generating pre-signed URLs for quiz ${quizId} question images`);
+
+    // Find the quiz
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+
+    // Check if user has access to this quiz
+    if (quiz.organizationId && req.user.organizationId) {
+      if (quiz.organizationId.toString() !== req.user.organizationId.toString()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    if (!quiz.questions || quiz.questions.length === 0) {
+      return res.json({ questionImages: [] });
+    }
+
+    // Extract S3 keys from questions that have images
+    const questionImages = quiz.questions
+      .filter(q => q.image) // Only questions with images
+      .map((q, index) => ({
+        questionIndex: index,
+        questionNumber: q.questionNumber || index + 1,
+        s3Key: q.image,
+        type: q.type
+      }));
+
+    if (questionImages.length === 0) {
+      return res.json({ questionImages: [] });
+    }
+
+    // Generate pre-signed URLs for all question images
+    const imagesWithUrls = await generatePresignedUrls(
+      questionImages.map(img => img.s3Key), 
+      parseInt(expiresIn)
+    );
+
+    // Map back to original structure with pre-signed URLs
+    const result = questionImages.map((img, index) => ({
+      ...img,
+      url: imagesWithUrls[index]?.url || null,
+      presignedUrl: imagesWithUrls[index]?.url || null
+    }));
+
+    console.log(`✅ Generated ${result.length} pre-signed URLs for quiz ${quizId} question images`);
+    res.json({ questionImages: result });
+
+  } catch (error) {
+    console.error('❌ Error generating pre-signed URLs for question images:', error);
+    res.status(500).json({ error: 'Failed to generate question image URLs' });
+  }
+});
+
 // Helper function to extract S3 key from URL
 function extractS3Key(fileUrl) {
   try {
@@ -2398,16 +2459,16 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
       };
       
       // Handle image upload for this question
-      let imageUrl = null;
+      let imageS3Key = null;
       if (q.hasImage && req.files && req.files[i]) {
         try {
           const imageFile = req.files[i];
           console.log(`Uploading image for question ${i + 1}:`, imageFile.originalname);
-          imageUrl = await uploadToS3(imageFile, 'question-images');
-          console.log(`Image uploaded successfully:`, imageUrl);
+          imageS3Key = await uploadToS3(imageFile, 'question-images');
+          console.log(`Image uploaded successfully to S3: ${imageS3Key}`);
         } catch (error) {
           console.error(`Error uploading image for question ${i + 1}:`, error);
-          imageUrl = null;
+          imageS3Key = null;
         }
       }
       
@@ -2420,7 +2481,7 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
             ? q.options[q.correctAnswers[0]]
             : q.correctAnswers.map(i => q.options[i]).join(','),
           multipleCorrect: q.selectionType === 'multiple',
-          image: imageUrl,
+          image: imageS3Key, // Store S3 key instead of URL
           type: 'multiple-choice'
         });
       } else {
@@ -2430,7 +2491,7 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
           options: [],
           correctAnswer: q.expectedAnswer,
           isTextAnswer: true,
-          image: imageUrl,
+          image: imageS3Key, // Store S3 key instead of URL
           type: 'short-answer'
         });
       }
