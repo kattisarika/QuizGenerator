@@ -91,6 +91,50 @@ const QuizResult = require('./models/QuizResult');
 const Content = require('./models/Content');
 const Organization = require('./models/Organization');
 
+// Middleware functions - defined early to avoid hoisting issues
+const isAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect('/login');
+};
+
+// Middleware to check user roles
+const requireRole = (roles) => {
+  return (req, res, next) => {
+    console.log('requireRole middleware - Required roles:', roles);
+    
+    // Add null check for req.user
+    if (!req.user) {
+      console.error('User not found in requireRole middleware');
+      return res.redirect('/login?error=Authentication failed');
+    }
+    
+    console.log('requireRole middleware - User role:', req.user.role, 'User ID:', req.user._id);
+    
+    if (roles.includes(req.user.role)) {
+      console.log('Role check passed, proceeding to next middleware');
+      return next();
+    }
+    
+    console.error('Role check failed - User role:', req.user.role, 'Required roles:', roles);
+    res.status(403).render('error', { error: 'Access denied. You do not have permission to view this page.' });
+  };
+};
+
+// Middleware to check if teacher is approved
+const requireApprovedTeacher = (req, res, next) => {
+  console.log('requireApprovedTeacher middleware - User role:', req.user.role, 'Approved:', req.user.isApproved);
+  
+  if (req.user.role === 'teacher' && !req.user.isApproved) {
+    console.log('Teacher not approved, showing pending approval page');
+    return res.render('pending-approval', { user: req.user });
+  }
+  
+  console.log('Teacher approval check passed, proceeding to route handler');
+  next();
+};
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -1289,49 +1333,7 @@ function mergeQuestionsWithAnswers(questions, answers) {
   });
 }
 
-// Middleware to check if user is authenticated
-const isAuthenticated = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect('/login');
-};
-
-// Middleware to check user roles
-const requireRole = (roles) => {
-  return (req, res, next) => {
-    console.log('requireRole middleware - Required roles:', roles);
-    
-    // Add null check for req.user
-    if (!req.user) {
-      console.error('User not found in requireRole middleware');
-      return res.redirect('/login?error=Authentication failed');
-    }
-    
-    console.log('requireRole middleware - User role:', req.user.role, 'User ID:', req.user._id);
-    
-    if (roles.includes(req.user.role)) {
-      console.log('Role check passed, proceeding to next middleware');
-      return next();
-    }
-    
-    console.error('Role check failed - User role:', req.user.role, 'Required roles:', roles);
-    res.status(403).render('error', { error: 'Access denied. You do not have permission to view this page.' });
-  };
-};
-
-// Middleware to check if teacher is approved
-const requireApprovedTeacher = (req, res, next) => {
-  console.log('requireApprovedTeacher middleware - User role:', req.user.role, 'Approved:', req.user.isApproved);
-  
-  if (req.user.role === 'teacher' && !req.user.isApproved) {
-    console.log('Teacher not approved, showing pending approval page');
-    return res.render('pending-approval', { user: req.user });
-  }
-  
-  console.log('Teacher approval check passed, proceeding to route handler');
-  next();
-};
+// Middleware functions removed - now defined at the top of the file
 
 // Routes
 app.get('/', async (req, res) => {
