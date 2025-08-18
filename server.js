@@ -2435,6 +2435,8 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
     console.log('Manual quiz creation:', { originalTitle: title, finalTitle, quizType, questionsCount: questions.length });
     console.log('Uploaded files:', req.files ? req.files.length : 0);
     console.log('Question image indexes:', req.body.questionImageIndexes);
+    console.log('Question image indexes type:', typeof req.body.questionImageIndexes);
+    console.log('Question image indexes isArray:', Array.isArray(req.body.questionImageIndexes));
     if (req.files) {
       req.files.forEach((file, index) => {
         console.log(`File ${index}:`, file.originalname);
@@ -2471,8 +2473,18 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
       if (q.hasImage && req.files && req.files.length > 0) {
         try {
           // Find the image file for this specific question using the index mapping
-          const questionImageIndexes = req.body.questionImageIndexes;
+          let questionImageIndexes = req.body.questionImageIndexes;
           let imageFile = null;
+          
+          // Parse questionImageIndexes if it's a JSON string
+          if (typeof questionImageIndexes === 'string') {
+            try {
+              questionImageIndexes = JSON.parse(questionImageIndexes);
+            } catch (error) {
+              console.error('Error parsing questionImageIndexes:', error);
+              questionImageIndexes = [];
+            }
+          }
           
           if (Array.isArray(questionImageIndexes)) {
             // Find the file that corresponds to this question index
@@ -2483,6 +2495,13 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
           } else if (req.files && req.files[i]) {
             // Fallback to old method for backward compatibility
             imageFile = req.files[i];
+          }
+          
+          // Debug logging
+          console.log(`Question ${i + 1} - hasImage: ${q.hasImage}, questionImageIndexes:`, questionImageIndexes);
+          if (Array.isArray(questionImageIndexes)) {
+            const fileIndex = questionImageIndexes.findIndex(index => parseInt(index) === i);
+            console.log(`Question ${i + 1} - fileIndex found: ${fileIndex}, imageFile:`, imageFile ? imageFile.originalname : 'null');
           }
           
           if (imageFile) {

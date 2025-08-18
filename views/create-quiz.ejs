@@ -1648,6 +1648,7 @@
                 // Process questions and add images
                 const processedQuestions = [];
                 const imageFiles = [];
+                const questionImageIndexes = [];
                 
                 manualQuestions.forEach((question, index) => {
                     const processedQuestion = { ...question };
@@ -1655,10 +1656,10 @@
                     if (question.image && question.image instanceof File) {
                         // Mark question as having an image
                         processedQuestion.hasImage = true;
-                        // Add image file to FormData with question index
+                        // Add image file to FormData
                         formData.append('questionImages', question.image);
-                        // Add question index to identify which question this image belongs to
-                        formData.append('questionImageIndexes', index.toString());
+                        // Store question index for this image
+                        questionImageIndexes.push(index);
                         imageFiles.push(question.image);
                     } else {
                         processedQuestion.hasImage = false;
@@ -1666,6 +1667,9 @@
                     
                     processedQuestions.push(processedQuestion);
                 });
+                
+                // Add all question image indexes as a single array
+                formData.append('questionImageIndexes', JSON.stringify(questionImageIndexes));
                 
                 // Add processed questions data
                 formData.append('questions', JSON.stringify(processedQuestions));
