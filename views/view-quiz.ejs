@@ -266,11 +266,14 @@
                             
                             console.log(`✅ Loaded image for S3 key: ${s3Key}`);
                         } else {
-                            throw new Error('No presigned URL received');
+                            // Hide container if no image URL received
+                            container.style.display = 'none';
+                            console.log(`No presigned URL received for S3 key: ${s3Key}`);
                         }
                     } catch (error) {
                         console.error(`❌ Error loading image for S3 key ${s3Key}:`, error);
-                        loadingDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error loading image';
+                        // Hide container on error to avoid showing error messages
+                        container.style.display = 'none';
                     }
                 }
             } catch (error) {

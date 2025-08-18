@@ -1099,7 +1099,12 @@
                 // Check if quiz has PDF images
                 const hasImages = <%= quiz.pdfImages && quiz.pdfImages.length > 0 ? 'true' : 'false' %>;
                 if (!hasImages) {
-                    console.log('No PDF images found in quiz');
+                    console.log('No PDF images found in quiz - hiding container');
+                    // Hide the entire container if no PDF images exist
+                    const container = document.getElementById('documentImagesContainer');
+                    if (container) {
+                        container.style.display = 'none';
+                    }
                     return;
                 }
 
@@ -1162,21 +1167,19 @@
 
                     console.log(`✅ Loaded ${data.images.length} document images`);
                 } else {
-                    console.log('No images found in response');
-                    const loadingDiv = container.querySelector('.images-loading');
-                    if (loadingDiv) {
-                        loadingDiv.innerHTML = '<i class="fas fa-info-circle"></i> No document images found';
+                    console.log('No images found in response - hiding container');
+                    // Hide the entire container if no images in response
+                    if (container) {
+                        container.style.display = 'none';
                     }
                 }
 
             } catch (error) {
                 console.error('❌ Error loading document images:', error);
+                // Hide the container on error to avoid showing error messages
                 const container = document.getElementById('documentImagesContainer');
                 if (container) {
-                    const loadingDiv = container.querySelector('.images-loading');
-                    if (loadingDiv) {
-                        loadingDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error loading images';
-                    }
+                    container.style.display = 'none';
                 }
             }
         }
@@ -1203,11 +1206,16 @@
                 // Check if quiz has questions with images
                 const hasQuestionImages = <%= quiz.questions && quiz.questions.some(q => q.image) ? 'true' : 'false' %>;
                 if (!hasQuestionImages) {
-                    console.log('No question images found in quiz');
+                    console.log('No question images found in quiz - hiding container');
+                    // Hide the entire container if no images exist
+                    const container = document.getElementById('questionImagesContainer');
+                    if (container) {
+                        container.style.display = 'none';
+                    }
                     return;
                 }
 
-                // Show the container
+                // Show the container only if there are images
                 const container = document.getElementById('questionImagesContainer');
                 if (container) {
                     container.style.display = 'block';
@@ -1261,21 +1269,19 @@
 
                     console.log(`✅ Loaded ${data.questionImages.length} question images`);
                 } else {
-                    console.log('No question images found in response');
-                    const loadingDiv = container.querySelector('.question-images-loading');
-                    if (loadingDiv) {
-                        loadingDiv.innerHTML = '<i class="fas fa-info-circle"></i> No question images found';
+                    console.log('No question images found in response - hiding container');
+                    // Hide the entire container if no images in response
+                    if (container) {
+                        container.style.display = 'none';
                     }
                 }
 
             } catch (error) {
                 console.error('❌ Error loading question images:', error);
+                // Hide the container on error to avoid showing error messages
                 const container = document.getElementById('questionImagesContainer');
                 if (container) {
-                    const loadingDiv = container.querySelector('.question-images-loading');
-                    if (loadingDiv) {
-                        loadingDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error loading question images';
-                    }
+                    container.style.display = 'none';
                 }
             }
         }
