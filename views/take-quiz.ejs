@@ -1326,18 +1326,31 @@
                     const loadingDiv = container.querySelector('.question-image-loading');
                     const img = container.querySelector('.question-image');
 
-                    if (!s3Key || !loadingDiv || !img) continue;
+                    if (!s3Key || !loadingDiv || !img) {
+                        console.log(`Missing required elements for question ${questionIndex}:`, { s3Key, loadingDiv: !!loadingDiv, img: !!img });
+                        continue;
+                    }
 
                     try {
+                        console.log(`🔄 Fetching image for question ${questionIndex}, S3 key: ${s3Key}`);
+                        
                         // Generate pre-signed URL for this image
                         const response = await fetch(`/api/image/${encodeURIComponent(s3Key)}?expiresIn=3600`);
+                        console.log(`📡 API response status: ${response.status}`);
+                        
                         if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
+                            const errorText = await response.text();
+                            console.error(`❌ API error response:`, errorText);
+                            throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
                         }
 
                         const data = await response.json();
+                        console.log(`📦 API response data:`, data);
                         
                         if (data.presignedUrl) {
+                            // Test if the image loads successfully
+                            await testImageLoad(data.presignedUrl);
+                            
                             // Hide loading, show image
                             loadingDiv.style.display = 'none';
                             img.src = data.presignedUrl;
@@ -1346,19 +1359,65 @@
                             
                             console.log(`✅ Loaded inline image for question ${parseInt(questionIndex) + 1}, S3 key: ${s3Key}`);
                         } else {
-                            // Hide container if no image URL received
-                            container.style.display = 'none';
-                            console.log(`No presigned URL received for inline image, S3 key: ${s3Key}`);
+                            console.warn(`⚠️ No presigned URL received for inline image, S3 key: ${s3Key}`);
+                            // Try to create a canvas-based image display as fallback
+                            createCanvasImageDisplay(container, s3Key, questionIndex);
                         }
                     } catch (error) {
                         console.error(`❌ Error loading inline image for S3 key ${s3Key}:`, error);
-                        // Hide container on error to avoid showing error messages
-                        container.style.display = 'none';
+                        // Try to create a canvas-based image display as fallback
+                        createCanvasImageDisplay(container, s3Key, questionIndex);
                     }
                 }
             } catch (error) {
                 console.error('❌ Error in loadInlineQuestionImages:', error);
             }
+        }
+
+        // Function to test if an image loads successfully
+        function testImageLoad(url) {
+            return new Promise((resolve, reject) => {
+                const testImg = new Image();
+                testImg.onload = () => {
+                    console.log(`✅ Image test successful: ${url}`);
+                    resolve();
+                };
+                testImg.onerror = () => {
+                    console.error(`❌ Image test failed: ${url}`);
+                    reject(new Error(`Image failed to load: ${url}`));
+                };
+                testImg.src = url;
+            });
+        }
+
+        // Function to create a canvas-based image display as fallback
+        function createCanvasImageDisplay(container, s3Key, questionIndex) {
+            try {
+                console.log(`🎨 Creating canvas fallback for question ${questionIndex}, S3 key: ${s3Key}`);
+                
+                const loadingDiv = container.querySelector('.question-image-loading');
+                if (loadingDiv) {
+                    loadingDiv.innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 2px dashed #dee2e6;">
+                            <i class="fas fa-image" style="font-size: 2rem; color: #6c757d; margin-bottom: 10px;"></i>
+                            <p style="margin: 10px 0; color: #495057; font-weight: 500;">Question ${parseInt(questionIndex) + 1} Image</p>
+                            <p style="margin: 5px 0; color: #6c757d; font-size: 0.9rem;">S3 Key: ${s3Key}</p>
+                            <button onclick="retryImageLoad('${s3Key}', ${questionIndex})" style="margin-top: 10px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                <i class="fas fa-redo"></i> Retry Load
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error(`❌ Error creating canvas fallback:`, error);
+            }
+        }
+
+        // Function to retry loading an image
+        async function retryImageLoad(s3Key, questionIndex) {
+            console.log(`🔄 Retrying image load for question ${questionIndex}, S3 key: ${s3Key}`);
+            // Reload the page to retry
+            window.location.reload();
         }
     </script>
     
