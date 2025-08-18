@@ -257,8 +257,11 @@
                                     <%= question.question %>
                                     
                                     <% if (question.image) { %>
-                                        <div class="question-image-container">
-                                            <img src="<%= question.image %>" alt="Question Image" class="question-image" style="max-width: 100%; max-height: 300px; margin-top: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                        <div class="question-image-container" data-s3-key="<%= question.image %>" data-question-index="<%= index %>">
+                                            <div class="question-image-loading" style="text-align: center; padding: 20px;">
+                                                <i class="fas fa-spinner fa-spin"></i> Loading question image...
+                                            </div>
+                                            <img class="question-image" style="max-width: 100%; max-height: 300px; margin-top: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none; cursor: pointer;" alt="Question Image">
                                         </div>
                                     <% } %>
                                     
@@ -1190,6 +1193,8 @@
             setTimeout(loadDocumentImages, 500);
             // Also load question images
             setTimeout(loadQuestionImages, 800);
+            // Load inline question images
+            setTimeout(loadInlineQuestionImages, 1000);
         });
 
         // Function to load question images dynamically with pre-signed URLs
@@ -1283,6 +1288,59 @@
                 if (container) {
                     container.style.display = 'none';
                 }
+            }
+        }
+
+        // Function to load inline question images (images within questions) with pre-signed URLs
+        async function loadInlineQuestionImages() {
+            try {
+                const questionImageContainers = document.querySelectorAll('.question-image-container[data-s3-key]');
+                
+                if (questionImageContainers.length === 0) {
+                    console.log('No inline question images found');
+                    return;
+                }
+
+                console.log(`🔗 Loading ${questionImageContainers.length} inline question image URLs`);
+
+                for (const container of questionImageContainers) {
+                    const s3Key = container.dataset.s3Key;
+                    const questionIndex = container.dataset.questionIndex;
+                    const loadingDiv = container.querySelector('.question-image-loading');
+                    const img = container.querySelector('.question-image');
+
+                    if (!s3Key || !loadingDiv || !img) continue;
+
+                    try {
+                        // Generate pre-signed URL for this image
+                        const response = await fetch(`/api/image/${encodeURIComponent(s3Key)}?expiresIn=3600`);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+                        
+                        if (data.presignedUrl) {
+                            // Hide loading, show image
+                            loadingDiv.style.display = 'none';
+                            img.src = data.presignedUrl;
+                            img.style.display = 'block';
+                            img.onclick = () => openImageModal(data.presignedUrl, `Question ${parseInt(questionIndex) + 1} Image`);
+                            
+                            console.log(`✅ Loaded inline image for question ${parseInt(questionIndex) + 1}, S3 key: ${s3Key}`);
+                        } else {
+                            // Hide container if no image URL received
+                            container.style.display = 'none';
+                            console.log(`No presigned URL received for inline image, S3 key: ${s3Key}`);
+                        }
+                    } catch (error) {
+                        console.error(`❌ Error loading inline image for S3 key ${s3Key}:`, error);
+                        // Hide container on error to avoid showing error messages
+                        container.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error in loadInlineQuestionImages:', error);
             }
         }
     </script>
