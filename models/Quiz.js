@@ -111,7 +111,7 @@ const quizSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
-    url: {
+    s3Key: {
       type: String,
       required: true
     },
@@ -122,6 +122,15 @@ const quizSchema = new mongoose.Schema({
     height: {
       type: Number,
       required: true
+    },
+    originalName: {
+      type: String,
+      default: null
+    },
+    source: {
+      type: String,
+      enum: ['pdf', 'docx', 'doc'],
+      default: 'pdf'
     }
   }],
   createdAt: {

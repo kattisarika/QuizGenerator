@@ -147,24 +147,163 @@ const audioUpload = multer({
   }
 });
 
-// Helper function to upload file to S3
+// Helper function to upload file to S3 and return S3 key
 async function uploadToS3(file, folder = 'uploads') {
+  const s3Key = `${folder}/${Date.now()}-${file.originalname}`;
   const params = {
     Bucket: process.env.AWS_BUCKET_NAME,
-    Key: `${folder}/${Date.now()}-${file.originalname}`,
+    Key: s3Key,
     Body: file.buffer,
     ContentType: file.mimetype,
-    ACL: (folder === 'question-images' || folder === 'podcasts') ? 'public-read' : 'private'
+    ACL: 'private' // Make all files private for security
   };
 
   try {
     const result = await s3.upload(params).promise();
-    return result.Location;
+    console.log(`✅ File uploaded to S3: ${s3Key}`);
+    return s3Key; // Return S3 key instead of full URL
   } catch (error) {
     console.error('Error uploading to S3:', error);
     throw error;
   }
 }
+
+// Helper function to generate pre-signed URL for S3 objects
+async function generatePresignedUrl(s3Key, expiresIn = 3600) {
+  try {
+    if (!s3Key) {
+      console.warn('⚠️  No S3 key provided for pre-signed URL generation');
+      return null;
+    }
+
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: s3Key,
+      Expires: expiresIn // URL expires in 1 hour by default
+    };
+
+    const presignedUrl = await s3.getSignedUrlPromise('getObject', params);
+    console.log(`🔗 Generated pre-signed URL for: ${s3Key} (expires in ${expiresIn}s)`);
+    return presignedUrl;
+  } catch (error) {
+    console.error('❌ Error generating pre-signed URL:', error);
+    return null;
+  }
+}
+
+// Helper function to generate pre-signed URLs for multiple S3 objects
+async function generatePresignedUrls(s3Keys, expiresIn = 3600) {
+  try {
+    if (!Array.isArray(s3Keys)) {
+      console.warn('⚠️  s3Keys is not an array, converting to array');
+      s3Keys = [s3Keys];
+    }
+
+    const presignedUrls = await Promise.all(
+      s3Keys.map(async (s3Key) => {
+        if (typeof s3Key === 'object' && s3Key.s3Key) {
+          // Handle case where we have an object with s3Key property
+          const presignedUrl = await generatePresignedUrl(s3Key.s3Key, expiresIn);
+          return {
+            ...s3Key,
+            url: presignedUrl,
+            presignedUrl: presignedUrl
+          };
+        } else if (typeof s3Key === 'string') {
+          // Handle case where we have a direct S3 key
+          const presignedUrl = await generatePresignedUrl(s3Key, expiresIn);
+          return {
+            s3Key: s3Key,
+            url: presignedUrl,
+            presignedUrl: presignedUrl
+          };
+        }
+        return s3Key;
+      })
+    );
+
+    console.log(`🔗 Generated ${presignedUrls.length} pre-signed URLs`);
+    return presignedUrls;
+  } catch (error) {
+    console.error('❌ Error generating pre-signed URLs:', error);
+    return s3Keys; // Return original keys if generation fails
+  }
+}
+
+// API endpoint to get pre-signed URLs for quiz images
+app.get('/api/quiz/:quizId/images', isAuthenticated, async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { expiresIn = 3600 } = req.query; // Default 1 hour
+
+    console.log(`🔗 Generating pre-signed URLs for quiz ${quizId} images`);
+
+    // Find the quiz
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+
+    // Check if user has access to this quiz
+    if (quiz.organizationId && req.user.organizationId) {
+      if (quiz.organizationId.toString() !== req.user.organizationId.toString()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    if (!quiz.pdfImages || quiz.pdfImages.length === 0) {
+      return res.json({ images: [] });
+    }
+
+    // Generate pre-signed URLs for all images
+    const imagesWithUrls = await generatePresignedUrls(
+      quiz.pdfImages.map(img => img.s3Key), 
+      parseInt(expiresIn)
+    );
+
+    // Map back to original structure with pre-signed URLs
+    const result = quiz.pdfImages.map((img, index) => ({
+      ...img.toObject(),
+      url: imagesWithUrls[index]?.url || null,
+      presignedUrl: imagesWithUrls[index]?.url || null
+    }));
+
+    console.log(`✅ Generated ${result.length} pre-signed URLs for quiz ${quizId}`);
+    res.json({ images: result });
+
+  } catch (error) {
+    console.error('❌ Error generating pre-signed URLs:', error);
+    res.status(500).json({ error: 'Failed to generate image URLs' });
+  }
+});
+
+// API endpoint to get a single pre-signed URL for an image
+app.get('/api/image/:s3Key', isAuthenticated, async (req, res) => {
+  try {
+    const { s3Key } = req.params;
+    const { expiresIn = 3600 } = req.query; // Default 1 hour
+
+    console.log(`🔗 Generating pre-signed URL for image: ${s3Key}`);
+
+    // Generate pre-signed URL
+    const presignedUrl = await generatePresignedUrl(s3Key, parseInt(expiresIn));
+    
+    if (!presignedUrl) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    console.log(`✅ Generated pre-signed URL for image: ${s3Key}`);
+    res.json({ 
+      presignedUrl,
+      expiresIn: parseInt(expiresIn),
+      s3Key 
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating pre-signed URL:', error);
+    res.status(500).json({ error: 'Failed to generate image URL' });
+  }
+});
 
 // Helper function to extract S3 key from URL
 function extractS3Key(fileUrl) {
@@ -502,24 +641,24 @@ async function extractImagesFromDOCX(fileBuffer, quizId) {
             if (imageBuffer.length > 0) {
               const imageFileName = `quiz_${quizId}_docx_img_${imageIndex}.${imageType}`;
               
-              // Upload image to S3
-              const imageUrl = await uploadToS3({
-                buffer: imageBuffer,
-                originalname: imageFileName,
-                mimetype: `image/${imageType}`
-              }, 'quiz-images');
-              
-              console.log(`✅ DOCX image ${imageIndex} uploaded to S3: ${imageUrl}`);
-              
-              images.push({
-                page: 1, // DOCX doesn't have pages like PDF
-                imageIndex: imageIndex,
-                url: imageUrl,
-                width: 800, // Default width
-                height: 600, // Default height
-                originalName: imageFileName,
-                source: 'docx'
-              });
+                             // Upload image to S3
+               const s3Key = await uploadToS3({
+                 buffer: imageBuffer,
+                 originalname: imageFileName,
+                 mimetype: `image/${imageType}`
+               }, 'quiz-images');
+               
+               console.log(`✅ DOCX image ${imageIndex} uploaded to S3: ${s3Key}`);
+               
+               images.push({
+                 page: 1, // DOCX doesn't have pages like PDF
+                 imageIndex: imageIndex,
+                 s3Key: s3Key, // Store S3 key instead of URL
+                 width: 800, // Default width
+                 height: 600, // Default height
+                 originalName: imageFileName,
+                 source: 'docx'
+               });
               
               imageIndex++;
             }
@@ -606,18 +745,18 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
                     const imageFileName = `quiz_${quizId}_page_${pageIndex}_img_${imgIndex + 1}.png`;
                     
                     // Upload image to S3
-                    const imageUrl = await uploadToS3({
+                    const s3Key = await uploadToS3({
                       buffer: imageBuffer,
                       originalname: imageFileName,
                       mimetype: 'image/png'
                     }, 'quiz-images');
                     
-                    console.log(`✅ Image uploaded to S3: ${imageUrl}`);
+                    console.log(`✅ Image uploaded to S3: ${s3Key}`);
                     
                     images.push({
                       page: pageIndex,
                       imageIndex: imgIndex + 1,
-                      url: imageUrl,
+                      s3Key: s3Key, // Store S3 key instead of URL
                       width: options.width,
                       height: options.height,
                       originalName: imageFileName
@@ -677,7 +816,7 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
             const imageBuffer = Buffer.from(fallbackImage.data);
             const imageFileName = `quiz_${quizId}_fallback.png`;
             
-            const imageUrl = await uploadToS3({
+            const s3Key = await uploadToS3({
               buffer: imageBuffer,
               originalname: imageFileName,
               mimetype: 'image/png'
@@ -686,7 +825,7 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
             const fallbackImageObj = {
               page: 1,
               imageIndex: 1,
-              url: imageUrl,
+              s3Key: s3Key, // Store S3 key instead of URL
               width: fallbackOptions.width,
               height: fallbackOptions.height,
               originalName: imageFileName,

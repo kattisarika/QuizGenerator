@@ -1071,6 +1071,108 @@
                 closeImageModal();
             }
         }
+
+        // Function to load document images dynamically with pre-signed URLs
+        async function loadDocumentImages() {
+            try {
+                const quizId = '<%= quiz._id %>';
+                if (!quizId) {
+                    console.log('No quiz ID found, skipping image loading');
+                    return;
+                }
+
+                console.log('🔗 Loading document images for quiz:', quizId);
+                
+                // Check if quiz has PDF images
+                const hasImages = <%= quiz.pdfImages && quiz.pdfImages.length > 0 ? 'true' : 'false' %>;
+                if (!hasImages) {
+                    console.log('No PDF images found in quiz');
+                    return;
+                }
+
+                // Show the container
+                const container = document.getElementById('documentImagesContainer');
+                if (container) {
+                    container.style.display = 'block';
+                }
+
+                // Fetch pre-signed URLs for images
+                const response = await fetch(`/api/quiz/${quizId}/images?expiresIn=3600`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('📸 Received image data:', data);
+
+                if (data.images && data.images.length > 0) {
+                    // Hide loading spinner
+                    const loadingDiv = container.querySelector('.images-loading');
+                    if (loadingDiv) {
+                        loadingDiv.style.display = 'none';
+                    }
+
+                    // Render images
+                    const grid = document.getElementById('pdfImagesGrid');
+                    grid.innerHTML = '';
+
+                    data.images.forEach((image, index) => {
+                        const imageItem = document.createElement('div');
+                        imageItem.className = 'pdf-image-item';
+                        
+                        const sourceIcon = image.source === 'docx' ? 'fa-file-word' : 'fa-file-pdf';
+                        const sourceLabel = image.source === 'docx' ? 'DOCX Document' : 'PDF Document';
+                        const pageLabel = image.source === 'docx' ? `Image ${image.imageIndex}` : `Page ${image.page}`;
+                        
+                        imageItem.innerHTML = `
+                            <div class="pdf-image-header">
+                                <span class="pdf-image-label">
+                                    <i class="fas ${sourceIcon}"></i> ${pageLabel}
+                                </span>
+                                ${image.source !== 'docx' && image.imageIndex > 1 ? 
+                                    `<span class="pdf-image-subtitle">Image ${image.imageIndex}</span>` : ''}
+                            </div>
+                            <img src="${image.url}" 
+                                 alt="Document Image" 
+                                 class="pdf-image" 
+                                 style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
+                                 onclick="openImageModal('${image.url}', '${sourceLabel} - ${pageLabel}')">
+                            <div class="image-info">
+                                <small class="text-muted">
+                                    ${sourceLabel} • ${pageLabel}
+                                </small>
+                            </div>
+                        `;
+                        
+                        grid.appendChild(imageItem);
+                    });
+
+                    console.log(`✅ Loaded ${data.images.length} document images`);
+                } else {
+                    console.log('No images found in response');
+                    const loadingDiv = container.querySelector('.images-loading');
+                    if (loadingDiv) {
+                        loadingDiv.innerHTML = '<i class="fas fa-info-circle"></i> No document images found';
+                    }
+                }
+
+            } catch (error) {
+                console.error('❌ Error loading document images:', error);
+                const container = document.getElementById('documentImagesContainer');
+                if (container) {
+                    const loadingDiv = container.querySelector('.images-loading');
+                    if (loadingDiv) {
+                        loadingDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error loading images';
+                    }
+                }
+            }
+        }
+
+        // Load document images when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load images after a short delay to ensure page is fully loaded
+            setTimeout(loadDocumentImages, 500);
+        });
     </script>
     
     <!-- Image Modal -->
