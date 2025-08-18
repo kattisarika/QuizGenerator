@@ -1655,8 +1655,10 @@
                     if (question.image && question.image instanceof File) {
                         // Mark question as having an image
                         processedQuestion.hasImage = true;
-                        // Add image file to FormData
+                        // Add image file to FormData with question index
                         formData.append('questionImages', question.image);
+                        // Add question index to identify which question this image belongs to
+                        formData.append('questionImageIndexes', index.toString());
                         imageFiles.push(question.image);
                     } else {
                         processedQuestion.hasImage = false;

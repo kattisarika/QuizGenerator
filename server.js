@@ -2434,6 +2434,12 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     
     console.log('Manual quiz creation:', { originalTitle: title, finalTitle, quizType, questionsCount: questions.length });
     console.log('Uploaded files:', req.files ? req.files.length : 0);
+    console.log('Question image indexes:', req.body.questionImageIndexes);
+    if (req.files) {
+      req.files.forEach((file, index) => {
+        console.log(`File ${index}:`, file.originalname);
+      });
+    }
     
     // Validate required fields
     if (!title || !gradeLevel || !subjects) {
@@ -2451,6 +2457,8 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       console.log(`Processing question ${i + 1}:`, q.questionText.substring(0, 50) + '...');
+      console.log(`Question ${i + 1} hasImage:`, q.hasImage);
+      console.log(`Question ${i + 1} full data:`, JSON.stringify(q, null, 2));
       
       const baseQuestion = {
         question: q.questionText,
@@ -2460,12 +2468,30 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
       
       // Handle image upload for this question
       let imageS3Key = null;
-      if (q.hasImage && req.files && req.files[i]) {
+      if (q.hasImage && req.files && req.files.length > 0) {
         try {
-          const imageFile = req.files[i];
-          console.log(`Uploading image for question ${i + 1}:`, imageFile.originalname);
-          imageS3Key = await uploadToS3(imageFile, 'question-images');
-          console.log(`Image uploaded successfully to S3: ${imageS3Key}`);
+          // Find the image file for this specific question using the index mapping
+          const questionImageIndexes = req.body.questionImageIndexes;
+          let imageFile = null;
+          
+          if (Array.isArray(questionImageIndexes)) {
+            // Find the file that corresponds to this question index
+            const fileIndex = questionImageIndexes.findIndex(index => parseInt(index) === i);
+            if (fileIndex !== -1 && req.files[fileIndex]) {
+              imageFile = req.files[fileIndex];
+            }
+          } else if (req.files && req.files[i]) {
+            // Fallback to old method for backward compatibility
+            imageFile = req.files[i];
+          }
+          
+          if (imageFile) {
+            console.log(`Uploading image for question ${i + 1}:`, imageFile.originalname);
+            imageS3Key = await uploadToS3(imageFile, 'question-images');
+            console.log(`Image uploaded successfully to S3: ${imageS3Key}`);
+          } else {
+            console.log(`No image file found for question ${i + 1}`);
+          }
         } catch (error) {
           console.error(`Error uploading image for question ${i + 1}:`, error);
           imageS3Key = null;
@@ -2519,6 +2545,12 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
     console.log('Manual quiz saved successfully with ID:', quiz._id);
     console.log('Quiz saved with title:', finalTitle);
     console.log('Total questions saved:', extractedQuestions.length);
+    console.log('Questions with images:', extractedQuestions.filter(q => q.image).length);
+    extractedQuestions.forEach((q, index) => {
+      if (q.image) {
+        console.log(`Question ${index + 1} has image:`, q.image);
+      }
+    });
     
     res.json({ 
       success: true, 
@@ -3889,6 +3921,33 @@ app.get('/debug-quiz/:quizId', isAuthenticated, requireRole(['teacher']), async 
   }
 });
 
+// Debug route to check quiz data structure (accessible by students)
+app.get('/debug-quiz-student/:quizId', isAuthenticated, requireRole(['student']), async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+    
+    res.json({
+      quizId: quiz._id,
+      title: quiz.title,
+      questions: quiz.questions.map((q, index) => ({
+        questionNumber: index + 1,
+        question: q.question.substring(0, 100) + '...',
+        hasImage: !!q.image,
+        imageUrl: q.image,
+        imageField: q.image,
+        allFields: Object.keys(q),
+        fullQuestion: q
+      }))
+    });
+  } catch (error) {
+    console.error('Error debugging quiz:', error);
+    res.status(500).json({ error: 'Error debugging quiz' });
+  }
+});
+
 // Route to create podcast page
 app.get('/create-podcast', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
   res.render('create-podcast', { user: req.user });
@@ -3936,11 +3995,22 @@ app.get('/take-quiz/:quizId', isAuthenticated, requireRole(['student']), async (
     console.log('Quiz ID:', quiz._id);
     console.log('Quiz title:', quiz.title);
     console.log('Total questions:', quiz.questions.length);
+    console.log('Full quiz object keys:', Object.keys(quiz));
+    console.log('Quiz type:', typeof quiz);
+    console.log('Quiz is Mongoose document:', quiz.constructor.name);
+    
+    // Convert to plain object to see what will be sent to frontend
+    const quizPlain = quiz.toObject ? quiz.toObject() : quiz;
+    console.log('Quiz plain object keys:', Object.keys(quizPlain));
+    
     quiz.questions.forEach((q, index) => {
       console.log(`Question ${index + 1}:`, {
         hasImage: !!q.image,
         imageUrl: q.image,
+        imageType: typeof q.image,
+        imageLength: q.image ? q.image.length : 0,
         questionText: q.question.substring(0, 50) + '...',
+        questionKeys: Object.keys(q),
         questionObject: JSON.stringify(q, null, 2)
       });
     });

@@ -1189,6 +1189,26 @@
 
         // Load document images when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            // Debug: Log quiz data to see what's available
+            console.log('=== FRONTEND DEBUG ===');
+            console.log('Quiz data:', {
+                id: '<%= quiz._id %>',
+                title: '<%= quiz.title %>',
+                questionsCount: <%= quiz.questions ? quiz.questions.length : 0 %>,
+                questions: <%= JSON.stringify(quiz.questions) %>
+            });
+            
+            // Check for questions with images
+            const questionsWithImages = document.querySelectorAll('.question-image-container[data-s3-key]');
+            console.log('Questions with image containers found:', questionsWithImages.length);
+            questionsWithImages.forEach((container, index) => {
+                console.log(`Image container ${index}:`, {
+                    s3Key: container.dataset.s3Key,
+                    questionIndex: container.dataset.questionIndex
+                });
+            });
+            console.log('=== END FRONTEND DEBUG ===');
+            
             // Load images after a short delay to ensure page is fully loaded
             setTimeout(loadDocumentImages, 500);
             // Also load question images
