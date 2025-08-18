@@ -456,6 +456,71 @@ async function extractTextFromFile(fileBuffer, originalName) {
   }
 }
 
+// Helper function to extract images from PDF
+async function extractImagesFromPDF(fileBuffer, quizId) {
+  try {
+    const { PDFDocument } = require('pdf-lib');
+    const pdfDoc = await PDFDocument.load(fileBuffer);
+    const pages = pdfDoc.getPages();
+    const images = [];
+    
+    console.log(`📄 Processing PDF with ${pages.length} pages for images`);
+    
+    for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+      const page = pages[pageIndex];
+      const { width, height } = page.getSize();
+      
+      // Convert PDF page to image using pdf2pic
+      const options = {
+        density: 150,           // Output resolution
+        saveFilename: `page_${pageIndex + 1}`,
+        savePath: `/tmp/`,      // Temporary directory
+        format: "png",
+        width: Math.round(width),
+        height: Math.round(height)
+      };
+      
+      try {
+        const convert = require('pdf2pic').fromBuffer(fileBuffer, options);
+        const pageImages = await convert(pageIndex + 1, { responseType: "array" });
+        
+        if (pageImages && pageImages.length > 0) {
+          for (let imgIndex = 0; imgIndex < pageImages.length; imgIndex++) {
+            const imageBuffer = Buffer.from(pageImages[imgIndex].data);
+            const imageFileName = `quiz_${quizId}_page_${pageIndex + 1}_img_${imgIndex + 1}.png`;
+            
+            // Upload image to S3
+            const imageUrl = await uploadToS3({
+              buffer: imageBuffer,
+              originalname: imageFileName,
+              mimetype: 'image/png'
+            }, 'quiz-images');
+            
+            images.push({
+              page: pageIndex + 1,
+              imageIndex: imgIndex + 1,
+              url: imageUrl,
+              width: Math.round(width),
+              height: Math.round(height)
+            });
+            
+            console.log(`✅ Extracted image ${imgIndex + 1} from page ${pageIndex + 1}`);
+          }
+        }
+      } catch (pageError) {
+        console.error(`⚠️  Error processing page ${pageIndex + 1}:`, pageError.message);
+        continue;
+      }
+    }
+    
+    console.log(`🎯 Total images extracted: ${images.length}`);
+    return images;
+  } catch (error) {
+    console.error('❌ Error extracting images from PDF:', error);
+    return [];
+  }
+}
+
 // Language-specific parsing patterns
 function getLanguagePatterns(language) {
   const patterns = {
@@ -1822,6 +1887,14 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
         extractedQuestions = parseQuestionsFromText(questionText, language);
         console.log('Parsed questions count:', extractedQuestions.length);
         
+        // Extract images from PDF if it's a PDF file
+        let pdfImages = [];
+        if (path.extname(questionFile.originalname).toLowerCase() === '.pdf') {
+          console.log('📄 PDF detected, extracting images...');
+          pdfImages = await extractImagesFromPDF(questionFile.buffer, 'temp_' + Date.now());
+          console.log(`🎯 Extracted ${pdfImages.length} images from PDF`);
+        }
+        
         if (extractedQuestions.length === 0) {
           console.log('Error: No questions parsed from text');
           return res.status(400).send('No questions could be parsed from the uploaded file. Please ensure the question paper follows the required format with numbered questions and multiple choice options.');
@@ -1904,7 +1977,8 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
       organizationId: req.user.organizationId, // Add organization context for SaaS
       isApproved: true,  // Auto-approve teacher quizzes
       questionPaperUrl: questionFileUrl, // Store S3 URL
-      answerPaperUrl: answerFileUrl || null // Store S3 URL if provided
+      answerPaperUrl: answerFileUrl || null, // Store S3 URL if provided
+      pdfImages: pdfImages // Store extracted PDF images
     });
 
     await quiz.save();

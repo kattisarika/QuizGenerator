@@ -102,6 +102,28 @@ const quizSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  pdfImages: [{
+    page: {
+      type: Number,
+      required: true
+    },
+    imageIndex: {
+      type: Number,
+      required: true
+    },
+    url: {
+      type: String,
+      required: true
+    },
+    width: {
+      type: Number,
+      required: true
+    },
+    height: {
+      type: Number,
+      required: true
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now
