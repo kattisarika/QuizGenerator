@@ -207,7 +207,7 @@ async function uploadToS3(file, folder = 'uploads') {
     Key: s3Key,
     Body: file.buffer,
     ContentType: file.mimetype,
-    ACL: 'private' // Make all files private for security
+    ACL: 'public-read' // Make images public for direct access
   };
 
   try {

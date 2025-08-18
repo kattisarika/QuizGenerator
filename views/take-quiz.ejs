@@ -1332,47 +1332,22 @@
                     }
 
                     try {
-                        console.log(`🔄 Fetching image for question ${questionIndex}, S3 key: ${s3Key}`);
+                        console.log(`🔄 Loading image for question ${questionIndex}, S3 key: ${s3Key}`);
                         
-                        // Generate pre-signed URL for this image
-                        const response = await fetch(`/api/image/${encodeURIComponent(s3Key)}?expiresIn=3600`);
-                        console.log(`📡 API response status: ${response.status}`);
+                        // Use direct S3 URL instead of API endpoint
+                        const s3Url = `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${s3Key}`;
+                        console.log(`🔗 Direct S3 URL: ${s3Url}`);
                         
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            console.error(`❌ API error response:`, errorText);
-                            throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-                        }
-
-                        let data;
-                        const contentType = response.headers.get('content-type');
+                        // Test if the image loads successfully
+                        await testImageLoad(s3Url);
                         
-                        if (contentType && contentType.includes('application/json')) {
-                            data = await response.json();
-                            console.log(`📦 API response data:`, data);
-                        } else {
-                            // Handle HTML responses (likely error pages)
-                            const responseText = await response.text();
-                            console.error(`❌ API returned HTML instead of JSON:`, responseText.substring(0, 200) + '...');
-                            throw new Error(`API returned HTML instead of JSON. Status: ${response.status}`);
-                        }
+                        // Hide loading, show image
+                        loadingDiv.style.display = 'none';
+                        img.src = s3Url;
+                        img.style.display = 'block';
+                        img.onclick = () => openImageModal(s3Url, `Question ${parseInt(questionIndex) + 1} Image`);
                         
-                        if (data && data.presignedUrl) {
-                            // Test if the image loads successfully
-                            await testImageLoad(data.presignedUrl);
-                            
-                            // Hide loading, show image
-                            loadingDiv.style.display = 'none';
-                            img.src = data.presignedUrl;
-                            img.style.display = 'block';
-                            img.onclick = () => openImageModal(data.presignedUrl, `Question ${parseInt(questionIndex) + 1} Image`);
-                            
-                            console.log(`✅ Loaded inline image for question ${parseInt(questionIndex) + 1}, S3 key: ${s3Key}`);
-                        } else {
-                            console.warn(`⚠️ No presigned URL received for inline image, S3 key: ${s3Key}`);
-                            // Try to create a canvas-based image display as fallback
-                            createCanvasImageDisplay(container, s3Key, questionIndex);
-                        }
+                        console.log(`✅ Loaded inline image for question ${parseInt(questionIndex) + 1}, S3 key: ${s3Key}`);
                     } catch (error) {
                         console.error(`❌ Error loading inline image for S3 key ${s3Key}:`, error);
                         // Try to create a canvas-based image display as fallback
