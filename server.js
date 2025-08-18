@@ -1458,7 +1458,7 @@ app.get('/login', (req, res) => {
   res.render('login', { error, timeout });
 });
 
-app.get('/dashboard', isAuthenticated, (req, res) => {
+app.get('/dashboard', requireAuth, (req, res) => {
   // Add null check for req.user
   if (!req.user) {
     console.error('User not found in dashboard route');
@@ -1488,7 +1488,7 @@ app.get('/dashboard', isAuthenticated, (req, res) => {
 });
 
 // API endpoint to get content file URL for external viewers
-app.get('/api/content-url/:contentId', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/api/content-url/:contentId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const { contentId } = req.params;
     
@@ -1511,7 +1511,7 @@ app.get('/api/content-url/:contentId', isAuthenticated, requireRole(['student'])
 });
 
 // API endpoint to get a signed URL for external viewers
-app.get('/api/signed-url/:contentId', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/api/signed-url/:contentId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const { contentId } = req.params;
     
@@ -1565,7 +1565,7 @@ app.get('/api/signed-url/:contentId', isAuthenticated, requireRole(['student']),
 });
 
 // Teacher API routes for competitive quizzes
-app.get('/api/teacher/competitive-quizzes', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+app.get('/api/teacher/competitive-quizzes', requireAuth, requireRole(['teacher']), async (req, res) => {
   try {
     const quizzes = await Quiz.find({ 
       createdBy: req.user._id,
@@ -1579,7 +1579,7 @@ app.get('/api/teacher/competitive-quizzes', isAuthenticated, requireRole(['teach
   }
 });
 
-app.get('/api/teacher/active-sessions', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+app.get('/api/teacher/active-sessions', requireAuth, requireRole(['teacher']), async (req, res) => {
   try {
     const QuizSession = require('./models/QuizSession');
     const sessions = await QuizSession.find({
@@ -1606,17 +1606,17 @@ app.get('/api/teacher/active-sessions', isAuthenticated, requireRole(['teacher']
 });
 
 // Competitive quiz management page (Teacher)
-app.get('/competitive-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+app.get('/competitive-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
   res.render('competitive-quiz', { user: req.user });
 });
 
 // Join competitive quiz page (Student)  
-app.get('/join-competitive', isAuthenticated, requireRole(['student']), (req, res) => {
+app.get('/join-competitive', requireAuth, requireRole(['student']), (req, res) => {
   res.render('join-competitive-quiz', { user: req.user });
 });
 
 // Competitive quiz taking page
-app.get('/competitive-quiz/:sessionId', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/competitive-quiz/:sessionId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const QuizSession = require('./models/QuizSession');
     const session = await QuizSession.findById(req.params.sessionId).populate('quiz');
@@ -1666,7 +1666,7 @@ app.get('/competitive-quiz/:sessionId', isAuthenticated, requireRole(['student']
 });
 
 // Role-specific dashboards
-app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.get('/teacher/dashboard', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     // Get selected grade and pagination parameters
     const selectedGrade = req.query.grade || 'all';
@@ -1776,7 +1776,7 @@ app.get('/teacher/dashboard', isAuthenticated, requireRole(['teacher']), require
 
 
 // Route for student study material page
-app.get('/student/study-material', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/student/study-material', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     // Get all organization IDs the student belongs to
     let organizationIds = [];
@@ -1849,7 +1849,7 @@ app.get('/student/study-material', isAuthenticated, requireRole(['student']), as
 });
 
 // Route for viewing content in browser (increment view count)
-app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const { contentId } = req.params;
     
@@ -1938,7 +1938,7 @@ app.get('/student/view-content/:contentId', isAuthenticated, requireRole(['stude
 });
 
 // Route for downloading content (increment download count)
-app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/student/download-content/:contentId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const { contentId } = req.params;
     
@@ -2004,7 +2004,7 @@ app.get('/student/download-content/:contentId', isAuthenticated, requireRole(['s
   }
 });
 
-app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     console.log(`\n=== STUDENT DASHBOARD DEBUG for ${req.user.email} ===`);
     console.log('User organizationId:', req.user.organizationId);
@@ -2117,7 +2117,7 @@ app.get('/student/dashboard', isAuthenticated, requireRole(['student']), async (
 });
 
 // Migration API for existing multi-org students
-app.post('/api/migrate-multi-org-account', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.post('/api/migrate-multi-org-account', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     console.log(`\n=== MIGRATION REQUEST for ${req.user.email} ===`);
     
@@ -2194,7 +2194,7 @@ app.post('/api/migrate-multi-org-account', isAuthenticated, requireRole(['studen
   }
 });
 
-app.get('/admin/dashboard', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
+app.get('/admin/dashboard', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const pendingTeachers = await User.find({ role: 'teacher', isApproved: false });
     const pendingQuizzes = [];  // No pending quizzes since all are auto-approved
@@ -2208,11 +2208,11 @@ app.get('/admin/dashboard', isAuthenticated, requireRole(['admin', 'super_admin'
 
 
 // Quiz management routes
-app.get('/create-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+app.get('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
   res.render('create-quiz', { user: req.user });
 });
 
-app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, upload.fields([
+app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, upload.fields([
   { name: 'questionPaper', maxCount: 1 },
   { name: 'answerPaper', maxCount: 1 }
 ]), async (req, res) => {
@@ -2414,7 +2414,7 @@ app.post('/create-quiz', isAuthenticated, requireRole(['teacher']), requireAppro
 });
 
 // Manual quiz creation route
-app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, quizImageUpload.array('questionImages', 50), async (req, res) => {
+app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireApprovedTeacher, quizImageUpload.array('questionImages', 50), async (req, res) => {
   try {
     const { title, description, gradeLevel, subjects, language, quizType, isManuallyCreated } = req.body;
     const questions = JSON.parse(req.body.questions);
@@ -2573,7 +2573,7 @@ app.post('/create-quiz-manual', isAuthenticated, requireRole(['teacher']), requi
 });
 
 // Recorrection system routes
-app.post('/request-recorrection', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.post('/request-recorrection', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const { resultId } = req.body;
     
@@ -2626,7 +2626,7 @@ app.post('/request-recorrection', isAuthenticated, requireRole(['student']), asy
 });
 
 // API endpoint to get recorrection requests for teachers
-app.get('/api/recorrection-requests', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.get('/api/recorrection-requests', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const QuizResult = require('./models/QuizResult');
     
@@ -2718,7 +2718,7 @@ app.get('/api/recorrection-requests', isAuthenticated, requireRole(['teacher']),
 });
 
 // API endpoint to get recorrection request counts by grade
-app.get('/api/recorrection-grade-counts', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.get('/api/recorrection-grade-counts', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const QuizResult = require('./models/QuizResult');
     
@@ -2774,7 +2774,7 @@ app.get('/api/recorrection-grade-counts', isAuthenticated, requireRole(['teacher
 });
 
 // Route to view recorrection details
-app.get('/recorrection-details/:resultId', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.get('/recorrection-details/:resultId', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const QuizResult = require('./models/QuizResult');
     const result = await QuizResult.findById(req.params.resultId)
@@ -2799,7 +2799,7 @@ app.get('/recorrection-details/:resultId', isAuthenticated, requireRole(['teache
 });
 
 // Route to process recorrection
-app.get('/process-recorrection/:resultId', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.get('/process-recorrection/:resultId', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const QuizResult = require('./models/QuizResult');
     const result = await QuizResult.findById(req.params.resultId)
@@ -2824,7 +2824,7 @@ app.get('/process-recorrection/:resultId', isAuthenticated, requireRole(['teache
 });
 
 // Route to save recorrection
-app.post('/save-recorrection', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.post('/save-recorrection', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { resultId, newScore, feedback } = req.body;
     
@@ -2868,7 +2868,7 @@ app.post('/save-recorrection', isAuthenticated, requireRole(['teacher']), requir
 });
 
 // Route to check current user status
-app.get('/check-user', isAuthenticated, async (req, res) => {
+app.get('/check-user', requireAuth, async (req, res) => {
   try {
     res.send(`
       <h2>Current User Status</h2>
@@ -2942,7 +2942,7 @@ app.get('/test-actual-answer', (req, res) => {
 });
 
 // Route to view student results for a specific quiz
-app.get('/quiz-results/:quizId', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.get('/quiz-results/:quizId', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { quizId } = req.params;
     
@@ -2969,7 +2969,7 @@ app.get('/quiz-results/:quizId', isAuthenticated, requireRole(['teacher']), requ
 });
 
 // Route for teacher's post content page
-app.get('/teacher/post-content', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.get('/teacher/post-content', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     // Get all content posted by this teacher
     const teacherContent = await Content.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
@@ -2988,7 +2988,7 @@ app.get('/teacher/post-content', isAuthenticated, requireRole(['teacher']), requ
 });
 
 // Route for posting new content
-app.post('/teacher/post-content', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, upload.single('contentFile'), async (req, res) => {
+app.post('/teacher/post-content', requireAuth, requireRole(['teacher']), requireApprovedTeacher, upload.single('contentFile'), async (req, res) => {
   try {
     const { title, description, category, gradeLevel } = req.body;
     
@@ -3045,7 +3045,7 @@ app.post('/teacher/post-content', isAuthenticated, requireRole(['teacher']), req
 });
 
 // Route to approve all pending content (for existing content)
-app.post('/admin/approve-all-content', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
+app.post('/admin/approve-all-content', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const result = await Content.updateMany(
       { isApproved: false },
@@ -3066,12 +3066,12 @@ app.post('/admin/approve-all-content', isAuthenticated, requireRole(['admin', 's
 // ===== TEACHER ASSIGN STUDENTS ROUTES =====
 
 // Test route to verify routing works
-app.get('/teacher/test-assign', isAuthenticated, requireRole(['teacher']), (req, res) => {
+app.get('/teacher/test-assign', requireAuth, requireRole(['teacher']), (req, res) => {
   res.send(`<h1>Test Route Works!</h1><p>User: ${req.user.displayName}</p><p>Role: ${req.user.role}</p>`);
 });
 
 // Route for teacher assign students page
-app.get('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.get('/teacher/assign-students', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     console.log('Accessing /teacher/assign-students route');
     console.log('User:', req.user.displayName, 'Role:', req.user.role, 'Approved:', req.user.isApproved);
@@ -3117,7 +3117,7 @@ app.get('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), r
 });
 
 // Route to assign students to teacher
-app.post('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.post('/teacher/assign-students', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { assignments } = req.body;
     
@@ -3162,7 +3162,7 @@ app.post('/teacher/assign-students', isAuthenticated, requireRole(['teacher']), 
 });
 
 // Route to unassign students from teacher
-app.post('/teacher/unassign-students', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.post('/teacher/unassign-students', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { studentIds } = req.body;
     
@@ -3196,7 +3196,7 @@ app.post('/teacher/unassign-students', isAuthenticated, requireRole(['teacher'])
 // ===== END TEACHER ASSIGN STUDENTS ROUTES =====
 
 // Route to auto-approve all teacher content (for fixing existing unapproved content)
-app.post('/admin/approve-all-teacher-content', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
+app.post('/admin/approve-all-teacher-content', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     // Find all unapproved content created by approved teachers
     const approvedTeachers = await User.find({ role: 'teacher', isApproved: true }).select('_id');
@@ -3226,7 +3226,7 @@ app.post('/admin/approve-all-teacher-content', isAuthenticated, requireRole(['ad
 });
 
 // Route for viewing content distribution by grade (for debugging)
-app.get('/admin/content-by-grade', isAuthenticated, requireRole(['admin', 'teacher']), async (req, res) => {
+app.get('/admin/content-by-grade', requireAuth, requireRole(['admin', 'teacher']), async (req, res) => {
   try {
     const allContent = await Content.find({})  // Show ALL content, approved and unapproved
       .populate('createdBy', 'displayName')
@@ -3279,7 +3279,7 @@ app.get('/admin/content-by-grade', isAuthenticated, requireRole(['admin', 'teach
 });
 
 // Route for deleting content (admin only)
-app.delete('/admin/delete-content/:contentId', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
+app.delete('/admin/delete-content/:contentId', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { contentId } = req.params;
     
@@ -3314,7 +3314,7 @@ app.delete('/admin/delete-content/:contentId', isAuthenticated, requireRole(['ad
 });
 
 // Route for approving content (admin only)
-app.post('/admin/approve-content/:contentId', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
+app.post('/admin/approve-content/:contentId', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { contentId } = req.params;
     
@@ -3334,7 +3334,7 @@ app.post('/admin/approve-content/:contentId', isAuthenticated, requireRole(['adm
 });
 
 // Route for deleting content
-app.delete('/teacher/delete-content/:contentId', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.delete('/teacher/delete-content/:contentId', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { contentId } = req.params;
     
@@ -3371,7 +3371,7 @@ app.delete('/teacher/delete-content/:contentId', isAuthenticated, requireRole(['
 });
 
 // Route for admin to view all content (including unapproved)
-app.get('/admin/content-management', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
+app.get('/admin/content-management', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const allContent = await Content.find({})
       .populate('createdBy', 'displayName email')
@@ -3391,7 +3391,7 @@ app.get('/admin/content-management', isAuthenticated, requireRole(['admin', 'sup
 });
 
 // Route for teacher's student results overview page
-app.get('/teacher/student-results', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.get('/teacher/student-results', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     // Get all quizzes created by this teacher
     const teacherQuizzes = await Quiz.find({ createdBy: req.user._id });
@@ -3507,7 +3507,7 @@ app.get('/health', async (req, res) => {
 });
 
 // Route to view stored files
-app.get('/view-files/:quizId', isAuthenticated, async (req, res) => {
+app.get('/view-files/:quizId', requireAuth, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
     if (!quiz) {
@@ -3589,7 +3589,7 @@ a) 3,800 b) 3,900 c) 4,000 d) 3,850`;
 });
 
 // Route to delete a quiz
-app.delete('/delete-quiz/:quizId', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+app.delete('/delete-quiz/:quizId', requireAuth, requireRole(['teacher']), async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
     
@@ -3612,7 +3612,7 @@ app.delete('/delete-quiz/:quizId', isAuthenticated, requireRole(['teacher']), as
 });
 
 // Route to update student profile (grade level and subjects)
-app.post('/update-student-profile', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.post('/update-student-profile', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     console.log('=== STUDENT PROFILE UPDATE DEBUG ===');
     console.log('Request body:', req.body);
@@ -3677,7 +3677,7 @@ app.post('/update-student-profile', isAuthenticated, requireRole(['student']), a
 });
 
 // Route to get student profile data
-app.get('/student-profile', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/student-profile', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     console.log('=== STUDENT PROFILE FETCH DEBUG ===');
     console.log('User ID:', req.user._id);
@@ -3733,7 +3733,7 @@ app.get('/test-quiz-filter', async (req, res) => {
 });
 
 // Route to view available quizzes for students
-app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     console.log(`\n=== AVAILABLE QUIZZES DEBUG for ${req.user.email} ===`);
     
@@ -3895,7 +3895,7 @@ app.get('/available-quizzes', isAuthenticated, requireRole(['student']), async (
 });
 
 // Debug route to check quiz data structure
-app.get('/debug-quiz/:quizId', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+app.get('/debug-quiz/:quizId', requireAuth, requireRole(['teacher']), async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
     if (!quiz) {
@@ -3922,7 +3922,7 @@ app.get('/debug-quiz/:quizId', isAuthenticated, requireRole(['teacher']), async 
 });
 
 // Debug route to check quiz data structure (accessible by students)
-app.get('/debug-quiz-student/:quizId', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/debug-quiz-student/:quizId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
     if (!quiz) {
@@ -3949,12 +3949,12 @@ app.get('/debug-quiz-student/:quizId', isAuthenticated, requireRole(['student'])
 });
 
 // Route to create podcast page
-app.get('/create-podcast', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+app.get('/create-podcast', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
   res.render('create-podcast', { user: req.user });
 });
 
 // Route to start taking a quiz
-app.get('/take-quiz/:quizId', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
     if (!quiz) {
@@ -4024,7 +4024,7 @@ app.get('/take-quiz/:quizId', isAuthenticated, requireRole(['student']), async (
 });
 
 // Route to submit quiz answers
-app.post('/submit-quiz/:quizId', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
     if (!quiz) {
@@ -4131,7 +4131,7 @@ app.post('/submit-quiz/:quizId', isAuthenticated, requireRole(['student']), asyn
 });
 
 // Route to view quiz result
-app.get('/quiz-result/:resultId', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/quiz-result/:resultId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const result = await QuizResult.findById(req.params.resultId)
       .populate('quiz')
@@ -4154,7 +4154,7 @@ app.get('/quiz-result/:resultId', isAuthenticated, requireRole(['student']), asy
 });
 
 // Route to fix existing quiz options
-app.post('/fix-quiz-options/:quizId', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+app.post('/fix-quiz-options/:quizId', requireAuth, requireRole(['teacher']), async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
     if (!quiz) {
@@ -4200,7 +4200,7 @@ app.post('/fix-quiz-options/:quizId', isAuthenticated, requireRole(['teacher']),
 });
 
 // Route to recreate quiz with fixed parsing
-app.post('/recreate-quiz/:quizId', isAuthenticated, requireRole(['teacher']), async (req, res) => {
+app.post('/recreate-quiz/:quizId', requireAuth, requireRole(['teacher']), async (req, res) => {
   try {
     const originalQuiz = await Quiz.findById(req.params.quizId);
     if (!originalQuiz) {
@@ -4246,7 +4246,7 @@ app.post('/recreate-quiz/:quizId', isAuthenticated, requireRole(['teacher']), as
 });
 
 // Debug route to check quiz data
-app.get('/debug-quiz/:quizId', isAuthenticated, async (req, res) => {
+app.get('/debug-quiz/:quizId', requireAuth, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
     if (!quiz) {
@@ -4271,7 +4271,7 @@ app.get('/debug-quiz/:quizId', isAuthenticated, async (req, res) => {
 });
 
 // Route to view student's quiz history
-app.get('/my-results', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/my-results', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const results = await QuizResult.find({ student: req.user._id })
       .populate('quiz')
@@ -4293,7 +4293,7 @@ app.get('/my-results', isAuthenticated, requireRole(['student']), async (req, re
 });
 
 // Route to view quiz questions in database
-app.get('/view-quiz/:quizId', isAuthenticated, async (req, res) => {
+app.get('/view-quiz/:quizId', requireAuth, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId).populate('createdBy');
     if (!quiz) {
@@ -4354,7 +4354,7 @@ app.get('/test-create-admin', async (req, res) => {
 });
 
 // Route to make current user admin (for development)
-app.get('/make-admin', isAuthenticated, async (req, res) => {
+app.get('/make-admin', requireAuth, async (req, res) => {
   try {
     if (req.user.email === 'skillonusers@gmail.com') {
       req.user.role = 'admin';
@@ -4586,7 +4586,7 @@ app.get('/createadmin', async (req, res) => {
 });
 
 // Admin approval routes
-app.post('/approve-teacher/:userId', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
+app.post('/approve-teacher/:userId', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
     if (user && user.role === 'teacher') {
@@ -4602,7 +4602,7 @@ app.post('/approve-teacher/:userId', isAuthenticated, requireRole(['admin', 'sup
 
 // Quiz approval endpoint - NO LONGER NEEDED (all quizzes auto-approved)
 // Keeping endpoint for backward compatibility but it does nothing
-app.post('/approve-quiz/:quizId', isAuthenticated, requireRole(['admin', 'super_admin']), async (req, res) => {
+app.post('/approve-quiz/:quizId', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   // All quizzes are now auto-approved, so just redirect
   res.redirect('/admin/dashboard');
 });
@@ -4691,7 +4691,7 @@ app.get('/auth/google/callback', (req, res) => {
 });
 
 // API routes for session management
-app.post('/api/activity-update', isAuthenticated, (req, res) => {
+app.post('/api/activity-update', requireAuth, (req, res) => {
   // Update session last activity
   if (req.session) {
     req.session.lastActivity = Date.now();
@@ -4702,7 +4702,7 @@ app.post('/api/activity-update', isAuthenticated, (req, res) => {
 // ===== PODCAST ROUTES =====
 
 // Get all podcasts for a teacher
-app.get('/api/teacher-podcasts', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.get('/api/teacher-podcasts', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const Podcast = require('./models/Podcast');
     const podcasts = await Podcast.find({ createdBy: req.user._id })
@@ -4716,7 +4716,7 @@ app.get('/api/teacher-podcasts', isAuthenticated, requireRole(['teacher']), requ
 });
 
 // Get podcasts for students (filtered by grade and organization)
-app.get('/api/student-podcasts', isAuthenticated, requireRole(['student']), async (req, res) => {
+app.get('/api/student-podcasts', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const Podcast = require('./models/Podcast');
     const { grade, subject } = req.query;
@@ -4745,7 +4745,7 @@ app.get('/api/student-podcasts', isAuthenticated, requireRole(['student']), asyn
 });
 
 // Create new podcast
-app.post('/api/create-podcast', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, audioUpload.single('audioFile'), async (req, res) => {
+app.post('/api/create-podcast', requireAuth, requireRole(['teacher']), requireApprovedTeacher, audioUpload.single('audioFile'), async (req, res) => {
   try {
     const Podcast = require('./models/Podcast');
     const { title, description, gradeLevel, subjects, tags, transcription, isTranscriptionEnabled } = req.body;
@@ -4812,7 +4812,7 @@ app.post('/api/create-podcast', isAuthenticated, requireRole(['teacher']), requi
 });
 
 // Update podcast
-app.put('/api/update-podcast/:id', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.put('/api/update-podcast/:id', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const Podcast = require('./models/Podcast');
     const { title, description, gradeLevel, subjects, tags, transcription, isTranscriptionEnabled } = req.body;
@@ -4843,7 +4843,7 @@ app.put('/api/update-podcast/:id', isAuthenticated, requireRole(['teacher']), re
 });
 
 // Delete podcast
-app.delete('/api/delete-podcast/:id', isAuthenticated, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+app.delete('/api/delete-podcast/:id', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const Podcast = require('./models/Podcast');
     const podcast = await Podcast.findOneAndDelete({ _id: req.params.id, createdBy: req.user._id });
@@ -4865,7 +4865,7 @@ app.delete('/api/delete-podcast/:id', isAuthenticated, requireRole(['teacher']),
 });
 
 // Get single podcast details
-app.get('/api/podcast/:id', isAuthenticated, async (req, res) => {
+app.get('/api/podcast/:id', requireAuth, async (req, res) => {
   try {
     const Podcast = require('./models/Podcast');
     const podcast = await Podcast.findById(req.params.id);
@@ -4882,7 +4882,7 @@ app.get('/api/podcast/:id', isAuthenticated, async (req, res) => {
 });
 
 // Update podcast play count
-app.post('/api/podcast-play/:id', isAuthenticated, async (req, res) => {
+app.post('/api/podcast-play/:id', requireAuth, async (req, res) => {
   try {
     const Podcast = require('./models/Podcast');
     await Podcast.findByIdAndUpdate(req.params.id, { $inc: { playCount: 1 } });
@@ -4893,7 +4893,7 @@ app.post('/api/podcast-play/:id', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/api/extend-session', isAuthenticated, (req, res) => {
+app.post('/api/extend-session', requireAuth, (req, res) => {
   // Extend session by updating last activity
   if (req.session) {
     req.session.lastActivity = Date.now();
