@@ -533,6 +533,7 @@
         let timerInterval;
         const totalQuestions = <%= quiz.questions.length %>;
         const quizId = '<%= quiz._id %>';
+        const s3BucketName = '<%= s3BucketName %>';
 
         // Initialize quiz
         document.addEventListener('DOMContentLoaded', function() {
@@ -1335,7 +1336,7 @@
                         console.log(`🔄 Loading image for question ${questionIndex}, S3 key: ${s3Key}`);
                         
                         // Use direct S3 URL instead of API endpoint
-                        const s3Url = `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${s3Key}`;
+                        const s3Url = `https://${s3BucketName}.s3.amazonaws.com/${s3Key}`;
                         console.log(`🔗 Direct S3 URL: ${s3Url}`);
                         
                         // Test if the image loads successfully

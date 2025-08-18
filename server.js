@@ -4043,7 +4043,11 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
     });
     console.log('=== END TAKE QUIZ DEBUG ===');
     
-    res.render('take-quiz', { quiz, user: req.user });
+    res.render('take-quiz', { 
+      quiz, 
+      user: req.user,
+      s3BucketName: process.env.AWS_BUCKET_NAME 
+    });
   } catch (error) {
     console.error('Error starting quiz:', error);
     res.status(500).send('Error starting quiz');
