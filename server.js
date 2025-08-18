@@ -92,7 +92,7 @@ const Content = require('./models/Content');
 const Organization = require('./models/Organization');
 
 // Middleware functions - defined early to avoid hoisting issues
-const isAuthenticated = (req, res, next) => {
+const requireAuth = (req, res, next) => {
   if (req.isAuthenticated()) {
     return next();
   }
@@ -275,7 +275,7 @@ async function generatePresignedUrls(s3Keys, expiresIn = 3600) {
 }
 
 // API endpoint to get pre-signed URLs for quiz images
-app.get('/api/quiz/:quizId/images', isAuthenticated, async (req, res) => {
+app.get('/api/quiz/:quizId/images', requireAuth, async (req, res) => {
   try {
     const { quizId } = req.params;
     const { expiresIn = 3600 } = req.query; // Default 1 hour
@@ -322,7 +322,7 @@ app.get('/api/quiz/:quizId/images', isAuthenticated, async (req, res) => {
 });
 
 // API endpoint to get a single pre-signed URL for an image
-app.get('/api/image/:s3Key', isAuthenticated, async (req, res) => {
+app.get('/api/image/:s3Key', requireAuth, async (req, res) => {
   try {
     const { s3Key } = req.params;
     const { expiresIn = 3600 } = req.query; // Default 1 hour
@@ -350,7 +350,7 @@ app.get('/api/image/:s3Key', isAuthenticated, async (req, res) => {
 });
 
 // API endpoint to get pre-signed URLs for quiz question images
-app.get('/api/quiz/:quizId/question-images', isAuthenticated, async (req, res) => {
+app.get('/api/quiz/:quizId/question-images', requireAuth, async (req, res) => {
   try {
     const { quizId } = req.params;
     const { expiresIn = 3600 } = req.query; // Default 1 hour
