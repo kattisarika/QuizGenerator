@@ -540,6 +540,12 @@
             startTimer();
             updateProgress();
             initializeAnsweredQuestions();
+            
+            // Check if this is a single-question quiz and update navigation accordingly
+            if (totalQuestions === 1) {
+                document.getElementById('next-btn').style.display = 'none';
+                document.getElementById('submit-btn').style.display = 'inline-block';
+            }
         });
 
         // Initialize visual feedback for already answered questions
@@ -806,7 +812,8 @@
             // Update navigation buttons
             document.getElementById('prev-btn').disabled = index === 0;
             
-            if (index === totalQuestions - 1) {
+            // Handle single-question quiz or last question
+            if (totalQuestions === 1 || index === totalQuestions - 1) {
                 document.getElementById('next-btn').style.display = 'none';
                 document.getElementById('submit-btn').style.display = 'inline-block';
             } else {
