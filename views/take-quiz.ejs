@@ -1191,12 +1191,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Debug: Log quiz data to see what's available
             console.log('=== FRONTEND DEBUG ===');
-            console.log('Quiz data:', {
-                id: '<%= quiz._id %>',
-                title: '<%= quiz.title %>',
-                questionsCount: <%= quiz.questions ? quiz.questions.length : 0 %>,
-                questions: <%= JSON.stringify(quiz.questions) %>
-            });
+            console.log('Quiz ID:', '<%= quiz._id %>');
+            console.log('Quiz title:', '<%= quiz.title %>');
+            console.log('Questions count:', <%= quiz.questions ? quiz.questions.length : 0 %>);
             
             // Check for questions with images
             const questionsWithImages = document.querySelectorAll('.question-image-container[data-s3-key]');
@@ -1229,7 +1226,7 @@
                 console.log('🔗 Loading question images for quiz:', quizId);
                 
                 // Check if quiz has questions with images
-                const hasQuestionImages = <%= quiz.questions && quiz.questions.some(q => q.image) ? 'true' : 'false' %>;
+                const hasQuestionImages = document.querySelectorAll('.question-image-container[data-s3-key]').length > 0;
                 if (!hasQuestionImages) {
                     console.log('No question images found in quiz - hiding container');
                     // Hide the entire container if no images exist
