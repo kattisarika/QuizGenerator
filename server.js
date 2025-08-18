@@ -93,9 +93,17 @@ const Organization = require('./models/Organization');
 
 // Middleware functions - defined early to avoid hoisting issues
 const requireAuth = (req, res, next) => {
-  if (req.isAuthenticated()) {
+  console.log('requireAuth middleware called');
+  console.log('req.user:', req.user);
+  console.log('req.isAuthenticated type:', typeof req.isAuthenticated);
+  console.log('req.isAuthenticated:', req.isAuthenticated);
+  
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    console.log('User is authenticated, proceeding');
     return next();
   }
+  
+  console.log('User not authenticated, redirecting to login');
   res.redirect('/login');
 };
 
