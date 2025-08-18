@@ -4936,6 +4936,26 @@ body {
     gap: 8px;
 }
 
+.document-source {
+    margin-left: auto;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.document-source i {
+    margin-left: 5px;
+    color: #667eea;
+}
+
+.image-info {
+    margin-top: 10px;
+    text-align: center;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-top: 1px solid #e9ecef;
+}
+
 .pdf-images-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
