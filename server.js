@@ -243,6 +243,24 @@ async function generatePresignedUrl(s3Key, expiresIn = 3600) {
   }
 }
 
+// Helper function to make an S3 object public
+async function makeS3ObjectPublic(s3Key) {
+  try {
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: s3Key,
+      ACL: 'public-read'
+    };
+
+    await s3.putObjectAcl(params).promise();
+    console.log(`✅ Made S3 object public: ${s3Key}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error making S3 object public: ${s3Key}`, error);
+    return false;
+  }
+}
+
 // Helper function to generate pre-signed URLs for multiple S3 objects
 async function generatePresignedUrls(s3Keys, expiresIn = 3600) {
   try {
@@ -279,6 +297,24 @@ async function generatePresignedUrls(s3Keys, expiresIn = 3600) {
   } catch (error) {
     console.error('❌ Error generating pre-signed URLs:', error);
     return s3Keys; // Return original keys if generation fails
+  }
+}
+
+// Helper function to make existing S3 objects public
+async function makeS3ObjectPublic(s3Key) {
+  try {
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: s3Key,
+      ACL: 'public-read'
+    };
+
+    await s3.putObjectAcl(params).promise();
+    console.log(`✅ Made S3 object public: ${s3Key}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error making S3 object public: ${s3Key}`, error);
+    return false;
   }
 }
 
@@ -354,6 +390,34 @@ app.get('/api/image/:s3Key', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('❌ Error generating pre-signed URL:', error);
     res.status(500).json({ error: 'Failed to generate image URL' });
+  }
+});
+
+// API endpoint to make existing S3 images public
+app.post('/api/make-image-public/:s3Key', requireAuth, requireRole(['teacher', 'admin']), async (req, res) => {
+  try {
+    const { s3Key } = req.params;
+    
+    console.log(`🔓 Making S3 image public: ${s3Key}`);
+    
+    const success = await makeS3ObjectPublic(s3Key);
+    
+    if (success) {
+      res.json({ 
+        success: true, 
+        message: `Image ${s3Key} is now public`,
+        s3Key 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to make image public' 
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error making image public:', error);
+    res.status(500).json({ error: 'Failed to make image public' });
   }
 });
 

@@ -1351,7 +1351,40 @@
                         console.log(`✅ Loaded inline image for question ${parseInt(questionIndex) + 1}, S3 key: ${s3Key}`);
                     } catch (error) {
                         console.error(`❌ Error loading inline image for S3 key ${s3Key}:`, error);
-                        // Try to create a canvas-based image display as fallback
+                        
+                        // Try to make the image public first
+                        try {
+                            console.log(`🔓 Attempting to make image public: ${s3Key}`);
+                            const makePublicResponse = await fetch(`/api/make-image-public/${encodeURIComponent(s3Key)}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (makePublicResponse.ok) {
+                                const makePublicData = await makePublicResponse.json();
+                                console.log(`✅ Image made public:`, makePublicData);
+                                
+                                // Try loading the image again
+                                await testImageLoad(s3Url);
+                                
+                                // Hide loading, show image
+                                loadingDiv.style.display = 'none';
+                                img.src = s3Url;
+                                img.style.display = 'block';
+                                img.onclick = () => openImageModal(s3Url, `Question ${parseInt(questionIndex) + 1} Image`);
+                                
+                                console.log(`✅ Successfully loaded image after making it public: ${s3Key}`);
+                                return; // Success, exit early
+                            } else {
+                                console.warn(`⚠️ Failed to make image public: ${s3Key}`);
+                            }
+                        } catch (makePublicError) {
+                            console.warn(`⚠️ Error making image public:`, makePublicError);
+                        }
+                        
+                        // If making public failed, show fallback
                         createCanvasImageDisplay(container, s3Key, questionIndex);
                     }
                 }
