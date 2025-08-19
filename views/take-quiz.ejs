@@ -385,7 +385,7 @@
                                     <!-- Multiple Choice Options -->
                                     <div class="options-list">
                                         <% question.options.forEach((option, optionIndex) => { %>
-                                            <div class="option-item" onclick="selectOption('<%= index %>', '<%= optionIndex %>')" data-question="<%= index %>" data-option="<%= optionIndex %>">
+                                            <div class="option-item" data-question="<%= index %>" data-option="<%= optionIndex %>">
                                                 <input type="radio" 
                                                        id="q<%= index %>-opt<%= optionIndex %>" 
                                                        name="question-<%= index %>" 
@@ -517,7 +517,7 @@
                                     <!-- Fallback to multiple choice if type is not specified but options exist -->
                                     <div class="options-list">
                                         <% question.options.forEach((option, optionIndex) => { %>
-                                            <div class="option-item" onclick="selectOption('<%= index %>', '<%= optionIndex %>')" data-question="<%= index %>" data-option="<%= optionIndex %>">
+                                            <div class="option-item" data-question="<%= index %>" data-option="<%= optionIndex %>">
                                                 <input type="radio" 
                                                        id="q<%= index %>-opt<%= optionIndex %>" 
                                                        name="question-<%= index %>" 
@@ -618,6 +618,15 @@
             // Add event listeners for question indicators
             document.querySelectorAll('.question-indicator').forEach((indicator, index) => {
                 indicator.addEventListener('click', () => goToQuestion(index));
+            });
+            
+            // Add event listeners for option items (click anywhere on the option area)
+            document.querySelectorAll('.option-item').forEach((optionItem) => {
+                optionItem.addEventListener('click', function() {
+                    const questionIndex = this.dataset.question;
+                    const optionIndex = this.dataset.option;
+                    selectOption(questionIndex, optionIndex);
+                });
             });
             
             // Check if this is a single-question quiz and update navigation accordingly
@@ -1286,7 +1295,6 @@
 
                 // For now, we'll skip loading images to avoid EJS syntax issues
                 console.log('📸 Skipping PDF images loading to avoid EJS syntax issues');
-                const container = document.getElementById('documentImagesContainer');
                 if (container) {
                     container.style.display = 'none';
                 }
