@@ -387,6 +387,8 @@
                                                                 <p style="margin: 0 0 15px 0; color: #6c757d;">
                                                                     <% if (pdfImage.isFullDocument && pdfImage.totalPages) { %>
                                                                         Full Document • <%= pdfImage.totalPages %> page<%= pdfImage.totalPages !== 1 ? 's' : '' %>
+                                                                    <% } else if (pdfImage.isIndividualPage && pdfImage.totalPages) { %>
+                                                                        Page <%= pdfImage.pageNumber %> of <%= pdfImage.totalPages %>
                                                                     <% } else { %>
                                                                         PDF Page <%= pdfImage.page %>
                                                                     <% } %>
