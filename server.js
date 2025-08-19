@@ -1027,6 +1027,86 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
   }
 }
 
+// Fallback function to extract first page as image (simpler method)
+async function extractFirstPageAsImage(fileBuffer, quizId) {
+  try {
+    console.log(`🔄 Fallback: Extracting first page as image for quiz: ${quizId}`);
+    
+    // Check if pdf2pic is available
+    let pdf2pic;
+    try {
+      pdf2pic = require('pdf2pic');
+      console.log('✅ pdf2pic library loaded for fallback');
+    } catch (libError) {
+      console.error('❌ pdf2pic library not available for fallback:', libError.message);
+      return [];
+    }
+    
+    const options = {
+      density: 150,
+      saveFilename: `quiz_${quizId}_fallback_page1`,
+      savePath: '/tmp/',
+      format: "png",
+      width: 600,
+      height: 800,
+      quality: 90
+    };
+    
+    console.log('🔄 Fallback options:', options);
+    
+    try {
+      const convert = pdf2pic.fromBuffer(fileBuffer, options);
+      console.log('✅ Fallback converter created');
+      
+      // Only try the first page
+      const pageImages = await convert(1, { responseType: "array" });
+      
+      if (pageImages && pageImages.length > 0) {
+        const imageData = pageImages[0];
+        if (imageData && imageData.data) {
+          const imageBuffer = Buffer.from(imageData.data);
+          console.log(`🔄 Fallback image buffer size: ${imageBuffer.length} bytes`);
+          
+          if (imageBuffer.length > 0) {
+            const imageFileName = `quiz_${quizId}_fallback_page1.png`;
+            
+            // Upload to S3
+            const s3Key = await uploadToS3({
+              buffer: imageBuffer,
+              originalname: imageFileName,
+              mimetype: 'image/png'
+            }, 'quiz-images');
+            
+            console.log(`✅ Fallback image uploaded to S3: ${s3Key}`);
+            
+            return [{
+              page: 1,
+              imageIndex: 1,
+              s3Key: s3Key,
+              width: options.width,
+              height: options.height,
+              originalName: imageFileName,
+              isFallback: true,
+              source: 'document-extraction'
+            }];
+          }
+        }
+      }
+      
+      console.log('⚠️  Fallback extraction returned no images');
+      return [];
+      
+    } catch (conversionError) {
+      console.error('❌ Fallback conversion failed:', conversionError.message);
+      return [];
+    }
+    
+  } catch (error) {
+    console.error('❌ Critical error in fallback extraction:', error);
+    return [];
+  }
+}
+
 // Language-specific parsing patterns
 function getLanguagePatterns(language) {
   const patterns = {
@@ -2714,18 +2794,42 @@ app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requ
         
         if (fileExtension === '.pdf') {
           console.log('📄 PDF detected, extracting images...');
-          documentImages = await extractImagesFromPDF(questionFile.buffer, 'temp_' + Date.now());
-          console.log(`🎯 Extracted ${documentImages.length} images from PDF`);
+          try {
+            documentImages = await extractImagesFromPDF(questionFile.buffer, 'temp_' + Date.now());
+            console.log(`🎯 Extracted ${documentImages.length} images from PDF`);
+            
+            if (documentImages.length === 0) {
+              console.log('⚠️  PDF image extraction returned 0 images, trying fallback method...');
+              // Try a simple fallback: convert first page to image
+              documentImages = await extractFirstPageAsImage(questionFile.buffer, 'temp_' + Date.now());
+              console.log(`🔄 Fallback extracted ${documentImages.length} images`);
+            }
+          } catch (extractError) {
+            console.error('❌ PDF image extraction failed:', extractError.message);
+            console.log('🔄 Trying fallback method...');
+            try {
+              documentImages = await extractFirstPageAsImage(questionFile.buffer, 'temp_' + Date.now());
+              console.log(`🔄 Fallback extracted ${documentImages.length} images`);
+            } catch (fallbackError) {
+              console.error('❌ Fallback also failed:', fallbackError.message);
+              documentImages = [];
+            }
+          }
         } else if (fileExtension === '.docx') {
           console.log('📄 DOCX detected, extracting images...');
-          documentImages = await extractImagesFromDOCX(questionFile.buffer, 'temp_' + Date.now());
-          console.log(`🎯 Extracted ${documentImages.length} images from DOCX`);
+          try {
+            documentImages = await extractImagesFromDOCX(questionFile.buffer, 'temp_' + Date.now());
+            console.log(`🎯 Extracted ${documentImages.length} images from DOCX`);
+          } catch (extractError) {
+            console.error('❌ DOCX image extraction failed:', extractError.message);
+            documentImages = [];
+          }
         }
         
         if (documentImages.length > 0) {
           console.log('✅ Images extracted successfully:', documentImages.length);
         } else {
-          console.log('⚠️  No images found in document');
+          console.log('⚠️  No images found in document - will create quiz without images');
         }
       } catch (error) {
         console.error('Error processing question file:', error);
