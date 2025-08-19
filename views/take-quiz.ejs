@@ -581,6 +581,8 @@
     </footer>
 
     <script>
+        console.log('🚀 Script starting to execute...');
+        
         // Global quiz data variables
         let currentQuestion = 0;
         let answers = {};
@@ -647,6 +649,7 @@
 
         // Function to select an option when clicking anywhere on the option area
         window.selectOption = function(questionIndex, optionIndex) {
+            console.log('🎯 selectOption called with:', questionIndex, optionIndex);
             // Convert string indices to integers
             questionIndex = parseInt(questionIndex);
             optionIndex = parseInt(optionIndex);
@@ -711,7 +714,7 @@
         }
 
         // Rich Text Editor Toggle for Students
-        function toggleStudentEditor(questionIndex, type) {
+        window.toggleStudentEditor = function(questionIndex, type) {
             const plainTextBtn = document.getElementById(`plainTextBtn-${questionIndex}`);
             const richTextBtn = document.getElementById(`richTextBtn-${questionIndex}`);
             const textarea = document.getElementById(`text-answer-${questionIndex}`);
@@ -746,7 +749,7 @@
         }
 
         // Insert math in student rich text editor
-        function insertMathInStudentEditor(questionIndex, latex) {
+        window.insertMathInStudentEditor = function(questionIndex, latex) {
             const textarea = document.getElementById(`text-answer-${questionIndex}`);
             const richTextContent = document.getElementById(`richTextContent-${questionIndex}`);
             
@@ -786,7 +789,7 @@
         }
 
         // Rich text editor commands for students
-        function execStudentCommand(questionIndex, command) {
+        window.execStudentCommand = function(questionIndex, command) {
             document.execCommand(command, false, null);
             updateStudentRichTextAnswer(questionIndex);
         }
@@ -894,11 +897,17 @@
         }
 
         window.nextQuestion = function() {
+            console.log('⏭️ nextQuestion called');
             if (currentQuestion < totalQuestions - 1) {
                 currentQuestion++;
                 showQuestion(currentQuestion);
             }
         }
+        
+        console.log('✅ Functions defined:', {
+            selectOption: typeof window.selectOption,
+            nextQuestion: typeof window.nextQuestion
+        });
 
         window.previousQuestion = function() {
             if (currentQuestion > 0) {
@@ -1191,7 +1200,7 @@
         }
         
         // Function to view detailed results
-        function viewDetailedResults(resultId) {
+        window.viewDetailedResults = function(resultId) {
             // Mark as submitted to prevent warning
             quizSubmitted = true;
             // Navigate to results page
@@ -1199,7 +1208,7 @@
         }
         
         // Function to open image modal
-        function openImageModal(imageUrl, title) {
+        window.openImageModal = function(imageUrl, title) {
             const modal = document.getElementById('imageModal');
             const modalImg = document.getElementById('modalImage');
             const modalTitle = document.getElementById('modalImageTitle');
@@ -1210,7 +1219,7 @@
         }
         
         // Function to close image modal
-        function closeImageModal() {
+        window.closeImageModal = function() {
             const modal = document.getElementById('imageModal');
             modal.style.display = 'none';
         }
@@ -1570,11 +1579,28 @@
         }
 
         // Function to retry loading an image
-        async function retryImageLoad(s3Key, questionIndex) {
+        window.retryImageLoad = async function(s3Key, questionIndex) {
             console.log(`🔄 Retrying image load for question ${questionIndex}, S3 key: ${s3Key}`);
             // Reload the page to retry
             window.location.reload();
         }
+        
+        // Final debug log to confirm all functions are defined
+        console.log('🎯 All functions registered:', {
+            selectOption: typeof window.selectOption,
+            nextQuestion: typeof window.nextQuestion,
+            previousQuestion: typeof window.previousQuestion,
+            goToQuestion: typeof window.goToQuestion,
+            toggleStudentEditor: typeof window.toggleStudentEditor,
+            insertMathInStudentEditor: typeof window.insertMathInStudentEditor,
+            execStudentCommand: typeof window.execStudentCommand,
+            openImageModal: typeof window.openImageModal,
+            closeImageModal: typeof window.closeImageModal,
+            viewDetailedResults: typeof window.viewDetailedResults,
+            retryImageLoad: typeof window.retryImageLoad
+        });
+        
+        console.log('🚀 Script execution completed!');
     </script>
     
     <!-- Image Modal -->
