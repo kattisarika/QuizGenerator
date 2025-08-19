@@ -919,12 +919,94 @@
             }
         });
 
+        // Simple image loading functionality
+        function loadQuestionImages() {
+            const questionImageContainers = document.querySelectorAll('.question-image-container[data-s3-key]');
+            
+            if (questionImageContainers.length === 0) {
+                console.log('No question images found');
+                return;
+            }
+
+            console.log(`🔗 Loading ${questionImageContainers.length} question images`);
+
+            questionImageContainers.forEach((container) => {
+                const s3Key = container.dataset.s3Key;
+                const questionIndex = container.dataset.questionIndex;
+                const loadingDiv = container.querySelector('.question-image-loading');
+                const img = container.querySelector('.question-image');
+
+                if (!s3Key || !loadingDiv || !img) {
+                    console.log(`Missing required elements for question ${questionIndex}`);
+                    return;
+                }
+
+                // Use direct S3 URL
+                const s3Url = `https://skillon-test.s3.amazonaws.com/${s3Key}`;
+                console.log(`🔗 Loading image for question ${questionIndex}: ${s3Url}`);
+
+                // Load the image
+                img.onload = function() {
+                    loadingDiv.style.display = 'none';
+                    img.style.display = 'block';
+                    console.log(`✅ Image loaded for question ${questionIndex}`);
+                };
+
+                img.onerror = function() {
+                    loadingDiv.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #dc3545;">
+                            <i class="fas fa-exclamation-triangle"></i> Failed to load image
+                        </div>
+                    `;
+                    console.error(`❌ Failed to load image for question ${questionIndex}`);
+                };
+
+                img.src = s3Url;
+            });
+        }
+
+        // Load images when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load question images after a short delay
+            setTimeout(loadQuestionImages, 500);
+        });
+
+        // Image modal functions
+        window.openImageModal = function(imageUrl, title) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalImageTitle');
+            
+            if (modal && modalImg && modalTitle) {
+                modalTitle.textContent = title;
+                modalImg.src = imageUrl;
+                modal.style.display = 'block';
+            }
+        };
+
+        window.closeImageModal = function() {
+            const modal = document.getElementById('imageModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('imageModal');
+            if (event.target === modal) {
+                closeImageModal();
+            }
+        };
+
         // Final debug log to confirm all functions are defined
         console.log('🎯 All functions registered:', {
             selectOption: typeof window.selectOption,
             nextQuestion: typeof window.nextQuestion,
             previousQuestion: typeof window.previousQuestion,
-            goToQuestion: typeof window.goToQuestion
+            goToQuestion: typeof window.goToQuestion,
+            openImageModal: typeof window.openImageModal,
+            closeImageModal: typeof window.closeImageModal
         });
         
         console.log('🚀 Script execution completed!');
