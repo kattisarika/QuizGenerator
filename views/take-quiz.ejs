@@ -896,7 +896,7 @@
             updateProgress();
         }
 
-        window.nextQuestion = function() {
+        function nextQuestion() {
             console.log('⏭️ nextQuestion called');
             if (currentQuestion < totalQuestions - 1) {
                 currentQuestion++;
@@ -904,22 +904,31 @@
             }
         }
         
+        // Also make it available on window for competitive mode
+        window.nextQuestion = nextQuestion;
+        
         console.log('✅ Functions defined:', {
             selectOption: typeof window.selectOption,
             nextQuestion: typeof window.nextQuestion
         });
 
-        window.previousQuestion = function() {
+        function previousQuestion() {
             if (currentQuestion > 0) {
                 currentQuestion--;
                 showQuestion(currentQuestion);
             }
         }
+        
+        // Also make it available on window for competitive mode
+        window.previousQuestion = previousQuestion;
 
-        window.goToQuestion = function(index) {
+        function goToQuestion(index) {
             currentQuestion = index;
             showQuestion(currentQuestion);
         }
+        
+        // Also make it available on window for competitive mode
+        window.goToQuestion = goToQuestion;
 
         // Track answers
         document.addEventListener('change', function(e) {
