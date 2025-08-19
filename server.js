@@ -2783,7 +2783,7 @@ app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requ
       createdBy: req.user._id,
       createdByName: req.user.displayName,
       organizationId: req.user.organizationId,
-      isApproved: false
+      isApproved: true  // Auto-approve teacher quizzes
     });
 
     await quiz.save();
