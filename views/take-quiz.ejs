@@ -1108,27 +1108,21 @@
             // Debug: Check what images exist
             const questionImageContainers = document.querySelectorAll('.question-image-container');
             const pdfImages = document.querySelectorAll('.pdf-image');
+            const pdfDocuments = document.querySelectorAll('.pdf-document-display');
             const pdfImagesContainer = document.querySelector('.pdf-images-container');
             
             console.log('🔍 Image Debug Info:');
             console.log('  - Question image containers found:', questionImageContainers.length);
             console.log('  - PDF images found:', pdfImages.length);
+            console.log('  - PDF documents found:', pdfDocuments.length);
             console.log('  - PDF images container exists:', !!pdfImagesContainer);
             
             // Debug: Check quiz data from EJS
             console.log('🔍 Quiz Data Debug:');
             console.log('  - Quiz ID:', '<%= quiz._id %>');
             console.log('  - Quiz title:', '<%= quiz.title %>');
-            console.log('  - Quiz object keys:', '<%= Object.keys(quiz).join(", ") %>');
             console.log('  - PDF Images property:', '<%= quiz.pdfImages ? "exists" : "missing" %>');
             console.log('  - PDF Images length:', '<%= quiz.pdfImages ? quiz.pdfImages.length : "undefined" %>');
-            
-            // Check for other potential image properties
-            console.log('🔍 Additional Image Properties:');
-            console.log('  - quiz.images:', '<%= quiz.images ? "exists" : "missing" %>');
-            console.log('  - quiz.documentImages:', '<%= quiz.documentImages ? "exists" : "missing" %>');
-            console.log('  - quiz.extractedImages:', '<%= quiz.extractedImages ? "exists" : "missing" %>');
-            console.log('  - quiz.hasImages:', '<%= quiz.hasImages ? "exists" : "missing" %>');
             
             if (questionImageContainers.length > 0) {
                 questionImageContainers.forEach((container, index) => {
@@ -1142,6 +1136,13 @@
                 pdfImages.forEach((img, index) => {
                     const src = img.getAttribute('src');
                     console.log(`  - PDF Image ${index}: src="${src}"`);
+                });
+            }
+            
+            if (pdfDocuments.length > 0) {
+                pdfDocuments.forEach((doc, index) => {
+                    const title = doc.querySelector('h5')?.textContent || 'Unknown PDF';
+                    console.log(`  - PDF Document ${index}: "${title}"`);
                 });
             }
             
