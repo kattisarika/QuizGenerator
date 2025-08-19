@@ -345,11 +345,11 @@
                                                                 <% } %>
                                                             <% } %>
                                                         </div>
-                                                        <img src="https://<%= s3BucketName || 'skillon-test' %>.s3.amazonaws.com/<%= pdfImage.s3Key %>" 
+                                                        <img src="https://skillon-test.s3.amazonaws.com/<%= pdfImage.s3Key %>" 
                                                              alt="Document Image" 
                                                              class="pdf-image" 
                                                              style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
-                                                             onclick="openImageModal('https://<%= s3BucketName || 'skillon-test' %>.s3.amazonaws.com/<%= pdfImage.s3Key %>', 'Document Image')">
+                                                             onclick="openImageModal('https://skillon-test.s3.amazonaws.com/<%= pdfImage.s3Key %>', 'Document Image')">
                                                         <div class="image-info">
                                                             <small class="text-muted">
                                                                 <% if (pdfImage.source === 'document-extraction') { %>
@@ -965,10 +965,84 @@
             });
         }
 
+        // PDF document images loading functionality
+        function loadPdfImages() {
+            const pdfImages = document.querySelectorAll('.pdf-image');
+            
+            if (pdfImages.length === 0) {
+                console.log('No PDF images found');
+                return;
+            }
+
+            console.log(`🔗 Loading ${pdfImages.length} PDF document images`);
+
+            pdfImages.forEach((img, index) => {
+                // Get the current src attribute
+                const currentSrc = img.getAttribute('src');
+                
+                if (!currentSrc || currentSrc === 'undefined') {
+                    console.log(`PDF image ${index} has no valid src`);
+                    return;
+                }
+
+                console.log(`🔗 Loading PDF image ${index + 1}: ${currentSrc}`);
+
+                // Add loading state
+                img.style.opacity = '0.5';
+                img.style.filter = 'grayscale(100%)';
+
+                // Load the image
+                img.onload = function() {
+                    img.style.opacity = '1';
+                    img.style.filter = 'none';
+                    console.log(`✅ PDF image ${index + 1} loaded successfully`);
+                };
+
+                img.onerror = function() {
+                    img.style.opacity = '0.3';
+                    img.style.filter = 'grayscale(100%)';
+                    
+                    // Add error overlay
+                    const errorOverlay = document.createElement('div');
+                    errorOverlay.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(220, 53, 69, 0.8);
+                        color: white;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        text-align: center;
+                        border-radius: 8px;
+                        font-size: 12px;
+                        padding: 10px;
+                    `;
+                    errorOverlay.innerHTML = '<i class="fas fa-exclamation-triangle"></i><br>Image failed to load';
+                    
+                    // Make the image container relative positioned
+                    const container = img.closest('.pdf-image-item');
+                    if (container) {
+                        container.style.position = 'relative';
+                        container.appendChild(errorOverlay);
+                    }
+                    
+                    console.error(`❌ PDF image ${index + 1} failed to load: ${currentSrc}`);
+                };
+
+                // Force reload the image
+                img.src = currentSrc;
+            });
+        }
+
         // Load images when page loads
         document.addEventListener('DOMContentLoaded', function() {
             // Load question images after a short delay
             setTimeout(loadQuestionImages, 500);
+            // Load PDF document images after a short delay
+            setTimeout(loadPdfImages, 800);
         });
 
         // Image modal functions
