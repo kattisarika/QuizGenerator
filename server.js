@@ -921,14 +921,13 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
               console.log(`✅ Embedded image uploaded to S3: ${s3Key}`);
               
               images.push({
-                page: 'embedded',
+                page: 1, // Use page 1 for embedded images
                 imageIndex: imgIndex + 1,
                 s3Key: s3Key,
-                width: embeddedImage.width,
-                height: embeddedImage.height,
+                width: embeddedImage.width || 800,
+                height: embeddedImage.height || 600,
                 originalName: imageFileName,
-                source: 'pdf-embedded',
-                type: 'embedded'
+                source: 'pdf' // Use valid enum value
               });
               
               console.log(`✅ Successfully processed embedded image ${imgIndex + 1}`);
@@ -978,8 +977,7 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
               width: page.getWidth(),
               height: page.getHeight(),
               originalName: pageFileName,
-              source: 'pdf-page',
-              type: 'page-pdf'
+              source: 'pdf' // Use valid enum value
             });
             
             console.log(`✅ Successfully processed page ${pageIndex + 1}`);
@@ -1063,9 +1061,7 @@ async function extractFirstPageAsImage(fileBuffer, quizId) {
           width: page.getWidth(),
           height: page.getHeight(),
           originalName: pageFileName,
-          isFallback: true,
-          source: 'pdf-page',
-          type: 'page-pdf'
+          source: 'pdf' // Use valid enum value
         }];
       }
       
@@ -2855,11 +2851,7 @@ app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requ
       questionPaperUrl: questionFileUrl,
       answerPaperUrl: answerFileUrl,
       questions: extractedQuestions,
-      pdfImages: documentImages.map(img => ({
-        s3Key: img,
-        originalName: `extracted_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`,
-        source: 'document-extraction'
-      })),
+      pdfImages: documentImages, // documentImages already has the correct structure
       createdBy: req.user._id,
       createdByName: req.user.displayName,
       organizationId: req.user.organizationId,
