@@ -269,8 +269,8 @@
                     <h1><%= quiz.title %></h1>
                     <p><%= quiz.description %></p>
                     
-                    <!-- Re-extract PDF Images Button (Temporary) -->
-                    <% if (quiz.pdfImages && quiz.pdfImages.length === 0 && quiz.questionPaperUrl) { %>
+                    <!-- Re-extract PDF Images Button (Only for Teachers/Admins) -->
+                    <% if (quiz.pdfImages && quiz.pdfImages.length === 0 && quiz.questionPaperUrl && user && (user.role === 'teacher' || user.role === 'admin')) { %>
                         <div class="reextract-section" style="margin-top: 15px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px;">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <div>
@@ -283,6 +283,21 @@
                                 <button id="reextract-pdf-btn" class="btn btn-warning" style="white-space: nowrap;">
                                     <i class="fas fa-sync-alt"></i> Re-extract PDF Images
                                 </button>
+                            </div>
+                        </div>
+                    <% } %>
+                    
+                    <!-- Student Notice for Missing PDF Images -->
+                    <% if (quiz.pdfImages && quiz.pdfImages.length === 0 && quiz.questionPaperUrl && user && user.role === 'student') { %>
+                        <div class="reextract-section" style="margin-top: 15px; padding: 15px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px;">
+                            <div style="display: flex; align-items: center;">
+                                <div>
+                                    <i class="fas fa-info-circle" style="color: #2196f3; margin-right: 8px;"></i>
+                                    <strong style="color: #1976d2;">PDF Images Missing</strong>
+                                    <p style="margin: 5px 0 0 0; color: #1976d2; font-size: 14px;">
+                                        This quiz is missing PDF images. Please contact your teacher to fix this issue.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     <% } %>
