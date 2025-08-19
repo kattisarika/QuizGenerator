@@ -77,6 +77,51 @@
         .no-options-message i {
             color: #f39c12;
         }
+        
+        /* Question Indicator Styles */
+        .question-indicator {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            color: #495057;
+            margin: 0 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .question-indicator:hover {
+            background-color: #dee2e6;
+            transform: scale(1.1);
+        }
+        
+        .question-indicator.answered {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .question-indicator.active {
+            background-color: #007bff;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .question-indicator.unanswered-highlight {
+            background-color: #dc3545;
+            color: white;
+            animation: pulse 0.5s ease-in-out;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
 
         /* Math Toolbar Styles */
         .math-toolbar {
@@ -864,6 +909,11 @@
         document.getElementById('quiz-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // Validate that all questions are answered
+            if (!validateAllQuestionsAnswered()) {
+                return; // Stop submission if validation fails
+            }
+            
             const timeTaken = Math.floor((Date.now() - startTime) / 1000);
             
             // Collect all answers
@@ -923,6 +973,59 @@
             }
         });
         
+        // Function to validate that all questions are answered
+        function validateAllQuestionsAnswered() {
+            const unansweredQuestions = [];
+            
+            for (let i = 0; i < totalQuestions; i++) {
+                if (!answers[i] || !answers[i].selectedAnswer || answers[i].selectedAnswer.trim() === '') {
+                    unansweredQuestions.push(i + 1); // Question numbers are 1-based for display
+                }
+            }
+            
+            if (unansweredQuestions.length > 0) {
+                // Show alert with specific unanswered questions
+                const questionList = unansweredQuestions.join(', ');
+                alert(`Please answer all quiz questions.\n\nUnanswered questions: ${questionList}`);
+                
+                // Highlight unanswered questions visually
+                highlightUnansweredQuestions(unansweredQuestions);
+                
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Function to highlight unanswered questions
+        function highlightUnansweredQuestions(unansweredQuestionNumbers) {
+            // Remove any existing highlighting
+            document.querySelectorAll('.question-indicator').forEach(indicator => {
+                indicator.classList.remove('unanswered-highlight');
+            });
+            
+            // Add highlighting to unanswered questions
+            unansweredQuestionNumbers.forEach(questionNum => {
+                const questionIndex = questionNum - 1; // Convert back to 0-based index
+                const indicator = document.getElementById(`indicator-${questionIndex}`);
+                if (indicator) {
+                    indicator.classList.add('unanswered-highlight');
+                    
+                    // Scroll to the first unanswered question
+                    if (questionNum === unansweredQuestionNumbers[0]) {
+                        goToQuestion(questionIndex);
+                    }
+                }
+            });
+            
+            // Remove highlighting after 3 seconds
+            setTimeout(() => {
+                document.querySelectorAll('.question-indicator').forEach(indicator => {
+                    indicator.classList.remove('unanswered-highlight');
+                });
+            }, 3000);
+        }
+
         // Function to show completion message
         function showCompletionMessage(data) {
             // Mark quiz as submitted to prevent leave warning
