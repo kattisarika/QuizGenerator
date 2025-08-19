@@ -81,16 +81,16 @@ const quizSchema = new mongoose.Schema({
   },
   gradeLevel: {
     type: String,
-    enum: ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'],
+    enum: ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade', 'Young Adult Education'],
     required: true
   },
   subjects: [{
     type: String,
-    enum: ['English', 'Science', 'Math']
+    enum: ['English', 'Science', 'Math', 'Python', 'Tableau', 'Power BI']
   }],
   language: {
     type: String,
-    enum: ['English', 'Spanish', 'French', 'Kannada'],
+    enum: ['English', 'Spanish', 'French'],
     default: 'English',
     required: true
   },
@@ -131,6 +131,22 @@ const quizSchema = new mongoose.Schema({
       type: String,
       enum: ['pdf', 'docx', 'doc'],
       default: 'pdf'
+    },
+    isIndividualPage: {
+      type: Boolean,
+      default: false
+    },
+    pageNumber: {
+      type: Number,
+      default: null
+    },
+    totalPages: {
+      type: Number,
+      default: null
+    },
+    isFullDocument: {
+      type: Boolean,
+      default: false
     }
   }],
   createdAt: {
