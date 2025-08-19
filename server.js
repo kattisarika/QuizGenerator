@@ -5130,11 +5130,31 @@ app.post('/api/extend-session', requireAuth, (req, res) => {
   res.json({ success: true, message: 'Session extended' });
 });
 
+// Debug endpoint to check user authentication status
+app.get('/api/debug-auth', (req, res) => {
+  console.log('🔍 Debug auth endpoint called');
+  console.log('Session:', req.session);
+  console.log('User:', req.user);
+  console.log('isAuthenticated:', req.isAuthenticated ? req.isAuthenticated() : 'undefined');
+  
+  res.json({
+    session: req.session ? {
+      id: req.session.id,
+      user: req.session.user,
+      lastActivity: req.session.lastActivity
+    } : null,
+    user: req.user,
+    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
+    headers: req.headers
+  });
+});
+
 // API endpoint to re-extract PDF images for an existing quiz
 app.post('/api/reextract-pdf-images/:quizId', requireAuth, requireRole(['teacher', 'admin']), async (req, res) => {
   try {
     const { quizId } = req.params;
     console.log(`🔄 Re-extracting PDF images for quiz: ${quizId}`);
+    console.log(`👤 User info: ID=${req.user._id}, Role=${req.user.role}, Email=${req.user.email}`);
     
     // Find the quiz
     const Quiz = require('./models/Quiz');
@@ -5144,9 +5164,18 @@ app.post('/api/reextract-pdf-images/:quizId', requireAuth, requireRole(['teacher
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
     
+    console.log(`📋 Quiz info: Created by=${quiz.createdBy}, Title=${quiz.title}`);
+    
     // Check if user has permission (quiz creator or admin)
     if (quiz.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'You can only re-extract images for your own quizzes' });
+      console.log(`❌ Permission denied: User ${req.user._id} (${req.user.role}) cannot modify quiz ${quiz.createdBy}`);
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You can only re-extract images for your own quizzes',
+        userRole: req.user.role,
+        quizCreator: quiz.createdBy.toString(),
+        userId: req.user._id.toString()
+      });
     }
     
     // Check if quiz has a question paper URL
