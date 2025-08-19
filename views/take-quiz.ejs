@@ -390,11 +390,33 @@
                                                                 <% } %>
                                                             <% } %>
                                                         </div>
-                                                        <img src="https://skillon-test.s3.amazonaws.com/<%= pdfImage.s3Key %>" 
-                                                             alt="Document Image" 
-                                                             class="pdf-image" 
-                                                             style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
-                                                             onclick="openImageModal('https://skillon-test.s3.amazonaws.com/<%= pdfImage.s3Key %>', 'Document Image')">
+                                                        <% if (pdfImage.originalName && pdfImage.originalName.toLowerCase().endsWith('.pdf')) { %>
+                                                            <!-- PDF Document Display -->
+                                                            <div class="pdf-document-display" style="border: 2px dashed #dee2e6; padding: 20px; text-align: center; background: #f8f9fa; border-radius: 8px;">
+                                                                <i class="fas fa-file-pdf" style="font-size: 48px; color: #dc3545; margin-bottom: 15px;"></i>
+                                                                <h5 style="margin: 0 0 10px 0; color: #495057;"><%= pdfImage.originalName %></h5>
+                                                                <p style="margin: 0 0 15px 0; color: #6c757d;">
+                                                                    <% if (pdfImage.isFullDocument && pdfImage.totalPages) { %>
+                                                                        Full Document • <%= pdfImage.totalPages %> page<%= pdfImage.totalPages !== 1 ? 's' : '' %>
+                                                                    <% } else { %>
+                                                                        PDF Page <%= pdfImage.page %>
+                                                                    <% } %>
+                                                                </p>
+                                                                <button class="btn btn-primary btn-sm" onclick="openPdfViewer('https://skillon-test.s3.amazonaws.com/<%= pdfImage.s3Key %>', '<%= pdfImage.originalName %>')">
+                                                                    <i class="fas fa-eye"></i> View PDF
+                                                                </button>
+                                                                <button class="btn btn-outline-secondary btn-sm ml-2" onclick="downloadPdf('https://skillon-test.s3.amazonaws.com/<%= pdfImage.s3Key %>', '<%= pdfImage.originalName %>')">
+                                                                    <i class="fas fa-download"></i> Download
+                                                                </button>
+                                                            </div>
+                                                        <% } else { %>
+                                                            <!-- Regular Image Display -->
+                                                            <img src="https://skillon-test.s3.amazonaws.com/<%= pdfImage.s3Key %>" 
+                                                                 alt="Document Image" 
+                                                                 class="pdf-image" 
+                                                                 style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
+                                                                 onclick="openImageModal('https://skillon-test.s3.amazonaws.com/<%= pdfImage.s3Key %>', 'Document Image')">
+                                                        <% } %>
                                                         <div class="image-info">
                                                             <small class="text-muted">
                                                                 <% if (pdfImage.source === 'document-extraction') { %>
@@ -1163,6 +1185,41 @@
             const modal = document.getElementById('imageModal');
             if (event.target === modal) {
                 closeImageModal();
+            }
+        };
+
+        // PDF Viewer and Download functions
+        window.openPdfViewer = function(pdfUrl, fileName) {
+            try {
+                // Open PDF in a new tab/window
+                const newWindow = window.open(pdfUrl, '_blank');
+                if (!newWindow) {
+                    // If popup blocked, show alert
+                    alert('Popup blocked! Please allow popups for this site to view PDFs.');
+                }
+            } catch (error) {
+                console.error('Error opening PDF viewer:', error);
+                alert('Error opening PDF. Please try again.');
+            }
+        };
+
+        window.downloadPdf = function(pdfUrl, fileName) {
+            try {
+                // Create a temporary link element for download
+                const link = document.createElement('a');
+                link.href = pdfUrl;
+                link.download = fileName;
+                link.target = '_blank';
+                
+                // Append to body, click, and remove
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                console.log('PDF download initiated:', fileName);
+            } catch (error) {
+                console.error('Error downloading PDF:', error);
+                alert('Error downloading PDF. Please try again.');
             }
         };
 

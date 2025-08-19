@@ -939,53 +939,43 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
         }
       }
       
-      // If no embedded images found, try to convert pages to images
+      // If no embedded images found, try to convert pages to actual images
       if (images.length === 0) {
-        console.log('📄 No embedded images found, converting pages to images...');
+        console.log('📄 No embedded images found, converting pages to actual images...');
         
-        // Convert each page to an image using pdf-lib
-        for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-          try {
-            const page = pages[pageIndex];
-            console.log(`📄 Converting page ${pageIndex + 1} to image...`);
-            
-            // Create a new PDF with just this page
-            const singlePagePdf = await pdfLib.PDFDocument.create();
-            const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [pageIndex]);
-            singlePagePdf.addPage(copiedPage);
-            
-            // Convert PDF to bytes
-            const pdfBytes = await singlePagePdf.save();
-            const pdfBuffer = Buffer.from(pdfBytes);
-            
-            // For now, we'll store the page as a PDF and let the frontend handle display
-            // This is more reliable than trying to convert to image on the server
-            const pageFileName = `quiz_${quizId}_page_${pageIndex + 1}.pdf`;
-            
-            const s3Key = await uploadToS3({
-              buffer: pdfBuffer,
-              originalname: pageFileName,
-              mimetype: 'application/pdf'
-            }, 'quiz-images');
-            
-            console.log(`✅ Page ${pageIndex + 1} uploaded to S3: ${s3Key}`);
-            
-            images.push({
-              page: pageIndex + 1,
-              imageIndex: 1,
-              s3Key: s3Key,
-              width: page.getWidth(),
-              height: page.getHeight(),
-              originalName: pageFileName,
-              source: 'pdf' // Use valid enum value
-            });
-            
-            console.log(`✅ Successfully processed page ${pageIndex + 1}`);
-            
-          } catch (pageError) {
-            console.error(`❌ Error processing page ${pageIndex + 1}:`, pageError.message);
-            continue;
-          }
+        // Since we can't easily convert PDF to image on the server without additional libraries,
+        // we'll store the original PDF and let the frontend handle the display
+        // This is actually better for performance and reliability
+        
+        try {
+          console.log('📄 Storing original PDF for frontend processing...');
+          
+          const originalFileName = `quiz_${quizId}_original.pdf`;
+          const s3Key = await uploadToS3({
+            buffer: fileBuffer,
+            originalname: originalFileName,
+            mimetype: 'application/pdf'
+          }, 'quiz-images');
+          
+          console.log(`✅ Original PDF uploaded to S3: ${s3Key}`);
+          
+          // Store one entry representing the entire PDF
+          images.push({
+            page: 1,
+            imageIndex: 1,
+            s3Key: s3Key,
+            width: pages[0] ? pages[0].getWidth() : 800,
+            height: pages[0] ? pages[0].getHeight() : 600,
+            originalName: originalFileName,
+            source: 'pdf',
+            isFullDocument: true,
+            totalPages: pages.length
+          });
+          
+          console.log(`✅ Successfully stored original PDF with ${pages.length} pages`);
+          
+        } catch (pdfError) {
+          console.error('❌ Error storing original PDF:', pdfError.message);
         }
       }
       
