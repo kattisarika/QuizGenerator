@@ -968,9 +968,15 @@
         // PDF document images loading functionality
         function loadPdfImages() {
             const pdfImages = document.querySelectorAll('.pdf-image');
+            const pdfImagesContainer = document.querySelector('.pdf-images-container');
+            
+            if (!pdfImagesContainer) {
+                console.log('📋 No PDF images container found - quiz may not have PDF images');
+                return;
+            }
             
             if (pdfImages.length === 0) {
-                console.log('No PDF images found');
+                console.log('📋 No PDF image elements found in container');
                 return;
             }
 
@@ -980,8 +986,8 @@
                 // Get the current src attribute
                 const currentSrc = img.getAttribute('src');
                 
-                if (!currentSrc || currentSrc === 'undefined') {
-                    console.log(`PDF image ${index} has no valid src`);
+                if (!currentSrc || currentSrc === 'undefined' || currentSrc.includes('undefined')) {
+                    console.log(`❌ PDF image ${index} has invalid src: "${currentSrc}"`);
                     return;
                 }
 
@@ -1039,6 +1045,33 @@
 
         // Load images when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔄 DOM Content Loaded - Starting image loading...');
+            
+            // Debug: Check what images exist
+            const questionImageContainers = document.querySelectorAll('.question-image-container');
+            const pdfImages = document.querySelectorAll('.pdf-image');
+            const pdfImagesContainer = document.querySelector('.pdf-images-container');
+            
+            console.log('🔍 Image Debug Info:');
+            console.log('  - Question image containers found:', questionImageContainers.length);
+            console.log('  - PDF images found:', pdfImages.length);
+            console.log('  - PDF images container exists:', !!pdfImagesContainer);
+            
+            if (questionImageContainers.length > 0) {
+                questionImageContainers.forEach((container, index) => {
+                    const s3Key = container.dataset.s3Key;
+                    const questionIndex = container.dataset.questionIndex;
+                    console.log(`  - Question ${index}: s3Key="${s3Key}", questionIndex="${questionIndex}"`);
+                });
+            }
+            
+            if (pdfImages.length > 0) {
+                pdfImages.forEach((img, index) => {
+                    const src = img.getAttribute('src');
+                    console.log(`  - PDF Image ${index}: src="${src}"`);
+                });
+            }
+            
             // Load question images after a short delay
             setTimeout(loadQuestionImages, 500);
             // Load PDF document images after a short delay
