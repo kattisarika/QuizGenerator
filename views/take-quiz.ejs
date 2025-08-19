@@ -317,6 +317,7 @@
                                         quiz.pdfImages exists: <%= !!quiz.pdfImages %>, 
                                         Length: <%= quiz.pdfImages ? quiz.pdfImages.length : 'undefined' %>, 
                                         Type: <%= typeof quiz.pdfImages %>
+                                        <br>Raw pdfImages: <%= JSON.stringify(quiz.pdfImages) %>
                                         <% if (quiz.pdfImages && quiz.pdfImages.length > 0) { %>
                                             <br>First image: <%= JSON.stringify(quiz.pdfImages[0]) %>
                                         <% } %>
@@ -1075,6 +1076,13 @@
             console.log('  - Quiz object keys:', '<%= Object.keys(quiz).join(", ") %>');
             console.log('  - PDF Images property:', '<%= quiz.pdfImages ? "exists" : "missing" %>');
             console.log('  - PDF Images length:', '<%= quiz.pdfImages ? quiz.pdfImages.length : "undefined" %>');
+            
+            // Check for other potential image properties
+            console.log('🔍 Additional Image Properties:');
+            console.log('  - quiz.images:', '<%= quiz.images ? "exists" : "missing" %>');
+            console.log('  - quiz.documentImages:', '<%= quiz.documentImages ? "exists" : "missing" %>');
+            console.log('  - quiz.extractedImages:', '<%= quiz.extractedImages ? "exists" : "missing" %>');
+            console.log('  - quiz.hasImages:', '<%= quiz.hasImages ? "exists" : "missing" %>');
             
             if (questionImageContainers.length > 0) {
                 questionImageContainers.forEach((container, index) => {
