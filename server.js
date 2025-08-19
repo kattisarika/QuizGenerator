@@ -2663,6 +2663,140 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
   }
 });
 
+// Create Quiz with Images route
+app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requireApprovedTeacher, upload.fields([
+  { name: 'questionPaper', maxCount: 1 },
+  { name: 'answerPaper', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    const { title, description, gradeLevel, imagesSubjects, imagesLanguage, imagesQuizType } = req.body;
+    let extractedQuestions = [];
+    let questionFileUrl = null;
+    let answerFileUrl = null;
+    let documentImages = [];
+
+    console.log('Creating quiz with images:', { title, description, gradeLevel, imagesSubjects, imagesLanguage, imagesQuizType });
+    console.log('Files received:', req.files);
+
+    // Validate required fields
+    if (!gradeLevel || !imagesSubjects || !imagesLanguage) {
+      return res.status(400).send('Grade level, subject, and language are required');
+    }
+
+    // Process question paper
+    if (req.files.questionPaper && req.files.questionPaper[0]) {
+      const questionFile = req.files.questionPaper[0];
+      console.log('Processing question file with images:', questionFile.originalname);
+      
+      try {
+        // Upload to S3 first
+        questionFileUrl = await uploadToS3(questionFile, 'question-papers');
+        console.log('Question paper uploaded to S3:', questionFileUrl);
+        
+        const questionText = await extractTextFromFile(questionFile.buffer, questionFile.originalname);
+        console.log('Extracted text length:', questionText.length);
+        
+        if (!questionText || questionText.trim().length === 0) {
+          return res.status(400).send('Could not extract text from the uploaded question paper.');
+        }
+        
+        extractedQuestions = parseQuestionsFromText(questionText, imagesLanguage);
+        console.log('Parsed questions count:', extractedQuestions.length);
+        
+        // Extract images from uploaded documents
+        const fileExtension = path.extname(questionFile.originalname).toLowerCase();
+        
+        if (fileExtension === '.pdf') {
+          console.log('📄 PDF detected, extracting images...');
+          documentImages = await extractImagesFromPDF(questionFile.buffer, 'temp_' + Date.now());
+          console.log(`🎯 Extracted ${documentImages.length} images from PDF`);
+        } else if (fileExtension === '.docx') {
+          console.log('📄 DOCX detected, extracting images...');
+          documentImages = await extractImagesFromDOCX(questionFile.buffer, 'temp_' + Date.now());
+          console.log(`🎯 Extracted ${documentImages.length} images from DOCX`);
+        }
+        
+        if (documentImages.length > 0) {
+          console.log('✅ Images extracted successfully:', documentImages.length);
+        } else {
+          console.log('⚠️  No images found in document');
+        }
+      } catch (error) {
+        console.error('Error processing question file:', error);
+        return res.status(500).send('Error processing question file: ' + error.message);
+      }
+    } else {
+      return res.status(400).send('Question paper is required');
+    }
+
+    // Process answer paper if provided
+    if (req.files.answerPaper && req.files.answerPaper[0]) {
+      const answerFile = req.files.answerPaper[0];
+      console.log('Processing answer file:', answerFile.originalname);
+      
+      try {
+        answerFileUrl = await uploadToS3(answerFile, 'answer-papers');
+        console.log('Answer paper uploaded to S3:', answerFileUrl);
+      } catch (error) {
+        console.error('Error processing answer file:', error);
+        // Don't fail the entire request if answer file fails
+      }
+    }
+
+    // Create quiz with extracted images
+    const finalTitle = `${title} - ${new Date().toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })}`;
+
+    const quiz = new Quiz({
+      title: finalTitle,
+      description: description || '',
+      gradeLevel: gradeLevel,
+      subjects: imagesSubjects,
+      language: imagesLanguage,
+      quizType: imagesQuizType || 'regular',
+      questionPaperUrl: questionFileUrl,
+      answerPaperUrl: answerFileUrl,
+      questions: extractedQuestions,
+      pdfImages: documentImages.map(img => ({
+        s3Key: img,
+        originalName: `extracted_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`,
+        source: 'document-extraction'
+      })),
+      createdBy: req.user._id,
+      createdByName: req.user.name,
+      organizationId: req.user.organizationId,
+      isApproved: false
+    });
+
+    await quiz.save();
+    console.log('✅ Quiz with images created successfully:', finalTitle);
+
+    res.json({ 
+      success: true, 
+      quizId: quiz._id,
+      finalTitle: finalTitle,
+      imagesCount: documentImages.length,
+      message: `Quiz created successfully with ${documentImages.length} extracted images: ${finalTitle}`
+    });
+
+  } catch (error) {
+    console.error('Error creating quiz with images:', error);
+    
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(e => e.message);
+      return res.status(400).send(`Validation error: ${errors.join(', ')}`);
+    }
+    
+    res.status(500).send('Error creating quiz with images: ' + error.message);
+  }
+});
+
 // Recorrection system routes
 app.post('/request-recorrection', requireAuth, requireRole(['student']), async (req, res) => {
   try {
