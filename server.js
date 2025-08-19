@@ -942,6 +942,7 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
       // If no embedded images found, try to convert pages to actual images
       if (images.length === 0) {
         console.log('📄 No embedded images found, processing all PDF pages...');
+        console.log(`📄 Total pages to process: ${pages.length}`);
         
         try {
           console.log(`📄 Processing ${pages.length} PDF pages...`);
@@ -963,6 +964,7 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
               
               const pageFileName = `quiz_${quizId}_page_${pageIndex + 1}.pdf`;
               
+              console.log(`📄 Uploading page ${pageIndex + 1} to S3...`);
               const s3Key = await uploadToS3({
                 buffer: pdfBuffer,
                 originalname: pageFileName,
@@ -971,7 +973,7 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
               
               console.log(`✅ Page ${pageIndex + 1} uploaded to S3: ${s3Key}`);
               
-              images.push({
+              const pageData = {
                 page: pageIndex + 1,
                 imageIndex: 1,
                 s3Key: s3Key,
@@ -982,20 +984,27 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
                 isIndividualPage: true,
                 pageNumber: pageIndex + 1,
                 totalPages: pages.length
-              });
+              };
               
-              console.log(`✅ Successfully processed page ${pageIndex + 1}`);
+              console.log(`📄 Page data for page ${pageIndex + 1}:`, JSON.stringify(pageData, null, 2));
+              
+              images.push(pageData);
+              
+              console.log(`✅ Successfully processed page ${pageIndex + 1}. Total images so far: ${images.length}`);
               
             } catch (pageError) {
               console.error(`❌ Error processing page ${pageIndex + 1}:`, pageError.message);
+              console.error(`❌ Page error stack:`, pageError.stack);
               continue;
             }
           }
           
           console.log(`✅ Successfully processed ${images.length} PDF pages`);
+          console.log(`📄 Final images array:`, JSON.stringify(images, null, 2));
           
         } catch (pdfError) {
           console.error('❌ Error processing PDF pages:', pdfError.message);
+          console.error('❌ PDF error stack:', pdfError.stack);
           
           // Fallback: store original PDF if page processing fails
           console.log('🔄 Fallback: storing original PDF...');
@@ -2876,6 +2885,11 @@ app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requ
       hour12: true
     })}`;
 
+    console.log('📄 Final documentImages before creating quiz:', JSON.stringify(documentImages, null, 2));
+    console.log('📄 documentImages length:', documentImages.length);
+    console.log('📄 documentImages type:', typeof documentImages);
+    console.log('📄 documentImages is array:', Array.isArray(documentImages));
+
     const quiz = new Quiz({
       title: finalTitle,
       description: description || '',
@@ -2892,6 +2906,9 @@ app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requ
       organizationId: req.user.organizationId,
       isApproved: true  // Auto-approve teacher quizzes
     });
+
+    console.log('📄 Quiz object created, about to save...');
+    console.log('📄 Quiz pdfImages field:', JSON.stringify(quiz.pdfImages, null, 2));
 
     await quiz.save();
     console.log('✅ Quiz with images created successfully:', finalTitle);
