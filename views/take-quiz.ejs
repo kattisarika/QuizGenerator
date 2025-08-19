@@ -268,6 +268,24 @@
                 <div class="quiz-info">
                     <h1><%= quiz.title %></h1>
                     <p><%= quiz.description %></p>
+                    
+                    <!-- Re-extract PDF Images Button (Temporary) -->
+                    <% if (quiz.pdfImages && quiz.pdfImages.length === 0 && quiz.questionPaperUrl) { %>
+                        <div class="reextract-section" style="margin-top: 15px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <i class="fas fa-exclamation-triangle" style="color: #f39c12; margin-right: 8px;"></i>
+                                    <strong style="color: #856404;">PDF Images Missing</strong>
+                                    <p style="margin: 5px 0 0 0; color: #856404; font-size: 14px;">
+                                        This quiz has no PDF images. Click the button to re-extract them from the original question paper.
+                                    </p>
+                                </div>
+                                <button id="reextract-pdf-btn" class="btn btn-warning" style="white-space: nowrap;">
+                                    <i class="fas fa-sync-alt"></i> Re-extract PDF Images
+                                </button>
+                            </div>
+                        </div>
+                    <% } %>
                 </div>
                 
                 <div class="quiz-timer">
@@ -1132,6 +1150,58 @@
                 closeImageModal();
             }
         };
+
+        // Re-extract PDF Images functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const reextractBtn = document.getElementById('reextract-pdf-btn');
+            if (reextractBtn) {
+                reextractBtn.addEventListener('click', async function() {
+                    try {
+                        // Show loading state
+                        const originalText = reextractBtn.innerHTML;
+                        reextractBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extracting...';
+                        reextractBtn.disabled = true;
+                        
+                        console.log('🔄 Starting PDF image re-extraction for quiz:', quizId);
+                        
+                        // Call the re-extraction API
+                        const response = await fetch(`/api/reextract-pdf-images/${quizId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        console.log('✅ Re-extraction result:', data);
+                        
+                        if (data.success) {
+                            // Show success message
+                            alert(`🎉 Success! Extracted ${data.imagesCount} images from the PDF.\n\nPlease refresh the page to see the images.`);
+                            
+                            // Hide the re-extract section
+                            const reextractSection = document.querySelector('.reextract-section');
+                            if (reextractSection) {
+                                reextractSection.style.display = 'none';
+                            }
+                        } else {
+                            // Show error message
+                            alert(`❌ Error: ${data.message}`);
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ Error during re-extraction:', error);
+                        alert('❌ Error during re-extraction. Please check the console for details.');
+                    } finally {
+                        // Restore button state
+                        reextractBtn.innerHTML = originalText;
+                        reextractBtn.disabled = false;
+                    }
+                });
+                
+                console.log('✅ Re-extract button event listener added');
+            }
+        });
 
         // Final debug log to confirm all functions are defined
         console.log('🎯 All functions registered:', {
