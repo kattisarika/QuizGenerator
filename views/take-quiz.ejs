@@ -316,7 +316,9 @@
                                             <h4 class="pdf-images-title">
                                                 <i class="fas fa-images"></i> Document Images
                                                 <span class="document-source">
-                                                    <% if (quiz.pdfImages[0].source === 'docx') { %>
+                                                    <% if (quiz.pdfImages[0].source === 'document-extraction') { %>
+                                                        <i class="fas fa-image" title="Extracted Images"></i>
+                                                    <% } else if (quiz.pdfImages[0].source === 'docx') { %>
                                                         <i class="fas fa-file-word" title="DOCX Document"></i>
                                                     <% } else { %>
                                                         <i class="fas fa-file-pdf" title="PDF Document"></i>
@@ -327,7 +329,12 @@
                                                 <% quiz.pdfImages.forEach((pdfImage, imgIndex) => { %>
                                                     <div class="pdf-image-item">
                                                         <div class="pdf-image-header">
-                                                            <% if (pdfImage.source === 'docx') { %>
+                                                            <% if (pdfImage.source === 'document-extraction') { %>
+                                                                <span class="pdf-image-label">
+                                                                    <i class="fas fa-image"></i> Extracted Image <%= imgIndex + 1 %>
+                                                                </span>
+                                                                <span class="pdf-image-subtitle"><%= pdfImage.originalName || 'Extracted Image' %></span>
+                                                            <% } else if (pdfImage.source === 'docx') { %>
                                                                 <span class="pdf-image-label">
                                                                     <i class="fas fa-file-word"></i> Image <%= pdfImage.imageIndex %>
                                                                 </span>
@@ -338,14 +345,16 @@
                                                                 <% } %>
                                                             <% } %>
                                                         </div>
-                                                        <img src="<%= pdfImage.url %>" 
+                                                        <img src="https://<%= process.env.AWS_BUCKET_NAME || 'skillon-test' %>.s3.amazonaws.com/<%= pdfImage.s3Key %>" 
                                                              alt="Document Image" 
                                                              class="pdf-image" 
                                                              style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
-                                                             onclick="openImageModal('<%= pdfImage.url %>', 'Document Image')">
+                                                             onclick="openImageModal('https://<%= process.env.AWS_BUCKET_NAME || 'skillon-test' %>.s3.amazonaws.com/<%= pdfImage.s3Key %>', 'Document Image')">
                                                         <div class="image-info">
                                                             <small class="text-muted">
-                                                                <% if (pdfImage.source === 'docx') { %>
+                                                                <% if (pdfImage.source === 'document-extraction') { %>
+                                                                    Extracted Image • <%= pdfImage.originalName || 'Document Image' %>
+                                                                <% } else if (pdfImage.source === 'docx') { %>
                                                                     DOCX Document • Image <%= pdfImage.imageIndex %>
                                                                 <% } else { %>
                                                                     PDF Document • Page <%= pdfImage.page %>
@@ -1212,6 +1221,9 @@
                 
                 // Check if quiz has PDF images
                 const hasImages = <%= quiz.pdfImages && quiz.pdfImages.length > 0 ? 'true' : 'false' %>;
+                console.log('Has PDF images check:', hasImages);
+                console.log('PDF Images data:', '<%= quiz.pdfImages ? JSON.stringify(quiz.pdfImages) : "null" %>');
+                
                 if (!hasImages) {
                     console.log('No PDF images found in quiz - hiding container');
                     // Hide the entire container if no PDF images exist
@@ -1228,47 +1240,45 @@
                     container.style.display = 'block';
                 }
 
-                // Fetch pre-signed URLs for images
-                const response = await fetch(`/api/quiz/${quizId}/images?expiresIn=3600`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                // Get PDF images data from the quiz object
+                const pdfImagesData = <%= quiz.pdfImages ? JSON.stringify(quiz.pdfImages) : '[]' %>;
+                console.log('📸 PDF Images data from quiz:', pdfImagesData);
 
-                const data = await response.json();
-                console.log('📸 Received image data:', data);
-
-                if (data.images && data.images.length > 0) {
+                if (pdfImagesData && pdfImagesData.length > 0) {
                     // Hide loading spinner
                     const loadingDiv = container.querySelector('.images-loading');
                     if (loadingDiv) {
                         loadingDiv.style.display = 'none';
                     }
 
-                    // Render images
+                    // Render images directly using S3 URLs
                     const grid = document.getElementById('pdfImagesGrid');
                     grid.innerHTML = '';
 
-                    data.images.forEach((image, index) => {
+                    pdfImagesData.forEach((image, index) => {
                         const imageItem = document.createElement('div');
                         imageItem.className = 'pdf-image-item';
                         
-                        const sourceIcon = image.source === 'docx' ? 'fa-file-word' : 'fa-file-pdf';
-                        const sourceLabel = image.source === 'docx' ? 'DOCX Document' : 'PDF Document';
-                        const pageLabel = image.source === 'docx' ? `Image ${image.imageIndex}` : `Page ${image.page}`;
+                        // Construct S3 URL directly
+                        const s3BucketName = '<%= process.env.AWS_BUCKET_NAME || "skillon-test" %>';
+                        const imageUrl = `https://${s3BucketName}.s3.amazonaws.com/${image.s3Key}`;
+                        
+                        const sourceIcon = image.source === 'document-extraction' ? 'fa-image' : 'fa-file-pdf';
+                        const sourceLabel = image.source === 'document-extraction' ? 'Extracted Image' : 'PDF Document';
+                        const pageLabel = `Image ${index + 1}`;
                         
                         imageItem.innerHTML = `
                             <div class="pdf-image-header">
                                 <span class="pdf-image-label">
                                     <i class="fas ${sourceIcon}"></i> ${pageLabel}
                                 </span>
-                                ${image.source !== 'docx' && image.imageIndex > 1 ? 
-                                    `<span class="pdf-image-subtitle">Image ${image.imageIndex}</span>` : ''}
+                                <span class="pdf-image-subtitle">${image.originalName || 'Extracted Image'}</span>
                             </div>
-                            <img src="${image.url}" 
+                            <img src="${imageUrl}" 
                                  alt="Document Image" 
                                  class="pdf-image" 
                                  style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
-                                 onclick="openImageModal('${image.url}', '${sourceLabel} - ${pageLabel}')">
+                                 onclick="openImageModal('${imageUrl}', '${sourceLabel} - ${pageLabel}')">
                             <div class="image-info">
                                 <small class="text-muted">
                                     ${sourceLabel} • ${pageLabel}
@@ -1279,10 +1289,10 @@
                         grid.appendChild(imageItem);
                     });
 
-                    console.log(`✅ Loaded ${data.images.length} document images`);
+                    console.log(`✅ Loaded ${pdfImagesData.length} document images directly from quiz data`);
                 } else {
-                    console.log('No images found in response - hiding container');
-                    // Hide the entire container if no images in response
+                    console.log('No PDF images found in quiz data - hiding container');
+                    // Hide the entire container if no images in quiz data
                     if (container) {
                         container.style.display = 'none';
                     }
@@ -1305,6 +1315,8 @@
             console.log('Quiz ID:', '<%= quiz._id %>');
             console.log('Quiz title:', '<%= quiz.title %>');
             console.log('Questions count:', <%= quiz.questions ? quiz.questions.length : 0 %>);
+            console.log('PDF Images:', '<%= quiz.pdfImages ? JSON.stringify(quiz.pdfImages) : "null" %>');
+            console.log('Quiz object keys:', '<%= Object.keys(quiz).join(", ") %>');
             
             // Check for questions with images
             const questionsWithImages = document.querySelectorAll('.question-image-container[data-s3-key]');
@@ -1336,9 +1348,12 @@
 
                 console.log('🔗 Loading question images for quiz:', quizId);
                 
-                // Check if quiz has questions with images
-                const hasQuestionImages = document.querySelectorAll('.question-image-container[data-s3-key]').length > 0;
-                if (!hasQuestionImages) {
+                // Check if quiz has questions with images by looking at the quiz data
+                const questions = <%= quiz.questions ? JSON.stringify(quiz.questions) : '[]' %>;
+                const questionsWithImages = questions.filter(q => q.image && q.image.trim() !== '');
+                console.log('Questions with images:', questionsWithImages);
+                
+                if (questionsWithImages.length === 0) {
                     console.log('No question images found in quiz - hiding container');
                     // Hide the entire container if no images exist
                     const container = document.getElementById('questionImagesContainer');
@@ -1354,60 +1369,41 @@
                     container.style.display = 'block';
                 }
 
-                // Fetch pre-signed URLs for question images
-                const response = await fetch(`/api/quiz/${quizId}/question-images?expiresIn=3600`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                // Render question images directly from quiz data
+                const grid = document.getElementById('questionImagesGrid');
+                grid.innerHTML = '';
 
-                const data = await response.json();
-                console.log('📸 Received question image data:', data);
+                questionsWithImages.forEach((question, index) => {
+                    const imageItem = document.createElement('div');
+                    imageItem.className = 'question-image-item';
+                    
+                    // Construct S3 URL directly
+                    const s3BucketName = '<%= process.env.AWS_BUCKET_NAME || "skillon-test" %>';
+                    const imageUrl = `https://${s3BucketName}.s3.amazonaws.com/${question.image}`;
+                    
+                    imageItem.innerHTML = `
+                        <div class="question-image-header">
+                            <span class="question-image-label">
+                                <i class="fas fa-image"></i> Question ${index + 1}
+                            </span>
+                            <span class="question-image-type">Question Image</span>
+                        </div>
+                        <img src="${imageUrl}" 
+                             alt="Question ${index + 1} Image" 
+                             class="question-image-display" 
+                             style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
+                             onclick="openImageModal('${imageUrl}', 'Question ${index + 1} Image')">
+                        <div class="image-info">
+                            <small class="text-muted">
+                                Question ${index + 1} • Question Image
+                            </small>
+                        </div>
+                    `;
+                    
+                    grid.appendChild(imageItem);
+                });
 
-                if (data.questionImages && data.questionImages.length > 0) {
-                    // Hide loading spinner
-                    const loadingDiv = container.querySelector('.question-images-loading');
-                    if (loadingDiv) {
-                        loadingDiv.style.display = 'none';
-                    }
-
-                    // Render question images
-                    const grid = document.getElementById('questionImagesGrid');
-                    grid.innerHTML = '';
-
-                    data.questionImages.forEach((image, index) => {
-                        const imageItem = document.createElement('div');
-                        imageItem.className = 'question-image-item';
-                        
-                        imageItem.innerHTML = `
-                            <div class="question-image-header">
-                                <span class="question-image-label">
-                                    <i class="fas fa-image"></i> Question ${image.questionNumber}
-                                </span>
-                                <span class="question-image-type">${image.type}</span>
-                            </div>
-                            <img src="${image.url}" 
-                                 alt="Question ${image.questionNumber} Image" 
-                                 class="question-image-display" 
-                                 style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
-                                 onclick="openImageModal('${image.url}', 'Question ${image.questionNumber} Image')">
-                            <div class="image-info">
-                                <small class="text-muted">
-                                    Question ${image.questionNumber} • ${image.type}
-                                </small>
-                            </div>
-                        `;
-                        
-                        grid.appendChild(imageItem);
-                    });
-
-                    console.log(`✅ Loaded ${data.questionImages.length} question images`);
-                } else {
-                    console.log('No question images found in response - hiding container');
-                    // Hide the entire container if no images in response
-                    if (container) {
-                        container.style.display = 'none';
-                    }
-                }
+                console.log(`✅ Loaded ${questionsWithImages.length} question images directly from quiz data`);
 
             } catch (error) {
                 console.error('❌ Error loading question images:', error);
