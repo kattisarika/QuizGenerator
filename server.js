@@ -2781,7 +2781,7 @@ app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requ
         source: 'document-extraction'
       })),
       createdBy: req.user._id,
-      createdByName: req.user.name,
+      createdByName: req.user.displayName,
       organizationId: req.user.organizationId,
       isApproved: false
     });
