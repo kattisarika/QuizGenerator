@@ -729,8 +729,16 @@
 
         function updateProgress() {
             const progress = ((currentQuestion + 1) / totalQuestions) * 100;
-            document.getElementById('progress-bar').style.width = progress + '%';
-            document.getElementById('progress-text').textContent = `${currentQuestion + 1} of ${totalQuestions}`;
+            const progressFill = document.getElementById('progress-fill');
+            const currentQuestionSpan = document.getElementById('current-question');
+            
+            if (progressFill) {
+                progressFill.style.width = progress + '%';
+            }
+            
+            if (currentQuestionSpan) {
+                currentQuestionSpan.textContent = `Question ${currentQuestion + 1} of ${totalQuestions}`;
+            }
         }
 
         function showQuestion(index) {
