@@ -581,6 +581,7 @@
     </footer>
 
     <script>
+        // Global quiz data variables
         let currentQuestion = 0;
         let answers = {};
         let startTime = Date.now();
@@ -588,6 +589,12 @@
         const totalQuestions = <%= quiz.questions.length %>;
         const quizId = '<%= quiz._id %>';
         const s3BucketName = '<%= s3BucketName %>';
+        
+        // Store quiz data safely to avoid EJS syntax issues
+        const quizData = {
+            pdfImages: <%= quiz.pdfImages ? JSON.stringify(quiz.pdfImages) : '[]' %>,
+            questions: <%= quiz.questions ? JSON.stringify(quiz.questions) : '[]' %>
+        };
 
         // Initialize quiz
         document.addEventListener('DOMContentLoaded', function() {
@@ -1222,7 +1229,7 @@
                 // Check if quiz has PDF images
                 const hasImages = <%= quiz.pdfImages && quiz.pdfImages.length > 0 ? 'true' : 'false' %>;
                 console.log('Has PDF images check:', hasImages);
-                console.log('PDF Images data:', '<%= quiz.pdfImages ? JSON.stringify(quiz.pdfImages) : "null" %>');
+                console.log('PDF Images data:', '<%= quiz.pdfImages ? "hasImages" : "noImages" %>');
                 
                 if (!hasImages) {
                     console.log('No PDF images found in quiz - hiding container');
@@ -1240,8 +1247,8 @@
                     container.style.display = 'block';
                 }
 
-                // Get PDF images data from the quiz object
-                const pdfImagesData = <%= quiz.pdfImages ? JSON.stringify(quiz.pdfImages) : '[]' %>;
+                // Get PDF images data from the global quiz data
+                const pdfImagesData = quizData.pdfImages;
                 console.log('📸 PDF Images data from quiz:', pdfImagesData);
 
                 if (pdfImagesData && pdfImagesData.length > 0) {
@@ -1315,7 +1322,7 @@
             console.log('Quiz ID:', '<%= quiz._id %>');
             console.log('Quiz title:', '<%= quiz.title %>');
             console.log('Questions count:', <%= quiz.questions ? quiz.questions.length : 0 %>);
-            console.log('PDF Images:', '<%= quiz.pdfImages ? JSON.stringify(quiz.pdfImages) : "null" %>');
+            console.log('PDF Images:', '<%= quiz.pdfImages ? "hasImages" : "noImages" %>');
             console.log('Quiz object keys:', '<%= Object.keys(quiz).join(", ") %>');
             
             // Check for questions with images
@@ -1348,8 +1355,8 @@
 
                 console.log('🔗 Loading question images for quiz:', quizId);
                 
-                // Check if quiz has questions with images by looking at the quiz data
-                const questions = <%= quiz.questions ? JSON.stringify(quiz.questions) : '[]' %>;
+                // Check if quiz has questions with images by looking at the global quiz data
+                const questions = quizData.questions;
                 const questionsWithImages = questions.filter(q => q.image && q.image.trim() !== '');
                 console.log('Questions with images:', questionsWithImages);
                 
