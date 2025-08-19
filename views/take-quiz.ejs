@@ -344,17 +344,6 @@
                                     <% } %>
                                     
                                     <!-- Document Images Display -->
-                                    <!-- DEBUG: PDF Images Info -->
-                                    <div style="background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px; color: #666;">
-                                        <strong>DEBUG:</strong> 
-                                        quiz.pdfImages exists: <%= !!quiz.pdfImages %>, 
-                                        Length: <%= quiz.pdfImages ? quiz.pdfImages.length : 'undefined' %>, 
-                                        Type: <%= typeof quiz.pdfImages %>
-                                        <br>Raw pdfImages: <%= JSON.stringify(quiz.pdfImages) %>
-                                        <% if (quiz.pdfImages && quiz.pdfImages.length > 0) { %>
-                                            <br>First image: <%= JSON.stringify(quiz.pdfImages[0]) %>
-                                        <% } %>
-                                    </div>
                                     
                                     <% if (quiz.pdfImages && quiz.pdfImages.length > 0) { %>
                                         <div class="pdf-images-container">
