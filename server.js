@@ -5130,6 +5130,75 @@ app.post('/api/extend-session', requireAuth, (req, res) => {
   res.json({ success: true, message: 'Session extended' });
 });
 
+// API endpoint to re-extract PDF images for an existing quiz
+app.post('/api/reextract-pdf-images/:quizId', requireAuth, requireRole(['teacher', 'admin']), async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    console.log(`🔄 Re-extracting PDF images for quiz: ${quizId}`);
+    
+    // Find the quiz
+    const Quiz = require('./models/Quiz');
+    const quiz = await Quiz.findById(quizId);
+    
+    if (!quiz) {
+      return res.status(404).json({ success: false, message: 'Quiz not found' });
+    }
+    
+    // Check if user has permission (quiz creator or admin)
+    if (quiz.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'You can only re-extract images for your own quizzes' });
+    }
+    
+    // Check if quiz has a question paper URL
+    if (!quiz.questionPaperUrl) {
+      return res.status(400).json({ success: false, message: 'Quiz does not have a question paper to extract images from' });
+    }
+    
+    console.log(`📄 Question paper URL: ${quiz.questionPaperUrl}`);
+    
+    // Download the question paper file
+    const response = await fetch(quiz.questionPaperUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download question paper: ${response.statusText}`);
+    }
+    
+    const fileBuffer = await response.arrayBuffer();
+    console.log(`📥 Downloaded question paper, size: ${fileBuffer.byteLength} bytes`);
+    
+    // Extract images from the PDF
+    const documentImages = await extractImagesFromPDF(Buffer.from(fileBuffer), quizId);
+    console.log(`🎯 Extracted ${documentImages.length} images from PDF`);
+    
+    if (documentImages.length === 0) {
+      return res.status(400).json({ success: false, message: 'No images found in the PDF' });
+    }
+    
+    // Update the quiz with extracted images
+    quiz.pdfImages = documentImages.map(img => ({
+      s3Key: img,
+      originalName: `extracted_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`,
+      source: 'document-extraction'
+    }));
+    
+    await quiz.save();
+    console.log(`✅ Quiz updated with ${documentImages.length} extracted images`);
+    
+    res.json({ 
+      success: true, 
+      message: `Successfully extracted ${documentImages.length} images from PDF`,
+      imagesCount: documentImages.length,
+      quizId: quiz._id
+    });
+    
+  } catch (error) {
+    console.error('❌ Error re-extracting PDF images:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error re-extracting PDF images: ' + error.message 
+    });
+  }
+});
+
 // Logout route with timeout parameter
 app.get('/logout', (req, res) => {
   const timeout = req.query.timeout === 'true';
