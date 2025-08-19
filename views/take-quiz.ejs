@@ -546,11 +546,11 @@
 
                     <div class="quiz-navigation">
                         <div class="nav-buttons">
-                            <button type="button" id="prev-btn" class="btn btn-secondary" onclick="previousQuestion()" disabled>
+                            <button type="button" id="prev-btn" class="btn btn-secondary" disabled>
                                 <i class="fas fa-chevron-left"></i> Previous
                             </button>
                             
-                            <button type="button" id="next-btn" class="btn btn-primary" onclick="nextQuestion()">
+                            <button type="button" id="next-btn" class="btn btn-primary">
                                 Next <i class="fas fa-chevron-right"></i>
                             </button>
                             
@@ -562,7 +562,6 @@
                         <div class="question-indicators">
                             <% quiz.questions.forEach((question, index) => { %>
                                 <div class="question-indicator <%= index === 0 ? 'active' : '' %>" 
-                                     onclick="goToQuestion(<%= index %>)" 
                                      id="indicator-<%= index %>">
                                     <%= index + 1 %>
                                 </div>
@@ -612,6 +611,15 @@
             updateProgress();
             initializeAnsweredQuestions();
             
+            // Add event listeners for navigation buttons
+            document.getElementById('next-btn').addEventListener('click', nextQuestion);
+            document.getElementById('prev-btn').addEventListener('click', previousQuestion);
+            
+            // Add event listeners for question indicators
+            document.querySelectorAll('.question-indicator').forEach((indicator, index) => {
+                indicator.addEventListener('click', () => goToQuestion(index));
+            });
+            
             // Check if this is a single-question quiz and update navigation accordingly
             if (totalQuestions === 1) {
                 document.getElementById('next-btn').style.display = 'none';
@@ -648,7 +656,7 @@
         }
 
         // Function to select an option when clicking anywhere on the option area
-        window.selectOption = function(questionIndex, optionIndex) {
+        function selectOption(questionIndex, optionIndex) {
             console.log('🎯 selectOption called with:', questionIndex, optionIndex);
             // Convert string indices to integers
             questionIndex = parseInt(questionIndex);
@@ -687,6 +695,9 @@
                 console.log('Current answers object:', answers);
             }
         }
+        
+        // Also make it available on window for competitive mode
+        window.selectOption = selectOption;
 
         // Function to handle text answer updates
         function updateTextAnswer(questionIndex, value) {
