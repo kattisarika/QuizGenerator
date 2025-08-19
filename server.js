@@ -2680,7 +2680,10 @@ app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requ
 
     // Validate required fields
     if (!gradeLevel || !imagesSubjects || !imagesLanguage) {
-      return res.status(400).send('Grade level, subject, and language are required');
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Grade level, subject, and language are required' 
+      });
     }
 
     // Process question paper
@@ -2697,7 +2700,10 @@ app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requ
         console.log('Extracted text length:', questionText.length);
         
         if (!questionText || questionText.trim().length === 0) {
-          return res.status(400).send('Could not extract text from the uploaded question paper.');
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Could not extract text from the uploaded question paper.' 
+          });
         }
         
         extractedQuestions = parseQuestionsFromText(questionText, imagesLanguage);
@@ -2723,10 +2729,16 @@ app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requ
         }
       } catch (error) {
         console.error('Error processing question file:', error);
-        return res.status(500).send('Error processing question file: ' + error.message);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Error processing question file: ' + error.message 
+        });
       }
     } else {
-      return res.status(400).send('Question paper is required');
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Question paper is required' 
+      });
     }
 
     // Process answer paper if provided
@@ -2790,10 +2802,16 @@ app.post('/create-quiz-with-images', requireAuth, requireRole(['teacher']), requ
     
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(e => e.message);
-      return res.status(400).send(`Validation error: ${errors.join(', ')}`);
+      return res.status(400).json({ 
+        success: false, 
+        message: `Validation error: ${errors.join(', ')}` 
+      });
     }
     
-    res.status(500).send('Error creating quiz with images: ' + error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error creating quiz with images: ' + error.message 
+    });
   }
 });
 
