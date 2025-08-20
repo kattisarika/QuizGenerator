@@ -1365,6 +1365,98 @@
             }
         });
 
+        // Rich Text Editor and Math Support Functions
+        function toggleStudentEditor(questionIndex, editorType) {
+            const plainTextBtn = document.getElementById(`plainTextBtn-${questionIndex}`);
+            const richTextBtn = document.getElementById(`richTextBtn-${questionIndex}`);
+            const textarea = document.getElementById(`text-answer-${questionIndex}`);
+            const richTextEditor = document.getElementById(`richTextEditor-${questionIndex}`);
+            
+            if (editorType === 'plain') {
+                // Switch to plain text
+                plainTextBtn.classList.add('active');
+                richTextBtn.classList.remove('active');
+                textarea.style.display = 'block';
+                richTextEditor.style.display = 'none';
+                
+                // Update the answer in the answers object
+                const richTextContent = document.getElementById(`richTextContent-${questionIndex}`);
+                if (richTextContent) {
+                    answers[questionIndex] = {
+                        selectedAnswer: richTextContent.innerHTML
+                    };
+                }
+            } else {
+                // Switch to rich text
+                richTextBtn.classList.add('active');
+                plainTextBtn.classList.remove('active');
+                textarea.style.display = 'none';
+                richTextEditor.style.display = 'block';
+                
+                // Update the answer in the answers object
+                if (textarea) {
+                    const richTextContent = document.getElementById(`richTextContent-${questionIndex}`);
+                    if (richTextContent) {
+                        richTextContent.innerHTML = answers[questionIndex]?.selectedAnswer || '';
+                    }
+                }
+            }
+        }
+
+        function insertMathInStudentEditor(questionIndex, mathSymbol) {
+            const textarea = document.getElementById(`text-answer-${questionIndex}`);
+            const richTextContent = document.getElementById(`richTextContent-${questionIndex}`);
+            
+            if (textarea && textarea.style.display !== 'none') {
+                // Insert into plain text textarea
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                const before = text.substring(0, start);
+                const after = text.substring(end);
+                
+                textarea.value = before + mathSymbol + after;
+                textarea.selectionStart = textarea.selectionEnd = start + mathSymbol.length;
+                textarea.focus();
+                
+                // Update the answer
+                updateTextAnswer(questionIndex, textarea.value);
+            } else if (richTextContent && richTextContent.style.display !== 'none') {
+                // Insert into rich text editor
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const mathNode = document.createTextNode(mathSymbol);
+                    range.deleteContents();
+                    range.insertNode(mathNode);
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    
+                    // Update the answer
+                    updateStudentRichTextAnswer(questionIndex);
+                }
+            }
+        }
+
+        function execStudentCommand(questionIndex, command) {
+            const richTextContent = document.getElementById(`richTextContent-${questionIndex}`);
+            if (richTextContent) {
+                document.execCommand(command, false, null);
+                richTextContent.focus();
+                updateStudentRichTextAnswer(questionIndex);
+            }
+        }
+
+        function updateStudentRichTextAnswer(questionIndex) {
+            const richTextContent = document.getElementById(`richTextContent-${questionIndex}`);
+            if (richTextContent) {
+                answers[questionIndex] = {
+                    selectedAnswer: richTextContent.innerHTML
+                };
+            }
+        }
+
         // Final debug log to confirm all functions are defined
         console.log('🎯 All functions registered:', {
             selectOption: typeof window.selectOption,
@@ -1372,7 +1464,11 @@
             previousQuestion: typeof window.previousQuestion,
             goToQuestion: typeof window.goToQuestion,
             openImageModal: typeof window.openImageModal,
-            closeImageModal: typeof window.closeImageModal
+            closeImageModal: typeof window.closeImageModal,
+            toggleStudentEditor: typeof window.toggleStudentEditor,
+            insertMathInStudentEditor: typeof window.insertMathInStudentEditor,
+            execStudentCommand: typeof window.execStudentCommand,
+            updateStudentRichTextAnswer: typeof window.updateStudentRichTextAnswer
         });
         
         console.log('🚀 Script execution completed!');
