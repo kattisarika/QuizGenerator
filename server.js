@@ -4508,22 +4508,36 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
 // Route to view quiz result
 app.get('/quiz-result/:resultId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
+    console.log('🔍 Quiz result route accessed for resultId:', req.params.resultId);
+    console.log('🔍 User ID:', req.user._id);
+    console.log('🔍 User role:', req.user.role);
+    
     const result = await QuizResult.findById(req.params.resultId)
       .populate('quiz')
       .populate('student');
     
+    console.log('🔍 QuizResult lookup result:', result ? 'Found' : 'Not found');
+    
     if (!result) {
+      console.log('❌ Result not found in database');
       return res.status(404).send('Result not found');
     }
     
+    console.log('🔍 Result found, checking ownership...');
+    console.log('🔍 Result student ID:', result.student._id);
+    console.log('🔍 Current user ID:', req.user._id);
+    
     // Check if the student owns this result
     if (result.student._id.toString() !== req.user._id.toString()) {
+      console.log('❌ Access denied - student does not own this result');
       return res.status(403).send('Access denied');
     }
     
+    console.log('✅ Access granted, rendering quiz result page');
     res.render('quiz-result', { result, user: req.user });
   } catch (error) {
-    console.error('Error viewing quiz result:', error);
+    console.error('❌ Error viewing quiz result:', error);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).send('Error viewing result');
   }
 });
@@ -4543,6 +4557,55 @@ app.get('/api/student-badges', requireAuth, requireRole(['student']), async (req
     res.status(500).json({ 
       success: false, 
       message: 'Error getting badge summary' 
+    });
+  }
+});
+
+// Debug route to check if a quiz result exists
+app.get('/api/debug-quiz-result/:resultId', requireAuth, requireRole(['student']), async (req, res) => {
+  try {
+    console.log('🔍 Debug route accessed for resultId:', req.params.resultId);
+    
+    // Check if QuizResult model is available
+    console.log('🔍 QuizResult model available:', typeof QuizResult);
+    
+    // Try to find the result
+    const result = await QuizResult.findById(req.params.resultId);
+    console.log('🔍 Direct lookup result:', result ? 'Found' : 'Not found');
+    
+    if (result) {
+      console.log('🔍 Result details:', {
+        id: result._id,
+        student: result.student,
+        quiz: result.quiz,
+        quizTitle: result.quizTitle,
+        percentage: result.percentage,
+        createdAt: result.createdAt
+      });
+    }
+    
+    // Also check if there are any results for this user
+    const userResults = await QuizResult.find({ student: req.user._id }).limit(5);
+    console.log('🔍 User has', userResults.length, 'results');
+    
+    res.json({
+      success: true,
+      resultExists: !!result,
+      resultDetails: result,
+      userResultsCount: userResults.length,
+      userResults: userResults.map(r => ({
+        id: r._id,
+        quizTitle: r.quizTitle,
+        percentage: r.percentage,
+        createdAt: r.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error('❌ Error in debug route:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack
     });
   }
 });

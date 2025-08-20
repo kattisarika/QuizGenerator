@@ -651,15 +651,35 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 DOM Content Loaded - Starting quiz initialization');
             
-            // Small delay to ensure all elements are fully rendered
+            // Check if timer element exists immediately
+            const timerElement = document.getElementById('timer');
+            console.log('🔍 Timer element found:', timerElement);
+            console.log('🔍 Timer element HTML:', timerElement ? timerElement.outerHTML : 'NOT FOUND');
+            
+            // Longer delay to ensure all elements are fully rendered
             setTimeout(() => {
                 console.log('⏰ Starting timer...');
-                startTimer();
-                console.log('📊 Updating progress...');
-                updateProgress();
-                console.log('✅ Initializing answered questions...');
-                initializeAnsweredQuestions();
-            }, 100);
+                const timerElementDelayed = document.getElementById('timer');
+                console.log('🔍 Timer element after delay:', timerElementDelayed);
+                
+                if (timerElementDelayed) {
+                    startTimer();
+                    console.log('📊 Updating progress...');
+                    updateProgress();
+                    console.log('✅ Initializing answered questions...');
+                    initializeAnsweredQuestions();
+                } else {
+                    console.error('❌ Timer element still not found after delay');
+                    // Try to find any timer-related elements
+                    const allSpans = document.querySelectorAll('span');
+                    console.log('🔍 All span elements:', allSpans);
+                    allSpans.forEach((span, index) => {
+                        if (span.id === 'timer' || span.textContent.includes('00:00')) {
+                            console.log(`🔍 Found potential timer element ${index}:`, span);
+                        }
+                    });
+                }
+            }, 500);
             
             // Add event listeners for navigation buttons
             document.getElementById('next-btn').addEventListener('click', nextQuestion);
@@ -782,12 +802,50 @@
 
         // Timer functions
         function startTimer() {
-            const timerElement = document.getElementById('timer');
+            let timerElement = document.getElementById('timer');
             if (!timerElement) {
-                console.warn('Timer element not found, cannot start timer');
-                return;
+                console.warn('Timer element not found, attempting to create fallback timer');
+                // Try to create a fallback timer
+                timerElement = createFallbackTimer();
+                if (!timerElement) {
+                    console.error('Failed to create fallback timer');
+                    return;
+                }
             }
             timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function createFallbackTimer() {
+            try {
+                console.log('🔧 Creating fallback timer...');
+                // Look for the quiz-timer container
+                let timerContainer = document.querySelector('.quiz-timer');
+                if (!timerContainer) {
+                    // Look for any container that might hold the timer
+                    timerContainer = document.querySelector('.quiz-header') || document.querySelector('.quiz-content');
+                }
+                
+                if (timerContainer) {
+                    // Create a new timer element
+                    const fallbackTimer = document.createElement('span');
+                    fallbackTimer.id = 'timer';
+                    fallbackTimer.textContent = '00:00';
+                    fallbackTimer.style.fontSize = '18px';
+                    fallbackTimer.style.fontWeight = 'bold';
+                    fallbackTimer.style.color = '#2563EB';
+                    
+                    // Insert it into the container
+                    timerContainer.appendChild(fallbackTimer);
+                    console.log('✅ Fallback timer created successfully');
+                    return fallbackTimer;
+                } else {
+                    console.error('❌ No suitable container found for fallback timer');
+                    return null;
+                }
+            } catch (error) {
+                console.error('❌ Error creating fallback timer:', error);
+                return null;
+            }
         }
 
         function updateTimer() {
