@@ -4485,6 +4485,8 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
       attemptNumber: attemptNumber
     });
     
+    // Assign badge based on score (only for first attempts)
+    quizResult.assignBadge();
     await quizResult.save();
     
     res.json({ 
@@ -4493,7 +4495,9 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
       score: score,
       percentage: percentage,
       correctAnswers: correctAnswers,
-      totalQuestions: quiz.questions.length
+      totalQuestions: quiz.questions.length,
+      badge: quizResult.badge,
+      badgeEarned: quizResult.badgeEarned
     });
   } catch (error) {
     console.error('Error submitting quiz:', error);
@@ -4521,6 +4525,25 @@ app.get('/quiz-result/:resultId', requireAuth, requireRole(['student']), async (
   } catch (error) {
     console.error('Error viewing quiz result:', error);
     res.status(500).send('Error viewing result');
+  }
+});
+
+// Route to get student badge summary
+app.get('/api/student-badges', requireAuth, requireRole(['student']), async (req, res) => {
+  try {
+    const QuizResult = require('./models/QuizResult');
+    const badgeSummary = await QuizResult.getStudentBadgeSummary(req.user._id, req.user.organizationId);
+    
+    res.json({ 
+      success: true, 
+      badgeSummary 
+    });
+  } catch (error) {
+    console.error('Error getting student badge summary:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error getting badge summary' 
+    });
   }
 });
 

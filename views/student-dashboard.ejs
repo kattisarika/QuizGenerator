@@ -989,6 +989,104 @@
             margin-bottom: 8px;
         }
 
+        /* Badge System Styles */
+        .badge-system {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .badge-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .subject-badges {
+            background: var(--light-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .subject-badges h3 {
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge-counts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .badge-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+        }
+
+        .badge-purple {
+            background: linear-gradient(135deg, #8B5CF6, #A855F7);
+        }
+
+        .badge-red {
+            background: linear-gradient(135deg, #EF4444, #DC2626);
+        }
+
+        .badge-green {
+            background: linear-gradient(135deg, #10B981, #059669);
+        }
+
+        .badge-icon {
+            font-size: 16px;
+        }
+
+        .total-badges {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            grid-column: 1 / -1;
+        }
+
+        .total-badges h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .total-badges .badge-number {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .no-badges {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6B7280;
+            grid-column: 1 / -1;
+        }
+
+        .no-badges i {
+            font-size: 64px;
+            color: #D1D5DB;
+            margin-bottom: 20px;
+        }
+
         /* Alert Styles */
         .alert {
             padding: 20px;
@@ -1215,6 +1313,23 @@
                         <div class="stat-info">
                             <h3 id="score-stat">Average Score</h3>
                             <p class="stat-number" aria-label="Average quiz score"><%= averageScore > 0 ? averageScore + '%' : '--' %></p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Badge System Section -->
+                <section class="badge-system" aria-labelledby="badges-heading">
+                    <div class="section-header">
+                        <h2 id="badges-heading">
+                            <i class="fas fa-medal" aria-hidden="true"></i> My Badges
+                        </h2>
+                        <p>Track your achievements and progress across subjects</p>
+                    </div>
+                    
+                    <div class="badge-summary" id="badgeSummary">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                            <p>Loading badges...</p>
                         </div>
                     </div>
                 </section>
@@ -1973,6 +2088,114 @@
                 liveRegion.textContent = '';
             }, 1000);
         }
+
+        // Badge System Functions
+        async function loadStudentBadges() {
+            try {
+                const response = await fetch('/api/student-badges');
+                if (response.ok) {
+                    const data = await response.json();
+                    displayStudentBadges(data.badgeSummary);
+                } else {
+                    console.error('Error loading badges:', response.status);
+                    document.getElementById('badgeSummary').innerHTML = 
+                        '<div class="error-state"><p>Error loading badges</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading badges:', error);
+                document.getElementById('badgeSummary').innerHTML = 
+                    '<div class="error-state"><p>Error loading badges: ' + error.message + '</p></div>';
+            }
+        }
+
+        function displayStudentBadges(badgeSummary) {
+            const container = document.getElementById('badgeSummary');
+            
+            if (!badgeSummary || badgeSummary.length === 0) {
+                container.innerHTML = `
+                    <div class="no-badges">
+                        <i class="fas fa-medal" aria-hidden="true"></i>
+                        <h4>No Badges Yet</h4>
+                        <p>Complete quizzes with 80% or higher to earn your first badge!</p>
+                        <div class="badge-criteria">
+                            <p><strong>Badge Criteria:</strong></p>
+                            <ul style="text-align: left; display: inline-block;">
+                                <li>🟣 Purple Badge: 100% score</li>
+                                <li>🔴 Red Badge: 90-99% score</li>
+                                <li>🟢 Green Badge: 80-89% score</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                announceToScreenReader('No badges earned yet. Complete quizzes to earn your first badge.');
+                return;
+            }
+
+            let totalBadges = 0;
+            let html = '';
+
+            // Add total badges summary
+            badgeSummary.forEach(subject => {
+                subject.badges.forEach(badge => {
+                    totalBadges += badge.count;
+                });
+            });
+
+            html += `
+                <div class="total-badges">
+                    <h3>Total Badges Earned</h3>
+                    <div class="badge-number">${totalBadges}</div>
+                    <p>Keep up the great work!</p>
+                </div>
+            `;
+
+            // Add subject-wise badges
+            badgeSummary.forEach(subject => {
+                html += `
+                    <div class="subject-badges">
+                        <h3>
+                            <i class="fas fa-book" aria-hidden="true"></i>
+                            ${subject._id}
+                        </h3>
+                        <div class="badge-counts">
+                `;
+
+                subject.badges.forEach(badge => {
+                    const badgeInfo = getBadgeInfo(badge.badge);
+                    html += `
+                        <div class="badge-item badge-${badge.badge}">
+                            <span class="badge-icon">${badgeInfo.icon}</span>
+                            ${badgeInfo.name}: ${badge.count}
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                        <p><strong>Total:</strong> ${subject.totalBadges} badge${subject.totalBadges !== 1 ? 's' : ''}</p>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            
+            // Announce results to screen readers
+            announceToScreenReader(`Loaded ${totalBadges} badge${totalBadges === 1 ? '' : 's'} across ${badgeSummary.length} subject${badgeSummary.length === 1 ? '' : 's'}.`);
+        }
+
+        function getBadgeInfo(badgeType) {
+            const badgeInfo = {
+                purple: { name: 'Purple Badge', icon: '🟣' },
+                red: { name: 'Red Badge', icon: '🔴' },
+                green: { name: 'Green Badge', icon: '🟢' }
+            };
+            return badgeInfo[badgeType] || { name: 'Unknown Badge', icon: '❓' };
+        }
+
+        // Load badges when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStudentBadges();
+        });
     </script>
 </body>
 </html>

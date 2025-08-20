@@ -129,6 +129,20 @@ const quizResultSchema = new mongoose.Schema({
   attemptNumber: {
     type: Number,
     default: 1
+  },
+  // Badge system fields
+  badge: {
+    type: String,
+    enum: ['purple', 'red', 'green', null],
+    default: null
+  },
+  badgeEarned: {
+    type: Boolean,
+    default: false
+  },
+  badgeEarnedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true
@@ -172,6 +186,70 @@ quizResultSchema.statics.getQuizAnalytics = function(quizId, organizationId) {
         minScore: { $min: '$score' }
       }
     }
+  ]);
+};
+
+// Method to assign badge based on percentage score (only for first attempt)
+quizResultSchema.methods.assignBadge = function() {
+  // Only assign badges for first attempts
+  if (this.attemptNumber !== 1) {
+    this.badge = null;
+    this.badgeEarned = false;
+    this.badgeEarnedAt = null;
+    return this;
+  }
+
+  // Badge criteria based on percentage
+  if (this.percentage >= 100) {
+    this.badge = 'purple';
+    this.badgeEarned = true;
+    this.badgeEarnedAt = new Date();
+  } else if (this.percentage >= 90) {
+    this.badge = 'red';
+    this.badgeEarned = true;
+    this.badgeEarnedAt = new Date();
+  } else if (this.percentage >= 80) {
+    this.badge = 'green';
+    this.badgeEarned = true;
+    this.badgeEarnedAt = new Date();
+  } else {
+    this.badge = null;
+    this.badgeEarned = false;
+    this.badgeEarnedAt = null;
+  }
+
+  return this;
+};
+
+// Static method to get student badge summary
+quizResultSchema.statics.getStudentBadgeSummary = function(studentId, organizationId) {
+  return this.aggregate([
+    { $match: { student: studentId, organizationId, badgeEarned: true, attemptNumber: 1 } },
+    { $lookup: { from: 'quizzes', localField: 'quiz', foreignField: '_id', as: 'quizInfo' } },
+    { $unwind: '$quizInfo' },
+    { $unwind: '$quizInfo.subjects' },
+    {
+      $group: {
+        _id: {
+          subject: '$quizInfo.subjects',
+          badge: '$badge'
+        },
+        count: { $sum: 1 }
+      }
+    },
+    {
+      $group: {
+        _id: '$_id.subject',
+        badges: {
+          $push: {
+            badge: '$_id.badge',
+            count: '$count'
+          }
+        },
+        totalBadges: { $sum: '$count' }
+      }
+    },
+    { $sort: { _id: 1 } }
   ]);
 };
 

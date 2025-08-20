@@ -98,6 +98,105 @@
         }
 
         .score-change {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* Badge Display Styles */
+        .badge-earned-section {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .badge-earned-content {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .badge-icon-large {
+            font-size: 80px;
+            flex-shrink: 0;
+        }
+
+        .badge-info {
+            text-align: left;
+        }
+
+        .badge-info h3 {
+            color: #92400e;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .badge-name {
+            color: #92400e;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .badge-description {
+            color: #92400e;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .badge-earned-date {
+            color: #92400e;
+            opacity: 0.8;
+        }
+
+        .badge-info-section {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .badge-info-content h3 {
+            color: #1f2937;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .badge-criteria-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+            align-items: center;
+        }
+
+        .badge-criteria-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-width: 250px;
+        }
+
+        .badge-icon {
+            font-size: 24px;
+        }
+
+        .badge-note {
+            color: #6b7280;
+            margin-top: 15px;
+        }
+
+        .score-percentage {
             font-size: 18px;
             font-weight: 700;
             display: block;
@@ -211,6 +310,71 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Badge Display -->
+            <% if (result.badgeEarned && result.badge) { %>
+                <div class="badge-earned-section">
+                    <div class="badge-earned-content">
+                        <div class="badge-icon-large">
+                            <% if (result.badge === 'purple') { %>
+                                🟣
+                            <% } else if (result.badge === 'red') { %>
+                                🔴
+                            <% } else if (result.badge === 'green') { %>
+                                🟢
+                            <% } %>
+                        </div>
+                        <div class="badge-info">
+                            <h3>🎉 Congratulations! You've Earned a Badge!</h3>
+                            <p class="badge-name">
+                                <% if (result.badge === 'purple') { %>
+                                    <strong>Purple Badge</strong> - Perfect Score!
+                                <% } else if (result.badge === 'red') { %>
+                                    <strong>Red Badge</strong> - Excellent Performance!
+                                <% } else if (result.badge === 'green') { %>
+                                    <strong>Green Badge</strong> - Great Job!
+                                <% } %>
+                            </p>
+                            <p class="badge-description">
+                                <% if (result.badge === 'purple') { %>
+                                    Outstanding! You achieved a perfect score of 100%. This is exceptional work!
+                                <% } else if (result.badge === 'red') { %>
+                                    Fantastic! You scored between 90-99%. You're mastering this subject!
+                                <% } else if (result.badge === 'green') { %>
+                                    Well done! You scored between 80-89%. Keep up the great work!
+                                <% } %>
+                            </p>
+                            <small class="badge-earned-date">
+                                Badge earned on: <%= new Date(result.badgeEarnedAt).toLocaleDateString() %>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            <% } else if (result.attemptNumber === 1) { %>
+                <div class="badge-info-section">
+                    <div class="badge-info-content">
+                        <h3><i class="fas fa-medal me-2"></i>Badge Information</h3>
+                        <p>Complete quizzes with higher scores to earn badges:</p>
+                        <div class="badge-criteria-list">
+                            <div class="badge-criteria-item">
+                                <span class="badge-icon">🟣</span>
+                                <span><strong>Purple Badge:</strong> 100% score</span>
+                            </div>
+                            <div class="badge-criteria-item">
+                                <span class="badge-icon">🔴</span>
+                                <span><strong>Red Badge:</strong> 90-99% score</span>
+                            </div>
+                            <div class="badge-criteria-item">
+                                <span class="badge-icon">🟢</span>
+                                <span><strong>Green Badge:</strong> 80-89% score</span>
+                            </div>
+                        </div>
+                        <p class="badge-note">
+                            <small><i class="fas fa-info-circle me-1"></i> Badges are only awarded for first attempts.</small>
+                        </p>
+                    </div>
+                </div>
+            <% } %>
 
             <!-- Detailed Analysis -->
             <div class="result-analysis">
