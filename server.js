@@ -2380,6 +2380,104 @@ app.get('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedTe
   res.render('create-quiz', { user: req.user });
 });
 
+// Complex Quiz Builder route
+app.get('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('create-complex-quiz', { user: req.user });
+});
+
+// Save complex quiz route
+app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { title, description, gradeLevel, subject, quizType, elements } = req.body;
+
+    // Validate required fields
+    if (!title || !gradeLevel || !subject || !elements || elements.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields or no elements provided'
+      });
+    }
+
+    // Convert elements to questions format
+    const questions = [];
+    let questionCounter = 1;
+
+    elements.forEach(element => {
+      if (element.type === 'question' || element.type === 'sub-question') {
+        questions.push({
+          question: element.content || `Question ${questionCounter}`,
+          type: 'short-answer',
+          options: [],
+          correctAnswer: '',
+          points: 1,
+          isTextAnswer: true,
+          elementData: element // Store the original element data
+        });
+        questionCounter++;
+      }
+    });
+
+    // If no questions found, create a default one
+    if (questions.length === 0) {
+      questions.push({
+        question: 'Complex Quiz Question',
+        type: 'short-answer',
+        options: [],
+        correctAnswer: '',
+        points: 1,
+        isTextAnswer: true
+      });
+    }
+
+    // Append current date and time to the title
+    const now = new Date();
+    const dateTimeString = now.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).replace(/,/g, '');
+
+    const finalTitle = `${title} - ${dateTimeString}`;
+
+    // Create quiz object
+    const quiz = new Quiz({
+      title: finalTitle,
+      description: description || 'Complex quiz created with drag-and-drop builder',
+      questions: questions,
+      createdBy: req.user._id,
+      createdByName: req.user.displayName,
+      organizationId: req.user.organizationId,
+      gradeLevel: gradeLevel,
+      subjects: [subject],
+      language: 'English',
+      quizType: quizType || 'regular',
+      isApproved: true,
+      complexQuizData: {
+        elements: elements,
+        canvasSize: { width: 1000, height: 800 }
+      }
+    });
+
+    await quiz.save();
+
+    res.json({
+      success: true,
+      message: `Complex quiz "${finalTitle}" created successfully!`,
+      quizId: quiz._id
+    });
+
+  } catch (error) {
+    console.error('Error creating complex quiz:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create complex quiz: ' + error.message
+    });
+  }
+});
+
 app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, upload.fields([
   { name: 'questionPaper', maxCount: 1 },
   { name: 'answerPaper', maxCount: 1 }

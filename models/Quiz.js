@@ -149,6 +149,25 @@ const quizSchema = new mongoose.Schema({
       default: false
     }
   }],
+  complexQuizData: {
+    elements: [{
+      id: String,
+      type: String,
+      x: Number,
+      y: Number,
+      width: Number,
+      height: Number,
+      content: String,
+      style: {
+        type: Map,
+        of: String
+      }
+    }],
+    canvasSize: {
+      width: Number,
+      height: Number
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

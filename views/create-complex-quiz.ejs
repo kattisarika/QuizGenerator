@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Complex Quiz - SkillOns</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- MathJax for LaTeX support -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Quill.js for rich text editing -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #7c3aed;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-color: #1e293b;
+            --light-color: #f8fafc;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--light-color);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .quiz-builder-container {
+            display: flex;
+            height: 100vh;
+            background: var(--light-color);
+        }
+
+        /* Sidebar with tools */
+        .tools-sidebar {
+            width: 280px;
+            background: white;
+            border-right: 2px solid var(--border-color);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        .sidebar-header h4 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .tool-category {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tool-category h6 {
+            margin: 0 0 15px 0;
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tool-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            margin: 5px 0;
+            background: var(--light-color);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .tool-item:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .tool-item:active {
+            cursor: grabbing;
+        }
+
+        .tool-item i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .tool-item span {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        /* Main canvas area */
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fafbfc;
+        }
+
+        .canvas-header {
+            background: white;
+            padding: 15px 25px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .canvas-title {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin: 0;
+        }
+
+        .canvas-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-canvas {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-canvas {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary-canvas:hover {
+            background: var(--secondary-color);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary-canvas {
+            background: var(--border-color);
+            color: var(--dark-color);
+        }
+
+        .btn-secondary-canvas:hover {
+            background: #cbd5e1;
+        }
+
+        /* Canvas workspace */
+        .canvas-workspace {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            position: relative;
+        }
+
+        .canvas-area {
+            min-height: 800px;
+            background: white;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            position: relative;
+            margin: 0 auto;
+            max-width: 1000px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .canvas-area.drag-over {
+            border-color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .canvas-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        .canvas-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .canvas-placeholder h5 {
+            margin: 0 0 10px 0;
+            font-weight: 600;
+        }
+
+        .canvas-placeholder p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Properties panel */
+        .properties-panel {
+            width: 320px;
+            background: white;
+            border-left: 2px solid var(--border-color);
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .properties-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+        }
+
+        .properties-header h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .properties-content {
+            padding: 20px;
+        }
+
+        .property-group {
+            margin-bottom: 20px;
+        }
+
+        .property-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark-color);
+            font-size: 0.9rem;
+        }
+
+        .property-group input,
+        .property-group select,
+        .property-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .property-group input:focus,
+        .property-group select:focus,
+        .property-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        /* Draggable elements */
+        .canvas-element {
+            position: absolute;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            cursor: move;
+            transition: all 0.3s ease;
+            min-width: 100px;
+            min-height: 50px;
+        }
+
+        .canvas-element:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+
+        .canvas-element.selected {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        .element-controls {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            display: none;
+            gap: 5px;
+        }
+
+        .canvas-element:hover .element-controls,
+        .canvas-element.selected .element-controls {
+            display: flex;
+        }
+
+        .control-btn {
+            width: 24px;
+            height: 24px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+
+        .control-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .control-btn.delete {
+            background: var(--danger-color);
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .tools-sidebar {
+                width: 250px;
+            }
+            
+            .properties-panel {
+                width: 280px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .quiz-builder-container {
+                flex-direction: column;
+            }
+            
+            .tools-sidebar,
+            .properties-panel {
+                width: 100%;
+                height: auto;
+                max-height: 200px;
+            }
+            
+            .canvas-container {
+                height: calc(100vh - 400px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-builder-container">
+        <!-- Tools Sidebar -->
+        <div class="tools-sidebar">
+            <div class="sidebar-header">
+                <h4><i class="fas fa-tools me-2"></i>Quiz Builder Tools</h4>
+            </div>
+            
+            <!-- Basic Elements -->
+            <div class="tool-category">
+                <h6>Basic Elements</h6>
+                <div class="tool-item" draggable="true" data-type="textbox">
+                    <i class="fas fa-font"></i>
+                    <span>Text Box</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="image">
+                    <i class="fas fa-image"></i>
+                    <span>Image</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="table">
+                    <i class="fas fa-table"></i>
+                    <span>Table</span>
+                </div>
+            </div>
+            
+            <!-- Charts -->
+            <div class="tool-category">
+                <h6>Charts & Graphs</h6>
+                <div class="tool-item" draggable="true" data-type="bar-chart">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Bar Chart</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="line-chart">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Line Chart</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="pie-chart">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Pie Chart</span>
+                </div>
+            </div>
+            
+            <!-- Math & Science -->
+            <div class="tool-category">
+                <h6>Math & Science</h6>
+                <div class="tool-item" draggable="true" data-type="latex">
+                    <i class="fas fa-square-root-alt"></i>
+                    <span>LaTeX Formula</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="equation">
+                    <i class="fas fa-calculator"></i>
+                    <span>Equation</span>
+                </div>
+            </div>
+            
+            <!-- Questions -->
+            <div class="tool-category">
+                <h6>Questions</h6>
+                <div class="tool-item" draggable="true" data-type="question">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Main Question</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="sub-question">
+                    <i class="fas fa-list-ol"></i>
+                    <span>Sub Question</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="answer-area">
+                    <i class="fas fa-edit"></i>
+                    <span>Answer Area</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Canvas Area -->
+        <div class="canvas-container">
+            <div class="canvas-header">
+                <h5 class="canvas-title">Complex Quiz Builder</h5>
+                <div class="canvas-actions">
+                    <button class="btn-canvas btn-secondary-canvas" onclick="clearCanvas()">
+                        <i class="fas fa-trash me-1"></i>Clear
+                    </button>
+                    <button class="btn-canvas btn-secondary-canvas" onclick="previewQuiz()">
+                        <i class="fas fa-eye me-1"></i>Preview
+                    </button>
+                    <button class="btn-canvas btn-primary-canvas" onclick="saveQuiz()">
+                        <i class="fas fa-save me-1"></i>Save Quiz
+                    </button>
+                </div>
+            </div>
+
+            <div class="canvas-workspace">
+                <div class="canvas-area" id="canvas">
+                    <div class="canvas-placeholder">
+                        <i class="fas fa-mouse-pointer"></i>
+                        <h5>Start Building Your Quiz</h5>
+                        <p>Drag and drop elements from the sidebar to create your complex quiz</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Properties Panel -->
+        <div class="properties-panel">
+            <div class="properties-header">
+                <h5><i class="fas fa-cog me-2"></i>Element Properties</h5>
+            </div>
+            <div class="properties-content" id="properties-content">
+                <div class="text-center text-muted">
+                    <i class="fas fa-hand-pointer fa-2x mb-3"></i>
+                    <p>Select an element to edit its properties</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Settings Modal -->
+    <div class="modal fade" id="quizSettingsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Quiz Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quizTitle" class="form-label">Quiz Title *</label>
+                                <input type="text" class="form-control" id="quizTitle" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quizGrade" class="form-label">Grade Level *</label>
+                                <select class="form-select" id="quizGrade" required>
+                                    <option value="">Select Grade</option>
+                                    <option value="1st grade">1st Grade</option>
+                                    <option value="2nd grade">2nd Grade</option>
+                                    <option value="3rd grade">3rd Grade</option>
+                                    <option value="4th grade">4th Grade</option>
+                                    <option value="5th grade">5th Grade</option>
+                                    <option value="6th grade">6th Grade</option>
+                                    <option value="7th grade">7th Grade</option>
+                                    <option value="8th grade">8th Grade</option>
+                                    <option value="9th grade">9th Grade</option>
+                                    <option value="10th grade">10th Grade</option>
+                                    <option value="11th grade">11th Grade</option>
+                                    <option value="12th grade">12th Grade</option>
+                                    <option value="Young Adult Education">Young Adult Education</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quizSubject" class="form-label">Subject *</label>
+                                <select class="form-select" id="quizSubject" required>
+                                    <option value="">Select Subject</option>
+                                    <option value="English">English</option>
+                                    <option value="Science">Science</option>
+                                    <option value="Math">Math</option>
+                                    <option value="Python">Python</option>
+                                    <option value="Tableau">Tableau</option>
+                                    <option value="Power BI">Power BI</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quizType" class="form-label">Quiz Type *</label>
+                                <select class="form-select" id="quizType" required>
+                                    <option value="regular">Regular Quiz</option>
+                                    <option value="competitive">Competitive Quiz</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quizDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="quizDescription" rows="3" placeholder="Enter quiz description..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveQuizSettings()">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let selectedElement = null;
+        let elementCounter = 0;
+        let quizElements = [];
+        let quizSettings = {
+            title: '',
+            description: '',
+            gradeLevel: '',
+            subject: '',
+            quizType: 'regular'
+        };
+
+        // MathJax configuration
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+
+        // Initialize the quiz builder
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDragAndDrop();
+            setupCanvasEvents();
+
+            // Show quiz settings modal on load
+            const modal = new bootstrap.Modal(document.getElementById('quizSettingsModal'));
+            modal.show();
+        });
+
+        // Initialize drag and drop functionality
+        function initializeDragAndDrop() {
+            const toolItems = document.querySelectorAll('.tool-item');
+            const canvas = document.getElementById('canvas');
+
+            // Add drag start event to tool items
+            toolItems.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+            });
+
+            // Add drop events to canvas
+            canvas.addEventListener('dragover', handleDragOver);
+            canvas.addEventListener('drop', handleDrop);
+            canvas.addEventListener('dragenter', handleDragEnter);
+            canvas.addEventListener('dragleave', handleDragLeave);
+        }
+
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.type);
+            e.dataTransfer.effectAllowed = 'copy';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            e.target.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            if (!e.target.contains(e.relatedTarget)) {
+                e.target.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.target.classList.remove('drag-over');
+
+            const elementType = e.dataTransfer.getData('text/plain');
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            createElement(elementType, x, y);
+        }
+
+        // Setup canvas events
+        function setupCanvasEvents() {
+            const canvas = document.getElementById('canvas');
+
+            // Deselect elements when clicking on canvas
+            canvas.addEventListener('click', function(e) {
+                if (e.target === canvas) {
+                    deselectAllElements();
+                }
+            });
+        }
+
+        // Create new element on canvas
+        function createElement(type, x, y) {
+            elementCounter++;
+            const elementId = `element-${elementCounter}`;
+
+            const element = {
+                id: elementId,
+                type: type,
+                x: x,
+                y: y,
+                width: 200,
+                height: 100,
+                content: '',
+                style: {
+                    fontSize: '14px',
+                    fontFamily: 'Inter',
+                    color: '#1e293b',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    padding: '10px'
+                }
+            };
+
+            quizElements.push(element);
+            renderElement(element);
+            selectElement(elementId);
+
+            // Hide placeholder if this is the first element
+            if (quizElements.length === 1) {
+                document.querySelector('.canvas-placeholder').style.display = 'none';
+            }
+        }
+
+        // Render element on canvas
+        function renderElement(element) {
+            const canvas = document.getElementById('canvas');
+            const elementDiv = document.createElement('div');
+            elementDiv.className = 'canvas-element';
+            elementDiv.id = element.id;
+            elementDiv.style.left = element.x + 'px';
+            elementDiv.style.top = element.y + 'px';
+            elementDiv.style.width = element.width + 'px';
+            elementDiv.style.height = element.height + 'px';
+
+            // Apply styles
+            Object.assign(elementDiv.style, element.style);
+
+            // Add content based on type
+            elementDiv.innerHTML = getElementContent(element);
+
+            // Add controls
+            const controls = document.createElement('div');
+            controls.className = 'element-controls';
+            controls.innerHTML = `
+                <button class="control-btn" onclick="duplicateElement('${element.id}')" title="Duplicate">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <button class="control-btn delete" onclick="deleteElement('${element.id}')" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            elementDiv.appendChild(controls);
+
+            // Add click event
+            elementDiv.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectElement(element.id);
+            });
+
+            // Make draggable within canvas
+            makeDraggable(elementDiv);
+
+            canvas.appendChild(elementDiv);
+        }
+
+        // Get content for different element types
+        function getElementContent(element) {
+            switch(element.type) {
+                case 'textbox':
+                    return `<div contenteditable="true" style="outline: none; width: 100%; height: 100%;">${element.content || 'Click to edit text...'}</div>`;
+                case 'image':
+                    return `<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8fafc; border: 2px dashed #cbd5e1;">
+                        <div style="text-align: center; color: #64748b;">
+                            <i class="fas fa-image fa-2x mb-2"></i><br>
+                            <small>Click to upload image</small>
+                        </div>
+                    </div>`;
+                case 'table':
+                    return `<table style="width: 100%; border-collapse: collapse;">
+                        <tr><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 1</td><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 2</td></tr>
+                        <tr><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 3</td><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 4</td></tr>
+                    </table>`;
+                case 'question':
+                    return `<div style="padding: 15px; background: #f0f9ff; border-left: 4px solid #0ea5e9;">
+                        <strong>Question ${quizElements.filter(e => e.type === 'question').length}:</strong>
+                        <div contenteditable="true" style="outline: none; margin-top: 8px;">${element.content || 'Enter your question here...'}</div>
+                    </div>`;
+                case 'sub-question':
+                    return `<div style="padding: 12px; background: #fefce8; border-left: 4px solid #eab308; margin-left: 20px;">
+                        <strong>Sub-question:</strong>
+                        <div contenteditable="true" style="outline: none; margin-top: 8px;">${element.content || 'Enter sub-question here...'}</div>
+                    </div>`;
+                case 'latex':
+                    return `<div style="padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; text-align: center;">
+                        <div id="latex-${element.id}" style="font-size: 16px;">$$${element.content || 'x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}'}$$</div>
+                        <small style="color: #64748b;">LaTeX Formula</small>
+                    </div>`;
+                case 'bar-chart':
+                case 'line-chart':
+                case 'pie-chart':
+                    return `<div style="padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0;">
+                        <canvas id="chart-${element.id}" width="180" height="80"></canvas>
+                        <small style="color: #64748b; display: block; text-align: center; margin-top: 8px;">${element.type.replace('-', ' ').toUpperCase()}</small>
+                    </div>`;
+                case 'answer-area':
+                    return `<div style="padding: 15px; background: #f0fdf4; border: 2px dashed #22c55e; border-radius: 8px;">
+                        <div style="color: #16a34a; font-weight: 600; margin-bottom: 8px;">
+                            <i class="fas fa-edit me-2"></i>Answer Area
+                        </div>
+                        <textarea style="width: 100%; height: 60px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px; resize: vertical;" placeholder="Students will write their answer here..."></textarea>
+                    </div>`;
+                default:
+                    return `<div style="padding: 15px; text-align: center; color: #64748b;">
+                        <i class="fas fa-cube fa-2x mb-2"></i><br>
+                        ${element.type.replace('-', ' ').toUpperCase()}
+                    </div>`;
+            }
+        }
+
+        // Make element draggable within canvas
+        function makeDraggable(element) {
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+
+            element.addEventListener('mousedown', function(e) {
+                if (e.target.contentEditable === 'true') return;
+
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialX = parseInt(element.style.left);
+                initialY = parseInt(element.style.top);
+
+                element.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+
+                element.style.left = (initialX + deltaX) + 'px';
+                element.style.top = (initialY + deltaY) + 'px';
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (isDragging) {
+                    isDragging = false;
+                    element.style.cursor = 'move';
+
+                    // Update element data
+                    const elementData = quizElements.find(e => e.id === element.id);
+                    if (elementData) {
+                        elementData.x = parseInt(element.style.left);
+                        elementData.y = parseInt(element.style.top);
+                    }
+                }
+            });
+        }
+
+        // Select element
+        function selectElement(elementId) {
+            deselectAllElements();
+
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.add('selected');
+                selectedElement = elementId;
+                showElementProperties(elementId);
+            }
+        }
+
+        // Deselect all elements
+        function deselectAllElements() {
+            document.querySelectorAll('.canvas-element').forEach(el => {
+                el.classList.remove('selected');
+            });
+            selectedElement = null;
+            showDefaultProperties();
+        }
+
+        // Show element properties
+        function showElementProperties(elementId) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (!elementData) return;
+
+            const propertiesContent = document.getElementById('properties-content');
+            propertiesContent.innerHTML = `
+                <div class="property-group">
+                    <label>Element Type</label>
+                    <input type="text" value="${elementData.type}" readonly class="form-control">
+                </div>
+                <div class="property-group">
+                    <label>Width (px)</label>
+                    <input type="number" value="${elementData.width}" onchange="updateElementProperty('${elementId}', 'width', this.value + 'px')" class="form-control">
+                </div>
+                <div class="property-group">
+                    <label>Height (px)</label>
+                    <input type="number" value="${elementData.height}" onchange="updateElementProperty('${elementId}', 'height', this.value + 'px')" class="form-control">
+                </div>
+                <div class="property-group">
+                    <label>Background Color</label>
+                    <input type="color" value="${elementData.style.backgroundColor}" onchange="updateElementStyle('${elementId}', 'backgroundColor', this.value)" class="form-control">
+                </div>
+                <div class="property-group">
+                    <label>Border Color</label>
+                    <input type="color" value="${elementData.style.border.split(' ')[2] || '#e2e8f0'}" onchange="updateElementStyle('${elementId}', 'border', '1px solid ' + this.value)" class="form-control">
+                </div>
+                <div class="property-group">
+                    <label>Font Size</label>
+                    <select onchange="updateElementStyle('${elementId}', 'fontSize', this.value)" class="form-control">
+                        <option value="12px" ${elementData.style.fontSize === '12px' ? 'selected' : ''}>12px</option>
+                        <option value="14px" ${elementData.style.fontSize === '14px' ? 'selected' : ''}>14px</option>
+                        <option value="16px" ${elementData.style.fontSize === '16px' ? 'selected' : ''}>16px</option>
+                        <option value="18px" ${elementData.style.fontSize === '18px' ? 'selected' : ''}>18px</option>
+                        <option value="20px" ${elementData.style.fontSize === '20px' ? 'selected' : ''}>20px</option>
+                        <option value="24px" ${elementData.style.fontSize === '24px' ? 'selected' : ''}>24px</option>
+                    </select>
+                </div>
+                ${getTypeSpecificProperties(elementData)}
+            `;
+        }
+
+        // Get type-specific properties
+        function getTypeSpecificProperties(elementData) {
+            switch(elementData.type) {
+                case 'latex':
+                    return `
+                        <div class="property-group">
+                            <label>LaTeX Expression</label>
+                            <textarea onchange="updateLatexContent('${elementData.id}', this.value)" class="form-control" rows="3" placeholder="Enter LaTeX expression...">${elementData.content || 'x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}'}</textarea>
+                            <small class="text-muted">Use LaTeX syntax (e.g., \\frac{a}{b}, \\sqrt{x}, x^2)</small>
+                        </div>
+                    `;
+                case 'image':
+                    return `
+                        <div class="property-group">
+                            <label>Upload Image</label>
+                            <input type="file" accept="image/*" onchange="handleImageUpload('${elementData.id}', this)" class="form-control">
+                        </div>
+                    `;
+                default:
+                    return '';
+            }
+        }
+
+        // Show default properties
+        function showDefaultProperties() {
+            const propertiesContent = document.getElementById('properties-content');
+            propertiesContent.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-hand-pointer fa-2x mb-3"></i>
+                    <p>Select an element to edit its properties</p>
+                </div>
+            `;
+        }
+
+        // Update element property
+        function updateElementProperty(elementId, property, value) {
+            const element = document.getElementById(elementId);
+            const elementData = quizElements.find(e => e.id === elementId);
+
+            if (element && elementData) {
+                element.style[property] = value;
+                elementData[property] = parseInt(value);
+            }
+        }
+
+        // Update element style
+        function updateElementStyle(elementId, property, value) {
+            const element = document.getElementById(elementId);
+            const elementData = quizElements.find(e => e.id === elementId);
+
+            if (element && elementData) {
+                element.style[property] = value;
+                elementData.style[property] = value;
+            }
+        }
+
+        // Update LaTeX content
+        function updateLatexContent(elementId, content) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (elementData) {
+                elementData.content = content;
+
+                // Re-render the LaTeX
+                const latexDiv = document.getElementById(`latex-${elementId}`);
+                if (latexDiv) {
+                    latexDiv.innerHTML = `$$${content}$$`;
+                    if (window.MathJax) {
+                        MathJax.typesetPromise([latexDiv]);
+                    }
+                }
+            }
+        }
+
+        // Handle image upload
+        function handleImageUpload(elementId, input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const element = document.getElementById(elementId);
+                    const elementData = quizElements.find(el => el.id === elementId);
+
+                    if (element && elementData) {
+                        element.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">`;
+                        elementData.content = e.target.result;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Delete element
+        function deleteElement(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.remove();
+                quizElements = quizElements.filter(e => e.id !== elementId);
+
+                if (selectedElement === elementId) {
+                    deselectAllElements();
+                }
+
+                // Show placeholder if no elements left
+                if (quizElements.length === 0) {
+                    document.querySelector('.canvas-placeholder').style.display = 'block';
+                }
+            }
+        }
+
+        // Duplicate element
+        function duplicateElement(elementId) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (elementData) {
+                createElement(elementData.type, elementData.x + 20, elementData.y + 20);
+            }
+        }
+
+        // Clear canvas
+        function clearCanvas() {
+            if (confirm('Are you sure you want to clear the entire canvas? This action cannot be undone.')) {
+                document.querySelectorAll('.canvas-element').forEach(el => el.remove());
+                quizElements = [];
+                selectedElement = null;
+                elementCounter = 0;
+                document.querySelector('.canvas-placeholder').style.display = 'block';
+                showDefaultProperties();
+            }
+        }
+
+        // Save quiz settings
+        function saveQuizSettings() {
+            const title = document.getElementById('quizTitle').value;
+            const grade = document.getElementById('quizGrade').value;
+            const subject = document.getElementById('quizSubject').value;
+            const type = document.getElementById('quizType').value;
+            const description = document.getElementById('quizDescription').value;
+
+            if (!title || !grade || !subject) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            quizSettings = {
+                title: title,
+                description: description,
+                gradeLevel: grade,
+                subject: subject,
+                quizType: type
+            };
+
+            // Update canvas title
+            document.querySelector('.canvas-title').textContent = `Complex Quiz Builder - ${title}`;
+
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('quizSettingsModal'));
+            modal.hide();
+        }
+
+        // Preview quiz
+        function previewQuiz() {
+            if (quizElements.length === 0) {
+                alert('Please add some elements to preview the quiz');
+                return;
+            }
+
+            // Create preview window
+            const previewWindow = window.open('', '_blank', 'width=800,height=600');
+            const previewContent = generatePreviewHTML();
+
+            previewWindow.document.write(previewContent);
+            previewWindow.document.close();
+        }
+
+        // Generate preview HTML
+        function generatePreviewHTML() {
+            let elementsHTML = '';
+
+            quizElements.forEach(element => {
+                elementsHTML += `
+                    <div style="position: absolute; left: ${element.x}px; top: ${element.y}px; width: ${element.width}px; height: ${element.height}px; ${Object.entries(element.style).map(([key, value]) => `${key}: ${value}`).join('; ')}">
+                        ${getElementContent(element)}
+                    </div>
+                `;
+            });
+
+            return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Quiz Preview - ${quizSettings.title}</title>
+                    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+                    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+                    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+                    <style>
+                        body { font-family: 'Inter', sans-serif; margin: 20px; background: #f8fafc; }
+                        .preview-header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                        .preview-canvas { position: relative; background: white; min-height: 800px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                    </style>
+                </head>
+                <body>
+                    <div class="preview-header">
+                        <h2>${quizSettings.title}</h2>
+                        <p><strong>Grade:</strong> ${quizSettings.gradeLevel} | <strong>Subject:</strong> ${quizSettings.subject}</p>
+                        <p>${quizSettings.description}</p>
+                    </div>
+                    <div class="preview-canvas">
+                        ${elementsHTML}
+                    </div>
+                </body>
+                </html>
+            `;
+        }
+
+        // Save quiz
+        function saveQuiz() {
+            if (!quizSettings.title) {
+                alert('Please set quiz settings first');
+                return;
+            }
+
+            if (quizElements.length === 0) {
+                alert('Please add some elements to the quiz');
+                return;
+            }
+
+            const quizData = {
+                ...quizSettings,
+                elements: quizElements,
+                isComplexQuiz: true
+            };
+
+            // Send to server
+            fetch('/create-complex-quiz', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(quizData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Quiz saved successfully!');
+                    window.location.href = '/teacher/dashboard';
+                } else {
+                    alert('Error saving quiz: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving quiz');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -481,6 +481,11 @@
                                     <i class="fas fa-images me-2"></i>Upload Documents With Images
                                 </button>
                             </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="complex-builder-tab" data-bs-toggle="tab" data-bs-target="#complex-builder" type="button" role="tab" aria-controls="complex-builder" aria-selected="false">
+                                    <i class="fas fa-magic me-2"></i>Complex Quiz Builder
+                                </button>
+                            </li>
                         </ul>
 
                         <!-- Tab Content -->
@@ -1277,6 +1282,56 @@
                                     </div>
                                 </form>
                             </div>
+
+                            <!-- Complex Quiz Builder Tab -->
+                            <div class="tab-pane fade" id="complex-builder" role="tabpanel" aria-labelledby="complex-builder-tab">
+                                <div class="text-center">
+                                    <div class="mb-4">
+                                        <i class="fas fa-magic fa-4x text-primary mb-3"></i>
+                                        <h4 class="text-primary">Advanced Quiz Builder</h4>
+                                        <p class="text-muted mb-4">Create sophisticated quizzes with drag-and-drop elements, charts, LaTeX formulas, and more!</p>
+                                    </div>
+
+                                    <div class="row justify-content-center mb-4">
+                                        <div class="col-md-8">
+                                            <div class="card border-primary">
+                                                <div class="card-body">
+                                                    <h5 class="card-title text-primary">
+                                                        <i class="fas fa-tools me-2"></i>Features Available
+                                                    </h5>
+                                                    <div class="row text-start">
+                                                        <div class="col-md-6">
+                                                            <ul class="list-unstyled">
+                                                                <li><i class="fas fa-check text-success me-2"></i>Drag & Drop Canvas</li>
+                                                                <li><i class="fas fa-check text-success me-2"></i>Text Boxes & Rich Text</li>
+                                                                <li><i class="fas fa-check text-success me-2"></i>Image Upload & Placement</li>
+                                                                <li><i class="fas fa-check text-success me-2"></i>Dynamic Tables</li>
+                                                            </ul>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <ul class="list-unstyled">
+                                                                <li><i class="fas fa-check text-success me-2"></i>Charts & Graphs</li>
+                                                                <li><i class="fas fa-check text-success me-2"></i>LaTeX Math Formulas</li>
+                                                                <li><i class="fas fa-check text-success me-2"></i>Question Hierarchy</li>
+                                                                <li><i class="fas fa-check text-success me-2"></i>Answer Areas</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                        <a href="/create-complex-quiz" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-rocket me-2"></i>Launch Complex Quiz Builder
+                                        </a>
+                                        <button type="button" class="btn btn-outline-secondary btn-lg" onclick="showComplexBuilderInfo()">
+                                            <i class="fas fa-info-circle me-2"></i>Learn More
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1313,6 +1368,22 @@
             document.getElementById('images-' + type + '-card').classList.add('active');
 
             console.log('Selected images quiz type:', type);
+        }
+
+        // Show complex builder info
+        function showComplexBuilderInfo() {
+            alert(`Complex Quiz Builder Features:
+
+🎨 Drag & Drop Canvas: Visually design your quiz layout
+📝 Rich Text Boxes: Add formatted text anywhere
+🖼️ Image Placement: Upload and position images precisely
+📊 Charts & Graphs: Create bar charts, line charts, and pie charts
+🧮 LaTeX Support: Add mathematical formulas and equations
+📋 Dynamic Tables: Create and edit tables with custom content
+❓ Question Hierarchy: Organize main questions and sub-questions
+✍️ Answer Areas: Designate spaces for student responses
+
+Perfect for creating complex assessments, math problems, science diagrams, and interactive learning materials!`);
         }
 
         function handleFileSelect(input, type) {
