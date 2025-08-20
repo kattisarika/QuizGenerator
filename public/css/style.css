@@ -5281,9 +5281,9 @@ body {
 
 .organization-code label {
     display: block;
-    color: rgba(255, 255, 255, 0.9);
+    color: #000000;
     font-size: 0.9rem;
-    font-weight: 500;
+    font-weight: 600;
     margin-bottom: 0.5rem;
 }
 
@@ -5338,13 +5338,14 @@ body {
 }
 
 .help-text {
-    color: rgba(255, 255, 255, 0.8);
+    color: #000000;
     font-size: 0.85rem;
     line-height: 1.4;
+    font-weight: 500;
 }
 
 .help-text i {
-    color: #60a5fa;
+    color: #4f46e5;
 }
 
 /* Quiz question images */
