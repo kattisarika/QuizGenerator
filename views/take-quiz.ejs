@@ -1026,6 +1026,9 @@
 
         // Show completion message
         function showCompletionMessage(data) {
+            // Set quiz completed flag to prevent beforeunload warning
+            quizCompleted = true;
+            
             const message = `
                 <div style="text-align: center; padding: 40px;">
                     <h2 style="color: #28a745;">🎉 Quiz Completed!</h2>
@@ -1036,7 +1039,7 @@
                         Time taken: ${Math.floor(data.timeTaken / 60)}m ${data.timeTaken % 60}s
                     </p>
                     <div style="margin: 30px 0;">
-                        <a href="/quiz-result/${quizId}" class="btn btn-primary btn-lg">
+                        <a href="/quiz-result/${data.resultId}" class="btn btn-primary btn-lg">
                             <i class="fas fa-chart-bar"></i> View Results
                         </a>
                     </div>
@@ -1048,8 +1051,9 @@
 
         // Prevent accidental navigation away from quiz
         let isSubmittingQuiz = false;
+        let quizCompleted = false;
         window.addEventListener('beforeunload', function(e) {
-            if (!isSubmittingQuiz) {
+            if (!isSubmittingQuiz && !quizCompleted) {
                 e.preventDefault();
                 e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
                 return 'You have unsaved changes. Are you sure you want to leave?';

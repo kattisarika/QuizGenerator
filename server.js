@@ -4496,6 +4496,7 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
       percentage: percentage,
       correctAnswers: correctAnswers,
       totalQuestions: quiz.questions.length,
+      timeTaken: timeTaken || 0,
       badge: quizResult.badge,
       badgeEarned: quizResult.badgeEarned
     });
