@@ -649,9 +649,17 @@
         
         // Initialize quiz
         document.addEventListener('DOMContentLoaded', function() {
-            startTimer();
-            updateProgress();
-            initializeAnsweredQuestions();
+            console.log('🚀 DOM Content Loaded - Starting quiz initialization');
+            
+            // Small delay to ensure all elements are fully rendered
+            setTimeout(() => {
+                console.log('⏰ Starting timer...');
+                startTimer();
+                console.log('📊 Updating progress...');
+                updateProgress();
+                console.log('✅ Initializing answered questions...');
+                initializeAnsweredQuestions();
+            }, 100);
             
             // Add event listeners for navigation buttons
             document.getElementById('next-btn').addEventListener('click', nextQuestion);
@@ -774,14 +782,28 @@
 
         // Timer functions
         function startTimer() {
+            const timerElement = document.getElementById('timer');
+            if (!timerElement) {
+                console.warn('Timer element not found, cannot start timer');
+                return;
+            }
             timerInterval = setInterval(updateTimer, 1000);
         }
 
         function updateTimer() {
+            const timerElement = document.getElementById('timer');
+            if (!timerElement) {
+                console.warn('Timer element not found, stopping timer');
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+                return;
+            }
+            
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             const minutes = Math.floor(elapsed / 60);
             const seconds = elapsed % 60;
-            document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
         function updateProgress() {
