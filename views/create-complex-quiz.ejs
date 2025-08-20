@@ -9,6 +9,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- MathJax for LaTeX support -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
@@ -602,32 +613,34 @@
             quizType: 'regular'
         };
 
-        // MathJax configuration
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']]
-            },
-            svg: {
-                fontCache: 'global'
-            }
-        };
+
+
+        // Error handler
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript Error:', e.error);
+            console.error('Error details:', e.message, 'at', e.filename, ':', e.lineno);
+        });
 
         // Initialize the quiz builder
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Initializing quiz builder...');
 
-            // Wait a bit for all elements to be ready
-            setTimeout(() => {
-                initializeDragAndDrop();
-                setupCanvasEvents();
+            try {
+                // Wait a bit for all elements to be ready
+                setTimeout(() => {
+                    initializeDragAndDrop();
+                    setupCanvasEvents();
 
-                // Show quiz settings modal on load
-                const modal = new bootstrap.Modal(document.getElementById('quizSettingsModal'));
-                modal.show();
+                    // Show quiz settings modal on load
+                    const modal = new bootstrap.Modal(document.getElementById('quizSettingsModal'));
+                    modal.show();
 
-                console.log('Quiz builder initialized successfully');
-            }, 100);
+                    console.log('Quiz builder initialized successfully');
+                }, 100);
+            } catch (error) {
+                console.error('Error initializing quiz builder:', error);
+                alert('Error initializing quiz builder. Please refresh the page.');
+            }
         });
 
         // Initialize drag and drop functionality
@@ -777,16 +790,14 @@
 
         // Show canvas instructions
         function showCanvasInstructions() {
-            alert(`🎨 How to use the Quiz Builder:
-
-1. 📋 Drag any tool from the left sidebar
-2. 🎯 Drop it anywhere on this canvas
-3. 🖱️ Click on elements to select and edit them
-4. ⚙️ Use the properties panel on the right to customize
-5. 🔄 Drag elements around to reposition them
-6. 🗑️ Use the delete button to remove elements
-
-Try dragging a "Text Box" or "Question" to get started!`);
+            alert('🎨 How to use the Quiz Builder:\n\n' +
+                '1. 📋 Drag any tool from the left sidebar\n' +
+                '2. 🎯 Drop it anywhere on this canvas\n' +
+                '3. 🖱️ Click on elements to select and edit them\n' +
+                '4. ⚙️ Use the properties panel on the right to customize\n' +
+                '5. 🔄 Drag elements around to reposition them\n' +
+                '6. 🗑️ Use the delete button to remove elements\n\n' +
+                'Try dragging a "Text Box" or "Question" to get started!');
         }
 
         // Fallback method to add elements by clicking (for touch devices or if drag fails)
@@ -798,16 +809,21 @@ Try dragging a "Text Box" or "Question" to get started!`);
 
         // Test function to verify drag and drop is working
         function testDragDrop() {
-            console.log('Testing drag and drop functionality...');
+            try {
+                console.log('Testing drag and drop functionality...');
 
-            // Test creating different elements
-            createElement('textbox', 100, 100);
-            createElement('question', 300, 200);
-            createElement('image', 500, 150);
+                // Test creating different elements
+                createElement('textbox', 100, 100);
+                createElement('question', 300, 200);
+                createElement('image', 500, 150);
 
-            console.log('Test elements created. Current elements:', quizElements.length);
+                console.log('Test elements created. Current elements:', quizElements.length);
 
-            alert(`Test completed! Created ${quizElements.length} elements on the canvas. Check the console for detailed logs.`);
+                alert('Test completed! Created ' + quizElements.length + ' elements on the canvas. Check the console for detailed logs.');
+            } catch (error) {
+                console.error('Error in test function:', error);
+                alert('Test failed: ' + error.message);
+            }
         }
 
         // Create new element on canvas
@@ -1366,6 +1382,21 @@ Try dragging a "Text Box" or "Question" to get started!`);
                 alert('Error saving quiz');
             });
         }
+
+        // Make functions globally available for onclick handlers
+        window.addElementToCanvas = addElementToCanvas;
+        window.testDragDrop = testDragDrop;
+        window.clearCanvas = clearCanvas;
+        window.previewQuiz = previewQuiz;
+        window.saveQuiz = saveQuiz;
+        window.saveQuizSettings = saveQuizSettings;
+        window.deleteElement = deleteElement;
+        window.duplicateElement = duplicateElement;
+        window.updateElementProperty = updateElementProperty;
+        window.updateElementStyle = updateElementStyle;
+        window.updateLatexContent = updateLatexContent;
+        window.handleImageUpload = handleImageUpload;
+        window.showCanvasInstructions = showCanvasInstructions;
     </script>
 </body>
 </html>
