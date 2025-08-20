@@ -193,11 +193,17 @@
             margin: 0 auto;
             max-width: 1000px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            /* Ensure canvas can receive drop events */
+            pointer-events: all;
+            z-index: 1;
         }
 
         .canvas-area.drag-over {
             border-color: var(--primary-color);
             background: rgba(79, 70, 229, 0.05);
+            border-style: solid;
+            transform: scale(1.01);
+            transition: all 0.3s ease;
         }
 
         .canvas-placeholder {
@@ -207,7 +213,17 @@
             transform: translate(-50%, -50%);
             text-align: center;
             color: #94a3b8;
-            pointer-events: none;
+            pointer-events: all;
+            cursor: pointer;
+            padding: 40px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .canvas-placeholder:hover {
+            color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.05);
         }
 
         .canvas-placeholder i {
@@ -446,6 +462,9 @@
             <div class="canvas-header">
                 <h5 class="canvas-title">Complex Quiz Builder</h5>
                 <div class="canvas-actions">
+                    <button class="btn-canvas btn-secondary-canvas" onclick="testDragDrop()" title="Test drag and drop functionality">
+                        <i class="fas fa-bug me-1"></i>Test
+                    </button>
                     <button class="btn-canvas btn-secondary-canvas" onclick="clearCanvas()">
                         <i class="fas fa-trash me-1"></i>Clear
                     </button>
@@ -464,6 +483,15 @@
                         <i class="fas fa-mouse-pointer"></i>
                         <h5>Start Building Your Quiz</h5>
                         <p>Drag and drop elements from the sidebar to create your complex quiz</p>
+                        <p><small><strong>Tip:</strong> You can also click on any tool in the sidebar to add it to the center of the canvas</small></p>
+                        <div style="margin-top: 15px;">
+                            <button class="btn btn-primary btn-sm" onclick="addElementToCanvas('textbox')">
+                                <i class="fas fa-font me-1"></i>Add Text Box
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm ms-2" onclick="addElementToCanvas('question')">
+                                <i class="fas fa-question-circle me-1"></i>Add Question
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -587,12 +615,19 @@
 
         // Initialize the quiz builder
         document.addEventListener('DOMContentLoaded', function() {
-            initializeDragAndDrop();
-            setupCanvasEvents();
+            console.log('Initializing quiz builder...');
 
-            // Show quiz settings modal on load
-            const modal = new bootstrap.Modal(document.getElementById('quizSettingsModal'));
-            modal.show();
+            // Wait a bit for all elements to be ready
+            setTimeout(() => {
+                initializeDragAndDrop();
+                setupCanvasEvents();
+
+                // Show quiz settings modal on load
+                const modal = new bootstrap.Modal(document.getElementById('quizSettingsModal'));
+                modal.show();
+
+                console.log('Quiz builder initialized successfully');
+            }, 100);
         });
 
         // Initialize drag and drop functionality
@@ -600,21 +635,63 @@
             const toolItems = document.querySelectorAll('.tool-item');
             const canvas = document.getElementById('canvas');
 
+            console.log('Found tool items:', toolItems.length);
+            console.log('Canvas element:', canvas);
+
             // Add drag start event to tool items
-            toolItems.forEach(item => {
+            toolItems.forEach((item, index) => {
+                console.log(`Setting up tool item ${index}:`, item.dataset.type);
+
+                // Ensure the item is draggable
+                item.draggable = true;
+
+                // Add event listeners
                 item.addEventListener('dragstart', handleDragStart);
+
+                // Add visual feedback
+                item.addEventListener('dragend', function() {
+                    console.log('Drag ended for:', item.dataset.type);
+                });
+
+                // Add click handler for mobile/touch devices
+                item.addEventListener('click', function(e) {
+                    if (e.detail === 2) { // Double click
+                        console.log('Double clicked tool:', item.dataset.type);
+                        // Create element in center of canvas for double-click
+                        createElement(item.dataset.type, 400, 300);
+                    }
+                });
             });
 
-            // Add drop events to canvas
-            canvas.addEventListener('dragover', handleDragOver);
-            canvas.addEventListener('drop', handleDrop);
-            canvas.addEventListener('dragenter', handleDragEnter);
-            canvas.addEventListener('dragleave', handleDragLeave);
+            if (canvas) {
+                // Add drop events to canvas
+                canvas.addEventListener('dragover', handleDragOver);
+                canvas.addEventListener('drop', handleDrop);
+                canvas.addEventListener('dragenter', handleDragEnter);
+                canvas.addEventListener('dragleave', handleDragLeave);
+
+                console.log('Canvas drop events attached');
+            } else {
+                console.error('Canvas element not found!');
+            }
         }
 
         function handleDragStart(e) {
-            e.dataTransfer.setData('text/plain', e.target.dataset.type);
-            e.dataTransfer.effectAllowed = 'copy';
+            console.log('Drag start:', e.target.dataset.type);
+
+            // Get the tool item element (might be the span or i inside)
+            let toolItem = e.target;
+            if (!toolItem.dataset.type) {
+                toolItem = toolItem.closest('.tool-item');
+            }
+
+            if (toolItem && toolItem.dataset.type) {
+                e.dataTransfer.setData('text/plain', toolItem.dataset.type);
+                e.dataTransfer.effectAllowed = 'copy';
+                console.log('Setting data type:', toolItem.dataset.type);
+            } else {
+                console.error('No data type found');
+            }
         }
 
         function handleDragOver(e) {
@@ -624,24 +701,41 @@
 
         function handleDragEnter(e) {
             e.preventDefault();
-            e.target.classList.add('drag-over');
+            const canvas = document.getElementById('canvas');
+            canvas.classList.add('drag-over');
         }
 
         function handleDragLeave(e) {
-            if (!e.target.contains(e.relatedTarget)) {
-                e.target.classList.remove('drag-over');
+            const canvas = document.getElementById('canvas');
+            const rect = canvas.getBoundingClientRect();
+
+            // Check if we're leaving the canvas area
+            if (e.clientX < rect.left || e.clientX > rect.right ||
+                e.clientY < rect.top || e.clientY > rect.bottom) {
+                canvas.classList.remove('drag-over');
             }
         }
 
         function handleDrop(e) {
             e.preventDefault();
-            e.target.classList.remove('drag-over');
+            console.log('Drop event triggered');
+
+            const canvas = document.getElementById('canvas');
+            canvas.classList.remove('drag-over');
 
             const elementType = e.dataTransfer.getData('text/plain');
-            const rect = e.target.getBoundingClientRect();
+            console.log('Dropped element type:', elementType);
+
+            if (!elementType) {
+                console.error('No element type in drop data');
+                return;
+            }
+
+            const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
+            console.log('Drop position:', x, y);
             createElement(elementType, x, y);
         }
 
@@ -651,24 +745,113 @@
 
             // Deselect elements when clicking on canvas
             canvas.addEventListener('click', function(e) {
-                if (e.target === canvas) {
+                console.log('Canvas clicked:', e.target);
+                if (e.target === canvas || e.target.classList.contains('canvas-placeholder')) {
                     deselectAllElements();
                 }
             });
+
+            // Make placeholder clickable to show instructions
+            const placeholder = document.querySelector('.canvas-placeholder');
+            if (placeholder) {
+                placeholder.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    showCanvasInstructions();
+                });
+
+                // Make placeholder more interactive
+                placeholder.style.cursor = 'pointer';
+                placeholder.style.transition = 'all 0.3s ease';
+
+                placeholder.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translate(-50%, -50%) scale(1.05)';
+                    this.style.opacity = '0.8';
+                });
+
+                placeholder.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translate(-50%, -50%) scale(1)';
+                    this.style.opacity = '1';
+                });
+            }
+        }
+
+        // Show canvas instructions
+        function showCanvasInstructions() {
+            alert(`🎨 How to use the Quiz Builder:
+
+1. 📋 Drag any tool from the left sidebar
+2. 🎯 Drop it anywhere on this canvas
+3. 🖱️ Click on elements to select and edit them
+4. ⚙️ Use the properties panel on the right to customize
+5. 🔄 Drag elements around to reposition them
+6. 🗑️ Use the delete button to remove elements
+
+Try dragging a "Text Box" or "Question" to get started!`);
+        }
+
+        // Fallback method to add elements by clicking (for touch devices or if drag fails)
+        function addElementToCanvas(elementType) {
+            console.log('Adding element via click:', elementType);
+            // Add element to center of canvas
+            createElement(elementType, 400, 300);
+        }
+
+        // Test function to verify drag and drop is working
+        function testDragDrop() {
+            console.log('Testing drag and drop functionality...');
+
+            // Test creating different elements
+            createElement('textbox', 100, 100);
+            createElement('question', 300, 200);
+            createElement('image', 500, 150);
+
+            console.log('Test elements created. Current elements:', quizElements.length);
+
+            alert(`Test completed! Created ${quizElements.length} elements on the canvas. Check the console for detailed logs.`);
         }
 
         // Create new element on canvas
         function createElement(type, x, y) {
+            console.log('Creating element:', type, 'at position:', x, y);
+
+            if (!type) {
+                console.error('No element type provided');
+                alert('Error: No element type specified');
+                return;
+            }
+
             elementCounter++;
             const elementId = `element-${elementCounter}`;
+
+            // Adjust dimensions based on element type
+            let width = 200, height = 100;
+            switch(type) {
+                case 'question':
+                case 'sub-question':
+                    width = 400;
+                    height = 120;
+                    break;
+                case 'table':
+                    width = 300;
+                    height = 150;
+                    break;
+                case 'latex':
+                    width = 250;
+                    height = 80;
+                    break;
+                case 'answer-area':
+                    width = 350;
+                    height = 100;
+                    break;
+            }
 
             const element = {
                 id: elementId,
                 type: type,
-                x: x,
-                y: y,
-                width: 200,
-                height: 100,
+                x: Math.max(0, x - width/2), // Center the element on drop point
+                y: Math.max(0, y - height/2),
+                width: width,
+                height: height,
                 content: '',
                 style: {
                     fontSize: '14px',
@@ -681,19 +864,40 @@
                 }
             };
 
+            console.log('Element created:', element);
+
             quizElements.push(element);
             renderElement(element);
             selectElement(elementId);
 
             // Hide placeholder if this is the first element
             if (quizElements.length === 1) {
-                document.querySelector('.canvas-placeholder').style.display = 'none';
+                const placeholder = document.querySelector('.canvas-placeholder');
+                if (placeholder) {
+                    placeholder.style.display = 'none';
+                }
             }
+
+            console.log('Total elements:', quizElements.length);
         }
 
         // Render element on canvas
         function renderElement(element) {
+            console.log('Rendering element:', element.id, element.type);
+
             const canvas = document.getElementById('canvas');
+            if (!canvas) {
+                console.error('Canvas not found!');
+                return;
+            }
+
+            // Check if element already exists
+            const existingElement = document.getElementById(element.id);
+            if (existingElement) {
+                console.log('Element already exists, removing old version');
+                existingElement.remove();
+            }
+
             const elementDiv = document.createElement('div');
             elementDiv.className = 'canvas-element';
             elementDiv.id = element.id;
@@ -701,12 +905,19 @@
             elementDiv.style.top = element.y + 'px';
             elementDiv.style.width = element.width + 'px';
             elementDiv.style.height = element.height + 'px';
+            elementDiv.style.position = 'absolute';
+            elementDiv.style.zIndex = '10';
 
             // Apply styles
             Object.assign(elementDiv.style, element.style);
 
             // Add content based on type
-            elementDiv.innerHTML = getElementContent(element);
+            try {
+                elementDiv.innerHTML = getElementContent(element);
+            } catch (error) {
+                console.error('Error generating content for element:', error);
+                elementDiv.innerHTML = `<div style="padding: 10px; color: red;">Error loading ${element.type}</div>`;
+            }
 
             // Add controls
             const controls = document.createElement('div');
@@ -724,6 +935,7 @@
             // Add click event
             elementDiv.addEventListener('click', (e) => {
                 e.stopPropagation();
+                console.log('Element clicked:', element.id);
                 selectElement(element.id);
             });
 
@@ -731,6 +943,14 @@
             makeDraggable(elementDiv);
 
             canvas.appendChild(elementDiv);
+            console.log('Element rendered successfully:', element.id);
+
+            // Special handling for LaTeX elements
+            if (element.type === 'latex' && window.MathJax) {
+                setTimeout(() => {
+                    MathJax.typesetPromise([elementDiv]);
+                }, 100);
+            }
         }
 
         // Get content for different element types
