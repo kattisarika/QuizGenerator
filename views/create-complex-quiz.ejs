@@ -8,20 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- MathJax for LaTeX support -->
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']]
-            },
-            svg: {
-                fontCache: 'global'
-            }
-        };
-    </script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- MathJax will be loaded dynamically when needed -->
     
     <!-- Chart.js for charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -621,6 +608,32 @@
             console.error('Error details:', e.message, 'at', e.filename, ':', e.lineno);
         });
 
+        // Load MathJax dynamically when needed
+        function loadMathJax() {
+            if (window.MathJax) return Promise.resolve();
+
+            return new Promise((resolve, reject) => {
+                window.MathJax = {
+                    tex: {
+                        inlineMath: [['$', '$'], ['\\(', '\\)']],
+                        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+                    },
+                    startup: {
+                        ready: () => {
+                            MathJax.startup.defaultReady();
+                            resolve();
+                        }
+                    }
+                };
+
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+                script.async = true;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
         // Initialize the quiz builder
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Initializing quiz builder...');
@@ -634,6 +647,14 @@
                     // Show quiz settings modal on load
                     const modal = new bootstrap.Modal(document.getElementById('quizSettingsModal'));
                     modal.show();
+
+                    // Test that functions are available
+                    console.log('Functions available:', {
+                        addElementToCanvas: typeof window.addElementToCanvas,
+                        testDragDrop: typeof window.testDragDrop,
+                        clearCanvas: typeof window.clearCanvas,
+                        saveQuiz: typeof window.saveQuiz
+                    });
 
                     console.log('Quiz builder initialized successfully');
                 }, 100);
@@ -807,6 +828,9 @@
             createElement(elementType, 400, 300);
         }
 
+        // Make this function globally available immediately
+        window.addElementToCanvas = addElementToCanvas;
+
         // Test function to verify drag and drop is working
         function testDragDrop() {
             try {
@@ -825,6 +849,9 @@
                 alert('Test failed: ' + error.message);
             }
         }
+
+        // Make this function globally available immediately
+        window.testDragDrop = testDragDrop;
 
         // Create new element on canvas
         function createElement(type, x, y) {
@@ -962,10 +989,12 @@
             console.log('Element rendered successfully:', element.id);
 
             // Special handling for LaTeX elements
-            if (element.type === 'latex' && window.MathJax) {
-                setTimeout(() => {
-                    MathJax.typesetPromise([elementDiv]);
-                }, 100);
+            if (element.type === 'latex') {
+                loadMathJax().then(() => {
+                    if (window.MathJax && MathJax.typesetPromise) {
+                        MathJax.typesetPromise([elementDiv]).catch(console.error);
+                    }
+                }).catch(console.error);
             }
         }
 
@@ -1257,6 +1286,7 @@
                 showDefaultProperties();
             }
         }
+        window.clearCanvas = clearCanvas;
 
         // Save quiz settings
         function saveQuizSettings() {
@@ -1280,12 +1310,13 @@
             };
 
             // Update canvas title
-            document.querySelector('.canvas-title').textContent = `Complex Quiz Builder - ${title}`;
+            document.querySelector('.canvas-title').textContent = 'Complex Quiz Builder - ' + title;
 
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('quizSettingsModal'));
             modal.hide();
         }
+        window.saveQuizSettings = saveQuizSettings;
 
         // Preview quiz
         function previewQuiz() {
@@ -1301,45 +1332,49 @@
             previewWindow.document.write(previewContent);
             previewWindow.document.close();
         }
+        window.previewQuiz = previewQuiz;
 
         // Generate preview HTML
         function generatePreviewHTML() {
-            let elementsHTML = '';
+            var elementsHTML = '';
 
-            quizElements.forEach(element => {
-                elementsHTML += `
-                    <div style="position: absolute; left: ${element.x}px; top: ${element.y}px; width: ${element.width}px; height: ${element.height}px; ${Object.entries(element.style).map(([key, value]) => `${key}: ${value}`).join('; ')}">
-                        ${getElementContent(element)}
-                    </div>
-                `;
+            quizElements.forEach(function(element) {
+                var styleString = '';
+                for (var key in element.style) {
+                    if (element.style.hasOwnProperty(key)) {
+                        styleString += key + ': ' + element.style[key] + '; ';
+                    }
+                }
+
+                elementsHTML += '<div style="position: absolute; left: ' + element.x + 'px; top: ' + element.y + 'px; width: ' + element.width + 'px; height: ' + element.height + 'px; ' + styleString + '">' +
+                    getElementContent(element) +
+                    '</div>';
             });
 
-            return `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Quiz Preview - ${quizSettings.title}</title>
-                    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-                    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-                    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-                    <style>
-                        body { font-family: 'Inter', sans-serif; margin: 20px; background: #f8fafc; }
-                        .preview-header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                        .preview-canvas { position: relative; background: white; min-height: 800px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                    </style>
-                </head>
-                <body>
-                    <div class="preview-header">
-                        <h2>${quizSettings.title}</h2>
-                        <p><strong>Grade:</strong> ${quizSettings.gradeLevel} | <strong>Subject:</strong> ${quizSettings.subject}</p>
-                        <p>${quizSettings.description}</p>
-                    </div>
-                    <div class="preview-canvas">
-                        ${elementsHTML}
-                    </div>
-                </body>
-                </html>
-            `;
+            var previewHTML = '<!DOCTYPE html>' +
+                '<html>' +
+                '<head>' +
+                '<title>Quiz Preview - ' + quizSettings.title + '</title>' +
+                '<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">' +
+                '<style>' +
+                'body { font-family: Inter, sans-serif; margin: 20px; background: #f8fafc; }' +
+                '.preview-header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }' +
+                '.preview-canvas { position: relative; background: white; min-height: 800px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }' +
+                '</style>' +
+                '</head>' +
+                '<body>' +
+                '<div class="preview-header">' +
+                '<h2>' + quizSettings.title + '</h2>' +
+                '<p><strong>Grade:</strong> ' + quizSettings.gradeLevel + ' | <strong>Subject:</strong> ' + quizSettings.subject + '</p>' +
+                '<p>' + quizSettings.description + '</p>' +
+                '</div>' +
+                '<div class="preview-canvas">' +
+                elementsHTML +
+                '</div>' +
+                '</body>' +
+                '</html>';
+
+            return previewHTML;
         }
 
         // Save quiz
@@ -1382,6 +1417,7 @@
                 alert('Error saving quiz');
             });
         }
+        window.saveQuiz = saveQuiz;
 
         // Make functions globally available for onclick handlers
         window.addElementToCanvas = addElementToCanvas;
