@@ -1391,7 +1391,11 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <a href="/">SkillOns</a>
+                <a href="/">
+                    <i class="fas fa-graduation-cap" style="margin-right: 8px; color: #4f46e5;"></i>
+                    SkillOns
+                    <span style="font-size: 0.7rem; color: #7c3aed; font-weight: 500; margin-left: 4px;">Pro</span>
+                </a>
             </div>
             <div class="hamburger" onclick="toggleMobileMenu()">
                 <span></span>
@@ -1399,7 +1403,7 @@
                 <span></span>
             </div>
             <div class="nav-menu" id="navMenu">
-                <a href="/teacher/dashboard" class="nav-link">
+                <a href="/teacher/dashboard" class="nav-link active">
                     <i class="fas fa-home"></i> Dashboard
                 </a>
                 <a href="/create-quiz" class="nav-link">
@@ -1408,7 +1412,6 @@
                 <a href="/create-podcast" class="nav-link">
                     <i class="fas fa-podcast"></i> Create Podcast
                 </a>
-
                 <a href="/competitive-quiz" class="nav-link">
                     <i class="fas fa-trophy"></i> Competitive Sessions
                 </a>
@@ -1421,7 +1424,6 @@
                 <a href="/teacher/student-results" class="nav-link">
                     <i class="fas fa-chart-bar"></i> Student Results
                 </a>
-
                 <a href="/logout" class="nav-link logout-btn">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
@@ -2828,6 +2830,32 @@
             currentUrl.searchParams.set('page', '1'); // Reset to first page when switching grades
             window.location.href = currentUrl.toString();
         }
+        // Mobile menu functionality
+        function toggleMobileMenu() {
+            const navMenu = document.getElementById('navMenu');
+            const overlay = document.querySelector('.mobile-menu-overlay');
+
+            navMenu.classList.toggle('active');
+            overlay.classList.toggle('active');
+
+            if (navMenu.classList.contains('active')) {
+                overlay.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            } else {
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('DOMContentLoaded', function() {
+            const overlay = document.querySelector('.mobile-menu-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', toggleMobileMenu);
+            }
+        });
     </script>
 </body>
-</html> 
+</html>
