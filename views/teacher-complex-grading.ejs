@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complex Quiz Grading - SkillOns</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .grading-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .grading-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .grading-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .grading-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .pending-submissions {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .submissions-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .submissions-header h2 {
+            margin: 0;
+            color: #495057;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .submission-item {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+
+        .submission-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .submission-item:last-child {
+            border-bottom: none;
+        }
+
+        .submission-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .submission-info {
+            flex: 1;
+        }
+
+        .submission-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .submission-meta {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .submission-meta i {
+            margin-right: 5px;
+            width: 16px;
+        }
+
+        .submission-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-grade {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-grade:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 10px 0;
+            color: #4a5568;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 14px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/teacher/dashboard">SkillOns</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/teacher/dashboard" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="/create-quiz" class="nav-link">
+                    <i class="fas fa-plus-circle"></i> Create Quiz
+                </a>
+                <a href="/teacher/complex-quiz-grading" class="nav-link active">
+                    <i class="fas fa-clipboard-check"></i> Grade Complex Quizzes
+                </a>
+                <a href="/logout" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="grading-container">
+        <div class="grading-header">
+            <h1><i class="fas fa-clipboard-check"></i> Complex Quiz Grading</h1>
+            <p>Review and grade student submissions for complex quizzes</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number"><%= pendingResults.length %></div>
+                <div class="stat-label">Pending Reviews</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">
+                    <%= pendingResults.reduce((total, result) => {
+                        const answerCount = Object.keys(result.answers || {}).length;
+                        return total + answerCount;
+                    }, 0) %>
+                </div>
+                <div class="stat-label">Total Answers to Review</div>
+            </div>
+        </div>
+
+        <div class="pending-submissions">
+            <div class="submissions-header">
+                <h2><i class="fas fa-hourglass-half"></i> Pending Submissions</h2>
+            </div>
+
+            <% if (pendingResults.length === 0) { %>
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>All Caught Up!</h3>
+                    <p>No complex quiz submissions are pending review at this time.</p>
+                </div>
+            <% } else { %>
+                <% pendingResults.forEach(result => { %>
+                    <div class="submission-item">
+                        <div class="submission-header">
+                            <div class="submission-info">
+                                <div class="submission-title">
+                                    <%= result.quiz.title %>
+                                </div>
+                                <div class="submission-meta">
+                                    <div><i class="fas fa-user"></i>Student: <%= result.student.displayName %></div>
+                                    <div><i class="fas fa-clock"></i>Submitted: <%= new Date(result.submittedAt).toLocaleString() %></div>
+                                    <div><i class="fas fa-edit"></i>Answers: <%= Object.keys(result.answers || {}).length %> response(s)</div>
+                                </div>
+                            </div>
+                            <div class="submission-actions">
+                                <span class="status-badge status-pending">Pending</span>
+                                <a href="/teacher/grade-complex-quiz/<%= result._id %>" class="btn-grade">
+                                    <i class="fas fa-clipboard-check"></i> Grade Now
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } %>
+        </div>
+    </div>
+</body>
+</html>

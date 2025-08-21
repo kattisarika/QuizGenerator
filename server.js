@@ -2668,6 +2668,105 @@ app.get('/complex-quiz-data/:quizId', requireAuth, async (req, res) => {
   }
 });
 
+// Route for teachers to view pending complex quiz submissions
+app.get('/teacher/complex-quiz-grading', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    // Find all complex quiz results that need manual grading for this teacher's quizzes
+    const pendingResults = await QuizResult.find({
+      teacherId: req.user._id,
+      isComplexQuiz: true,
+      needsManualGrading: true,
+      gradingStatus: 'pending'
+    })
+    .populate('student', 'displayName email')
+    .populate('quiz', 'title')
+    .sort({ submittedAt: -1 });
+
+    console.log('Found', pendingResults.length, 'pending complex quiz submissions for teacher:', req.user.displayName);
+
+    res.render('teacher-complex-grading', {
+      user: req.user,
+      pendingResults: pendingResults
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending complex quiz submissions:', error);
+    res.status(500).send('Error loading complex quiz grading page');
+  }
+});
+
+// Route for teachers to view and grade a specific complex quiz submission
+app.get('/teacher/grade-complex-quiz/:resultId', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const result = await QuizResult.findById(req.params.resultId)
+      .populate('student', 'displayName email')
+      .populate('quiz', 'title complexQuizData');
+
+    if (!result) {
+      return res.status(404).send('Quiz result not found');
+    }
+
+    // Verify this teacher owns the quiz
+    if (result.teacherId.toString() !== req.user._id.toString()) {
+      return res.status(403).send('Access denied');
+    }
+
+    res.render('grade-complex-quiz', {
+      user: req.user,
+      result: result,
+      quiz: result.quiz
+    });
+
+  } catch (error) {
+    console.error('Error loading complex quiz for grading:', error);
+    res.status(500).send('Error loading quiz for grading');
+  }
+});
+
+// Route to submit complex quiz grading
+app.post('/teacher/grade-complex-quiz/:resultId', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { manualScore, manualPercentage, teacherComments } = req.body;
+
+    const result = await QuizResult.findById(req.params.resultId);
+    if (!result) {
+      return res.status(404).json({ success: false, message: 'Quiz result not found' });
+    }
+
+    // Verify this teacher owns the quiz
+    if (result.teacherId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    // Update the result with teacher's grading
+    result.manualScore = Number(manualScore) || 0;
+    result.manualPercentage = Number(manualPercentage) || 0;
+    result.teacherComments = teacherComments || '';
+    result.gradingStatus = 'graded';
+    result.gradedBy = req.user._id;
+    result.gradedAt = new Date();
+    result.status = 'completed'; // Mark as completed
+    result.score = result.manualScore; // Update main score field
+    result.percentage = result.manualPercentage; // Update main percentage field
+
+    await result.save();
+
+    console.log('Complex quiz graded by teacher:', req.user.displayName, 'Result ID:', result._id);
+
+    res.json({
+      success: true,
+      message: 'Complex quiz graded successfully'
+    });
+
+  } catch (error) {
+    console.error('Error grading complex quiz:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error grading complex quiz: ' + error.message
+    });
+  }
+});
+
 app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, upload.fields([
   { name: 'questionPaper', maxCount: 1 },
   { name: 'answerPaper', maxCount: 1 }
@@ -4702,35 +4801,72 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
 
     // Handle complex quiz submission
     if (isComplexQuiz && quiz.isComplexQuiz) {
-      console.log('Processing complex quiz submission');
-      console.log('Complex quiz answers:', answers);
+      console.log('=== COMPLEX QUIZ SUBMISSION START ===');
+      console.log('User:', req.user.displayName, req.user._id);
+      console.log('Quiz:', quiz.title, quiz._id);
+      console.log('Complex quiz answers:', JSON.stringify(answers, null, 2));
 
-      // For complex quizzes, we store the answers as-is since they're free-form
-      const quizResult = new QuizResult({
-        student: req.user._id,
-        studentName: req.user.displayName,
-        quiz: quiz._id,
-        quizTitle: quiz.title,
-        answers: answers, // Store complex answers object
-        score: 0, // Complex quizzes don't have automatic scoring
-        percentage: 0,
-        correctAnswers: 0,
-        totalQuestions: Object.keys(answers).length,
-        timeTaken: timeSpent || 0,
-        submittedAt: new Date(),
-        isComplexQuiz: true
-      });
+      try {
+        // For complex quizzes, we store the answers as-is since they're free-form
+        const quizResultData = {
+          student: req.user._id,
+          studentName: req.user.displayName,
+          quiz: quiz._id,
+          quizTitle: quiz.title,
+          organizationId: req.user.organizationId, // Required field
+          teacherId: quiz.createdBy, // Required field - quiz creator
+          answers: answers || {}, // Store complex answers object
+          score: 0, // Complex quizzes don't have automatic scoring
+          percentage: 0,
+          correctAnswers: 0,
+          totalQuestions: Object.keys(answers || {}).length,
+          totalPoints: 0, // Required field - will be set by teacher
+          timeTaken: timeSpent || 0,
+          submittedAt: new Date(),
+          completedAt: new Date(),
+          status: 'pending-recorrection', // Use existing status for teacher review
+          isComplexQuiz: true,
+          needsManualGrading: true, // Flag for teacher review
+          gradingStatus: 'pending' // Status for teacher grading workflow
+        };
 
-      await quizResult.save();
+        console.log('Creating quiz result with data:', JSON.stringify(quizResultData, null, 2));
 
-      console.log('Complex quiz result saved:', quizResult._id);
+        const quizResult = new QuizResult(quizResultData);
+        await quizResult.save();
 
-      return res.json({
-        success: true,
-        message: 'Complex quiz submitted successfully',
-        resultId: quizResult._id,
-        isComplexQuiz: true
-      });
+        console.log('Complex quiz result saved successfully:', quizResult._id);
+        console.log('=== COMPLEX QUIZ SUBMISSION END ===');
+
+        return res.json({
+          success: true,
+          message: 'Complex quiz submitted successfully! Your answers have been sent to your teacher for review.',
+          resultId: quizResult._id,
+          isComplexQuiz: true,
+          needsManualGrading: true
+        });
+
+      } catch (error) {
+        console.error('=== ERROR SAVING COMPLEX QUIZ RESULT ===');
+        console.error('Error type:', error.constructor.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+
+        if (error.errors) {
+          console.error('Validation errors:');
+          Object.keys(error.errors).forEach(key => {
+            console.error(`  ${key}:`, error.errors[key].message);
+          });
+        }
+
+        console.error('=== END ERROR DETAILS ===');
+
+        return res.status(500).json({
+          success: false,
+          message: 'Error saving complex quiz submission: ' + error.message,
+          errorType: error.constructor.name
+        });
+      }
     }
 
     // Regular quiz processing

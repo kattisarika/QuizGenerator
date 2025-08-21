@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade Complex Quiz - SkillOns</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- MathJax for Math Equation Support -->
+    <script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true,
+            processEnvironments: true
+        },
+        options: {
+            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+        }
+    };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        .grading-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .grading-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .grading-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .student-info {
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        .student-info div {
+            opacity: 0.9;
+        }
+
+        .grading-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        .quiz-display {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .quiz-canvas {
+            position: relative;
+            background: #fafafa;
+            background-image: 
+                linear-gradient(rgba(0,0,0,.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            min-height: 600px;
+            padding: 20px;
+        }
+
+        .grading-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 25px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .grading-panel h3 {
+            margin: 0 0 20px 0;
+            color: #2d3748;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .student-answers {
+            margin-bottom: 25px;
+        }
+
+        .answer-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .answer-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .answer-content {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            min-height: 60px;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.5;
+        }
+
+        .grading-form {
+            border-top: 1px solid #e9ecef;
+            padding-top: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .score-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-submit-grade {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-submit-grade:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-back {
+            background: #6b7280;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .btn-back:hover {
+            background: #4b5563;
+            color: white;
+            text-decoration: none;
+        }
+
+        /* Complex Quiz Element Styles */
+        .quiz-canvas textarea {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .quiz-canvas table {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+
+        .quiz-canvas table td {
+            border: 1px solid #e2e8f0 !important;
+            padding: 8px !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/teacher/dashboard">SkillOns</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/teacher/dashboard" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="/teacher/complex-quiz-grading" class="nav-link">
+                    <i class="fas fa-clipboard-check"></i> Grade Complex Quizzes
+                </a>
+                <a href="/logout" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="grading-container">
+        <a href="/teacher/complex-quiz-grading" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Back to Grading Dashboard
+        </a>
+
+        <div class="grading-header">
+            <h1><i class="fas fa-clipboard-check"></i> Grade Complex Quiz</h1>
+            <div class="student-info">
+                <div><i class="fas fa-book"></i> <strong>Quiz:</strong> <%= result.quiz.title %></div>
+                <div><i class="fas fa-user"></i> <strong>Student:</strong> <%= result.student.displayName %></div>
+                <div><i class="fas fa-clock"></i> <strong>Submitted:</strong> <%= new Date(result.submittedAt).toLocaleString() %></div>
+            </div>
+        </div>
+
+        <div class="grading-layout">
+            <div class="quiz-display">
+                <div class="quiz-canvas" id="quiz-canvas">
+                    <!-- Quiz content will be rendered here -->
+                </div>
+            </div>
+
+            <div class="grading-panel">
+                <h3><i class="fas fa-edit"></i> Student Answers</h3>
+                
+                <div class="student-answers">
+                    <% if (result.answers && Object.keys(result.answers).length > 0) { %>
+                        <% Object.keys(result.answers).forEach((elementId, index) => { %>
+                            <div class="answer-item">
+                                <div class="answer-label">Answer Area <%= index + 1 %> (Element: <%= elementId %>)</div>
+                                <div class="answer-content">
+                                    <%= result.answers[elementId] || 'No answer provided' %>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="answer-item">
+                            <div class="answer-content" style="text-align: center; color: #6b7280;">
+                                No answers submitted
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+
+                <form class="grading-form" onsubmit="submitGrade(event)">
+                    <div class="form-group">
+                        <label>Grade & Feedback</label>
+                        <div class="score-inputs">
+                            <div>
+                                <label style="font-size: 12px; margin-bottom: 4px;">Score (Points)</label>
+                                <input type="number" id="manualScore" min="0" max="100" step="0.5" placeholder="0" required>
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; margin-bottom: 4px;">Percentage (%)</label>
+                                <input type="number" id="manualPercentage" min="0" max="100" step="0.1" placeholder="0" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Teacher Comments</label>
+                        <textarea id="teacherComments" rows="4" placeholder="Provide feedback for the student..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-submit-grade">
+                        <i class="fas fa-check"></i> Submit Grade
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Complex quiz data from server
+        const complexQuizData = <%- JSON.stringify(result.quiz.complexQuizData) %>;
+        const studentAnswers = <%- JSON.stringify(result.answers) %>;
+        
+        console.log('Complex quiz data:', complexQuizData);
+        console.log('Student answers:', studentAnswers);
+        
+        // Render complex quiz for teacher review
+        function renderComplexQuizForGrading() {
+            const canvas = document.getElementById('quiz-canvas');
+            if (!canvas || !complexQuizData || !complexQuizData.elements) {
+                console.log('No complex quiz data to render');
+                return;
+            }
+            
+            console.log('Rendering', complexQuizData.elements.length, 'complex quiz elements for grading');
+            
+            complexQuizData.elements.forEach((element, index) => {
+                const elementDiv = document.createElement('div');
+                elementDiv.id = element.id;
+                elementDiv.style.position = 'absolute';
+                elementDiv.style.left = element.x + 'px';
+                elementDiv.style.top = element.y + 'px';
+                elementDiv.style.width = element.width + 'px';
+                elementDiv.style.height = element.height + 'px';
+                
+                // Apply element styles
+                if (element.style) {
+                    Object.keys(element.style).forEach(key => {
+                        elementDiv.style[key] = element.style[key];
+                    });
+                }
+                
+                // Render element content for teacher view
+                elementDiv.innerHTML = getElementContentForGrading(element);
+                
+                canvas.appendChild(elementDiv);
+                console.log('Rendered element for grading:', element.id, element.type);
+            });
+        }
+        
+        // Get element content for teacher grading view
+        function getElementContentForGrading(element) {
+            switch(element.type) {
+                case 'textbox':
+                    return '<div style="width: 100%; height: 100%; padding: 8px; overflow: auto;">' + (element.content || 'Text content') + '</div>';
+                    
+                case 'question':
+                    return '<div style="padding: 15px; background: #f0f9ff; border-left: 4px solid #0ea5e9; height: 100%; box-sizing: border-box;">' +
+                        '<strong style="color: #0ea5e9;">Question:</strong>' +
+                        '<div style="margin-top: 8px;">' + (element.content || 'Question text') + '</div>' +
+                        '</div>';
+                        
+                case 'sub-question':
+                    return '<div style="padding: 15px; background: #fefce8; border-left: 4px solid #eab308; margin-left: 20px; height: 100%; box-sizing: border-box;">' +
+                        '<strong style="color: #eab308;">Sub-question:</strong>' +
+                        '<div style="margin-top: 8px;">' + (element.content || 'Sub-question text') + '</div>' +
+                        '</div>';
+                        
+                case 'answer-area':
+                    const studentAnswer = studentAnswers[element.id] || '';
+                    return '<div style="padding: 15px; background: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px; height: 100%; box-sizing: border-box;">' +
+                        '<div style="color: #16a34a; font-weight: 600; margin-bottom: 8px;">' +
+                        '<i class="fas fa-edit" style="margin-right: 8px;"></i>Student Answer:' +
+                        '</div>' +
+                        '<div style="background: white; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px; min-height: 40px; font-family: monospace;">' +
+                        (studentAnswer || '<em style="color: #6b7280;">No answer provided</em>') +
+                        '</div>' +
+                        '</div>';
+                        
+                case 'table':
+                    if (element.content && element.content.includes('<table')) {
+                        return element.content;
+                    } else {
+                        return '<table style="width: 100%; border-collapse: collapse; height: 100%;">' +
+                            '<tr><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 1</td><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 2</td></tr>' +
+                            '<tr><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 3</td><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 4</td></tr>' +
+                            '</table>';
+                    }
+                    
+                case 'image':
+                    if (element.content && element.content.startsWith('data:image')) {
+                        return '<img src="' + element.content + '" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" alt="Quiz Image">';
+                    } else {
+                        return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8fafc; border: 2px dashed #cbd5e1; color: #64748b;">' +
+                            '<div style="text-align: center;"><i class="fas fa-image fa-2x"></i><br><small>Image</small></div>' +
+                            '</div>';
+                    }
+                    
+                case 'latex':
+                    return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 10px; background: #fefce8; border: 1px solid #eab308; border-radius: 4px;">' +
+                        '<div class="math-content">$$' + (element.content || 'x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}') + '$$</div>' +
+                        '</div>';
+                        
+                default:
+                    return '<div style="padding: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; height: 100%; box-sizing: border-box;">' +
+                        (element.content || 'Content') +
+                        '</div>';
+            }
+        }
+        
+        // Submit grade function
+        function submitGrade(event) {
+            event.preventDefault();
+            
+            const manualScore = document.getElementById('manualScore').value;
+            const manualPercentage = document.getElementById('manualPercentage').value;
+            const teacherComments = document.getElementById('teacherComments').value;
+            
+            if (!manualScore || !manualPercentage) {
+                alert('Please provide both score and percentage');
+                return;
+            }
+            
+            const gradeData = {
+                manualScore: parseFloat(manualScore),
+                manualPercentage: parseFloat(manualPercentage),
+                teacherComments: teacherComments
+            };
+            
+            console.log('Submitting grade:', gradeData);
+            
+            fetch('/teacher/grade-complex-quiz/<%= result._id %>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gradeData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Grade submitted successfully!\n\nThe student will now see their results.');
+                    window.location.href = '/teacher/complex-quiz-grading';
+                } else {
+                    alert('Error submitting grade: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting grade:', error);
+                alert('Error submitting grade. Please try again.');
+            });
+        }
+        
+        // Render complex quiz when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            renderComplexQuizForGrading();
+            
+            // Process LaTeX if MathJax is available
+            if (window.MathJax) {
+                setTimeout(() => {
+                    MathJax.typesetPromise().catch(console.error);
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>

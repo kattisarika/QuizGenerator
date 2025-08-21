@@ -1194,7 +1194,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Complex quiz submitted successfully!');
+                    if (data.needsManualGrading) {
+                        alert('✅ Complex quiz submitted successfully!\n\n📝 Your answers have been sent to your teacher for review and grading.\n\n⏳ You will receive your results once your teacher has completed the review.');
+                    } else {
+                        alert('Complex quiz submitted successfully!');
+                    }
                     window.location.href = '/student/dashboard';
                 } else {
                     alert('Error submitting quiz: ' + data.message);

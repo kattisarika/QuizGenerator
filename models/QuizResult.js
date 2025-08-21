@@ -143,6 +143,41 @@ const quizResultSchema = new mongoose.Schema({
   badgeEarnedAt: {
     type: Date,
     default: null
+  },
+  // Complex quiz fields
+  isComplexQuiz: {
+    type: Boolean,
+    default: false
+  },
+  needsManualGrading: {
+    type: Boolean,
+    default: false
+  },
+  gradingStatus: {
+    type: String,
+    enum: ['pending', 'graded', 'reviewed'],
+    default: 'pending'
+  },
+  manualScore: {
+    type: Number,
+    default: null
+  },
+  manualPercentage: {
+    type: Number,
+    default: null
+  },
+  gradedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  gradedAt: {
+    type: Date,
+    default: null
+  },
+  teacherComments: {
+    type: String,
+    default: ''
   }
 }, {
   timestamps: true
