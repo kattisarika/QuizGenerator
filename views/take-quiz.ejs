@@ -579,6 +579,67 @@
                                                 '<div class="math-content">$$' + (element.content || 'x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}') + '$$</div>' +
                                                 '</div>';
 
+                                        // 2D Geometric Shapes
+                                        case 'line':
+                                            return '<svg width="100%" height="100%" viewBox="0 0 200 20" style="background: #ffffff;">' +
+                                                '<line x1="10" y1="10" x2="190" y2="10" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '"' +
+                                                (element.strokeDasharray ? ' stroke-dasharray="' + element.strokeDasharray + '"' : '') + ' />' +
+                                                '</svg>';
+
+                                        case 'triangle':
+                                            return '<svg width="100%" height="100%" viewBox="0 0 150 150" style="background: #ffffff;">' +
+                                                '<polygon points="75,20 20,130 130,130" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '</svg>';
+
+                                        case 'square':
+                                            return '<svg width="100%" height="100%" viewBox="0 0 150 150" style="background: #ffffff;">' +
+                                                '<rect x="25" y="25" width="100" height="100" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '</svg>';
+
+                                        case 'parallelogram':
+                                            return '<svg width="100%" height="100%" viewBox="0 0 200 120" style="background: #ffffff;">' +
+                                                '<polygon points="30,20 170,20 150,100 10,100" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '</svg>';
+
+                                        case 'circle':
+                                            return '<svg width="100%" height="100%" viewBox="0 0 150 150" style="background: #ffffff;">' +
+                                                '<circle cx="75" cy="75" r="50" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '</svg>';
+
+                                        case 'pentagon':
+                                            return '<svg width="100%" height="100%" viewBox="0 0 150 150" style="background: #ffffff;">' +
+                                                '<polygon points="75,20 120,50 100,110 50,110 30,50" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '</svg>';
+
+                                        case 'hexagon':
+                                            return '<svg width="100%" height="100%" viewBox="0 0 150 150" style="background: #ffffff;">' +
+                                                '<polygon points="75,20 110,40 110,80 75,100 40,80 40,40" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '</svg>';
+
+                                        // 3D Shapes
+                                        case 'cube':
+                                            return '<svg width="100%" height="100%" viewBox="0 0 150 150" style="background: #ffffff;">' +
+                                                '<rect x="30" y="50" width="60" height="60" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '<polygon points="30,50 50,30 110,30 90,50" fill="' + (element.fillColor || '#bfdbfe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '<polygon points="90,50 110,30 110,90 90,110" fill="' + (element.fillColor || '#93c5fd') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '</svg>';
+
+                                        case 'sphere':
+                                            return '<svg width="100%" height="100%" viewBox="0 0 150 150" style="background: #ffffff;">' +
+                                                '<defs><radialGradient id="sphereGrad-' + element.id + '" cx="0.3" cy="0.3">' +
+                                                '<stop offset="0%" stop-color="#ffffff" />' +
+                                                '<stop offset="100%" stop-color="' + (element.fillColor || '#3b82f6') + '" />' +
+                                                '</radialGradient></defs>' +
+                                                '<circle cx="75" cy="75" r="50" fill="url(#sphereGrad-' + element.id + ')" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '</svg>';
+
+                                        case 'cuboid':
+                                            return '<svg width="100%" height="100%" viewBox="0 0 200 120" style="background: #ffffff;">' +
+                                                '<rect x="20" y="40" width="100" height="60" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '<polygon points="20,40 40,20 140,20 120,40" fill="' + (element.fillColor || '#bfdbfe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '<polygon points="120,40 140,20 140,80 120,100" fill="' + (element.fillColor || '#93c5fd') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '</svg>';
+
                                         default:
                                             return '<div style="padding: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; height: 100%; box-sizing: border-box;">' +
                                                 (element.content || 'Content') +

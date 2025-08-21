@@ -353,6 +353,52 @@
             background: var(--danger-color);
         }
 
+        /* Shape-specific tool styling */
+        .tool-item[data-type="line"] i {
+            color: #ef4444;
+        }
+        .tool-item[data-type="triangle"] i {
+            color: #f59e0b;
+        }
+        .tool-item[data-type="square"] i {
+            color: #10b981;
+        }
+        .tool-item[data-type="circle"] i {
+            color: #3b82f6;
+        }
+        .tool-item[data-type="parallelogram"] i {
+            color: #8b5cf6;
+        }
+        .tool-item[data-type="pentagon"] i {
+            color: #ec4899;
+        }
+        .tool-item[data-type="hexagon"] i {
+            color: #06b6d4;
+        }
+        .tool-item[data-type="cube"] i {
+            color: #6366f1;
+        }
+        .tool-item[data-type="sphere"] i {
+            color: #84cc16;
+        }
+        .tool-item[data-type="cuboid"] i {
+            color: #f97316;
+        }
+
+        /* Shape preview in canvas */
+        .canvas-element svg {
+            border-radius: 6px;
+        }
+
+        /* Enhanced tool category headers */
+        .tool-category h6 {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
         /* Responsive design */
         @media (max-width: 1200px) {
             .tools-sidebar {
@@ -407,6 +453,56 @@
                 </div>
             </div>
             
+            <!-- Geometric Shapes -->
+            <div class="tool-category">
+                <h6><i class="fas fa-shapes me-2"></i>Geometric Shapes</h6>
+                <div class="tool-item" draggable="true" data-type="line">
+                    <i class="fas fa-minus"></i>
+                    <span>Line</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="triangle">
+                    <i class="fas fa-play" style="transform: rotate(90deg);"></i>
+                    <span>Triangle</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="square">
+                    <i class="fas fa-square"></i>
+                    <span>Square</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="parallelogram">
+                    <i class="fas fa-shapes"></i>
+                    <span>Parallelogram</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="circle">
+                    <i class="fas fa-circle"></i>
+                    <span>Circle</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="pentagon">
+                    <i class="fas fa-stop"></i>
+                    <span>Pentagon</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="hexagon">
+                    <i class="fas fa-hexagon"></i>
+                    <span>Hexagon</span>
+                </div>
+            </div>
+
+            <!-- 3D Shapes -->
+            <div class="tool-category">
+                <h6><i class="fas fa-cube me-2"></i>3D Shapes</h6>
+                <div class="tool-item" draggable="true" data-type="cube">
+                    <i class="fas fa-cube"></i>
+                    <span>Cube</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="sphere">
+                    <i class="fas fa-globe"></i>
+                    <span>Sphere</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="cuboid">
+                    <i class="fas fa-box"></i>
+                    <span>Cuboid</span>
+                </div>
+            </div>
+
             <!-- Charts -->
             <div class="tool-category">
                 <h6>Charts & Graphs</h6>
@@ -488,6 +584,24 @@
                             </button>
                             <button class="btn btn-outline-primary btn-sm ms-2" onclick="addElementToCanvas('question')">
                                 <i class="fas fa-question-circle me-1"></i>Add Question
+                            </button>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <small class="text-muted">Quick Shapes:</small><br>
+                            <button class="btn btn-outline-secondary btn-sm me-1 mt-1" onclick="addElementToCanvas('circle')" title="Add Circle">
+                                <i class="fas fa-circle"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm me-1 mt-1" onclick="addElementToCanvas('square')" title="Add Square">
+                                <i class="fas fa-square"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm me-1 mt-1" onclick="addElementToCanvas('triangle')" title="Add Triangle">
+                                <i class="fas fa-play" style="transform: rotate(90deg);"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm me-1 mt-1" onclick="addElementToCanvas('line')" title="Add Line">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm me-1 mt-1" onclick="addElementToCanvas('cube')" title="Add Cube">
+                                <i class="fas fa-cube"></i>
                             </button>
                         </div>
                     </div>
@@ -836,14 +950,16 @@
             try {
                 console.log('Testing drag and drop functionality...');
 
-                // Test creating different elements
+                // Test creating different elements including shapes
                 createElement('textbox', 100, 100);
                 createElement('question', 300, 200);
-                createElement('image', 500, 150);
+                createElement('circle', 500, 150);
+                createElement('triangle', 150, 300);
+                createElement('cube', 400, 350);
 
                 console.log('Test elements created. Current elements:', quizElements.length);
 
-                alert('Test completed! Created ' + quizElements.length + ' elements on the canvas. Check the console for detailed logs.');
+                alert('Test completed! Created ' + quizElements.length + ' elements including geometric shapes on the canvas. Check the console for detailed logs.');
             } catch (error) {
                 console.error('Error in test function:', error);
                 alert('Test failed: ' + error.message);
@@ -885,6 +1001,33 @@
                 case 'answer-area':
                     width = 350;
                     height = 100;
+                    break;
+                // 2D Shapes
+                case 'line':
+                    width = 200;
+                    height = 20;
+                    break;
+                case 'triangle':
+                case 'square':
+                case 'circle':
+                case 'pentagon':
+                case 'hexagon':
+                    width = 150;
+                    height = 150;
+                    break;
+                case 'parallelogram':
+                    width = 200;
+                    height = 120;
+                    break;
+                // 3D Shapes
+                case 'cube':
+                case 'sphere':
+                    width = 150;
+                    height = 150;
+                    break;
+                case 'cuboid':
+                    width = 200;
+                    height = 120;
                     break;
             }
 
@@ -1059,6 +1202,127 @@
                         </div>
                         <textarea style="width: 100%; height: 60px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px; resize: vertical;" placeholder="Students will write their answer here..."></textarea>
                     </div>`;
+
+                // 2D Geometric Shapes
+                case 'line':
+                    return `<svg width="100%" height="100%" viewBox="0 0 200 20" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <line x1="10" y1="10" x2="190" y2="10"
+                              stroke="${element.strokeColor || '#3b82f6'}"
+                              stroke-width="${element.strokeWidth || 2}"
+                              ${element.strokeDasharray ? `stroke-dasharray="${element.strokeDasharray}"` : ''} />
+                        <text x="100" y="18" text-anchor="middle" font-size="10" fill="#64748b">Line</text>
+                    </svg>`;
+
+                case 'triangle':
+                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <polygon points="75,20 20,130 130,130"
+                                fill="${element.fillColor || '#dbeafe'}"
+                                stroke="${element.strokeColor || '#3b82f6'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Triangle</text>
+                    </svg>`;
+
+                case 'square':
+                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <rect x="25" y="25" width="100" height="100"
+                              fill="${element.fillColor || '#dbeafe'}"
+                              stroke="${element.strokeColor || '#3b82f6'}"
+                              stroke-width="${element.strokeWidth || 2}" />
+                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Square</text>
+                    </svg>`;
+
+                case 'parallelogram':
+                    return `<svg width="100%" height="100%" viewBox="0 0 200 120" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <polygon points="30,20 170,20 150,100 10,100"
+                                fill="${element.fillColor || '#dbeafe'}"
+                                stroke="${element.strokeColor || '#3b82f6'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <text x="100" y="115" text-anchor="middle" font-size="10" fill="#64748b">Parallelogram</text>
+                    </svg>`;
+
+                case 'circle':
+                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <circle cx="75" cy="65" r="50"
+                               fill="${element.fillColor || '#dbeafe'}"
+                               stroke="${element.strokeColor || '#3b82f6'}"
+                               stroke-width="${element.strokeWidth || 2}" />
+                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Circle</text>
+                    </svg>`;
+
+                case 'pentagon':
+                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <polygon points="75,20 120,50 100,110 50,110 30,50"
+                                fill="${element.fillColor || '#dbeafe'}"
+                                stroke="${element.strokeColor || '#3b82f6'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Pentagon</text>
+                    </svg>`;
+
+                case 'hexagon':
+                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <polygon points="75,20 110,40 110,80 75,100 40,80 40,40"
+                                fill="${element.fillColor || '#dbeafe'}"
+                                stroke="${element.strokeColor || '#3b82f6'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Hexagon</text>
+                    </svg>`;
+
+                // 3D Shapes
+                case 'cube':
+                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <!-- Front face -->
+                        <rect x="30" y="50" width="60" height="60"
+                              fill="${element.fillColor || '#dbeafe'}"
+                              stroke="${element.strokeColor || '#3b82f6'}"
+                              stroke-width="${element.strokeWidth || 2}" />
+                        <!-- Top face -->
+                        <polygon points="30,50 50,30 110,30 90,50"
+                                fill="${element.fillColor || '#bfdbfe'}"
+                                stroke="${element.strokeColor || '#3b82f6'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <!-- Right face -->
+                        <polygon points="90,50 110,30 110,90 90,110"
+                                fill="${element.fillColor || '#93c5fd'}"
+                                stroke="${element.strokeColor || '#3b82f6'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Cube</text>
+                    </svg>`;
+
+                case 'sphere':
+                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <defs>
+                            <radialGradient id="sphereGradient-${element.id}" cx="0.3" cy="0.3">
+                                <stop offset="0%" stop-color="${element.fillColor || '#ffffff'}" />
+                                <stop offset="100%" stop-color="${element.fillColor || '#3b82f6'}" />
+                            </radialGradient>
+                        </defs>
+                        <circle cx="75" cy="65" r="50"
+                               fill="url(#sphereGradient-${element.id})"
+                               stroke="${element.strokeColor || '#3b82f6'}"
+                               stroke-width="${element.strokeWidth || 2}" />
+                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Sphere</text>
+                    </svg>`;
+
+                case 'cuboid':
+                    return `<svg width="100%" height="100%" viewBox="0 0 200 120" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <!-- Front face -->
+                        <rect x="20" y="40" width="100" height="60"
+                              fill="${element.fillColor || '#dbeafe'}"
+                              stroke="${element.strokeColor || '#3b82f6'}"
+                              stroke-width="${element.strokeWidth || 2}" />
+                        <!-- Top face -->
+                        <polygon points="20,40 40,20 140,20 120,40"
+                                fill="${element.fillColor || '#bfdbfe'}"
+                                stroke="${element.strokeColor || '#3b82f6'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <!-- Right face -->
+                        <polygon points="120,40 140,20 140,80 120,100"
+                                fill="${element.fillColor || '#93c5fd'}"
+                                stroke="${element.strokeColor || '#3b82f6'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <text x="100" y="115" text-anchor="middle" font-size="10" fill="#64748b">Cuboid</text>
+                    </svg>`;
+
                 default:
                     return `<div style="padding: 15px; text-align: center; color: #64748b;">
                         <i class="fas fa-cube fa-2x mb-2"></i><br>
@@ -1224,6 +1488,45 @@
                             </div>
                         </div>
                     `;
+
+                // Shape properties
+                case 'line':
+                case 'triangle':
+                case 'square':
+                case 'parallelogram':
+                case 'circle':
+                case 'pentagon':
+                case 'hexagon':
+                case 'cube':
+                case 'sphere':
+                case 'cuboid':
+                    return `
+                        <div class="property-group">
+                            <label>Fill Color</label>
+                            <input type="color" value="${elementData.fillColor || '#dbeafe'}" onchange="updateShapeProperty('${elementData.id}', 'fillColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Color</label>
+                            <input type="color" value="${elementData.strokeColor || '#3b82f6'}" onchange="updateShapeProperty('${elementData.id}', 'strokeColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Width</label>
+                            <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
+                        ${elementData.type === 'line' ? `
+                        <div class="property-group">
+                            <label>Line Style</label>
+                            <select onchange="updateShapeProperty('${elementData.id}', 'strokeDasharray', this.value)" class="form-control">
+                                <option value="" ${!elementData.strokeDasharray ? 'selected' : ''}>Solid</option>
+                                <option value="5,5" ${elementData.strokeDasharray === '5,5' ? 'selected' : ''}>Dashed</option>
+                                <option value="2,2" ${elementData.strokeDasharray === '2,2' ? 'selected' : ''}>Dotted</option>
+                                <option value="10,5,2,5" ${elementData.strokeDasharray === '10,5,2,5' ? 'selected' : ''}>Dash-Dot</option>
+                            </select>
+                        </div>
+                        ` : ''}
+                    `;
+
                 default:
                     return '';
             }
@@ -1278,6 +1581,30 @@
                 }
             }
         }
+
+        // Update shape properties
+        function updateShapeProperty(elementId, property, value) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (elementData) {
+                // Store the property in the element data
+                elementData[property] = value;
+
+                // Re-render the element to apply the changes
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.innerHTML = getElementContent(elementData);
+                }
+
+                // Update the properties panel to show current value
+                if (property === 'strokeWidth') {
+                    const strokeWidthDisplay = document.querySelector(`small.text-muted`);
+                    if (strokeWidthDisplay && strokeWidthDisplay.textContent.includes('Current:')) {
+                        strokeWidthDisplay.textContent = `Current: ${value}px`;
+                    }
+                }
+            }
+        }
+        window.updateShapeProperty = updateShapeProperty;
 
         // Trigger image upload dialog
         function triggerImageUpload(elementId) {
