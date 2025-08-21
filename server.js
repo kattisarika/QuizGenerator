@@ -2442,22 +2442,97 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
 
     const finalTitle = `${title} - ${dateTimeString}`;
 
+    // Function to sanitize content
+    function sanitizeContent(content) {
+      if (!content) return '';
+
+      // Convert to string and limit length
+      let sanitized = String(content);
+
+      // Remove excessive whitespace and newlines
+      sanitized = sanitized.replace(/\s+/g, ' ').trim();
+
+      // Limit content length to prevent database issues
+      if (sanitized.length > 10000) {
+        sanitized = sanitized.substring(0, 10000) + '...';
+      }
+
+      return sanitized;
+    }
+
     // Process elements to ensure proper data types
-    const processedElements = elements.map(element => {
-      console.log('Processing element:', element.id, element.type);
-      return {
-        id: element.id || '',
-        type: element.type || '',
-        x: Number(element.x) || 0,
-        y: Number(element.y) || 0,
-        width: Number(element.width) || 200,
-        height: Number(element.height) || 100,
-        content: element.content || '',
-        style: element.style || {}
-      };
+    const processedElements = elements.map((element, index) => {
+      console.log(`Processing element ${index + 1}:`, element.id, element.type);
+
+      try {
+        return {
+          id: String(element.id || ''),
+          type: String(element.type || ''),
+          x: Number(element.x) || 0,
+          y: Number(element.y) || 0,
+          width: Number(element.width) || 200,
+          height: Number(element.height) || 100,
+          content: sanitizeContent(element.content),
+          style: element.style || {}
+        };
+      } catch (error) {
+        console.error(`Error processing element ${element.id}:`, error);
+        // Return a safe default element
+        return {
+          id: String(element.id || `element-${index}`),
+          type: String(element.type || 'textbox'),
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 100,
+          content: 'Error processing content',
+          style: {}
+        };
+      }
     });
 
     console.log('Processed elements count:', processedElements.length);
+
+    // Convert elements to questions format
+    const questions = [];
+    let questionCounter = 1;
+
+    processedElements.forEach(element => {
+      if (element.type === 'question' || element.type === 'sub-question') {
+        // Clean the content for question text
+        let questionText = element.content || `Question ${questionCounter}`;
+
+        // Strip HTML tags for question text but keep basic formatting
+        questionText = questionText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+        if (questionText.length > 500) {
+          questionText = questionText.substring(0, 500) + '...';
+        }
+
+        questions.push({
+          question: questionText,
+          type: 'short-answer',
+          options: [],
+          correctAnswer: '',
+          points: 1,
+          isTextAnswer: true,
+          elementData: element // Store the original element data
+        });
+        questionCounter++;
+      }
+    });
+
+    // If no questions found, create a default one
+    if (questions.length === 0) {
+      questions.push({
+        question: 'Complex Quiz Question',
+        type: 'short-answer',
+        options: [],
+        correctAnswer: '',
+        points: 1,
+        isTextAnswer: true
+      });
+    }
 
     // Create quiz object
     const quiz = new Quiz({

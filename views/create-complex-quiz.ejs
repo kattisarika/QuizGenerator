@@ -1612,42 +1612,65 @@
             }
         }
 
+        // Sanitize content for safe storage
+        function sanitizeContent(content) {
+            if (!content) return '';
+
+            // Convert to string
+            let sanitized = String(content);
+
+            // Remove excessive whitespace and newlines
+            sanitized = sanitized.replace(/\s+/g, ' ').trim();
+
+            // Limit content length
+            if (sanitized.length > 5000) {
+                sanitized = sanitized.substring(0, 5000) + '...';
+            }
+
+            return sanitized;
+        }
+
         // Sync current DOM content back to element data
         function syncElementsContent() {
             quizElements.forEach(function(element) {
                 const domElement = document.getElementById(element.id);
                 if (!domElement) return;
 
-                switch(element.type) {
-                    case 'textbox':
-                        const textDiv = domElement.querySelector('[contenteditable="true"]');
-                        if (textDiv) {
-                            element.content = textDiv.innerHTML;
-                        }
-                        break;
+                try {
+                    switch(element.type) {
+                        case 'textbox':
+                            const textDiv = domElement.querySelector('[contenteditable="true"]');
+                            if (textDiv) {
+                                element.content = sanitizeContent(textDiv.innerHTML);
+                            }
+                            break;
 
-                    case 'question':
-                    case 'sub-question':
-                        const questionDiv = domElement.querySelector('[contenteditable="true"]');
-                        if (questionDiv) {
-                            element.content = questionDiv.innerHTML;
-                        }
-                        break;
+                        case 'question':
+                        case 'sub-question':
+                            const questionDiv = domElement.querySelector('[contenteditable="true"]');
+                            if (questionDiv) {
+                                element.content = sanitizeContent(questionDiv.innerHTML);
+                            }
+                            break;
 
-                    case 'answer-area':
-                        const textarea = domElement.querySelector('textarea');
-                        if (textarea) {
-                            element.content = textarea.value;
-                        }
-                        break;
+                        case 'answer-area':
+                            const textarea = domElement.querySelector('textarea');
+                            if (textarea) {
+                                element.content = sanitizeContent(textarea.value);
+                            }
+                            break;
 
-                    case 'table':
-                        const table = domElement.querySelector('table');
-                        if (table) {
-                            // Store the current table HTML
-                            element.content = table.outerHTML;
-                        }
-                        break;
+                        case 'table':
+                            const table = domElement.querySelector('table');
+                            if (table) {
+                                // Store the current table HTML (sanitized)
+                                element.content = sanitizeContent(table.outerHTML);
+                            }
+                            break;
+                    }
+                } catch (error) {
+                    console.error('Error syncing content for element:', element.id, error);
+                    // Keep existing content if sync fails
                 }
             });
         }
@@ -1699,18 +1722,26 @@
                 },
                 body: JSON.stringify(quizData)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Server response status:', response.status);
+                if (!response.ok) {
+                    throw new Error('Server responded with status: ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Server response data:', data);
                 if (data.success) {
                     alert('Quiz saved successfully!');
                     window.location.href = '/teacher/dashboard';
                 } else {
-                    alert('Error saving quiz: ' + data.message);
+                    console.error('Save failed:', data);
+                    alert('Error saving quiz: ' + data.message + (data.details ? '\nDetails: ' + data.details.join(', ') : ''));
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Error saving quiz');
+                console.error('Error saving quiz:', error);
+                alert('Error saving quiz: ' + error.message + '\nPlease check the console for more details.');
             });
         }
         window.saveQuiz = saveQuiz;
