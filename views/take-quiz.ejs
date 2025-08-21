@@ -416,6 +416,41 @@
             padding: 8px !important;
         }
 
+        /* Complex Quiz One-Question-Per-Page Styles */
+        .complex-question-group {
+            display: none;
+            position: relative;
+            width: 100%;
+            min-height: 400px;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+
+        .complex-question-group.active {
+            display: block;
+        }
+
+        .complex-question-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 8px 8px 0 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .complex-question-elements {
+            position: relative;
+            min-height: 300px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            overflow: auto;
+        }
+
         #submit-complex-quiz-btn {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             border: none;
@@ -660,7 +695,7 @@
                                 const complexQuizData = <%- JSON.stringify(quiz.complexQuizData) %>;
                                 console.log('Complex quiz data:', complexQuizData);
 
-                                // Render complex quiz elements
+                                // Render complex quiz elements with one-question-per-page
                                 function renderComplexQuiz() {
                                     const canvas = document.getElementById('complex-quiz-canvas');
                                     if (!canvas || !complexQuizData || !complexQuizData.elements) {
@@ -668,30 +703,137 @@
                                         return;
                                     }
 
-                                    console.log('Rendering', complexQuizData.elements.length, 'complex quiz elements');
+                                    console.log('Rendering complex quiz with one-question-per-page navigation');
+                                    console.log('Total elements:', complexQuizData.elements.length);
 
-                                    complexQuizData.elements.forEach((element, index) => {
-                                        const elementDiv = document.createElement('div');
-                                        elementDiv.id = element.id;
-                                        elementDiv.style.position = 'absolute';
-                                        elementDiv.style.left = element.x + 'px';
-                                        elementDiv.style.top = element.y + 'px';
-                                        elementDiv.style.width = element.width + 'px';
-                                        elementDiv.style.height = element.height + 'px';
+                                    // Group elements by questions
+                                    const questionGroups = groupElementsByQuestions(complexQuizData.elements);
+                                    console.log('Question groups:', questionGroups.length);
 
-                                        // Apply element styles
-                                        if (element.style) {
-                                            Object.keys(element.style).forEach(key => {
-                                                elementDiv.style[key] = element.style[key];
-                                            });
+                                    // Clear canvas
+                                    canvas.innerHTML = '';
+
+                                    // Create question groups
+                                    questionGroups.forEach((group, groupIndex) => {
+                                        const questionGroupDiv = document.createElement('div');
+                                        questionGroupDiv.className = 'complex-question-group';
+                                        questionGroupDiv.id = `complex-question-${groupIndex}`;
+                                        questionGroupDiv.setAttribute('data-question-index', groupIndex);
+
+                                        // Add question header
+                                        const headerDiv = document.createElement('div');
+                                        headerDiv.className = 'complex-question-header';
+                                        headerDiv.innerHTML = `Question ${groupIndex + 1} of ${questionGroups.length}`;
+                                        questionGroupDiv.appendChild(headerDiv);
+
+                                        // Add elements container
+                                        const elementsDiv = document.createElement('div');
+                                        elementsDiv.className = 'complex-question-elements';
+                                        elementsDiv.style.position = 'relative';
+                                        elementsDiv.style.minHeight = '400px';
+
+                                        // Render elements in this group
+                                        group.elements.forEach((element, index) => {
+                                            const elementDiv = document.createElement('div');
+                                            elementDiv.id = element.id;
+                                            elementDiv.style.position = 'absolute';
+                                            elementDiv.style.left = element.x + 'px';
+                                            elementDiv.style.top = element.y + 'px';
+                                            elementDiv.style.width = element.width + 'px';
+                                            elementDiv.style.height = element.height + 'px';
+                                            elementDiv.style.zIndex = '10';
+
+                                            // Apply element styles
+                                            if (element.style) {
+                                                Object.keys(element.style).forEach(key => {
+                                                    elementDiv.style[key] = element.style[key];
+                                                });
+                                            }
+
+                                            elementDiv.innerHTML = getComplexElementContent(element);
+                                            elementsDiv.appendChild(elementDiv);
+                                        });
+
+                                        // Add answer area for the question
+                                        if (group.questionElement) {
+                                            const answerDiv = document.createElement('div');
+                                            answerDiv.style.position = 'absolute';
+                                            answerDiv.style.left = '20px';
+                                            answerDiv.style.bottom = '20px';
+                                            answerDiv.style.right = '20px';
+                                            answerDiv.style.zIndex = '20';
+                                            answerDiv.innerHTML = `
+                                                <div style="background: #f0fdf4; border: 2px dashed #22c55e; border-radius: 8px; padding: 15px;">
+                                                    <div style="color: #16a34a; font-weight: 600; margin-bottom: 8px;">
+                                                        <i class="fas fa-edit" style="margin-right: 8px;"></i>Your Answer:
+                                                    </div>
+                                                    <textarea id="complex-answer-${group.questionElement.id}" style="width: 100%; height: 80px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px; resize: vertical; font-family: 'Inter', sans-serif;" placeholder="Type your answer here..."></textarea>
+                                                </div>
+                                            `;
+                                            elementsDiv.appendChild(answerDiv);
                                         }
 
-                                        // Render element content based on type
-                                        elementDiv.innerHTML = getComplexElementContent(element);
-
-                                        canvas.appendChild(elementDiv);
-                                        console.log('Rendered element:', element.id, element.type);
+                                        questionGroupDiv.appendChild(elementsDiv);
+                                        canvas.appendChild(questionGroupDiv);
                                     });
+
+                                    // Initialize complex quiz navigation
+                                    initializeComplexQuizNavigation(questionGroups.length);
+
+                                    // Process LaTeX if MathJax is available
+                                    if (window.MathJax) {
+                                        MathJax.typesetPromise([canvas]).catch(function (err) {
+                                            console.log('MathJax typeset error:', err.message);
+                                        });
+                                    }
+
+                                    console.log('Complex quiz rendered successfully with navigation');
+                                }
+
+                                // Group elements by questions for one-question-per-page navigation
+                                function groupElementsByQuestions(elements) {
+                                    const groups = [];
+                                    let currentGroup = null;
+
+                                    elements.forEach(element => {
+                                        if (element.type === 'question' || element.type === 'sub-question') {
+                                            // Start a new group for each question
+                                            if (currentGroup) {
+                                                groups.push(currentGroup);
+                                            }
+                                            currentGroup = {
+                                                questionElement: element,
+                                                elements: [element]
+                                            };
+                                        } else if (currentGroup) {
+                                            // Add non-question elements to current group
+                                            currentGroup.elements.push(element);
+                                        } else {
+                                            // If no question group exists yet, create a general group
+                                            if (groups.length === 0) {
+                                                groups.push({
+                                                    questionElement: null,
+                                                    elements: []
+                                                });
+                                            }
+                                            groups[groups.length - 1].elements.push(element);
+                                        }
+                                    });
+
+                                    // Add the last group if it exists
+                                    if (currentGroup) {
+                                        groups.push(currentGroup);
+                                    }
+
+                                    // If no groups were created, create a default group
+                                    if (groups.length === 0) {
+                                        groups.push({
+                                            questionElement: null,
+                                            elements: elements
+                                        });
+                                    }
+
+                                    return groups;
                                 }
 
                                 // Get element content for student view
@@ -1173,11 +1315,36 @@
 
                     <div class="quiz-navigation">
                         <% if (quiz.isComplexQuiz && quiz.complexQuizData) { %>
-                            <!-- Complex Quiz Navigation -->
-                            <div class="nav-buttons">
-                                <button type="submit" id="submit-complex-quiz-btn" class="btn btn-success">
-                                    <i class="fas fa-check"></i> Submit Complex Quiz
-                                </button>
+                            <!-- Complex Quiz Navigation - One Question Per Page -->
+                            <div class="quiz-navigation-container" style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <div class="nav-buttons" style="display: flex; justify-content: space-between; align-items: center;">
+                                    <button type="button" id="complex-prev-btn" class="btn btn-outline-secondary" disabled style="min-width: 120px;">
+                                        <i class="fas fa-chevron-left"></i> Previous
+                                    </button>
+
+                                    <div class="question-status" style="text-align: center;">
+                                        <div id="complex-answer-status" class="answer-status" style="font-size: 14px; color: #6c757d; margin-bottom: 5px;">
+                                            Please answer the question to continue
+                                        </div>
+                                        <div id="complex-question-indicators" class="question-indicators" style="display: flex; gap: 8px; justify-content: center;">
+                                            <!-- Question indicators will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+
+                                    <button type="button" id="complex-next-btn" class="btn btn-primary" style="min-width: 120px;">
+                                        Next <i class="fas fa-chevron-right"></i>
+                                    </button>
+
+                                    <button type="submit" id="submit-complex-quiz-btn" class="btn btn-success" style="display: none; min-width: 120px;">
+                                        <i class="fas fa-check"></i> Submit Quiz
+                                    </button>
+                                </div>
+
+                                <!-- Answer Requirement Alert for Complex Quiz -->
+                                <div id="complex-answer-required-alert" class="alert alert-warning" style="display: none; margin-top: 15px; margin-bottom: 0;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>Answer Required:</strong> Please answer the question before proceeding to the next one.
+                                </div>
                             </div>
                         <% } else { %>
                             <!-- Regular Quiz Navigation - One Question Per Page -->
@@ -1786,6 +1953,231 @@
             });
         }
 
+        // Complex Quiz Navigation System
+        let complexCurrentQuestion = 0;
+        let complexTotalQuestions = 0;
+
+        // Initialize complex quiz navigation
+        function initializeComplexQuizNavigation(totalQuestions) {
+            console.log('🚀 Initializing complex quiz navigation, total questions:', totalQuestions);
+
+            complexTotalQuestions = totalQuestions;
+            complexCurrentQuestion = 0;
+
+            // Show only the first question
+            showComplexQuestion(0);
+
+            // Set up navigation buttons
+            setupComplexNavigationButtons();
+
+            // Create question indicators
+            createComplexQuestionIndicators();
+
+            // Update navigation state
+            updateComplexNavigationState();
+
+            console.log('✅ Complex quiz navigation initialized');
+        }
+
+        // Show specific complex question
+        function showComplexQuestion(index) {
+            console.log(`🔄 Showing complex question ${index}`);
+
+            // Hide all question groups
+            document.querySelectorAll('.complex-question-group').forEach((group, i) => {
+                group.classList.remove('active');
+                console.log(`Complex question ${i} hidden`);
+            });
+
+            // Show the selected question group
+            const targetGroup = document.getElementById(`complex-question-${index}`);
+            if (targetGroup) {
+                targetGroup.classList.add('active');
+                console.log(`Complex question ${index} shown`);
+            } else {
+                console.error(`Complex question ${index} not found!`);
+            }
+        }
+
+        // Setup navigation button event listeners
+        function setupComplexNavigationButtons() {
+            const nextBtn = document.getElementById('complex-next-btn');
+            const prevBtn = document.getElementById('complex-prev-btn');
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', nextComplexQuestion);
+            }
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', previousComplexQuestion);
+            }
+        }
+
+        // Navigate to next complex question
+        function nextComplexQuestion() {
+            console.log('⏭️ nextComplexQuestion called, current:', complexCurrentQuestion);
+
+            // Check if current question is answered
+            if (!isComplexQuestionAnswered(complexCurrentQuestion)) {
+                showComplexAnswerRequiredAlert();
+                return;
+            }
+
+            hideComplexAnswerRequiredAlert();
+
+            if (complexCurrentQuestion < complexTotalQuestions - 1) {
+                complexCurrentQuestion++;
+                showComplexQuestion(complexCurrentQuestion);
+                updateComplexNavigationState();
+            }
+        }
+
+        // Navigate to previous complex question
+        function previousComplexQuestion() {
+            console.log('⏮️ previousComplexQuestion called, current:', complexCurrentQuestion);
+
+            if (complexCurrentQuestion > 0) {
+                complexCurrentQuestion--;
+                showComplexQuestion(complexCurrentQuestion);
+                updateComplexNavigationState();
+            }
+        }
+
+        // Check if complex question is answered
+        function isComplexQuestionAnswered(questionIndex) {
+            const questionGroup = document.getElementById(`complex-question-${questionIndex}`);
+            if (!questionGroup) return false;
+
+            // Check for textarea answers
+            const textareas = questionGroup.querySelectorAll('textarea');
+            if (textareas.length > 0) {
+                return Array.from(textareas).some(textarea => textarea.value.trim() !== '');
+            }
+
+            return false;
+        }
+
+        // Show complex answer required alert
+        function showComplexAnswerRequiredAlert() {
+            const alert = document.getElementById('complex-answer-required-alert');
+            if (alert) {
+                alert.style.display = 'block';
+                alert.classList.add('show');
+
+                setTimeout(() => {
+                    hideComplexAnswerRequiredAlert();
+                }, 3000);
+            }
+        }
+
+        // Hide complex answer required alert
+        function hideComplexAnswerRequiredAlert() {
+            const alert = document.getElementById('complex-answer-required-alert');
+            if (alert) {
+                alert.style.display = 'none';
+                alert.classList.remove('show');
+            }
+        }
+
+        // Update complex navigation state
+        function updateComplexNavigationState() {
+            const prevBtn = document.getElementById('complex-prev-btn');
+            const nextBtn = document.getElementById('complex-next-btn');
+            const submitBtn = document.getElementById('submit-complex-quiz-btn');
+
+            // Update previous button
+            if (prevBtn) {
+                prevBtn.disabled = complexCurrentQuestion === 0;
+            }
+
+            // Update next/submit button
+            if (complexCurrentQuestion === complexTotalQuestions - 1) {
+                // Last question - show submit button
+                if (nextBtn) nextBtn.style.display = 'none';
+                if (submitBtn) submitBtn.style.display = 'inline-block';
+            } else {
+                // Not last question - show next button
+                if (nextBtn) nextBtn.style.display = 'inline-block';
+                if (submitBtn) submitBtn.style.display = 'none';
+            }
+
+            // Update question indicators
+            updateComplexQuestionIndicators();
+
+            // Update answer status
+            updateComplexAnswerStatus();
+        }
+
+        // Create question indicators for complex quiz
+        function createComplexQuestionIndicators() {
+            const container = document.getElementById('complex-question-indicators');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            for (let i = 0; i < complexTotalQuestions; i++) {
+                const indicator = document.createElement('div');
+                indicator.className = 'question-indicator';
+                indicator.setAttribute('data-question', i);
+                indicator.style.width = '12px';
+                indicator.style.height = '12px';
+                indicator.style.borderRadius = '50%';
+                indicator.style.background = '#e9ecef';
+                indicator.style.border = '2px solid #dee2e6';
+                indicator.style.cursor = 'pointer';
+                indicator.style.transition = 'all 0.2s ease';
+                indicator.title = `Question ${i + 1}`;
+
+                indicator.addEventListener('click', () => {
+                    complexCurrentQuestion = i;
+                    showComplexQuestion(i);
+                    updateComplexNavigationState();
+                });
+
+                container.appendChild(indicator);
+            }
+        }
+
+        // Update complex question indicators
+        function updateComplexQuestionIndicators() {
+            const indicators = document.querySelectorAll('#complex-question-indicators .question-indicator');
+
+            indicators.forEach((indicator, index) => {
+                indicator.classList.remove('current', 'answered');
+
+                if (index === complexCurrentQuestion) {
+                    indicator.classList.add('current');
+                    indicator.style.background = '#007bff';
+                    indicator.style.borderColor = '#0056b3';
+                    indicator.style.transform = 'scale(1.3)';
+                } else {
+                    indicator.style.background = '#e9ecef';
+                    indicator.style.borderColor = '#dee2e6';
+                    indicator.style.transform = 'scale(1)';
+                }
+
+                if (isComplexQuestionAnswered(index)) {
+                    indicator.classList.add('answered');
+                    indicator.style.background = '#28a745';
+                    indicator.style.borderColor = '#1e7e34';
+                }
+            });
+        }
+
+        // Update complex answer status
+        function updateComplexAnswerStatus() {
+            const statusElement = document.getElementById('complex-answer-status');
+            if (!statusElement) return;
+
+            if (isComplexQuestionAnswered(complexCurrentQuestion)) {
+                statusElement.textContent = 'Question answered ✓';
+                statusElement.className = 'answer-status answered';
+            } else {
+                statusElement.textContent = 'Please answer the question to continue';
+                statusElement.className = 'answer-status unanswered';
+            }
+        }
+
         // Make functions globally available
         window.nextQuestion = nextQuestion;
         window.previousQuestion = previousQuestion;
@@ -1793,6 +2185,9 @@
         window.updateProgress = updateProgress;
         window.updateNavigationState = updateNavigationState;
         window.initializeOneQuestionPerPage = initializeOneQuestionPerPage;
+        window.initializeComplexQuizNavigation = initializeComplexQuizNavigation;
+        window.nextComplexQuestion = nextComplexQuestion;
+        window.previousComplexQuestion = previousComplexQuestion;
 
         // Track answers
         document.addEventListener('change', function(e) {
@@ -1813,6 +2208,11 @@
 
         // Handle complex quiz submission
         function handleComplexQuizSubmission() {
+            // Validate that all complex questions are answered
+            if (!validateAllComplexQuestionsAnswered()) {
+                return; // Stop submission if validation fails
+            }
+
             const complexAnswers = {};
 
             // Collect answers from complex quiz answer areas
@@ -1825,6 +2225,34 @@
 
             // Submit complex quiz
             submitComplexQuiz(complexAnswers);
+        }
+
+        // Validate all complex questions are answered
+        function validateAllComplexQuestionsAnswered() {
+            const unansweredQuestions = [];
+
+            for (let i = 0; i < complexTotalQuestions; i++) {
+                if (!isComplexQuestionAnswered(i)) {
+                    unansweredQuestions.push(i + 1);
+                }
+            }
+
+            if (unansweredQuestions.length > 0) {
+                const questionText = unansweredQuestions.length === 1 ? 'question' : 'questions';
+                const questionNumbers = unansweredQuestions.join(', ');
+
+                if (confirm(`You have not answered ${questionText} ${questionNumbers}. Do you want to submit anyway?`)) {
+                    return true; // Allow submission with unanswered questions
+                } else {
+                    // Go to first unanswered question
+                    complexCurrentQuestion = unansweredQuestions[0] - 1;
+                    showComplexQuestion(complexCurrentQuestion);
+                    updateComplexNavigationState();
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         // Submit complex quiz function
