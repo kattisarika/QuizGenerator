@@ -976,16 +976,12 @@ async function extractImagesFromPDF(fileBuffer, quizId) {
               console.log(`✅ Page ${pageIndex + 1} uploaded to S3: ${s3Key}`);
               
               const pageData = {
-                page: pageIndex + 1,
-                imageIndex: 1,
-                s3Key: s3Key,
-                width: page.getWidth(),
-                height: page.getHeight(),
-                originalName: pageFileName,
+                url: `https://skillon-test.s3.amazonaws.com/${s3Key}`,
+                title: `Page ${pageIndex + 1}`,
+                description: `PDF page ${pageIndex + 1} of ${pages.length}`,
+                type: 'pdf',
                 source: 'pdf',
-                isIndividualPage: true,
-                pageNumber: pageIndex + 1,
-                totalPages: pages.length
+                order: pageIndex + 1
               };
               
               console.log(`📄 Page data for page ${pageIndex + 1}:`, JSON.stringify(pageData, null, 2));
@@ -2928,11 +2924,18 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
         if (documentImages.length > 0) {
           console.log('📸 Document images extracted successfully:');
           documentImages.forEach((img, index) => {
-            console.log(`  - Image ${index + 1}: ${img.url} (${img.width}x${img.height})`);
+            console.log(`  - Image ${index + 1}: ${img.title} - ${img.url}`);
           });
         } else {
           console.log('📸 No images found in the uploaded document');
         }
+
+        // Debug: Log the documentImages array structure
+        console.log('🔍 documentImages array before quiz creation:');
+        console.log('  - Type:', typeof documentImages);
+        console.log('  - Is Array:', Array.isArray(documentImages));
+        console.log('  - Length:', documentImages.length);
+        console.log('  - Full array:', JSON.stringify(documentImages, null, 2));
         
         if (extractedQuestions.length === 0) {
           console.log('Error: No questions parsed from text');
@@ -3025,10 +3028,22 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
     await quiz.save();
     console.log('Quiz saved successfully with ID:', quiz._id);
     console.log('Question paper stored at:', questionFileUrl);
-    console.log('📸 PDF Images saved to quiz:', quiz.pdfImages.length);
-    if (quiz.pdfImages.length > 0) {
-      console.log('📸 First image S3 key:', quiz.pdfImages[0].s3Key);
-      console.log('📸 First image source:', quiz.pdfImages[0].source);
+
+    // Verify what was actually saved to database
+    const savedQuiz = await Quiz.findById(quiz._id);
+    console.log('🔍 Verification - Quiz retrieved from database:');
+    console.log('  - Quiz ID:', savedQuiz._id);
+    console.log('  - PDF Images count:', savedQuiz.pdfImages ? savedQuiz.pdfImages.length : 'null/undefined');
+    console.log('  - PDF Images type:', typeof savedQuiz.pdfImages);
+    console.log('  - PDF Images is array:', Array.isArray(savedQuiz.pdfImages));
+
+    if (savedQuiz.pdfImages && savedQuiz.pdfImages.length > 0) {
+      console.log('  - First image URL:', savedQuiz.pdfImages[0].url);
+      console.log('  - First image title:', savedQuiz.pdfImages[0].title);
+      console.log('  - First image source:', savedQuiz.pdfImages[0].source);
+      console.log('  - First image type:', savedQuiz.pdfImages[0].type);
+    } else {
+      console.log('  - ❌ NO PDF IMAGES FOUND IN SAVED QUIZ!');
     }
     if (answerFileUrl) {
       console.log('Answer paper stored at:', answerFileUrl);

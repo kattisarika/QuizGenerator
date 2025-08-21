@@ -102,51 +102,33 @@ const quizSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // Simplified PDF Images schema
   pdfImages: [{
-    page: {
-      type: Number,
-      required: true
-    },
-    imageIndex: {
-      type: Number,
-      required: true
-    },
-    s3Key: {
+    url: {
       type: String,
       required: true
     },
-    width: {
-      type: Number,
-      required: true
-    },
-    height: {
-      type: Number,
-      required: true
-    },
-    originalName: {
+    title: {
       type: String,
-      default: null
+      default: 'Document Image'
+    },
+    description: {
+      type: String,
+      default: ''
+    },
+    type: {
+      type: String,
+      enum: ['image', 'pdf', 'document'],
+      default: 'image'
     },
     source: {
       type: String,
-      enum: ['pdf', 'docx', 'doc'],
+      enum: ['pdf', 'docx', 'doc', 'upload'],
       default: 'pdf'
     },
-    isIndividualPage: {
-      type: Boolean,
-      default: false
-    },
-    pageNumber: {
+    order: {
       type: Number,
-      default: null
-    },
-    totalPages: {
-      type: Number,
-      default: null
-    },
-    isFullDocument: {
-      type: Boolean,
-      default: false
+      default: 1
     }
   }],
   // Complex quiz data stored directly in MongoDB (using Mixed type for flexibility)
