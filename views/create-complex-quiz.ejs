@@ -1192,10 +1192,24 @@
                     return `<div contenteditable="true" style="outline: none; width: 100%; height: 100%;">${element.content || 'Click to edit text...'}</div>`;
                 case 'image':
                     if (element.content && element.content.startsWith('data:image')) {
+                        // Validate data URL format
+                        const isValidDataURL = element.content.includes(',') && element.content.length > 50;
+                        if (!isValidDataURL) {
+                            console.warn('Invalid data URL detected for element:', element.id);
+                            return `<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; cursor: pointer; overflow: hidden;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
+                                <div style="text-align: center; color: #dc2626;">
+                                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                                    <small>Invalid image data<br>Click to re-upload</small>
+                                </div>
+                            </div>`;
+                        }
+
                         const objectFit = element.objectFit || 'contain';
                         const objectPosition = element.objectPosition || 'center';
+                        // Escape the data URL to prevent HTML injection
+                        const escapedContent = element.content.replace(/"/g, '&quot;');
                         return `<div style="position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 4px;">
-                            <img src="${element.content}" style="width: 100%; height: 100%; object-fit: ${objectFit}; object-position: ${objectPosition}; border-radius: 4px; display: block;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
+                            <img src="${escapedContent}" style="width: 100%; height: 100%; object-fit: ${objectFit}; object-position: ${objectPosition}; border-radius: 4px; display: block;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')" onerror="this.parentElement.innerHTML='<div style=\\'display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; cursor: pointer;\\' onclick=\\'event.stopPropagation(); triggerImageUpload(\\'${element.id}\\');\\'><div style=\\'text-align: center; color: #dc2626;\\'><i class=\\'fas fa-exclamation-triangle fa-2x mb-2\\'></i><br><small>Image load error<br>Click to re-upload</small></div></div>';">
                             <div style="position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
                                 <i class="fas fa-edit"></i> Change
                             </div>
@@ -2356,26 +2370,70 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
+                const dataURL = e.target.result;
+
+                // Validate the data URL
+                if (!dataURL || !dataURL.startsWith('data:image/') || !dataURL.includes(',')) {
+                    alert('Invalid image data. Please try uploading the image again.');
+                    return;
+                }
+
+                // Check if data URL is reasonable size (not corrupted)
+                if (dataURL.length < 100) {
+                    alert('Image data appears to be corrupted. Please try uploading the image again.');
+                    return;
+                }
+
                 const element = document.getElementById(elementId);
                 const elementData = quizElements.find(el => el.id === elementId);
 
                 if (element && elementData) {
                     // Update element content
-                    elementData.content = e.target.result;
+                    elementData.content = dataURL;
 
                     // Re-render the element with the new image
                     element.innerHTML = getElementContent(elementData);
 
-                    console.log('Image uploaded successfully for element:', elementId);
+                    console.log('Image uploaded successfully for element:', elementId, 'Size:', dataURL.length, 'bytes');
                 }
             };
 
-            reader.onerror = function() {
-                alert('Error reading the image file');
+            reader.onerror = function(error) {
+                console.error('FileReader error:', error);
+                alert('Error reading the image file. Please try again.');
             };
 
             reader.readAsDataURL(file);
         }
+
+        // Utility function to validate and clean data URLs
+        function validateAndCleanDataURLs() {
+            let cleanedCount = 0;
+            quizElements.forEach(element => {
+                if (element.type === 'image' && element.content) {
+                    if (element.content.startsWith('data:image/')) {
+                        // Check if data URL is valid
+                        if (!element.content.includes(',') || element.content.length < 100) {
+                            console.warn('Removing invalid data URL from element:', element.id);
+                            element.content = '';
+                            cleanedCount++;
+                        }
+                    }
+                }
+            });
+
+            if (cleanedCount > 0) {
+                console.log(`Cleaned ${cleanedCount} invalid data URLs`);
+                // Re-render all elements
+                quizElements.forEach(element => {
+                    const domElement = document.getElementById(element.id);
+                    if (domElement) {
+                        domElement.innerHTML = getElementContent(element);
+                    }
+                });
+            }
+        }
+        window.validateAndCleanDataURLs = validateAndCleanDataURLs;
 
         // Table manipulation functions
         function addTableRow(elementId) {

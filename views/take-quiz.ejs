@@ -570,10 +570,21 @@
 
                                         case 'image':
                                             if (element.content && element.content.startsWith('data:image')) {
-                                                const objectFit = element.objectFit || 'contain';
-                                                const objectPosition = element.objectPosition || 'center';
+                                                // Validate data URL format
+                                                var isValidDataURL = element.content.includes(',') && element.content.length > 50;
+                                                if (!isValidDataURL) {
+                                                    console.warn('Invalid data URL detected for element:', element.id);
+                                                    return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; color: #dc2626;">' +
+                                                        '<div style="text-align: center;"><i class="fas fa-exclamation-triangle fa-2x"></i><br><small>Invalid image data</small></div>' +
+                                                        '</div>';
+                                                }
+
+                                                var objectFit = element.objectFit || 'contain';
+                                                var objectPosition = element.objectPosition || 'center';
+                                                // Escape the data URL to prevent HTML injection
+                                                var escapedContent = element.content.replace(/"/g, '&quot;');
                                                 return '<div style="width: 100%; height: 100%; overflow: hidden; border-radius: 4px;">' +
-                                                    '<img src="' + element.content + '" style="width: 100%; height: 100%; object-fit: ' + objectFit + '; object-position: ' + objectPosition + '; border-radius: 4px; display: block;" alt="Quiz Image">' +
+                                                    '<img src="' + escapedContent + '" style="width: 100%; height: 100%; object-fit: ' + objectFit + '; object-position: ' + objectPosition + '; border-radius: 4px; display: block;" alt="Quiz Image" onerror="this.parentElement.innerHTML=\'<div style=\\\'display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; color: #dc2626;\\\'><div style=\\\'text-align: center;\\\'><i class=\\\'fas fa-exclamation-triangle fa-2x\\\'></i><br><small>Image load error</small></div></div>\';">' +
                                                     '</div>';
                                             } else {
                                                 return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8fafc; border: 2px dashed #cbd5e1; color: #64748b;">' +
