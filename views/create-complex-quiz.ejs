@@ -365,6 +365,12 @@
         .tool-item[data-type="square"] i {
             color: #10b981;
         }
+        .tool-item[data-type="rectangle"] i {
+            color: #059669;
+        }
+        .tool-item[data-type="rhombus"] i {
+            color: #dc2626;
+        }
         .tool-item[data-type="circle"] i {
             color: #3b82f6;
         }
@@ -469,6 +475,14 @@
                 <div class="tool-item" draggable="true" data-type="square">
                     <i class="fas fa-square"></i>
                     <span>Square</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="rectangle">
+                    <i class="far fa-square"></i>
+                    <span>Rectangle</span>
+                </div>
+                <div class="tool-item" draggable="true" data-type="rhombus">
+                    <i class="fas fa-gem"></i>
+                    <span>Rhombus</span>
                 </div>
                 <div class="tool-item" draggable="true" data-type="parallelogram">
                     <i class="fas fa-shapes"></i>
@@ -595,6 +609,12 @@
                             </button>
                             <button class="btn btn-outline-secondary btn-sm me-1 mt-1" onclick="addElementToCanvas('square')" title="Add Square">
                                 <i class="fas fa-square"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm me-1 mt-1" onclick="addElementToCanvas('rectangle')" title="Add Rectangle">
+                                <i class="far fa-square"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm me-1 mt-1" onclick="addElementToCanvas('rhombus')" title="Add Rhombus">
+                                <i class="fas fa-gem"></i>
                             </button>
                             <button class="btn btn-outline-secondary btn-sm me-1 mt-1" onclick="addElementToCanvas('triangle')" title="Add Triangle">
                                 <i class="fas fa-play" style="transform: rotate(90deg);"></i>
@@ -1017,6 +1037,8 @@
                     width = 150;
                     height = 150;
                     break;
+                case 'rectangle':
+                case 'rhombus':
                 case 'parallelogram':
                     width = 200;
                     height = 120;
@@ -1030,6 +1052,13 @@
                 case 'cuboid':
                     width = 200;
                     height = 120;
+                    break;
+                // Charts
+                case 'bar-chart':
+                case 'line-chart':
+                case 'pie-chart':
+                    width = 300;
+                    height = 200;
                     break;
             }
 
@@ -1195,8 +1224,10 @@
                 case 'bar-chart':
                 case 'line-chart':
                 case 'pie-chart':
-                    return `<div style="padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0;">
-                        <canvas id="chart-${element.id}" width="180" height="80"></canvas>
+                    // Render chart and schedule Chart.js initialization
+                    setTimeout(() => renderChart(element), 100);
+                    return `<div style="padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; height: 100%; box-sizing: border-box;">
+                        <canvas id="chart-${element.id}" style="width: 100%; height: calc(100% - 40px);"></canvas>
                         <small style="color: #64748b; display: block; text-align: center; margin-top: 8px;">${element.type.replace('-', ' ').toUpperCase()}</small>
                     </div>`;
                 case 'answer-area':
@@ -1248,6 +1279,41 @@
                               stroke="${element.strokeColor || '#3b82f6'}"
                               stroke-width="${element.strokeWidth || 2}" />
                         <text x="${(sideLength + 20) / 2}" y="${sideLength + 25}" text-anchor="middle" font-size="10" fill="#64748b">Square (${sideLength}×${sideLength}px)</text>
+                    </svg>`;
+
+                case 'rectangle':
+                    const rectWidth = element.shapeWidth || 160;
+                    const rectHeight = element.shapeHeight || 100;
+                    const rectViewBox = `0 0 ${rectWidth + 20} ${rectHeight + 30}`;
+                    const rectX = 10;
+                    const rectY = 10;
+                    return `<svg width="100%" height="100%" viewBox="${rectViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <rect x="${rectX}" y="${rectY}" width="${rectWidth}" height="${rectHeight}"
+                              fill="${element.fillColor || '#dbeafe'}"
+                              stroke="${element.strokeColor || '#3b82f6'}"
+                              stroke-width="${element.strokeWidth || 2}" />
+                        <text x="${(rectWidth + 20) / 2}" y="${rectHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Rectangle (${rectWidth}×${rectHeight}px)</text>
+                    </svg>`;
+
+                case 'rhombus':
+                    const rhombusWidth = element.shapeWidth || 140;
+                    const rhombusHeight = element.shapeHeight || 100;
+                    const rhombusViewBox = `0 0 ${rhombusWidth + 20} ${rhombusHeight + 30}`;
+                    const rhombusCenterX = (rhombusWidth + 20) / 2;
+                    const rhombusCenterY = rhombusHeight / 2 + 10;
+                    const rhombusHalfWidth = rhombusWidth / 2;
+                    const rhombusHalfHeight = rhombusHeight / 2;
+                    // Calculate rhombus points (diamond shape)
+                    const rhombusTop = `${rhombusCenterX},${rhombusCenterY - rhombusHalfHeight}`;
+                    const rhombusRight = `${rhombusCenterX + rhombusHalfWidth},${rhombusCenterY}`;
+                    const rhombusBottom = `${rhombusCenterX},${rhombusCenterY + rhombusHalfHeight}`;
+                    const rhombusLeft = `${rhombusCenterX - rhombusHalfWidth},${rhombusCenterY}`;
+                    return `<svg width="100%" height="100%" viewBox="${rhombusViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <polygon points="${rhombusTop} ${rhombusRight} ${rhombusBottom} ${rhombusLeft}"
+                                fill="${element.fillColor || '#dbeafe'}"
+                                stroke="${element.strokeColor || '#3b82f6'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <text x="${rhombusCenterX}" y="${rhombusHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Rhombus (${rhombusWidth}×${rhombusHeight}px)</text>
                     </svg>`;
 
                 case 'parallelogram':
@@ -1663,6 +1729,60 @@
                         </div>
                     `;
 
+                case 'rectangle':
+                    return `
+                        <div class="property-group">
+                            <label>Width (px)</label>
+                            <input type="number" min="30" max="400" value="${elementData.shapeWidth || 160}" onchange="updateShapeDimension('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
+                            <small class="text-muted">Width of the rectangle</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Height (px)</label>
+                            <input type="number" min="20" max="300" value="${elementData.shapeHeight || 100}" onchange="updateShapeDimension('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
+                            <small class="text-muted">Height of the rectangle</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Fill Color</label>
+                            <input type="color" value="${elementData.fillColor || '#dbeafe'}" onchange="updateShapeProperty('${elementData.id}', 'fillColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Color</label>
+                            <input type="color" value="${elementData.strokeColor || '#3b82f6'}" onchange="updateShapeProperty('${elementData.id}', 'strokeColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Width</label>
+                            <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
+                    `;
+
+                case 'rhombus':
+                    return `
+                        <div class="property-group">
+                            <label>Width (px)</label>
+                            <input type="number" min="30" max="400" value="${elementData.shapeWidth || 140}" onchange="updateShapeDimension('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
+                            <small class="text-muted">Width of the rhombus</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Height (px)</label>
+                            <input type="number" min="20" max="300" value="${elementData.shapeHeight || 100}" onchange="updateShapeDimension('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
+                            <small class="text-muted">Height of the rhombus</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Fill Color</label>
+                            <input type="color" value="${elementData.fillColor || '#dbeafe'}" onchange="updateShapeProperty('${elementData.id}', 'fillColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Color</label>
+                            <input type="color" value="${elementData.strokeColor || '#3b82f6'}" onchange="updateShapeProperty('${elementData.id}', 'strokeColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Width</label>
+                            <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
+                    `;
+
                 case 'triangle':
                     return `
                         <div class="property-group">
@@ -1792,6 +1912,46 @@
                             <label>Stroke Width</label>
                             <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
                             <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
+                    `;
+
+                // Chart properties
+                case 'bar-chart':
+                case 'line-chart':
+                case 'pie-chart':
+                    return `
+                        <div class="property-group">
+                            <label>Chart Title</label>
+                            <input type="text" value="${elementData.chartTitle || 'Sample Chart'}" onchange="updateChartProperty('${elementData.id}', 'chartTitle', this.value)" class="form-control">
+                            <small class="text-muted">Title displayed above the chart</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Chart Data</label>
+                            <textarea rows="4" onchange="updateChartProperty('${elementData.id}', 'chartData', this.value)" class="form-control" placeholder="Enter data as: Label1:Value1, Label2:Value2">${elementData.chartData || (elementData.type === 'pie-chart' ? 'Red:30, Blue:25, Green:20, Yellow:25' : 'Jan:10, Feb:20, Mar:15, Apr:25, May:30')}</textarea>
+                            <small class="text-muted">Format: Label1:Value1, Label2:Value2, ...</small>
+                        </div>
+                        ${elementData.type !== 'pie-chart' ? `
+                        <div class="property-group">
+                            <label>Y-Axis Label</label>
+                            <input type="text" value="${elementData.yAxisLabel || 'Values'}" onchange="updateChartProperty('${elementData.id}', 'yAxisLabel', this.value)" class="form-control">
+                            <small class="text-muted">Label for the Y-axis</small>
+                        </div>
+                        <div class="property-group">
+                            <label>X-Axis Label</label>
+                            <input type="text" value="${elementData.xAxisLabel || 'Categories'}" onchange="updateChartProperty('${elementData.id}', 'xAxisLabel', this.value)" class="form-control">
+                            <small class="text-muted">Label for the X-axis</small>
+                        </div>
+                        ` : ''}
+                        <div class="property-group">
+                            <label>Chart Color Theme</label>
+                            <select onchange="updateChartProperty('${elementData.id}', 'colorTheme', this.value)" class="form-control">
+                                <option value="blue" ${(elementData.colorTheme || 'blue') === 'blue' ? 'selected' : ''}>Blue Theme</option>
+                                <option value="green" ${elementData.colorTheme === 'green' ? 'selected' : ''}>Green Theme</option>
+                                <option value="red" ${elementData.colorTheme === 'red' ? 'selected' : ''}>Red Theme</option>
+                                <option value="purple" ${elementData.colorTheme === 'purple' ? 'selected' : ''}>Purple Theme</option>
+                                <option value="rainbow" ${elementData.colorTheme === 'rainbow' ? 'selected' : ''}>Rainbow Theme</option>
+                            </select>
+                            <small class="text-muted">Color scheme for the chart</small>
                         </div>
                     `;
 
@@ -1948,6 +2108,201 @@
             }
         }
         window.addElementToCanvas = addElementToCanvas;
+
+        // Chart rendering functions
+        function renderChart(element) {
+            const canvas = document.getElementById(`chart-${element.id}`);
+            if (!canvas || !window.Chart) {
+                console.log('Canvas or Chart.js not available for', element.id);
+                return;
+            }
+
+            // Destroy existing chart if it exists
+            if (canvas.chart) {
+                canvas.chart.destroy();
+            }
+
+            // Parse chart data
+            const chartDataStr = element.chartData || getDefaultChartData(element.type);
+            const dataPoints = parseChartData(chartDataStr);
+
+            // Get color theme
+            const colors = getChartColors(element.colorTheme || 'blue', dataPoints.length);
+
+            // Create chart configuration
+            const config = createChartConfig(element, dataPoints, colors);
+
+            // Create the chart
+            try {
+                canvas.chart = new Chart(canvas, config);
+                console.log('Chart created successfully for', element.id);
+            } catch (error) {
+                console.error('Error creating chart:', error);
+            }
+        }
+
+        function getDefaultChartData(chartType) {
+            switch (chartType) {
+                case 'pie-chart':
+                    return 'Red:30, Blue:25, Green:20, Yellow:25';
+                case 'bar-chart':
+                case 'line-chart':
+                default:
+                    return 'Jan:10, Feb:20, Mar:15, Apr:25, May:30';
+            }
+        }
+
+        function parseChartData(dataStr) {
+            const pairs = dataStr.split(',').map(pair => pair.trim());
+            const labels = [];
+            const values = [];
+
+            pairs.forEach(pair => {
+                const [label, value] = pair.split(':').map(item => item.trim());
+                if (label && value && !isNaN(parseFloat(value))) {
+                    labels.push(label);
+                    values.push(parseFloat(value));
+                }
+            });
+
+            return { labels, values };
+        }
+
+        function getChartColors(theme, count) {
+            const themes = {
+                blue: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe'],
+                green: ['#10b981', '#34d399', '#6ee7b7', '#9decf9', '#a7f3d0'],
+                red: ['#ef4444', '#f87171', '#fca5a5', '#fecaca', '#fee2e2'],
+                purple: ['#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe'],
+                rainbow: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']
+            };
+
+            const colorSet = themes[theme] || themes.blue;
+            const colors = [];
+
+            for (let i = 0; i < count; i++) {
+                colors.push(colorSet[i % colorSet.length]);
+            }
+
+            return colors;
+        }
+
+        function createChartConfig(element, dataPoints, colors) {
+            const baseConfig = {
+                data: {
+                    labels: dataPoints.labels,
+                    datasets: [{
+                        data: dataPoints.values,
+                        backgroundColor: colors,
+                        borderColor: colors.map(color => color),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: !!(element.chartTitle),
+                            text: element.chartTitle || '',
+                            font: { size: 12 }
+                        },
+                        legend: {
+                            display: element.type === 'pie-chart',
+                            position: 'bottom',
+                            labels: { font: { size: 10 } }
+                        }
+                    }
+                }
+            };
+
+            // Chart type specific configurations
+            switch (element.type) {
+                case 'bar-chart':
+                    return {
+                        type: 'bar',
+                        ...baseConfig,
+                        options: {
+                            ...baseConfig.options,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: !!(element.yAxisLabel),
+                                        text: element.yAxisLabel || '',
+                                        font: { size: 10 }
+                                    },
+                                    ticks: { font: { size: 9 } }
+                                },
+                                x: {
+                                    title: {
+                                        display: !!(element.xAxisLabel),
+                                        text: element.xAxisLabel || '',
+                                        font: { size: 10 }
+                                    },
+                                    ticks: { font: { size: 9 } }
+                                }
+                            }
+                        }
+                    };
+
+                case 'line-chart':
+                    return {
+                        type: 'line',
+                        ...baseConfig,
+                        data: {
+                            ...baseConfig.data,
+                            datasets: [{
+                                ...baseConfig.data.datasets[0],
+                                fill: false,
+                                tension: 0.1
+                            }]
+                        },
+                        options: {
+                            ...baseConfig.options,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: !!(element.yAxisLabel),
+                                        text: element.yAxisLabel || '',
+                                        font: { size: 10 }
+                                    },
+                                    ticks: { font: { size: 9 } }
+                                },
+                                x: {
+                                    title: {
+                                        display: !!(element.xAxisLabel),
+                                        text: element.xAxisLabel || '',
+                                        font: { size: 10 }
+                                    },
+                                    ticks: { font: { size: 9 } }
+                                }
+                            }
+                        }
+                    };
+
+                case 'pie-chart':
+                default:
+                    return {
+                        type: 'pie',
+                        ...baseConfig
+                    };
+            }
+        }
+
+        // Update chart properties
+        function updateChartProperty(elementId, property, value) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (elementData) {
+                // Store the property in the element data
+                elementData[property] = value;
+
+                // Re-render the chart
+                setTimeout(() => renderChart(elementData), 100);
+            }
+        }
+        window.updateChartProperty = updateChartProperty;
 
         // Trigger image upload dialog
         function triggerImageUpload(elementId) {
