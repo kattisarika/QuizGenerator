@@ -2388,7 +2388,21 @@ app.get('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireAp
 // Save complex quiz route
 app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
-    const { title, description, gradeLevel, subject, quizType, elements } = req.body;
+    console.log('Complex quiz creation request received');
+
+    if (!req.body) {
+      return res.status(400).json({
+        success: false,
+        message: 'No request body provided'
+      });
+    }
+
+    const title = req.body.title;
+    const description = req.body.description;
+    const gradeLevel = req.body.gradeLevel;
+    const subject = req.body.subject;
+    const quizType = req.body.quizType;
+    const elements = req.body.elements;
 
     // Validate required fields
     if (!title || !gradeLevel || !subject || !elements || elements.length === 0) {
@@ -2398,36 +2412,7 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
       });
     }
 
-    // Convert elements to questions format
-    const questions = [];
-    let questionCounter = 1;
 
-    elements.forEach(element => {
-      if (element.type === 'question' || element.type === 'sub-question') {
-        questions.push({
-          question: element.content || `Question ${questionCounter}`,
-          type: 'short-answer',
-          options: [],
-          correctAnswer: '',
-          points: 1,
-          isTextAnswer: true,
-          elementData: element // Store the original element data
-        });
-        questionCounter++;
-      }
-    });
-
-    // If no questions found, create a default one
-    if (questions.length === 0) {
-      questions.push({
-        question: 'Complex Quiz Question',
-        type: 'short-answer',
-        options: [],
-        correctAnswer: '',
-        points: 1,
-        isTextAnswer: true
-      });
-    }
 
     // Append current date and time to the title
     const now = new Date();
@@ -2440,7 +2425,7 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
       hour12: true
     }).replace(/,/g, '');
 
-    const finalTitle = `${title} - ${dateTimeString}`;
+    const finalTitle = title + ' - ' + dateTimeString;
 
     // Function to sanitize content
     function sanitizeContent(content) {
@@ -2500,7 +2485,7 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
     processedElements.forEach(element => {
       if (element.type === 'question' || element.type === 'sub-question') {
         // Clean the content for question text
-        let questionText = element.content || `Question ${questionCounter}`;
+        let questionText = element.content || 'Question ' + questionCounter;
 
         // Strip HTML tags for question text but keep basic formatting
         questionText = questionText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -2566,7 +2551,7 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
 
     res.json({
       success: true,
-      message: `Complex quiz "${finalTitle}" created successfully!`,
+      message: 'Complex quiz "' + finalTitle + '" created successfully!',
       quizId: quiz._id
     });
 
