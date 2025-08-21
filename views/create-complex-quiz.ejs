@@ -1209,122 +1209,192 @@
 
                 // 2D Geometric Shapes
                 case 'line':
-                    return `<svg width="100%" height="100%" viewBox="0 0 200 20" style="border: 1px solid #e2e8f0; background: #ffffff;">
-                        <line x1="10" y1="10" x2="190" y2="10"
+                    const lineLength = element.shapeLength || 180;
+                    const lineViewBox = `0 0 ${lineLength + 20} 20`;
+                    const lineX2 = lineLength + 10;
+                    return `<svg width="100%" height="100%" viewBox="${lineViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <line x1="10" y1="10" x2="${lineX2}" y2="10"
                               stroke="${element.strokeColor || '#3b82f6'}"
                               stroke-width="${element.strokeWidth || 2}"
                               ${element.strokeDasharray ? `stroke-dasharray="${element.strokeDasharray}"` : ''} />
-                        <text x="100" y="18" text-anchor="middle" font-size="10" fill="#64748b">Line</text>
+                        <text x="${(lineLength + 20) / 2}" y="18" text-anchor="middle" font-size="10" fill="#64748b">Line (${lineLength}px)</text>
                     </svg>`;
 
                 case 'triangle':
-                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
-                        <polygon points="75,20 20,130 130,130"
+                    const baseWidth = element.shapeBaseWidth || 110;
+                    const triangleHeight = element.shapeHeight || 110;
+                    const triangleViewBox = `0 0 ${baseWidth + 20} ${triangleHeight + 30}`;
+                    const topX = (baseWidth + 20) / 2;
+                    const topY = 10;
+                    const leftX = 10;
+                    const rightX = baseWidth + 10;
+                    const bottomY = triangleHeight + 10;
+                    return `<svg width="100%" height="100%" viewBox="${triangleViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <polygon points="${topX},${topY} ${leftX},${bottomY} ${rightX},${bottomY}"
                                 fill="${element.fillColor || '#dbeafe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
-                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Triangle</text>
+                        <text x="${topX}" y="${triangleHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Triangle (${baseWidth}×${triangleHeight}px)</text>
                     </svg>`;
 
                 case 'square':
-                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
-                        <rect x="25" y="25" width="100" height="100"
+                    const sideLength = element.shapeSideLength || 100;
+                    const squareViewBox = `0 0 ${sideLength + 20} ${sideLength + 30}`;
+                    const squareX = 10;
+                    const squareY = 10;
+                    return `<svg width="100%" height="100%" viewBox="${squareViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <rect x="${squareX}" y="${squareY}" width="${sideLength}" height="${sideLength}"
                               fill="${element.fillColor || '#dbeafe'}"
                               stroke="${element.strokeColor || '#3b82f6'}"
                               stroke-width="${element.strokeWidth || 2}" />
-                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Square</text>
+                        <text x="${(sideLength + 20) / 2}" y="${sideLength + 25}" text-anchor="middle" font-size="10" fill="#64748b">Square (${sideLength}×${sideLength}px)</text>
                     </svg>`;
 
                 case 'parallelogram':
-                    return `<svg width="100%" height="100%" viewBox="0 0 200 120" style="border: 1px solid #e2e8f0; background: #ffffff;">
-                        <polygon points="30,20 170,20 150,100 10,100"
+                    const paraWidth = element.shapeWidth || 160;
+                    const paraHeight = element.shapeHeight || 80;
+                    const paraViewBox = `0 0 ${paraWidth + 40} ${paraHeight + 30}`;
+                    const skew = 20; // Fixed skew amount for parallelogram effect
+                    const topLeft = `${skew + 10},10`;
+                    const topRight = `${paraWidth + skew + 10},10`;
+                    const bottomRight = `${paraWidth + 10},${paraHeight + 10}`;
+                    const bottomLeft = `10,${paraHeight + 10}`;
+                    return `<svg width="100%" height="100%" viewBox="${paraViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <polygon points="${topLeft} ${topRight} ${bottomRight} ${bottomLeft}"
                                 fill="${element.fillColor || '#dbeafe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
-                        <text x="100" y="115" text-anchor="middle" font-size="10" fill="#64748b">Parallelogram</text>
+                        <text x="${(paraWidth + 40) / 2}" y="${paraHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Parallelogram (${paraWidth}×${paraHeight}px)</text>
                     </svg>`;
 
                 case 'circle':
-                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
-                        <circle cx="75" cy="65" r="50"
+                    const diameter = element.shapeDiameter || 100;
+                    const radius = diameter / 2;
+                    const circleViewBox = `0 0 ${diameter + 20} ${diameter + 30}`;
+                    const circleCx = (diameter + 20) / 2;
+                    const circleCy = radius + 10;
+                    return `<svg width="100%" height="100%" viewBox="${circleViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <circle cx="${circleCx}" cy="${circleCy}" r="${radius}"
                                fill="${element.fillColor || '#dbeafe'}"
                                stroke="${element.strokeColor || '#3b82f6'}"
                                stroke-width="${element.strokeWidth || 2}" />
-                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Circle</text>
+                        <text x="${circleCx}" y="${diameter + 25}" text-anchor="middle" font-size="10" fill="#64748b">Circle (⌀${diameter}px)</text>
                     </svg>`;
 
                 case 'pentagon':
-                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
-                        <polygon points="75,20 120,50 100,110 50,110 30,50"
+                    const pentSize = element.shapeSize || 90;
+                    const pentViewBox = `0 0 ${pentSize + 20} ${pentSize + 30}`;
+                    const pentCenterX = (pentSize + 20) / 2;
+                    const pentCenterY = (pentSize + 20) / 2;
+                    const pentRadius = pentSize / 2;
+                    // Calculate pentagon points
+                    const pentPoints = [];
+                    for (let i = 0; i < 5; i++) {
+                        const angle = (i * 2 * Math.PI / 5) - (Math.PI / 2);
+                        const x = pentCenterX + pentRadius * Math.cos(angle);
+                        const y = pentCenterY + pentRadius * Math.sin(angle);
+                        pentPoints.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+                    }
+                    return `<svg width="100%" height="100%" viewBox="${pentViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <polygon points="${pentPoints.join(' ')}"
                                 fill="${element.fillColor || '#dbeafe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
-                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Pentagon</text>
+                        <text x="${pentCenterX}" y="${pentSize + 25}" text-anchor="middle" font-size="10" fill="#64748b">Pentagon (${pentSize}px)</text>
                     </svg>`;
 
                 case 'hexagon':
-                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
-                        <polygon points="75,20 110,40 110,80 75,100 40,80 40,40"
+                    const hexSize = element.shapeSize || 90;
+                    const hexViewBox = `0 0 ${hexSize + 20} ${hexSize + 30}`;
+                    const hexCenterX = (hexSize + 20) / 2;
+                    const hexCenterY = (hexSize + 20) / 2;
+                    const hexRadius = hexSize / 2;
+                    // Calculate hexagon points
+                    const hexPoints = [];
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (i * 2 * Math.PI / 6) - (Math.PI / 2);
+                        const x = hexCenterX + hexRadius * Math.cos(angle);
+                        const y = hexCenterY + hexRadius * Math.sin(angle);
+                        hexPoints.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+                    }
+                    return `<svg width="100%" height="100%" viewBox="${hexViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                        <polygon points="${hexPoints.join(' ')}"
                                 fill="${element.fillColor || '#dbeafe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
-                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Hexagon</text>
+                        <text x="${hexCenterX}" y="${hexSize + 25}" text-anchor="middle" font-size="10" fill="#64748b">Hexagon (${hexSize}px)</text>
                     </svg>`;
 
                 // 3D Shapes
                 case 'cube':
-                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                    const cubeSize = element.shapeSize || 80;
+                    const cubeViewBox = `0 0 ${cubeSize + 40} ${cubeSize + 50}`;
+                    const cubeDepth = cubeSize * 0.3; // 3D depth effect
+                    const frontX = 20;
+                    const frontY = cubeDepth + 20;
+                    return `<svg width="100%" height="100%" viewBox="${cubeViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
                         <!-- Front face -->
-                        <rect x="30" y="50" width="60" height="60"
+                        <rect x="${frontX}" y="${frontY}" width="${cubeSize}" height="${cubeSize}"
                               fill="${element.fillColor || '#dbeafe'}"
                               stroke="${element.strokeColor || '#3b82f6'}"
                               stroke-width="${element.strokeWidth || 2}" />
                         <!-- Top face -->
-                        <polygon points="30,50 50,30 110,30 90,50"
+                        <polygon points="${frontX},${frontY} ${frontX + cubeDepth},${frontY - cubeDepth} ${frontX + cubeSize + cubeDepth},${frontY - cubeDepth} ${frontX + cubeSize},${frontY}"
                                 fill="${element.fillColor || '#bfdbfe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
                         <!-- Right face -->
-                        <polygon points="90,50 110,30 110,90 90,110"
+                        <polygon points="${frontX + cubeSize},${frontY} ${frontX + cubeSize + cubeDepth},${frontY - cubeDepth} ${frontX + cubeSize + cubeDepth},${frontY + cubeSize - cubeDepth} ${frontX + cubeSize},${frontY + cubeSize}"
                                 fill="${element.fillColor || '#93c5fd'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
-                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Cube</text>
+                        <text x="${(cubeSize + 40) / 2}" y="${cubeSize + cubeDepth + 35}" text-anchor="middle" font-size="10" fill="#64748b">Cube (${cubeSize}×${cubeSize}×${cubeSize}px)</text>
                     </svg>`;
 
                 case 'sphere':
-                    return `<svg width="100%" height="100%" viewBox="0 0 150 150" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                    const sphereSize = element.shapeSize || 80;
+                    const sphereRadius = sphereSize / 2;
+                    const sphereViewBox = `0 0 ${sphereSize + 20} ${sphereSize + 30}`;
+                    const sphereCx = (sphereSize + 20) / 2;
+                    const sphereCy = sphereRadius + 10;
+                    return `<svg width="100%" height="100%" viewBox="${sphereViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
                         <defs>
                             <radialGradient id="sphereGradient-${element.id}" cx="0.3" cy="0.3">
                                 <stop offset="0%" stop-color="${element.fillColor || '#ffffff'}" />
                                 <stop offset="100%" stop-color="${element.fillColor || '#3b82f6'}" />
                             </radialGradient>
                         </defs>
-                        <circle cx="75" cy="65" r="50"
+                        <circle cx="${sphereCx}" cy="${sphereCy}" r="${sphereRadius}"
                                fill="url(#sphereGradient-${element.id})"
                                stroke="${element.strokeColor || '#3b82f6'}"
                                stroke-width="${element.strokeWidth || 2}" />
-                        <text x="75" y="145" text-anchor="middle" font-size="10" fill="#64748b">Sphere</text>
+                        <text x="${sphereCx}" y="${sphereSize + 25}" text-anchor="middle" font-size="10" fill="#64748b">Sphere (⌀${sphereSize}px)</text>
                     </svg>`;
 
                 case 'cuboid':
-                    return `<svg width="100%" height="100%" viewBox="0 0 200 120" style="border: 1px solid #e2e8f0; background: #ffffff;">
+                    const cuboidWidth = element.shapeWidth || 120;
+                    const cuboidHeight = element.shapeHeight || 80;
+                    const cuboidDepth = element.shapeDepth || 60;
+                    const cuboidViewBox = `0 0 ${cuboidWidth + cuboidDepth + 20} ${cuboidHeight + cuboidDepth + 30}`;
+                    const frontX = 10;
+                    const frontY = cuboidDepth + 10;
+                    return `<svg width="100%" height="100%" viewBox="${cuboidViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
                         <!-- Front face -->
-                        <rect x="20" y="40" width="100" height="60"
+                        <rect x="${frontX}" y="${frontY}" width="${cuboidWidth}" height="${cuboidHeight}"
                               fill="${element.fillColor || '#dbeafe'}"
                               stroke="${element.strokeColor || '#3b82f6'}"
                               stroke-width="${element.strokeWidth || 2}" />
                         <!-- Top face -->
-                        <polygon points="20,40 40,20 140,20 120,40"
+                        <polygon points="${frontX},${frontY} ${frontX + cuboidDepth},${frontY - cuboidDepth} ${frontX + cuboidWidth + cuboidDepth},${frontY - cuboidDepth} ${frontX + cuboidWidth},${frontY}"
                                 fill="${element.fillColor || '#bfdbfe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
                         <!-- Right face -->
-                        <polygon points="120,40 140,20 140,80 120,100"
+                        <polygon points="${frontX + cuboidWidth},${frontY} ${frontX + cuboidWidth + cuboidDepth},${frontY - cuboidDepth} ${frontX + cuboidWidth + cuboidDepth},${frontY + cuboidHeight - cuboidDepth} ${frontX + cuboidWidth},${frontY + cuboidHeight}"
                                 fill="${element.fillColor || '#93c5fd'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
-                        <text x="100" y="115" text-anchor="middle" font-size="10" fill="#64748b">Cuboid</text>
+                        <text x="${(cuboidWidth + cuboidDepth + 20) / 2}" y="${cuboidHeight + cuboidDepth + 25}" text-anchor="middle" font-size="10" fill="#64748b">Cuboid (${cuboidWidth}×${cuboidHeight}×${cuboidDepth}px)</text>
                     </svg>`;
 
                 default:
@@ -1523,16 +1593,39 @@
 
                 // Shape properties
                 case 'line':
-                case 'triangle':
-                case 'square':
-                case 'parallelogram':
-                case 'circle':
-                case 'pentagon':
-                case 'hexagon':
-                case 'cube':
-                case 'sphere':
-                case 'cuboid':
                     return `
+                        <div class="property-group">
+                            <label>Length (px)</label>
+                            <input type="number" min="10" max="500" value="${elementData.shapeLength || 180}" onchange="updateShapeDimension('${elementData.id}', 'shapeLength', this.value)" class="form-control">
+                            <small class="text-muted">Length of the line</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Color</label>
+                            <input type="color" value="${elementData.strokeColor || '#3b82f6'}" onchange="updateShapeProperty('${elementData.id}', 'strokeColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Width</label>
+                            <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Line Style</label>
+                            <select onchange="updateShapeProperty('${elementData.id}', 'strokeDasharray', this.value)" class="form-control">
+                                <option value="" ${!elementData.strokeDasharray ? 'selected' : ''}>Solid</option>
+                                <option value="5,5" ${elementData.strokeDasharray === '5,5' ? 'selected' : ''}>Dashed</option>
+                                <option value="2,2" ${elementData.strokeDasharray === '2,2' ? 'selected' : ''}>Dotted</option>
+                                <option value="10,5,2,5" ${elementData.strokeDasharray === '10,5,2,5' ? 'selected' : ''}>Dash-Dot</option>
+                            </select>
+                        </div>
+                    `;
+
+                case 'circle':
+                    return `
+                        <div class="property-group">
+                            <label>Diameter (px)</label>
+                            <input type="number" min="20" max="300" value="${elementData.shapeDiameter || 100}" onchange="updateShapeDimension('${elementData.id}', 'shapeDiameter', this.value)" class="form-control">
+                            <small class="text-muted">Diameter of the circle</small>
+                        </div>
                         <div class="property-group">
                             <label>Fill Color</label>
                             <input type="color" value="${elementData.fillColor || '#dbeafe'}" onchange="updateShapeProperty('${elementData.id}', 'fillColor', this.value)" class="form-control">
@@ -1546,17 +1639,160 @@
                             <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
                             <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
                         </div>
-                        ${elementData.type === 'line' ? `
+                    `;
+
+                case 'square':
+                    return `
                         <div class="property-group">
-                            <label>Line Style</label>
-                            <select onchange="updateShapeProperty('${elementData.id}', 'strokeDasharray', this.value)" class="form-control">
-                                <option value="" ${!elementData.strokeDasharray ? 'selected' : ''}>Solid</option>
-                                <option value="5,5" ${elementData.strokeDasharray === '5,5' ? 'selected' : ''}>Dashed</option>
-                                <option value="2,2" ${elementData.strokeDasharray === '2,2' ? 'selected' : ''}>Dotted</option>
-                                <option value="10,5,2,5" ${elementData.strokeDasharray === '10,5,2,5' ? 'selected' : ''}>Dash-Dot</option>
-                            </select>
+                            <label>Side Length (px)</label>
+                            <input type="number" min="20" max="300" value="${elementData.shapeSideLength || 100}" onchange="updateShapeDimension('${elementData.id}', 'shapeSideLength', this.value)" class="form-control">
+                            <small class="text-muted">Length of each side</small>
                         </div>
-                        ` : ''}
+                        <div class="property-group">
+                            <label>Fill Color</label>
+                            <input type="color" value="${elementData.fillColor || '#dbeafe'}" onchange="updateShapeProperty('${elementData.id}', 'fillColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Color</label>
+                            <input type="color" value="${elementData.strokeColor || '#3b82f6'}" onchange="updateShapeProperty('${elementData.id}', 'strokeColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Width</label>
+                            <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
+                    `;
+
+                case 'triangle':
+                    return `
+                        <div class="property-group">
+                            <label>Base Width (px)</label>
+                            <input type="number" min="20" max="300" value="${elementData.shapeBaseWidth || 110}" onchange="updateShapeDimension('${elementData.id}', 'shapeBaseWidth', this.value)" class="form-control">
+                            <small class="text-muted">Width of the triangle base</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Height (px)</label>
+                            <input type="number" min="20" max="300" value="${elementData.shapeHeight || 110}" onchange="updateShapeDimension('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
+                            <small class="text-muted">Height of the triangle</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Fill Color</label>
+                            <input type="color" value="${elementData.fillColor || '#dbeafe'}" onchange="updateShapeProperty('${elementData.id}', 'fillColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Color</label>
+                            <input type="color" value="${elementData.strokeColor || '#3b82f6'}" onchange="updateShapeProperty('${elementData.id}', 'strokeColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Width</label>
+                            <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
+                    `;
+
+                case 'parallelogram':
+                    return `
+                        <div class="property-group">
+                            <label>Width (px)</label>
+                            <input type="number" min="30" max="400" value="${elementData.shapeWidth || 160}" onchange="updateShapeDimension('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
+                            <small class="text-muted">Width of the parallelogram</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Height (px)</label>
+                            <input type="number" min="20" max="300" value="${elementData.shapeHeight || 80}" onchange="updateShapeDimension('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
+                            <small class="text-muted">Height of the parallelogram</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Fill Color</label>
+                            <input type="color" value="${elementData.fillColor || '#dbeafe'}" onchange="updateShapeProperty('${elementData.id}', 'fillColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Color</label>
+                            <input type="color" value="${elementData.strokeColor || '#3b82f6'}" onchange="updateShapeProperty('${elementData.id}', 'strokeColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Width</label>
+                            <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
+                    `;
+
+                case 'pentagon':
+                case 'hexagon':
+                    return `
+                        <div class="property-group">
+                            <label>Size (px)</label>
+                            <input type="number" min="30" max="300" value="${elementData.shapeSize || 90}" onchange="updateShapeDimension('${elementData.id}', 'shapeSize', this.value)" class="form-control">
+                            <small class="text-muted">Size of the ${elementData.type}</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Fill Color</label>
+                            <input type="color" value="${elementData.fillColor || '#dbeafe'}" onchange="updateShapeProperty('${elementData.id}', 'fillColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Color</label>
+                            <input type="color" value="${elementData.strokeColor || '#3b82f6'}" onchange="updateShapeProperty('${elementData.id}', 'strokeColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Width</label>
+                            <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
+                    `;
+
+                case 'cube':
+                case 'sphere':
+                    return `
+                        <div class="property-group">
+                            <label>${elementData.type === 'cube' ? 'Side Length' : 'Diameter'} (px)</label>
+                            <input type="number" min="30" max="300" value="${elementData.shapeSize || 80}" onchange="updateShapeDimension('${elementData.id}', 'shapeSize', this.value)" class="form-control">
+                            <small class="text-muted">${elementData.type === 'cube' ? 'Length of each side' : 'Diameter of the sphere'}</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Fill Color</label>
+                            <input type="color" value="${elementData.fillColor || '#dbeafe'}" onchange="updateShapeProperty('${elementData.id}', 'fillColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Color</label>
+                            <input type="color" value="${elementData.strokeColor || '#3b82f6'}" onchange="updateShapeProperty('${elementData.id}', 'strokeColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Width</label>
+                            <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
+                    `;
+
+                case 'cuboid':
+                    return `
+                        <div class="property-group">
+                            <label>Width (px)</label>
+                            <input type="number" min="30" max="400" value="${elementData.shapeWidth || 120}" onchange="updateShapeDimension('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
+                            <small class="text-muted">Width of the cuboid</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Height (px)</label>
+                            <input type="number" min="20" max="300" value="${elementData.shapeHeight || 80}" onchange="updateShapeDimension('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
+                            <small class="text-muted">Height of the cuboid</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Depth (px)</label>
+                            <input type="number" min="10" max="200" value="${elementData.shapeDepth || 60}" onchange="updateShapeDimension('${elementData.id}', 'shapeDepth', this.value)" class="form-control">
+                            <small class="text-muted">Depth of the cuboid</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Fill Color</label>
+                            <input type="color" value="${elementData.fillColor || '#dbeafe'}" onchange="updateShapeProperty('${elementData.id}', 'fillColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Color</label>
+                            <input type="color" value="${elementData.strokeColor || '#3b82f6'}" onchange="updateShapeProperty('${elementData.id}', 'strokeColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Stroke Width</label>
+                            <input type="range" min="1" max="10" value="${elementData.strokeWidth || 2}" onchange="updateShapeProperty('${elementData.id}', 'strokeWidth', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.strokeWidth || 2}px</small>
+                        </div>
                     `;
 
                 default:
@@ -1653,6 +1889,37 @@
             }
         }
         window.updateImageProperty = updateImageProperty;
+
+        // Update shape dimensions
+        function updateShapeDimension(elementId, property, value) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (elementData) {
+                // Store the dimension property in the element data
+                elementData[property] = parseInt(value);
+
+                // Re-render the element to apply the changes
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.innerHTML = getElementContent(elementData);
+                }
+
+                // For certain shapes, we might want to update the container size too
+                if (elementData.type === 'line' && property === 'shapeLength') {
+                    // Update container width for lines
+                    element.style.width = (parseInt(value) + 20) + 'px';
+                    elementData.width = parseInt(value) + 20;
+                } else if ((elementData.type === 'circle' || elementData.type === 'square') &&
+                          (property === 'shapeDiameter' || property === 'shapeSideLength')) {
+                    // Update container size for circles and squares
+                    const size = parseInt(value) + 20;
+                    element.style.width = size + 'px';
+                    element.style.height = size + 'px';
+                    elementData.width = size;
+                    elementData.height = size;
+                }
+            }
+        }
+        window.updateShapeDimension = updateShapeDimension;
 
         // Trigger image upload dialog
         function triggerImageUpload(elementId) {
