@@ -587,6 +587,18 @@
             }
         }
 
+        @keyframes bounce {
+            0%, 20%, 60%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            80% {
+                transform: translateY(-5px);
+            }
+        }
+
         /* Ensure questions are hidden by default for one-question-per-page */
         .question-container {
             display: none !important;
@@ -1090,20 +1102,75 @@
                             <!-- Regular Quiz Questions -->
                         <% } %>
 
-                        <!-- Question Progress Indicator -->
-                        <div class="quiz-progress-container" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
-                            <div class="progress-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <span class="progress-text" style="font-weight: 600; color: #495057;">
-                                    Question <span id="current-question-number">1</span> of <%= quiz.questions.length %>
-                                </span>
-                                <span class="progress-percentage" style="font-size: 14px; color: #6c757d;">
-                                    <span id="progress-percentage">0</span>% Complete
-                                </span>
+                        <!-- Question Progress Indicator with Achievement Badge -->
+                        <div class="quiz-progress-container" style="margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px; border: 1px solid #dee2e6; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                            <div class="progress-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <!-- Mini Achievement Badge -->
+                                    <div class="mini-badge" style="position: relative;">
+                                        <svg width="40" height="40" viewBox="0 0 40 40" style="filter: drop-shadow(0 2px 5px rgba(0,0,0,0.2));">
+                                            <circle cx="20" cy="20" r="18" fill="url(#miniGoldGradient)" stroke="#FFD700" stroke-width="1"/>
+                                            <circle cx="20" cy="20" r="14" fill="url(#miniInnerGradient)" stroke="#FFA500" stroke-width="0.5"/>
+                                            <path d="M20 10 L23 16 L29 16 L24.5 20 L26 26 L20 23 L14 26 L15.5 20 L11 16 L17 16 Z"
+                                                  fill="#FFD700" stroke="#FF8C00" stroke-width="0.5"/>
+                                            <defs>
+                                                <radialGradient id="miniGoldGradient" cx="50%" cy="30%">
+                                                    <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+                                                </radialGradient>
+                                                <radialGradient id="miniInnerGradient" cx="50%" cy="30%">
+                                                    <stop offset="0%" style="stop-color:#FFF8DC;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
+                                                </radialGradient>
+                                            </defs>
+                                        </svg>
+                                        <div id="progress-sparkle" style="position: absolute; top: -2px; right: -2px; font-size: 12px; animation: sparkle 2s infinite; opacity: 0;">✨</div>
+                                    </div>
+
+                                    <div>
+                                        <span class="progress-text" style="font-weight: 700; color: #495057; font-size: 16px;">
+                                            Question <span id="current-question-number">1</span> of <%= quiz.questions.length %>
+                                        </span>
+                                        <div style="font-size: 12px; color: #6c757d; margin-top: 2px;">
+                                            🎯 Keep going! You're doing great!
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="text-align: right;">
+                                    <span class="progress-percentage" style="font-size: 18px; color: #667eea; font-weight: 700;">
+                                        <span id="progress-percentage">0</span>%
+                                    </span>
+                                    <div style="font-size: 12px; color: #6c757d;">Complete</div>
+                                </div>
                             </div>
-                            <div class="progress-bar-container" style="width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
-                                <div id="progress-bar" style="height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 0%; transition: width 0.3s ease;"></div>
+
+                            <div class="progress-bar-container" style="width: 100%; height: 12px; background: #e9ecef; border-radius: 6px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+                                <div id="progress-bar" style="height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 0%; transition: width 0.5s ease; position: relative;">
+                                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%); animation: shimmer 2s infinite;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Achievement Milestones -->
+                            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: #6c757d;">
+                                <span id="milestone-25" style="opacity: 0.5;">🥉 25%</span>
+                                <span id="milestone-50" style="opacity: 0.5;">🥈 50%</span>
+                                <span id="milestone-75" style="opacity: 0.5;">🥇 75%</span>
+                                <span id="milestone-100" style="opacity: 0.5;">🏆 100%</span>
                             </div>
                         </div>
+
+                        <style>
+                            @keyframes shimmer {
+                                0% { transform: translateX(-100%); }
+                                100% { transform: translateX(100%); }
+                            }
+
+                            .mini-badge:hover {
+                                transform: scale(1.1);
+                                transition: transform 0.3s ease;
+                            }
+                        </style>
 
                         <% quiz.questions.forEach((question, index) => { %>
                             <div class="question-container" id="question-<%= index %>" data-question-index="<%= index %>">
@@ -1870,7 +1937,7 @@
             }
         }
 
-        // Update progress bar and counter
+        // Update progress bar and counter with badge animations
         function updateProgress() {
             // Update question counter
             const questionNumber = document.getElementById('current-question-number');
@@ -1881,6 +1948,7 @@
             // Update progress percentage
             const progressPercentage = document.getElementById('progress-percentage');
             const progressBar = document.getElementById('progress-bar');
+            const progressSparkle = document.getElementById('progress-sparkle');
 
             const answeredQuestions = Array.from({length: regularTotalQuestions}, (_, i) => i)
                 .filter(i => isQuestionAnswered(i)).length;
@@ -1889,11 +1957,66 @@
 
             if (progressPercentage) {
                 progressPercentage.textContent = percentage;
+
+                // Animate percentage change
+                progressPercentage.style.transform = 'scale(1.2)';
+                progressPercentage.style.color = '#28a745';
+                setTimeout(() => {
+                    progressPercentage.style.transform = 'scale(1)';
+                    progressPercentage.style.color = '#667eea';
+                }, 300);
             }
 
             if (progressBar) {
                 progressBar.style.width = percentage + '%';
             }
+
+            // Show sparkle effect when progress increases
+            if (progressSparkle && percentage > 0) {
+                progressSparkle.style.opacity = '1';
+                setTimeout(() => {
+                    progressSparkle.style.opacity = '0';
+                }, 1000);
+            }
+
+            // Update milestone achievements
+            updateMilestones(percentage);
+        }
+
+        // Update milestone indicators
+        function updateMilestones(percentage) {
+            const milestones = [
+                { id: 'milestone-25', threshold: 25 },
+                { id: 'milestone-50', threshold: 50 },
+                { id: 'milestone-75', threshold: 75 },
+                { id: 'milestone-100', threshold: 100 }
+            ];
+
+            milestones.forEach(milestone => {
+                const element = document.getElementById(milestone.id);
+                if (element) {
+                    if (percentage >= milestone.threshold) {
+                        element.style.opacity = '1';
+                        element.style.transform = 'scale(1.1)';
+                        element.style.color = '#28a745';
+                        element.style.fontWeight = 'bold';
+
+                        // Add celebration effect for new milestones
+                        if (!element.classList.contains('achieved')) {
+                            element.classList.add('achieved');
+                            element.style.animation = 'bounce 0.6s ease';
+                            setTimeout(() => {
+                                element.style.animation = '';
+                            }, 600);
+                        }
+                    } else {
+                        element.style.opacity = '0.5';
+                        element.style.transform = 'scale(1)';
+                        element.style.color = '#6c757d';
+                        element.style.fontWeight = 'normal';
+                    }
+                }
+            });
         }
 
         // Initialize one-question-per-page system
@@ -2333,11 +2456,8 @@
                     // Ensure beforeunload protection is removed
                     removeBeforeUnloadProtection();
 
-                    if (data.needsManualGrading) {
-                        alert('✅ Complex quiz submitted successfully!\n\n📝 Your answers have been sent to your teacher for review and grading.\n\n⏳ You will receive your results once your teacher has completed the review.');
-                    } else {
-                        alert('Complex quiz submitted successfully!');
-                    }
+                    // Show custom completion modal instead of alert
+                    showComplexQuizCompletionModal(data.needsManualGrading);
 
                     // Use replace instead of href to avoid back button issues
                     window.location.replace('/student/dashboard');
@@ -2478,24 +2598,253 @@
             removeBeforeUnloadProtection();
 
             const message = `
-                <div style="text-align: center; padding: 40px;">
-                    <h2 style="color: #28a745;">🎉 Quiz Completed!</h2>
-                    <p style="font-size: 18px; margin: 20px 0;">
-                        You have successfully completed the quiz!
-                    </p>
-                    <p style="font-size: 16px; color: #6c757d;">
-                        Time taken: ${Math.floor(data.timeTaken / 60)}m ${data.timeTaken % 60}s
-                    </p>
+                <div style="text-align: center; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white; margin: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <!-- Achievement Badge -->
+                    <div style="margin-bottom: 30px;">
+                        <div class="achievement-badge" style="display: inline-block; position: relative; animation: bounceIn 1s ease-out;">
+                            <svg width="120" height="120" viewBox="0 0 120 120" style="filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3));">
+                                <!-- Badge Background -->
+                                <circle cx="60" cy="60" r="55" fill="url(#goldGradient)" stroke="#FFD700" stroke-width="3"/>
+
+                                <!-- Inner Circle -->
+                                <circle cx="60" cy="60" r="45" fill="url(#innerGradient)" stroke="#FFA500" stroke-width="2"/>
+
+                                <!-- Star Icon -->
+                                <path d="M60 25 L67 45 L87 45 L72 57 L78 77 L60 65 L42 77 L48 57 L33 45 L53 45 Z"
+                                      fill="#FFD700" stroke="#FF8C00" stroke-width="1"/>
+
+                                <!-- Decorative Elements -->
+                                <circle cx="35" cy="35" r="3" fill="#FFD700" opacity="0.8"/>
+                                <circle cx="85" cy="35" r="3" fill="#FFD700" opacity="0.8"/>
+                                <circle cx="35" cy="85" r="3" fill="#FFD700" opacity="0.8"/>
+                                <circle cx="85" cy="85" r="3" fill="#FFD700" opacity="0.8"/>
+
+                                <!-- Gradients -->
+                                <defs>
+                                    <radialGradient id="goldGradient" cx="50%" cy="30%">
+                                        <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+                                    </radialGradient>
+                                    <radialGradient id="innerGradient" cx="50%" cy="30%">
+                                        <stop offset="0%" style="stop-color:#FFF8DC;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
+                                    </radialGradient>
+                                </defs>
+                            </svg>
+
+                            <!-- Sparkle Effects -->
+                            <div style="position: absolute; top: -10px; left: -10px; animation: sparkle 2s infinite;">✨</div>
+                            <div style="position: absolute; top: -5px; right: -10px; animation: sparkle 2s infinite 0.5s;">⭐</div>
+                            <div style="position: absolute; bottom: -10px; left: 10px; animation: sparkle 2s infinite 1s;">💫</div>
+                            <div style="position: absolute; bottom: -5px; right: 5px; animation: sparkle 2s infinite 1.5s;">✨</div>
+                        </div>
+                    </div>
+
+                    <h2 style="color: #FFD700; font-size: 32px; margin: 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: bold;">
+                        🎉 QUIZ COMPLETED! 🎉
+                    </h2>
+
+                    <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 20px; margin: 20px 0; backdrop-filter: blur(10px);">
+                        <p style="font-size: 20px; margin: 10px 0; font-weight: 600;">
+                            🏆 Congratulations on completing the quiz!
+                        </p>
+                        <p style="font-size: 16px; color: #E8F4FD; margin: 10px 0;">
+                            ⏱️ Time taken: ${Math.floor(data.timeTaken / 60)}m ${data.timeTaken % 60}s
+                        </p>
+                        <p style="font-size: 14px; color: #B8E6B8; margin: 10px 0;">
+                            📊 Your results are ready for review
+                        </p>
+                    </div>
+
                     <div style="margin: 30px 0;">
-                        <a href="/quiz-result/${data.resultId}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-chart-bar"></i> View Results
+                        <a href="/quiz-result/${data.resultId}" class="btn btn-light btn-lg" style="background: linear-gradient(45deg, #FFD700, #FFA500); color: #333; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 25px; text-decoration: none; display: inline-block; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 5px 15px rgba(0,0,0,0.2)'">
+                            <i class="fas fa-chart-bar" style="margin-right: 10px;"></i>View Your Results
                         </a>
                     </div>
+
+                    <!-- Floating Elements -->
+                    <div style="position: absolute; top: 20px; left: 20px; animation: float 3s ease-in-out infinite;">🎓</div>
+                    <div style="position: absolute; top: 30px; right: 30px; animation: float 3s ease-in-out infinite 1s;">📚</div>
+                    <div style="position: absolute; bottom: 30px; left: 30px; animation: float 3s ease-in-out infinite 2s;">🌟</div>
                 </div>
+
+                <style>
+                    @keyframes bounceIn {
+                        0% { transform: scale(0.3); opacity: 0; }
+                        50% { transform: scale(1.05); }
+                        70% { transform: scale(0.9); }
+                        100% { transform: scale(1); opacity: 1; }
+                    }
+
+                    @keyframes sparkle {
+                        0%, 100% { opacity: 0; transform: scale(0.5); }
+                        50% { opacity: 1; transform: scale(1.2); }
+                    }
+
+                    @keyframes float {
+                        0%, 100% { transform: translateY(0px); }
+                        50% { transform: translateY(-10px); }
+                    }
+
+                    .achievement-badge:hover {
+                        transform: scale(1.1);
+                        transition: transform 0.3s ease;
+                    }
+                </style>
             `;
 
             document.querySelector('.quiz-taking-container').innerHTML = message;
         }
+
+        // Show complex quiz completion modal with badge
+        function showComplexQuizCompletionModal(needsManualGrading) {
+            const modalHtml = `
+                <div id="completion-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.5s ease;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; padding: 40px; max-width: 500px; width: 90%; text-align: center; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; animation: slideUp 0.6s ease;">
+
+                        <!-- Achievement Badge -->
+                        <div style="margin-bottom: 30px;">
+                            <div class="complex-achievement-badge" style="display: inline-block; position: relative; animation: bounceIn 1s ease-out;">
+                                <svg width="100" height="100" viewBox="0 0 100 100" style="filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3));">
+                                    <!-- Badge Background -->
+                                    <circle cx="50" cy="50" r="45" fill="url(#complexGoldGradient)" stroke="#FFD700" stroke-width="2"/>
+
+                                    <!-- Inner Circle -->
+                                    <circle cx="50" cy="50" r="35" fill="url(#complexInnerGradient)" stroke="#FFA500" stroke-width="1.5"/>
+
+                                    <!-- Check Mark -->
+                                    <path d="M30 50 L42 62 L70 34" stroke="#FFD700" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+                                    <!-- Decorative Dots -->
+                                    <circle cx="25" cy="25" r="2" fill="#FFD700" opacity="0.8"/>
+                                    <circle cx="75" cy="25" r="2" fill="#FFD700" opacity="0.8"/>
+                                    <circle cx="25" cy="75" r="2" fill="#FFD700" opacity="0.8"/>
+                                    <circle cx="75" cy="75" r="2" fill="#FFD700" opacity="0.8"/>
+
+                                    <!-- Gradients -->
+                                    <defs>
+                                        <radialGradient id="complexGoldGradient" cx="50%" cy="30%">
+                                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+                                        </radialGradient>
+                                        <radialGradient id="complexInnerGradient" cx="50%" cy="30%">
+                                            <stop offset="0%" style="stop-color:#FFF8DC;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
+                                        </radialGradient>
+                                    </defs>
+                                </svg>
+
+                                <!-- Sparkle Effects -->
+                                <div style="position: absolute; top: -5px; left: -5px; animation: sparkle 2s infinite;">✨</div>
+                                <div style="position: absolute; top: 0px; right: -5px; animation: sparkle 2s infinite 0.5s;">⭐</div>
+                                <div style="position: absolute; bottom: -5px; left: 5px; animation: sparkle 2s infinite 1s;">💫</div>
+                                <div style="position: absolute; bottom: 0px; right: 0px; animation: sparkle 2s infinite 1.5s;">✨</div>
+                            </div>
+                        </div>
+
+                        <h2 style="color: #FFD700; font-size: 28px; margin: 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-weight: bold;">
+                            🎉 COMPLEX QUIZ COMPLETED! 🎉
+                        </h2>
+
+                        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 20px; margin: 20px 0; backdrop-filter: blur(10px);">
+                            ${needsManualGrading ? `
+                                <p style="font-size: 18px; margin: 10px 0; font-weight: 600;">
+                                    📝 Your answers have been submitted for review!
+                                </p>
+                                <p style="font-size: 14px; color: #E8F4FD; margin: 10px 0;">
+                                    ⏳ Your teacher will review and grade your responses
+                                </p>
+                                <p style="font-size: 14px; color: #B8E6B8; margin: 10px 0;">
+                                    📧 You'll receive your results once grading is complete
+                                </p>
+                            ` : `
+                                <p style="font-size: 18px; margin: 10px 0; font-weight: 600;">
+                                    🏆 Excellent work completing this complex quiz!
+                                </p>
+                                <p style="font-size: 14px; color: #E8F4FD; margin: 10px 0;">
+                                    📊 Your responses have been successfully recorded
+                                </p>
+                            `}
+                        </div>
+
+                        <div style="margin: 30px 0;">
+                            <button onclick="closeCompletionModal()" style="background: linear-gradient(45deg, #FFD700, #FFA500); color: #333; border: none; padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 5px 15px rgba(0,0,0,0.2)'">
+                                <i class="fas fa-home" style="margin-right: 10px;"></i>Return to Dashboard
+                            </button>
+                        </div>
+
+                        <!-- Floating Elements -->
+                        <div style="position: absolute; top: 15px; left: 15px; animation: float 3s ease-in-out infinite;">🎓</div>
+                        <div style="position: absolute; top: 20px; right: 20px; animation: float 3s ease-in-out infinite 1s;">📚</div>
+                        <div style="position: absolute; bottom: 20px; left: 20px; animation: float 3s ease-in-out infinite 2s;">🌟</div>
+                    </div>
+                </div>
+
+                <style>
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+
+                    @keyframes slideUp {
+                        from { transform: translateY(50px); opacity: 0; }
+                        to { transform: translateY(0); opacity: 1; }
+                    }
+
+                    @keyframes bounceIn {
+                        0% { transform: scale(0.3); opacity: 0; }
+                        50% { transform: scale(1.05); }
+                        70% { transform: scale(0.9); }
+                        100% { transform: scale(1); opacity: 1; }
+                    }
+
+                    @keyframes sparkle {
+                        0%, 100% { opacity: 0; transform: scale(0.5); }
+                        50% { opacity: 1; transform: scale(1.2); }
+                    }
+
+                    @keyframes float {
+                        0%, 100% { transform: translateY(0px); }
+                        50% { transform: translateY(-8px); }
+                    }
+
+                    .complex-achievement-badge:hover {
+                        transform: scale(1.1);
+                        transition: transform 0.3s ease;
+                    }
+                </style>
+            `;
+
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Auto-close after 5 seconds
+            setTimeout(() => {
+                closeCompletionModal();
+            }, 5000);
+        }
+
+        // Close completion modal and redirect
+        function closeCompletionModal() {
+            const modal = document.getElementById('completion-modal');
+            if (modal) {
+                modal.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => {
+                    modal.remove();
+                    window.location.replace('/student/dashboard');
+                }, 300);
+            }
+        }
+
+        // Add fadeOut animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
         } else {
             console.error('Quiz form not found');
         }
