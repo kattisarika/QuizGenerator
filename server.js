@@ -2878,9 +2878,6 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
 
     console.log('Creating quiz:', { title, description });
 
-    // Initialize variables for file processing
-    let documentImages = []; // Declare at function scope
-
     // Process question paper
     if (req.files.questionPaper && req.files.questionPaper[0]) {
       const questionFile = req.files.questionPaper[0];
