@@ -21,7 +21,7 @@ const Quiz = mongoose.model('Quiz', quizSchema);
 
 async function fixQuizImages() {
   try {
-    const quizId = '68a6a419a99d6e0e5a8d9863'; // Updated to current quiz ID
+    const quizId = '68a6a685e55d3088ef4abc14'; // Updated to current quiz ID
     
     console.log(`🔍 Looking for quiz: ${quizId}`);
     
@@ -75,13 +75,25 @@ async function fixQuizImages() {
       sampleImages.forEach((img, index) => {
         console.log(`  ${index + 1}. ${img.title}: ${img.url}`);
       });
-      
-      // Verify the update
+
+      // Verify the update with detailed logging
       const updatedQuiz = await Quiz.findById(quizId, { title: 1, pdfImages: 1 });
-      console.log(`🔍 Verification: Quiz now has ${updatedQuiz.pdfImages.length} images`);
-      
+      console.log(`🔍 Verification: Quiz now has ${updatedQuiz.pdfImages ? updatedQuiz.pdfImages.length : 0} images`);
+
+      if (updatedQuiz.pdfImages && updatedQuiz.pdfImages.length > 0) {
+        console.log('🔍 First image details:');
+        console.log('  - URL:', updatedQuiz.pdfImages[0].url);
+        console.log('  - Title:', updatedQuiz.pdfImages[0].title);
+        console.log('  - Type:', updatedQuiz.pdfImages[0].type);
+        console.log('  - Source:', updatedQuiz.pdfImages[0].source);
+        console.log('  - Full object:', JSON.stringify(updatedQuiz.pdfImages[0], null, 2));
+      } else {
+        console.log('❌ No images found after update!');
+      }
+
     } else {
-      console.log('❌ Failed to update quiz');
+      console.log('❌ Failed to update quiz - no documents modified');
+      console.log('This might mean the quiz ID is incorrect or the quiz doesn\'t exist');
     }
     
   } catch (error) {

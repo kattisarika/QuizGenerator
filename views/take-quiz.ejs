@@ -561,20 +561,19 @@
                                         url: '<%= pdfImage.url || "UNDEFINED" %>',
                                         title: '<%= pdfImage.title || "UNDEFINED" %>',
                                         type: '<%= pdfImage.type || "UNDEFINED" %>',
-                                        source: '<%= pdfImage.source || "UNDEFINED" %>',
-                                        fullObject: <%- JSON.stringify(pdfImage) %>
+                                        source: '<%= pdfImage.source || "UNDEFINED" %>'
                                     });
                                 </script>
 
                                 <div class="pdf-image-item">
                                     <div class="pdf-image-header">
                                         <span class="pdf-image-label">
-                                            <% if (pdfImage.source === 'docx') { %>
-                                                <i class="fas fa-file-word"></i> <%= pdfImage.title %>
-                                            <% } else if (pdfImage.source === 'pdf') { %>
-                                                <i class="fas fa-file-pdf"></i> <%= pdfImage.title %>
+                                            <% if ((pdfImage.source || 'pdf') === 'docx') { %>
+                                                <i class="fas fa-file-word"></i> <%= pdfImage.title || 'Document Image' %>
+                                            <% } else if ((pdfImage.source || 'pdf') === 'pdf') { %>
+                                                <i class="fas fa-file-pdf"></i> <%= pdfImage.title || 'Document Image' %>
                                             <% } else { %>
-                                                <i class="fas fa-image"></i> <%= pdfImage.title %>
+                                                <i class="fas fa-image"></i> <%= pdfImage.title || 'Document Image' %>
                                             <% } %>
                                         </span>
                                         <% if (pdfImage.description) { %>
@@ -582,7 +581,7 @@
                                         <% } %>
                                     </div>
 
-                                    <% if (pdfImage.type === 'pdf') { %>
+                                    <% if ((pdfImage.type || 'image') === 'pdf') { %>
                                         <!-- PDF Document Display -->
                                         <div class="pdf-document-display" style="border: 2px dashed #dee2e6; padding: 20px; text-align: center; background: #f8f9fa; border-radius: 8px;">
                                             <i class="fas fa-file-pdf" style="font-size: 48px; color: #dc3545; margin-bottom: 15px;"></i>
@@ -617,7 +616,7 @@
 
                                     <div class="image-info">
                                         <small class="text-muted">
-                                            <%= pdfImage.source.toUpperCase() %> • <%= pdfImage.title %>
+                                            <%= (pdfImage.source || 'PDF').toUpperCase() %> • <%= pdfImage.title || 'Document Image' %>
                                         </small>
                                     </div>
                                 </div>
