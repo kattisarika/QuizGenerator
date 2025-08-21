@@ -500,6 +500,7 @@
                                 <h5 class="card-title mb-2" style="color: #2c3e50;"><%= teacher.displayName %></h5>
                             </div>
 
+                            <% if (teacher.organizationId && teacher.organizationId.name) { %>
                             <div class="organization-info mb-3">
                                 <h6 class="mb-2" style="color: #667eea;">
                                     <i class="fas fa-school me-1"></i>
@@ -510,7 +511,7 @@
                                     <div class="input-group input-group-sm">
                                         <input type="text"
                                                class="form-control text-center fw-bold"
-                                               value="<%= teacher.organizationId.subdomain %>"
+                                               value="<%= teacher.organizationId.subdomain || 'N/A' %>"
                                                readonly
                                                id="orgCode_<%= teacher._id %>"
                                                style="font-family: monospace; background: #f8f9fa; border: 2px solid #e9ecef;">
@@ -523,8 +524,18 @@
                                     </div>
                                 </div>
                             </div>
+                            <% } else { %>
+                            <div class="organization-info mb-3">
+                                <h6 class="mb-2" style="color: #6c757d;">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Organization not configured
+                                </h6>
+                                <p class="small text-muted">This teacher hasn't set up their organization yet.</p>
+                            </div>
+                            <% } %>
 
                             <div class="action-buttons">
+                                <% if (teacher.organizationId && teacher.organizationId.subdomain) { %>
                                 <a href="/signup?code=<%= teacher.organizationId.subdomain %>"
                                    class="btn btn-primary btn-sm rounded-pill px-3 mb-2">
                                     <i class="fas fa-user-plus me-1"></i>
@@ -534,6 +545,16 @@
                                     <i class="fas fa-info-circle me-1"></i>
                                     Click to join this teacher's organization
                                 </div>
+                                <% } else { %>
+                                <button class="btn btn-secondary btn-sm rounded-pill px-3 mb-2" disabled>
+                                    <i class="fas fa-times me-1"></i>
+                                    Not Available
+                                </button>
+                                <div class="text-muted small mt-2">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Organization setup required
+                                </div>
+                                <% } %>
                             </div>
                         </div>
                     </div>
