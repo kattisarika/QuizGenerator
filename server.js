@@ -2085,13 +2085,26 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
     function sanitizeContent(content) {
       if (!content) return '';
 
-      // Convert to string and limit length
+      // Convert to string
       let sanitized = String(content);
 
+      // Special handling for image data URLs - don't truncate them
+      if (sanitized.startsWith('data:image/')) {
+        // Validate data URL format
+        if (sanitized.includes(',') && sanitized.match(/^data:image\/(jpeg|jpg|png|gif|webp);base64,/)) {
+          console.log('Processing image data URL, length:', sanitized.length);
+          return sanitized; // Return full data URL without truncation
+        } else {
+          console.warn('Invalid image data URL detected, removing');
+          return ''; // Remove invalid data URLs
+        }
+      }
+
+      // For non-image content, apply normal sanitization
       // Remove excessive whitespace and newlines
       sanitized = sanitized.replace(/\s+/g, ' ').trim();
 
-      // Limit content length to prevent database issues
+      // Limit content length to prevent database issues (only for text content)
       if (sanitized.length > 10000) {
         sanitized = sanitized.substring(0, 10000) + '...';
       }

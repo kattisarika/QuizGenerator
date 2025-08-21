@@ -570,21 +570,34 @@
 
                                         case 'image':
                                             if (element.content && element.content.startsWith('data:image')) {
-                                                // Validate data URL format
-                                                var isValidDataURL = element.content.includes(',') && element.content.length > 50;
+                                                // Enhanced data URL validation
+                                                var isValidDataURL = element.content.includes(',') &&
+                                                                   element.content.length > 100 &&
+                                                                   element.content.match(/^data:image\/(jpeg|jpg|png|gif|webp);base64,/);
+
                                                 if (!isValidDataURL) {
-                                                    console.warn('Invalid data URL detected for element:', element.id);
+                                                    console.warn('Invalid data URL detected for element:', element.id, 'Length:', element.content.length);
                                                     return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; color: #dc2626;">' +
                                                         '<div style="text-align: center;"><i class="fas fa-exclamation-triangle fa-2x"></i><br><small>Invalid image data</small></div>' +
                                                         '</div>';
                                                 }
 
+                                                // Check for truncated data URLs (common issue)
+                                                if (element.content.endsWith('...')) {
+                                                    console.warn('Truncated data URL detected for element:', element.id);
+                                                    return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #fef3c7; border: 2px dashed #f59e0b; color: #92400e;">' +
+                                                        '<div style="text-align: center;"><i class="fas fa-exclamation-triangle fa-2x"></i><br><small>Image data was truncated<br>Please re-upload the image</small></div>' +
+                                                        '</div>';
+                                                }
+
                                                 var objectFit = element.objectFit || 'contain';
                                                 var objectPosition = element.objectPosition || 'center';
-                                                // Escape the data URL to prevent HTML injection
-                                                var escapedContent = element.content.replace(/"/g, '&quot;');
+
+                                                // Create safe data URL
+                                                var safeDataURL = element.content;
+
                                                 return '<div style="width: 100%; height: 100%; overflow: hidden; border-radius: 4px;">' +
-                                                    '<img src="' + escapedContent + '" style="width: 100%; height: 100%; object-fit: ' + objectFit + '; object-position: ' + objectPosition + '; border-radius: 4px; display: block;" alt="Quiz Image" onerror="this.parentElement.innerHTML=\'<div style=\\\'display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; color: #dc2626;\\\'><div style=\\\'text-align: center;\\\'><i class=\\\'fas fa-exclamation-triangle fa-2x\\\'></i><br><small>Image load error</small></div></div>\';">' +
+                                                    '<img src="' + safeDataURL + '" style="width: 100%; height: 100%; object-fit: ' + objectFit + '; object-position: ' + objectPosition + '; border-radius: 4px; display: block;" alt="Quiz Image" onerror="this.parentElement.innerHTML=\'<div style=\\\'display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; color: #dc2626;\\\'><div style=\\\'text-align: center;\\\'><i class=\\\'fas fa-exclamation-triangle fa-2x\\\'></i><br><small>Image failed to load</small></div></div>\';">' +
                                                     '</div>';
                                             } else {
                                                 return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8fafc; border: 2px dashed #cbd5e1; color: #64748b;">' +
@@ -1067,23 +1080,49 @@
                 }
             }, 500);
             
-            // Add event listeners for navigation buttons
-            document.getElementById('next-btn').addEventListener('click', nextQuestion);
-            document.getElementById('prev-btn').addEventListener('click', previousQuestion);
-            
+            // Add event listeners for navigation buttons with null checks
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', nextQuestion);
+            } else {
+                console.warn('Next button not found');
+            }
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', previousQuestion);
+            } else {
+                console.warn('Previous button not found');
+            }
+
             // Add event listeners for question indicators
-            document.querySelectorAll('.question-indicator').forEach((indicator, index) => {
-                indicator.addEventListener('click', () => goToQuestion(index));
-            });
-            
-            // Add event listeners for option items (click anywhere on the option area)
-            document.querySelectorAll('.option-item').forEach((optionItem) => {
-                optionItem.addEventListener('click', function() {
-                    const questionIndex = this.dataset.question;
-                    const optionIndex = this.dataset.option;
-                    selectOption(questionIndex, optionIndex);
+            const indicators = document.querySelectorAll('.question-indicator');
+            if (indicators.length > 0) {
+                indicators.forEach((indicator, index) => {
+                    if (indicator) {
+                        indicator.addEventListener('click', () => goToQuestion(index));
+                    }
                 });
-            });
+            } else {
+                console.warn('No question indicators found');
+            }
+
+            // Add event listeners for option items (click anywhere on the option area)
+            const optionItems = document.querySelectorAll('.option-item');
+            if (optionItems.length > 0) {
+                optionItems.forEach((optionItem) => {
+                    if (optionItem) {
+                        optionItem.addEventListener('click', function() {
+                            const questionIndex = this.dataset.question;
+                            const optionIndex = this.dataset.option;
+                            selectOption(questionIndex, optionIndex);
+                        });
+                    }
+                });
+            } else {
+                console.warn('No option items found');
+            }
             
             // Check if this is a single-question quiz and update navigation accordingly
             if (totalQuestions === 1) {
@@ -1394,8 +1433,10 @@
         }
 
         // Handle form submission
-        document.getElementById('quiz-form').addEventListener('submit', function(e) {
-            e.preventDefault();
+        const quizForm = document.getElementById('quiz-form');
+        if (quizForm) {
+            quizForm.addEventListener('submit', function(e) {
+                e.preventDefault();
 
             // Check if this is a complex quiz
             if (typeof complexQuizData !== 'undefined' && complexQuizData) {
@@ -1503,6 +1544,9 @@
                 return 'You have unsaved changes. Are you sure you want to leave?';
             }
         });
+        } else {
+            console.error('Quiz form not found');
+        }
 
         // Simple image loading functionality
         function loadQuestionImages() {
