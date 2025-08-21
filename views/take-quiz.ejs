@@ -551,7 +551,52 @@
                 transform: translateY(0);
             }
         }
+
+        /* Ensure questions are hidden by default for one-question-per-page */
+        .question-container {
+            display: none !important;
+        }
+
+        .question-container.active {
+            display: block !important;
+        }
+
+        /* Override any inline styles that might show questions */
+        .question-container[style*="display: block"] {
+            display: none !important;
+        }
+
+        .question-container.active[style*="display: none"] {
+            display: block !important;
+        }
     </style>
+
+    <!-- Immediate script to hide questions for one-question-per-page -->
+    <script>
+        // This script runs immediately to hide all questions except the first
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 Immediate question hiding script running...');
+
+            // Wait a tiny bit for DOM to be fully ready
+            setTimeout(function() {
+                const questionContainers = document.querySelectorAll('.question-container');
+                console.log('Found question containers:', questionContainers.length);
+
+                questionContainers.forEach((container, index) => {
+                    container.classList.remove('active');
+                    container.style.display = 'none';
+                    console.log(`Immediately hid question ${index}`);
+                });
+
+                // Show only the first question
+                if (questionContainers.length > 0) {
+                    questionContainers[0].classList.add('active');
+                    questionContainers[0].style.display = 'block';
+                    console.log('Immediately showed first question');
+                }
+            }, 10);
+        });
+    </script>
 </head>
 <body>
     <nav class="navbar">
@@ -931,7 +976,7 @@
                         </div>
 
                         <% quiz.questions.forEach((question, index) => { %>
-                            <div class="question-container" id="question-<%= index %>" style="display: <%= index === 0 ? 'block' : 'none' %>;">
+                            <div class="question-container" id="question-<%= index %>" data-question-index="<%= index %>">
                                 <div class="question-header">
                                     <h3>Question <%= index + 1 %> of <%= quiz.questions.length %></h3>
                                     <span class="question-points"><%= question.points %> point<%= question.points !== 1 ? 's' : '' %></span>
@@ -1269,8 +1314,10 @@
                 console.warn('No option items found');
             }
             
-            // Initialize one-question-per-page navigation
-            initializeOneQuestionPerPage();
+            // Initialize one-question-per-page navigation with delay
+            setTimeout(() => {
+                initializeOneQuestionPerPage();
+            }, 100);
         });
 
         // Initialize visual feedback for already answered questions
@@ -1446,11 +1493,24 @@
         }
 
         function showQuestion(index) {
+            console.log(`🔄 Showing question ${index}`);
+
             // Hide all questions
-            document.querySelectorAll('.question-container').forEach(q => q.style.display = 'none');
-            
+            document.querySelectorAll('.question-container').forEach((q, i) => {
+                q.classList.remove('active');
+                q.style.display = 'none';
+                console.log(`Question ${i} hidden`);
+            });
+
             // Show the selected question
-            document.getElementById(`question-${index}`).style.display = 'block';
+            const targetQuestion = document.getElementById(`question-${index}`);
+            if (targetQuestion) {
+                targetQuestion.classList.add('active');
+                targetQuestion.style.display = 'block';
+                console.log(`Question ${index} shown`);
+            } else {
+                console.error(`Question ${index} not found!`);
+            }
             
             // Update active indicator
             document.querySelectorAll('.question-indicator').forEach(ind => ind.classList.remove('active'));
@@ -1681,8 +1741,18 @@
         // Initialize one-question-per-page system
         function initializeOneQuestionPerPage() {
             console.log('🚀 Initializing one-question-per-page navigation');
+            console.log('Total questions:', totalQuestions);
+
+            // Force hide all questions first
+            console.log('Hiding all questions...');
+            document.querySelectorAll('.question-container').forEach((q, index) => {
+                q.classList.remove('active');
+                q.style.display = 'none';
+                console.log(`Question ${index} hidden`);
+            });
 
             // Show only the first question
+            console.log('Showing first question...');
             showQuestion(0);
 
             // Set up initial navigation state
