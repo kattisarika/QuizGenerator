@@ -823,37 +823,50 @@
 
             // Add drag start event to tool items
             toolItems.forEach((item, index) => {
+                if (!item) {
+                    console.warn(`Null tool item found at index ${index}, skipping`);
+                    return;
+                }
+
                 console.log(`Setting up tool item ${index}:`, item.dataset.type);
 
                 // Ensure the item is draggable
                 item.draggable = true;
 
-                // Add event listeners
-                item.addEventListener('dragstart', handleDragStart);
+                // Add event listeners with error handling
+                try {
+                    item.addEventListener('dragstart', handleDragStart);
 
-                // Add visual feedback
-                item.addEventListener('dragend', function() {
-                    console.log('Drag ended for:', item.dataset.type);
-                });
+                    // Add visual feedback
+                    item.addEventListener('dragend', function() {
+                        console.log('Drag ended for:', item.dataset.type);
+                    });
 
-                // Add click handler for mobile/touch devices
-                item.addEventListener('click', function(e) {
-                    if (e.detail === 2) { // Double click
-                        console.log('Double clicked tool:', item.dataset.type);
-                        // Create element in center of canvas for double-click
-                        createElement(item.dataset.type, 400, 300);
-                    }
-                });
+                    // Add click handler for mobile/touch devices
+                    item.addEventListener('click', function(e) {
+                        if (e.detail === 2) { // Double click
+                            console.log('Double clicked tool:', item.dataset.type);
+                            // Create element in center of canvas for double-click
+                            createElement(item.dataset.type, 400, 300);
+                        }
+                    });
+                } catch (error) {
+                    console.error(`Error adding event listeners to tool item ${index}:`, error);
+                }
             });
 
             if (canvas) {
-                // Add drop events to canvas
-                canvas.addEventListener('dragover', handleDragOver);
-                canvas.addEventListener('drop', handleDrop);
-                canvas.addEventListener('dragenter', handleDragEnter);
-                canvas.addEventListener('dragleave', handleDragLeave);
+                try {
+                    // Add drop events to canvas
+                    canvas.addEventListener('dragover', handleDragOver);
+                    canvas.addEventListener('drop', handleDrop);
+                    canvas.addEventListener('dragenter', handleDragEnter);
+                    canvas.addEventListener('dragleave', handleDragLeave);
 
-                console.log('Canvas drop events attached');
+                    console.log('Canvas drop events attached');
+                } catch (error) {
+                    console.error('Error adding canvas event listeners:', error);
+                }
             } else {
                 console.error('Canvas element not found!');
             }
@@ -926,35 +939,48 @@
         function setupCanvasEvents() {
             const canvas = document.getElementById('canvas');
 
-            // Deselect elements when clicking on canvas
-            canvas.addEventListener('click', function(e) {
-                console.log('Canvas clicked:', e.target);
-                if (e.target === canvas || e.target.classList.contains('canvas-placeholder')) {
-                    deselectAllElements();
-                }
-            });
+            if (!canvas) {
+                console.error('Canvas element not found in setupCanvasEvents');
+                return;
+            }
+
+            try {
+                // Deselect elements when clicking on canvas
+                canvas.addEventListener('click', function(e) {
+                    console.log('Canvas clicked:', e.target);
+                    if (e.target === canvas || e.target.classList.contains('canvas-placeholder')) {
+                        deselectAllElements();
+                    }
+                });
+            } catch (error) {
+                console.error('Error adding canvas click listener:', error);
+            }
 
             // Make placeholder clickable to show instructions
             const placeholder = document.querySelector('.canvas-placeholder');
             if (placeholder) {
-                placeholder.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    showCanvasInstructions();
-                });
+                try {
+                    placeholder.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        showCanvasInstructions();
+                    });
 
-                // Make placeholder more interactive
-                placeholder.style.cursor = 'pointer';
-                placeholder.style.transition = 'all 0.3s ease';
+                    // Make placeholder more interactive
+                    placeholder.style.cursor = 'pointer';
+                    placeholder.style.transition = 'all 0.3s ease';
 
-                placeholder.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translate(-50%, -50%) scale(1.05)';
-                    this.style.opacity = '0.8';
-                });
+                    placeholder.addEventListener('mouseenter', function() {
+                        this.style.transform = 'translate(-50%, -50%) scale(1.05)';
+                        this.style.opacity = '0.8';
+                    });
 
-                placeholder.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translate(-50%, -50%) scale(1)';
-                    this.style.opacity = '1';
-                });
+                    placeholder.addEventListener('mouseleave', function() {
+                        this.style.transform = 'translate(-50%, -50%) scale(1)';
+                        this.style.opacity = '1';
+                    });
+                } catch (error) {
+                    console.error('Error adding placeholder event listeners:', error);
+                }
             }
         }
 
@@ -1162,12 +1188,18 @@
             `;
             elementDiv.appendChild(controls);
 
-            // Add click event
-            elementDiv.addEventListener('click', (e) => {
-                e.stopPropagation();
-                console.log('Element clicked:', element.id);
-                selectElement(element.id);
-            });
+            // Add click event with null check
+            if (elementDiv) {
+                try {
+                    elementDiv.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        console.log('Element clicked:', element.id);
+                        selectElement(element.id);
+                    });
+                } catch (error) {
+                    console.error('Error adding click listener to element:', element.id, error);
+                }
+            }
 
             // Make draggable within canvas
             makeDraggable(elementDiv);
@@ -1192,10 +1224,13 @@
                     return `<div contenteditable="true" style="outline: none; width: 100%; height: 100%;">${element.content || 'Click to edit text...'}</div>`;
                 case 'image':
                     if (element.content && element.content.startsWith('data:image')) {
-                        // Validate data URL format
-                        const isValidDataURL = element.content.includes(',') && element.content.length > 50;
+                        // Enhanced data URL validation
+                        const isValidDataURL = element.content.includes(',') &&
+                                             element.content.length > 100 &&
+                                             element.content.match(/^data:image\/(jpeg|jpg|png|gif|webp);base64,/);
+
                         if (!isValidDataURL) {
-                            console.warn('Invalid data URL detected for element:', element.id);
+                            console.warn('Invalid data URL detected for element:', element.id, 'Length:', element.content.length);
                             return `<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; cursor: pointer; overflow: hidden;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
                                 <div style="text-align: center; color: #dc2626;">
                                     <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
@@ -1206,10 +1241,25 @@
 
                         const objectFit = element.objectFit || 'contain';
                         const objectPosition = element.objectPosition || 'center';
-                        // Escape the data URL to prevent HTML injection
-                        const escapedContent = element.content.replace(/"/g, '&quot;');
+
+                        // Create a safe data URL by ensuring it's properly formatted
+                        let safeDataURL = element.content;
+                        try {
+                            // Test if the data URL can be used by creating a temporary image
+                            const testImg = new Image();
+                            testImg.src = safeDataURL;
+                        } catch (error) {
+                            console.warn('Data URL failed validation test:', error);
+                            return `<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; cursor: pointer; overflow: hidden;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
+                                <div style="text-align: center; color: #dc2626;">
+                                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                                    <small>Corrupted image data<br>Click to re-upload</small>
+                                </div>
+                            </div>`;
+                        }
+
                         return `<div style="position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 4px;">
-                            <img src="${escapedContent}" style="width: 100%; height: 100%; object-fit: ${objectFit}; object-position: ${objectPosition}; border-radius: 4px; display: block;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')" onerror="this.parentElement.innerHTML='<div style=\\'display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; cursor: pointer;\\' onclick=\\'event.stopPropagation(); triggerImageUpload(\\'${element.id}\\');\\'><div style=\\'text-align: center; color: #dc2626;\\'><i class=\\'fas fa-exclamation-triangle fa-2x mb-2\\'></i><br><small>Image load error<br>Click to re-upload</small></div></div>';">
+                            <img src="${safeDataURL}" style="width: 100%; height: 100%; object-fit: ${objectFit}; object-position: ${objectPosition}; border-radius: 4px; display: block;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')" onerror="this.parentElement.innerHTML='<div style=\\'display: flex; align-items: center; justify-content: center; height: 100%; background: #fee2e2; border: 2px dashed #ef4444; cursor: pointer;\\' onclick=\\'event.stopPropagation(); triggerImageUpload(\\'${element.id}\\');\\'><div style=\\'text-align: center; color: #dc2626;\\'><i class=\\'fas fa-exclamation-triangle fa-2x mb-2\\'></i><br><small>Image load error<br>Click to re-upload</small></div></div>';">
                             <div style="position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
                                 <i class="fas fa-edit"></i> Change
                             </div>
@@ -1500,10 +1550,16 @@
 
         // Make element draggable within canvas
         function makeDraggable(element) {
+            if (!element) {
+                console.warn('Cannot make null element draggable');
+                return;
+            }
+
             let isDragging = false;
             let startX, startY, initialX, initialY;
 
-            element.addEventListener('mousedown', function(e) {
+            try {
+                element.addEventListener('mousedown', function(e) {
                 // Don't drag if clicking on contenteditable elements, buttons, or inputs
                 if (e.target.contentEditable === 'true' ||
                     e.target.tagName === 'BUTTON' ||
@@ -1547,6 +1603,9 @@
                     }
                 }
             });
+            } catch (error) {
+                console.error('Error making element draggable:', error);
+            }
         }
 
         // Select element
