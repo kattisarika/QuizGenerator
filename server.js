@@ -4666,6 +4666,20 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
     // Convert to plain object to see what will be sent to frontend
     const quizPlain = quiz.toObject ? quiz.toObject() : quiz;
     console.log('Quiz plain object keys:', Object.keys(quizPlain));
+
+    // Debug PDF Images specifically
+    console.log('=== PDF IMAGES DEBUG ===');
+    console.log('Quiz has pdfImages property:', 'pdfImages' in quiz);
+    console.log('Quiz pdfImages type:', typeof quiz.pdfImages);
+    console.log('Quiz pdfImages is array:', Array.isArray(quiz.pdfImages));
+    console.log('Quiz pdfImages length:', quiz.pdfImages ? quiz.pdfImages.length : 'null/undefined');
+    console.log('Quiz pdfImages raw:', quiz.pdfImages);
+    if (quiz.pdfImages && quiz.pdfImages.length > 0) {
+      console.log('First PDF image:', JSON.stringify(quiz.pdfImages[0], null, 2));
+      console.log('First PDF image URL:', quiz.pdfImages[0].url);
+      console.log('First PDF image title:', quiz.pdfImages[0].title);
+    }
+    console.log('========================');
     
     quiz.questions.forEach((q, index) => {
       console.log(`Question ${index + 1}:`, {

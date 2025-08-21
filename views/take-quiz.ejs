@@ -1598,11 +1598,15 @@
                 console.log('  - Quiz ID:', '<%= quiz._id %>');
                 console.log('  - Quiz title:', '<%= quiz.title %>');
                 console.log('  - Quiz has pdfImages:', <%= quiz.pdfImages ? 'true' : 'false' %>);
+                console.log('  - Quiz pdfImages type:', '<%= typeof quiz.pdfImages %>');
+                console.log('  - Quiz pdfImages is array:', <%= Array.isArray(quiz.pdfImages) %>);
                 console.log('  - Quiz pdfImages length:', <%= quiz.pdfImages ? quiz.pdfImages.length : 0 %>);
+                console.log('  - Quiz pdfImages raw:', <%- JSON.stringify(quiz.pdfImages) %>);
                 <% if (quiz.pdfImages && quiz.pdfImages.length > 0) { %>
                     console.log('  - First PDF image URL:', '<%= quiz.pdfImages[0].url %>');
                     console.log('  - First PDF image title:', '<%= quiz.pdfImages[0].title %>');
                     console.log('  - First PDF image source:', '<%= quiz.pdfImages[0].source %>');
+                    console.log('  - First PDF image type:', '<%= quiz.pdfImages[0].type %>');
                 <% } %>
             <% } %>
             console.log('  - Quiz ID:', '<%= quiz._id %>');
