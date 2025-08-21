@@ -150,23 +150,26 @@ const quizSchema = new mongoose.Schema({
     }
   }],
   complexQuizData: {
-    elements: [{
-      id: String,
-      type: String,
-      x: Number,
-      y: Number,
-      width: Number,
-      height: Number,
-      content: String,
-      style: {
-        type: Map,
-        of: String
+    type: {
+      elements: [{
+        id: String,
+        type: String,
+        x: Number,
+        y: Number,
+        width: Number,
+        height: Number,
+        content: String,
+        style: {
+          type: Object,
+          default: {}
+        }
+      }],
+      canvasSize: {
+        width: { type: Number, default: 1000 },
+        height: { type: Number, default: 800 }
       }
-    }],
-    canvasSize: {
-      width: Number,
-      height: Number
-    }
+    },
+    required: false
   },
   createdAt: {
     type: Date,

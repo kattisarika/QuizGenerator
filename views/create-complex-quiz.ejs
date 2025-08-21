@@ -1667,9 +1667,27 @@
             // Sync current content from DOM before saving
             syncElementsContent();
 
+            // Clean and validate elements data
+            const cleanElements = quizElements.map(element => ({
+                id: element.id || '',
+                type: element.type || '',
+                x: Number(element.x) || 0,
+                y: Number(element.y) || 0,
+                width: Number(element.width) || 200,
+                height: Number(element.height) || 100,
+                content: element.content || '',
+                style: element.style || {}
+            }));
+
+            console.log('Sending quiz data:', {
+                title: quizSettings.title,
+                elementsCount: cleanElements.length,
+                elements: cleanElements
+            });
+
             const quizData = {
                 ...quizSettings,
-                elements: quizElements,
+                elements: cleanElements,
                 isComplexQuiz: true
             };
 

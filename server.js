@@ -2442,6 +2442,23 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
 
     const finalTitle = `${title} - ${dateTimeString}`;
 
+    // Process elements to ensure proper data types
+    const processedElements = elements.map(element => {
+      console.log('Processing element:', element.id, element.type);
+      return {
+        id: element.id || '',
+        type: element.type || '',
+        x: Number(element.x) || 0,
+        y: Number(element.y) || 0,
+        width: Number(element.width) || 200,
+        height: Number(element.height) || 100,
+        content: element.content || '',
+        style: element.style || {}
+      };
+    });
+
+    console.log('Processed elements count:', processedElements.length);
+
     // Create quiz object
     const quiz = new Quiz({
       title: finalTitle,
@@ -2456,12 +2473,21 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
       quizType: quizType || 'regular',
       isApproved: true,
       complexQuizData: {
-        elements: elements,
+        elements: processedElements,
         canvasSize: { width: 1000, height: 800 }
       }
     });
 
+    console.log('Attempting to save quiz with title:', finalTitle);
+    console.log('Quiz data structure:', JSON.stringify({
+      title: finalTitle,
+      elementsCount: processedElements.length,
+      hasComplexQuizData: !!quiz.complexQuizData
+    }, null, 2));
+
     await quiz.save();
+
+    console.log('Quiz saved successfully with ID:', quiz._id);
 
     res.json({
       success: true,
@@ -2471,9 +2497,15 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
 
   } catch (error) {
     console.error('Error creating complex quiz:', error);
+    console.error('Error details:', error.message);
+    if (error.errors) {
+      console.error('Validation errors:', JSON.stringify(error.errors, null, 2));
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Failed to create complex quiz: ' + error.message
+      message: 'Failed to create complex quiz: ' + error.message,
+      details: error.errors ? Object.keys(error.errors) : []
     });
   }
 });
