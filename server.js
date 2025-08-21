@@ -8,35 +8,43 @@ const path = require('path');
 const fs = require('fs-extra');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
-const AWS = require('aws-sdk');
 require('dotenv').config();
 
-// Configure AWS S3
-const AWS_CONFIGURED = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
+// AWS S3 Configuration
+let AWS, s3, AWS_CONFIGURED;
 
-if (AWS_CONFIGURED) {
-  AWS.config.update({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION || 'us-east-1'
-  });
-  console.log('AWS S3 configured successfully');
-} else {
-  console.log('AWS S3 not configured - complex quiz data will be stored in MongoDB');
+try {
+  AWS = require('aws-sdk');
+  AWS_CONFIGURED = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
+
+  if (AWS_CONFIGURED) {
+    AWS.config.update({
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      region: process.env.AWS_REGION || 'us-east-1'
+    });
+    s3 = new AWS.S3();
+    console.log('AWS S3 configured successfully');
+  } else {
+    s3 = null;
+    console.log('AWS S3 credentials not found - using MongoDB fallback');
+  }
+} catch (error) {
+  console.log('AWS SDK not available - using MongoDB fallback:', error.message);
+  AWS_CONFIGURED = false;
+  s3 = null;
 }
 
-const s3 = AWS_CONFIGURED ? new AWS.S3() : null;
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || 'skillons-quiz-data';
 
 // Helper function to upload complex quiz data to S3 or store locally
 async function uploadComplexQuizToS3(quizData, quizId) {
   if (!AWS_CONFIGURED || !s3) {
-    // Fallback: store in local file system or return data for MongoDB storage
-    console.log('S3 not configured, using fallback storage method');
+    console.log('S3 not configured, using MongoDB fallback storage');
     return {
       s3Key: null,
       s3Url: null,
-      localData: quizData // Return data for MongoDB storage
+      localData: quizData
     };
   }
 
@@ -62,11 +70,11 @@ async function uploadComplexQuizToS3(quizData, quizId) {
     };
   } catch (error) {
     console.error('Error uploading to S3:', error);
-    console.log('Falling back to local storage');
+    console.log('Falling back to MongoDB storage');
     return {
       s3Key: null,
       s3Url: null,
-      localData: quizData // Fallback to MongoDB storage
+      localData: quizData
     };
   }
 }
@@ -2642,7 +2650,7 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
     await quiz.save();
     console.log('Quiz saved to MongoDB with ID:', quiz._id);
 
-    // Upload complex quiz data to S3 or store locally
+    // Store complex quiz data in S3 or MongoDB fallback
     console.log('Storing complex quiz data...');
     const storageResult = await uploadComplexQuizToS3(complexQuizData, quiz._id);
 
