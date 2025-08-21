@@ -332,21 +332,50 @@ app.get('/api/image/:s3Key', requireAuth, async (req, res) => {
 
     // Generate pre-signed URL
     const presignedUrl = await generatePresignedUrl(s3Key, parseInt(expiresIn));
-    
+
     if (!presignedUrl) {
       return res.status(404).json({ error: 'Image not found' });
     }
 
     console.log(`✅ Generated pre-signed URL for image: ${s3Key}`);
-    res.json({ 
+    res.json({
       presignedUrl,
       expiresIn: parseInt(expiresIn),
-      s3Key 
+      s3Key
     });
 
   } catch (error) {
     console.error('❌ Error generating pre-signed URL:', error);
     res.status(500).json({ error: 'Failed to generate image URL' });
+  }
+});
+
+// API endpoint to get a single pre-signed URL for an audio file
+app.get('/api/audio/:s3Key(*)', requireAuth, async (req, res) => {
+  try {
+    const s3Key = req.params.s3Key;
+    const { expiresIn = 3600 } = req.query; // Default 1 hour
+
+    console.log(`🎵 Generating pre-signed URL for audio: ${s3Key}`);
+
+    // Generate pre-signed URL
+    const presignedUrl = await generatePresignedUrl(s3Key, parseInt(expiresIn));
+
+    if (!presignedUrl) {
+      console.error(`❌ Audio file not found: ${s3Key}`);
+      return res.status(404).json({ error: 'Audio file not found' });
+    }
+
+    console.log(`✅ Generated pre-signed URL for audio: ${s3Key}`);
+    res.json({
+      presignedUrl,
+      expiresIn: parseInt(expiresIn),
+      s3Key
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating pre-signed URL for audio:', error);
+    res.status(500).json({ error: 'Failed to generate audio URL' });
   }
 });
 
@@ -5146,8 +5175,25 @@ app.get('/api/teacher-podcasts', requireAuth, requireRole(['teacher']), requireA
     const Podcast = require('./models/Podcast');
     const podcasts = await Podcast.find({ createdBy: req.user._id })
       .sort({ createdAt: -1 });
-    
-    res.json({ success: true, podcasts });
+
+    // Generate pre-signed URLs for audio files
+    const podcastsWithUrls = await Promise.all(
+      podcasts.map(async (podcast) => {
+        const podcastObj = podcast.toObject();
+        if (podcastObj.audioUrl) {
+          try {
+            const presignedUrl = await generatePresignedUrl(podcastObj.audioUrl, 3600);
+            podcastObj.audioUrl = presignedUrl || podcastObj.audioUrl;
+          } catch (error) {
+            console.error(`Error generating pre-signed URL for podcast ${podcast._id}:`, error);
+            // Keep original URL as fallback
+          }
+        }
+        return podcastObj;
+      })
+    );
+
+    res.json({ success: true, podcasts: podcastsWithUrls });
   } catch (error) {
     console.error('Error fetching teacher podcasts:', error);
     res.status(500).json({ success: false, message: 'Error fetching podcasts' });
@@ -5159,24 +5205,41 @@ app.get('/api/student-podcasts', requireAuth, requireRole(['student']), async (r
   try {
     const Podcast = require('./models/Podcast');
     const { grade, subject } = req.query;
-    
+
     let query = {
       isPublished: true,
       organizationId: req.user.organizationId
     };
-    
+
     if (grade && grade !== 'all') {
       query.gradeLevel = grade;
     }
-    
+
     if (subject && subject !== 'all') {
       query.subjects = subject;
     }
-    
+
     const podcasts = await Podcast.find(query)
       .sort({ createdAt: -1 });
-    
-    res.json({ success: true, podcasts });
+
+    // Generate pre-signed URLs for audio files
+    const podcastsWithUrls = await Promise.all(
+      podcasts.map(async (podcast) => {
+        const podcastObj = podcast.toObject();
+        if (podcastObj.audioUrl) {
+          try {
+            const presignedUrl = await generatePresignedUrl(podcastObj.audioUrl, 3600);
+            podcastObj.audioUrl = presignedUrl || podcastObj.audioUrl;
+          } catch (error) {
+            console.error(`Error generating pre-signed URL for podcast ${podcast._id}:`, error);
+            // Keep original URL as fallback
+          }
+        }
+        return podcastObj;
+      })
+    );
+
+    res.json({ success: true, podcasts: podcastsWithUrls });
   } catch (error) {
     console.error('Error fetching student podcasts:', error);
     res.status(500).json({ success: false, message: 'Error fetching podcasts' });
@@ -5308,12 +5371,24 @@ app.get('/api/podcast/:id', requireAuth, async (req, res) => {
   try {
     const Podcast = require('./models/Podcast');
     const podcast = await Podcast.findById(req.params.id);
-    
+
     if (!podcast) {
       return res.status(404).json({ success: false, message: 'Podcast not found' });
     }
-    
-    res.json({ success: true, podcast });
+
+    // Generate pre-signed URL for audio file
+    const podcastObj = podcast.toObject();
+    if (podcastObj.audioUrl) {
+      try {
+        const presignedUrl = await generatePresignedUrl(podcastObj.audioUrl, 3600);
+        podcastObj.audioUrl = presignedUrl || podcastObj.audioUrl;
+      } catch (error) {
+        console.error(`Error generating pre-signed URL for podcast ${podcast._id}:`, error);
+        // Keep original URL as fallback
+      }
+    }
+
+    res.json({ success: true, podcast: podcastObj });
   } catch (error) {
     console.error('Error fetching podcast:', error);
     res.status(500).json({ success: false, message: 'Error fetching podcast' });
