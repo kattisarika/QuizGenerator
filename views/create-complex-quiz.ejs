@@ -184,6 +184,59 @@
             transform: translateY(-1px);
         }
 
+        .btn-navigation-canvas {
+            background: #6366f1;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 40px;
+        }
+
+        .btn-navigation-canvas:hover:not(:disabled) {
+            background: #4f46e5;
+            transform: translateY(-1px);
+        }
+
+        .btn-navigation-canvas:disabled {
+            background: #d1d5db;
+            color: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .question-counter {
+            background: #f3f4f6;
+            color: #374151;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            margin: 0 5px;
+            min-width: 50px;
+            text-align: center;
+            border: 2px solid #e5e7eb;
+        }
+
+        .btn-group {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .btn-group .btn-navigation-canvas:first-child {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .btn-group .btn-navigation-canvas:last-child {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
         /* Canvas workspace */
         .canvas-workspace {
             flex: 1;
@@ -328,6 +381,24 @@
         .canvas-element.selected {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        .canvas-element.current-question {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% {
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.2);
+            }
+            100% {
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+            }
         }
 
         .element-controls {
@@ -588,6 +659,18 @@
                     <button class="btn-canvas btn-secondary-canvas" onclick="clearCanvas()">
                         <i class="fas fa-trash me-1"></i>Clear
                     </button>
+
+                    <!-- Question Navigation -->
+                    <div class="btn-group" style="margin: 0 10px;">
+                        <button class="btn-canvas btn-navigation-canvas" onclick="previousQuestion()" id="prev-question-btn" title="Go to previous question" disabled>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span class="question-counter" id="question-counter">Q1</span>
+                        <button class="btn-canvas btn-navigation-canvas" onclick="nextQuestion()" id="next-question-btn" title="Go to next question">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+
                     <button class="btn-canvas btn-secondary-canvas" onclick="previewQuiz()">
                         <i class="fas fa-eye me-1"></i>Preview
                     </button>
@@ -806,6 +889,9 @@
                     });
 
                     console.log('Quiz builder initialized successfully');
+
+                    // Initialize question navigation
+                    initializeQuestionNavigation();
                 }, 100);
             } catch (error) {
                 console.error('Error initializing quiz builder:', error);
@@ -2650,6 +2736,176 @@
         }
         window.openQuizSettings = openQuizSettings;
 
+        // Question Navigation System
+        let currentQuestionIndex = 0;
+        let questionElements = [];
+
+        // Initialize question navigation
+        function initializeQuestionNavigation() {
+            updateQuestionList();
+            updateNavigationButtons();
+        }
+
+        // Update the list of question elements
+        function updateQuestionList() {
+            questionElements = quizElements.filter(element =>
+                element.type === 'question' || element.type === 'sub-question'
+            );
+
+            // If no questions exist, create a virtual first question
+            if (questionElements.length === 0) {
+                currentQuestionIndex = 0;
+            } else {
+                // Ensure current index is within bounds
+                currentQuestionIndex = Math.max(0, Math.min(currentQuestionIndex, questionElements.length - 1));
+            }
+
+            updateNavigationButtons();
+            updateQuestionCounter();
+        }
+
+        // Navigate to next question
+        function nextQuestion() {
+            if (questionElements.length === 0) {
+                // If no questions exist, create a new question
+                createElement('question', 400, 200);
+                return;
+            }
+
+            if (currentQuestionIndex < questionElements.length - 1) {
+                currentQuestionIndex++;
+                navigateToQuestion(currentQuestionIndex);
+            } else {
+                // At the last question, create a new one
+                const newY = questionElements.length > 0 ?
+                    Math.max(...questionElements.map(q => q.y + q.height)) + 50 : 200;
+                createElement('question', 400, newY);
+            }
+        }
+
+        // Navigate to previous question
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                navigateToQuestion(currentQuestionIndex);
+            }
+        }
+
+        // Navigate to a specific question
+        function navigateToQuestion(index) {
+            if (index < 0 || index >= questionElements.length) return;
+
+            currentQuestionIndex = index;
+
+            // Highlight the current question
+            highlightCurrentQuestion();
+
+            // Scroll to the question
+            scrollToQuestion(questionElements[index]);
+
+            // Update navigation
+            updateNavigationButtons();
+            updateQuestionCounter();
+        }
+
+        // Highlight the current question
+        function highlightCurrentQuestion() {
+            // Remove previous highlights
+            document.querySelectorAll('.quiz-element').forEach(el => {
+                el.classList.remove('current-question');
+            });
+
+            // Highlight current question
+            if (questionElements[currentQuestionIndex]) {
+                const questionElement = document.getElementById(questionElements[currentQuestionIndex].id);
+                if (questionElement) {
+                    questionElement.classList.add('current-question');
+                }
+            }
+        }
+
+        // Scroll to a specific question
+        function scrollToQuestion(questionElement) {
+            if (!questionElement) return;
+
+            const canvas = document.getElementById('canvas');
+            const elementDiv = document.getElementById(questionElement.id);
+
+            if (canvas && elementDiv) {
+                // Calculate scroll position to center the question
+                const canvasRect = canvas.getBoundingClientRect();
+                const elementRect = elementDiv.getBoundingClientRect();
+
+                const scrollX = elementDiv.offsetLeft - (canvasRect.width / 2) + (elementDiv.offsetWidth / 2);
+                const scrollY = elementDiv.offsetTop - (canvasRect.height / 2) + (elementDiv.offsetHeight / 2);
+
+                canvas.scrollTo({
+                    left: Math.max(0, scrollX),
+                    top: Math.max(0, scrollY),
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        // Update navigation button states
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prev-question-btn');
+            const nextBtn = document.getElementById('next-question-btn');
+
+            if (prevBtn) {
+                prevBtn.disabled = currentQuestionIndex <= 0;
+            }
+
+            // Next button is always enabled (creates new question if at end)
+            if (nextBtn) {
+                nextBtn.disabled = false;
+            }
+        }
+
+        // Update question counter display
+        function updateQuestionCounter() {
+            const counter = document.getElementById('question-counter');
+            if (counter) {
+                if (questionElements.length === 0) {
+                    counter.textContent = 'No Questions';
+                } else {
+                    counter.textContent = `Q${currentQuestionIndex + 1}/${questionElements.length}`;
+                }
+            }
+        }
+
+        // Hook into element creation to update navigation
+        const originalCreateElement = createElement;
+        createElement = function(type, x, y) {
+            const result = originalCreateElement.call(this, type, x, y);
+
+            // If a question was created, update navigation
+            if (type === 'question' || type === 'sub-question') {
+                setTimeout(() => {
+                    updateQuestionList();
+                    // Navigate to the newly created question
+                    const newQuestionIndex = questionElements.length - 1;
+                    if (newQuestionIndex >= 0) {
+                        navigateToQuestion(newQuestionIndex);
+                    }
+                }, 100);
+            }
+
+            return result;
+        };
+
+        // Hook into element deletion to update navigation
+        function updateNavigationAfterDelete() {
+            updateQuestionList();
+            highlightCurrentQuestion();
+        }
+
+        // Expose functions globally
+        window.nextQuestion = nextQuestion;
+        window.previousQuestion = previousQuestion;
+        window.initializeQuestionNavigation = initializeQuestionNavigation;
+        window.updateNavigationAfterDelete = updateNavigationAfterDelete;
+
         // Preview quiz
         function previewQuiz() {
             if (quizElements.length === 0) {
@@ -3008,6 +3264,8 @@
         window.saveQuiz = saveQuiz;
         window.saveQuizSettings = saveQuizSettings;
         window.openQuizSettings = openQuizSettings;
+        window.nextQuestion = nextQuestion;
+        window.previousQuestion = previousQuestion;
         window.deleteElement = deleteElement;
         window.duplicateElement = duplicateElement;
         window.updateElementProperty = updateElementProperty;
