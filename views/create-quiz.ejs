@@ -476,11 +476,7 @@
                                     <i class="fas fa-edit me-2"></i>Create Questions Manually
                                 </button>
                             </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="upload-images-tab" data-bs-toggle="tab" data-bs-target="#upload-images" type="button" role="tab" aria-controls="upload-images" aria-selected="false">
-                                    <i class="fas fa-images me-2"></i>Upload Documents With Images
-                                </button>
-                            </li>
+
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="complex-builder-tab" data-bs-toggle="tab" data-bs-target="#complex-builder" type="button" role="tab" aria-controls="complex-builder" aria-selected="false">
                                     <i class="fas fa-magic me-2"></i>Complex Quiz Builder
@@ -1104,184 +1100,7 @@
                     </div>
                             </div>
 
-                            <!-- Upload Documents With Images Tab -->
-                            <div class="tab-pane fade" id="upload-images" role="tabpanel" aria-labelledby="upload-images-tab">
-                                <form action="/create-quiz-with-images" method="POST" enctype="multipart/form-data" id="quizWithImagesForm">
-                                    <!-- Quiz Information -->
-                                    <div class="mb-4">
-                                        <h5 class="text-primary mb-3">
-                                            <i class="fas fa-info-circle me-2"></i>Quiz Information
-                                        </h5>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="imagesTitle" class="form-label">Quiz Title *</label>
-                                                <input type="text" class="form-control" id="imagesTitle" name="title" required>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="imagesDescription" class="form-label">Description</label>
-                                                <textarea class="form-control" id="imagesDescription" name="description" rows="3"></textarea>
-                                            </div>
-                                        </div>
 
-                                        <!-- Quiz Type Selection -->
-                                        <div class="row mt-3">
-                                            <div class="col-md-12 mb-3">
-                                                <label class="form-label">Quiz Type *</label>
-                                                <div class="quiz-type-selector">
-                                                    <div class="row">
-                                                        <div class="col-md-6">
-                                                            <div class="quiz-type-card" onclick="selectImagesQuizType('regular')">
-                                                                <input type="radio" id="images-type-regular" name="imagesQuizType" value="regular" checked hidden>
-                                                                <div class="quiz-type-content active" id="images-regular-card">
-                                                                    <div class="quiz-type-icon">
-                                                                        <i class="fas fa-book"></i>
-                                                                    </div>
-                                                                    <h5>Regular Quiz</h5>
-                                                                    <p class="mb-0">Standard quiz with extracted images</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="quiz-type-card" onclick="selectImagesQuizType('competitive')">
-                                                                <input type="radio" id="images-type-competitive" name="imagesQuizType" value="competitive" hidden>
-                                                                <div class="quiz-type-content" id="images-competitive-card">
-                                                                    <div class="quiz-type-icon">
-                                                                        <i class="fas fa-trophy"></i>
-                                                                    </div>
-                                                                    <h5>Competitive Quiz</h5>
-                                                                    <p class="mb-0">Real-time competition with images</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Grade Level and Subject Selection -->
-                                        <div class="row mt-3">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="imagesGradeLevel" class="form-label">Grade Level *</label>
-                                                <select class="form-select" id="imagesGradeLevel" name="gradeLevel" required>
-                                                    <option value="">Select Grade Level</option>
-                                                    <option value="1st grade">1st Grade</option>
-                                                    <option value="2nd grade">2nd Grade</option>
-                                                    <option value="3rd grade">3rd Grade</option>
-                                                    <option value="4th grade">4th Grade</option>
-                                                    <option value="5th grade">5th Grade</option>
-                                                    <option value="6th grade">6th Grade</option>
-                                                    <option value="7th grade">7th Grade</option>
-                                                    <option value="8th grade">8th Grade</option>
-                                                    <option value="9th grade">9th Grade</option>
-                                                    <option value="10th grade">10th Grade</option>
-                                                    <option value="11th grade">11th Grade</option>
-                                                    <option value="12th grade">12th Grade</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="imagesSubject" class="form-label">Subject *</label>
-                                                <div class="subject-selection">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="imagesSubjects" id="imagesEnglish" value="English" checked>
-                                                        <label class="form-check-label" for="imagesEnglish">English</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="imagesSubjects" id="imagesScience" value="Science">
-                                                        <label class="form-check-label" for="imagesScience">Science</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="imagesSubjects" id="imagesMath" value="Math">
-                                                        <label class="form-check-label" for="imagesMath">Math</label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="imagesLanguage" class="form-label">Language *</label>
-                                                <div class="language-selection">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="imagesLanguage" id="imagesLangEnglish" value="English" checked>
-                                                        <label class="form-check-label" for="imagesLangEnglish">English</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="imagesLanguage" id="imagesLangSpanish" value="Spanish">
-                                                        <label class="form-check-label" for="imagesLangSpanish">Spanish</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="imagesLanguage" id="imagesLangFrench" value="French">
-                                                        <label class="form-check-label" for="imagesLangFrench">French</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="imagesLanguage" id="imagesLangKannada" value="Kannada">
-                                                        <label class="form-check-label" for="imagesLangKannada">Kannada</label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Document Upload Section -->
-                                    <div class="mb-4">
-                                        <h5 class="text-primary mb-3">
-                                            <i class="fas fa-file-upload me-2"></i>Upload Documents
-                                        </h5>
-                                        <p class="text-muted mb-3">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            Upload PDF or DOCX files. Images will be automatically extracted and used to create quiz questions.
-                                        </p>
-                                        
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="questionPaperWithImages" class="form-label">Question Paper *</label>
-                                                <div class="file-upload-area" onclick="document.getElementById('questionPaperWithImages').click()">
-                                                    <input type="file" id="questionPaperWithImages" name="questionPaper" accept=".pdf,.docx" style="display: none;" onchange="handleImagesFileSelect(this, 'questionPaperWithImages')">
-                                                    <i class="fas fa-file-upload upload-icon"></i>
-                                                    <p class="mb-2"><strong>Click to upload Question Paper</strong></p>
-                                                    <p class="mb-0 text-muted">Supports PDF and DOCX files</p>
-                                                </div>
-                                                <div id="questionPaperWithImagesInfo" class="mt-2" style="display: none;"></div>
-                                            </div>
-                                            
-                                            <div class="col-md-6 mb-3">
-                                                <label for="answerPaperWithImages" class="form-label">Answer Paper (Optional)</label>
-                                                <div class="file-upload-area" onclick="document.getElementById('answerPaperWithImages').click()">
-                                                    <input type="file" id="answerPaperWithImages" name="answerPaper" accept=".pdf,.docx" style="display: none;" onchange="handleImagesFileSelect(this, 'answerPaperWithImages')">
-                                                    <i class="fas fa-file-upload upload-icon"></i>
-                                                    <p class="mb-2"><strong>Click to upload Answer Paper</strong></p>
-                                                    <p class="mb-0 text-muted">Supports PDF and DOCX files</p>
-                                                </div>
-                                                <div id="answerPaperWithImagesInfo" class="mt-2" style="display: none;"></div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Image Extraction Preview -->
-                                        <div class="mb-4" id="imageExtractionPreview" style="display: none;">
-                                            <h6 class="text-primary mb-3">
-                                                <i class="fas fa-images me-2"></i>Extracted Images Preview
-                                            </h6>
-                                            <div class="row" id="extractedImagesGrid">
-                                                <!-- Extracted images will be displayed here -->
-                                            </div>
-                                            <div class="alert alert-info">
-                                                <i class="fas fa-lightbulb me-2"></i>
-                                                <strong>Tip:</strong> Images will be automatically extracted and used to create quiz questions. You can review them before submission.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Submit Button -->
-                                    <div class="text-center">
-                                        <button type="submit" class="btn btn-primary btn-lg">
-                                            <i class="fas fa-magic me-2"></i>Create Quiz with Images
-                                        </button>
-                                        <a href="/teacher/dashboard" class="btn btn-outline-secondary btn-lg ms-2">
-                                            <i class="fas fa-arrow-left me-2"></i>Cancel
-                                        </a>
-                                    </div>
-                                </form>
-                            </div>
 
                             <!-- Complex Quiz Builder Tab -->
                             <div class="tab-pane fade" id="complex-builder" role="tabpanel" aria-labelledby="complex-builder-tab">
@@ -1356,19 +1175,7 @@
             console.log('Selected quiz type:', type);
         }
 
-        // Quiz Type Selection for Images Tab
-        function selectImagesQuizType(type) {
-            // Update radio button
-            document.getElementById('images-type-' + type).checked = true;
 
-            // Update visual state
-            document.querySelectorAll('#upload-images .quiz-type-content').forEach(card => {
-                card.classList.remove('active');
-            });
-            document.getElementById('images-' + type + '-card').classList.add('active');
-
-            console.log('Selected images quiz type:', type);
-        }
 
         // Show complex builder info
         function showComplexBuilderInfo() {
@@ -1410,69 +1217,9 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             }
         }
 
-        function handleImagesFileSelect(input, type) {
-            const file = input.files[0];
-            const infoDiv = document.getElementById(type + 'Info');
 
-            if (file) {
-                const fileSize = (file.size / 1024 / 1024).toFixed(2);
-                const fileType = file.name.split('.').pop().toUpperCase();
 
-                infoDiv.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-file-${fileType === 'PDF' ? 'pdf' : 'word'} me-2 text-primary"></i>
-                        <div class="flex-grow-1">
-                            <strong>${file.name}</strong><br>
-                            <small class="text-muted">${fileSize} MB • ${fileType}</small>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeImagesFile('${type}')">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                `;
-                infoDiv.style.display = 'block';
 
-                // Show image extraction preview if question paper is uploaded
-                if (type === 'questionPaperWithImages') {
-                    showImageExtractionPreview();
-                }
-            }
-        }
-
-        function removeImagesFile(type) {
-            document.getElementById(type).value = '';
-            document.getElementById(type + 'Info').style.display = 'none';
-            
-            // Hide image extraction preview if question paper is removed
-            if (type === 'questionPaperWithImages') {
-                hideImageExtractionPreview();
-            }
-        }
-
-        function showImageExtractionPreview() {
-            const previewDiv = document.getElementById('imageExtractionPreview');
-            const grid = document.getElementById('extractedImagesGrid');
-            
-            // Show preview section
-            previewDiv.style.display = 'block';
-            
-            // Add sample preview (in real implementation, this would show actual extracted images)
-            grid.innerHTML = `
-                <div class="col-md-4 mb-3">
-                    <div class="card">
-                        <div class="card-body text-center">
-                            <i class="fas fa-image fa-3x text-primary mb-2"></i>
-                            <p class="mb-0 text-muted">Images will be extracted automatically</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function hideImageExtractionPreview() {
-            const previewDiv = document.getElementById('imageExtractionPreview');
-            previewDiv.style.display = 'none';
-        }
 
         function removeFile(type) {
             document.getElementById(type).value = '';
@@ -2290,54 +2037,10 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 // Wait for MathJax to load
             }
 
-            // Add form submission handler for images tab
-            const imagesForm = document.getElementById('quizWithImagesForm');
-            if (imagesForm) {
-                imagesForm.addEventListener('submit', handleImagesFormSubmit);
-            }
+
         });
 
-        // Handle form submission for images tab
-        async function handleImagesFormSubmit(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            
-            try {
-                // Disable submit button and show loading
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Quiz...';
-                
-                const response = await fetch('/create-quiz-with-images', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Show success message
-                    showTempMessage(result.message, 'success', 5000);
-                    
-                    // Redirect to dashboard after delay
-                    setTimeout(() => {
-                        window.location.href = '/teacher/dashboard';
-                    }, 2000);
-                } else {
-                    throw new Error(result.message || 'Failed to create quiz');
-                }
-                
-            } catch (error) {
-                console.error('Error creating quiz with images:', error);
-                showTempMessage('Error creating quiz: ' + error.message, 'error', 5000);
-            } finally {
-                // Re-enable submit button
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            }
-        }
+
 
         // Show temporary message function
         function showTempMessage(message, type, duration = 3000) {
