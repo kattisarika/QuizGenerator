@@ -149,18 +149,24 @@ const quizSchema = new mongoose.Schema({
       default: false
     }
   }],
-  // S3 reference for complex quiz data
-  complexQuizS3Key: {
-    type: String,
-    required: false
-  },
-  complexQuizS3Url: {
-    type: String,
-    required: false
-  },
-  // Fallback storage for when S3 is not available
-  complexQuizDataLocal: {
-    type: Object,
+  // Complex quiz data stored directly in MongoDB
+  complexQuizData: {
+    type: {
+      elements: [{
+        id: String,
+        type: String,
+        x: Number,
+        y: Number,
+        width: Number,
+        height: Number,
+        content: String,
+        style: Object
+      }],
+      canvasSize: {
+        width: { type: Number, default: 1000 },
+        height: { type: Number, default: 800 }
+      }
+    },
     required: false
   },
   isComplexQuiz: {

@@ -10,98 +10,7 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 require('dotenv').config();
 
-// AWS S3 Configuration
-let AWS, s3, AWS_CONFIGURED;
 
-try {
-  AWS = require('aws-sdk');
-  AWS_CONFIGURED = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
-
-  if (AWS_CONFIGURED) {
-    AWS.config.update({
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      region: process.env.AWS_REGION || 'us-east-1'
-    });
-    s3 = new AWS.S3();
-    console.log('AWS S3 configured successfully');
-  } else {
-    s3 = null;
-    console.log('AWS S3 credentials not found - using MongoDB fallback');
-  }
-} catch (error) {
-  console.log('AWS SDK not available - using MongoDB fallback:', error.message);
-  AWS_CONFIGURED = false;
-  s3 = null;
-}
-
-const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || 'skillons-quiz-data';
-
-// Helper function to upload complex quiz data to S3 or store locally
-async function uploadComplexQuizToS3(quizData, quizId) {
-  if (!AWS_CONFIGURED || !s3) {
-    console.log('S3 not configured, using MongoDB fallback storage');
-    return {
-      s3Key: null,
-      s3Url: null,
-      localData: quizData
-    };
-  }
-
-  try {
-    const s3Key = 'complex-quizzes/' + quizId + '-' + Date.now() + '.json';
-
-    const params = {
-      Bucket: S3_BUCKET_NAME,
-      Key: s3Key,
-      Body: JSON.stringify(quizData, null, 2),
-      ContentType: 'application/json',
-      ServerSideEncryption: 'AES256'
-    };
-
-    const result = await s3.upload(params).promise();
-
-    console.log('Complex quiz data uploaded to S3:', result.Location);
-
-    return {
-      s3Key: s3Key,
-      s3Url: result.Location,
-      localData: null
-    };
-  } catch (error) {
-    console.error('Error uploading to S3:', error);
-    console.log('Falling back to MongoDB storage');
-    return {
-      s3Key: null,
-      s3Url: null,
-      localData: quizData
-    };
-  }
-}
-
-// Helper function to retrieve complex quiz data from S3 or local storage
-async function getComplexQuizData(quiz) {
-  try {
-    if (quiz.complexQuizS3Key && AWS_CONFIGURED && s3) {
-      // Retrieve from S3
-      const params = {
-        Bucket: S3_BUCKET_NAME,
-        Key: quiz.complexQuizS3Key
-      };
-
-      const result = await s3.getObject(params).promise();
-      return JSON.parse(result.Body.toString());
-    } else if (quiz.complexQuizDataLocal) {
-      // Retrieve from local MongoDB storage
-      return quiz.complexQuizDataLocal;
-    } else {
-      throw new Error('No complex quiz data found');
-    }
-  } catch (error) {
-    console.error('Error retrieving complex quiz data:', error);
-    throw new Error('Failed to retrieve complex quiz data: ' + error.message);
-  }
-}
 
 // SaaS Multi-tenancy imports
 const { 
@@ -2571,21 +2480,10 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
 
     console.log('Processed elements count:', processedElements.length);
 
-    // Prepare complex quiz data for S3 storage
+    // Prepare complex quiz data for MongoDB storage
     const complexQuizData = {
       elements: processedElements,
-      canvasSize: { width: 1000, height: 800 },
-      metadata: {
-        title: title,
-        description: description,
-        gradeLevel: gradeLevel,
-        subject: subject,
-        quizType: quizType,
-        createdAt: new Date(),
-        createdBy: req.user._id,
-        createdByName: req.user.displayName,
-        organizationId: req.user.organizationId
-      }
+      canvasSize: { width: 1000, height: 800 }
     };
 
     // Convert elements to questions format for MongoDB
@@ -2628,7 +2526,7 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
       });
     }
 
-    // Create quiz object first (without complex data)
+    // Create quiz object with complex data
     const quiz = new Quiz({
       title: finalTitle,
       description: description || 'Complex quiz created with drag-and-drop builder',
@@ -2641,33 +2539,16 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
       language: 'English',
       quizType: quizType || 'regular',
       isApproved: true,
-      isComplexQuiz: true
+      isComplexQuiz: true,
+      complexQuizData: complexQuizData
     });
 
     console.log('Attempting to save quiz with title:', finalTitle);
+    console.log('Elements count:', processedElements.length);
 
-    // Save quiz to get the ID
+    // Save quiz to MongoDB
     await quiz.save();
-    console.log('Quiz saved to MongoDB with ID:', quiz._id);
-
-    // Store complex quiz data in S3 or MongoDB fallback
-    console.log('Storing complex quiz data...');
-    const storageResult = await uploadComplexQuizToS3(complexQuizData, quiz._id);
-
-    // Update quiz with storage references
-    if (storageResult.s3Key) {
-      // S3 storage successful
-      quiz.complexQuizS3Key = storageResult.s3Key;
-      quiz.complexQuizS3Url = storageResult.s3Url;
-      console.log('Quiz data stored in S3:', storageResult.s3Url);
-    } else if (storageResult.localData) {
-      // Fallback to local MongoDB storage
-      quiz.complexQuizDataLocal = storageResult.localData;
-      console.log('Quiz data stored locally in MongoDB');
-    }
-
-    await quiz.save();
-    console.log('Quiz updated with storage references');
+    console.log('Quiz saved successfully with ID:', quiz._id);
 
     console.log('Quiz saved successfully with ID:', quiz._id);
 
@@ -2692,12 +2573,12 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
   }
 });
 
-// Get complex quiz data from S3
+// Get complex quiz data from MongoDB
 app.get('/complex-quiz-data/:quizId', requireAuth, async (req, res) => {
   try {
     const quizId = req.params.quizId;
 
-    // Find the quiz and get S3 key
+    // Find the quiz
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
       return res.status(404).json({
@@ -2706,26 +2587,16 @@ app.get('/complex-quiz-data/:quizId', requireAuth, async (req, res) => {
       });
     }
 
-    if (!quiz.isComplexQuiz) {
-      return res.status(400).json({
-        success: false,
-        message: 'This is not a complex quiz'
-      });
-    }
-
-    if (!quiz.complexQuizS3Key && !quiz.complexQuizDataLocal) {
+    if (!quiz.isComplexQuiz || !quiz.complexQuizData) {
       return res.status(400).json({
         success: false,
         message: 'Complex quiz data not available'
       });
     }
 
-    // Retrieve complex quiz data from S3 or local storage
-    const complexQuizData = await getComplexQuizData(quiz);
-
     res.json({
       success: true,
-      data: complexQuizData
+      data: quiz.complexQuizData
     });
 
   } catch (error) {
