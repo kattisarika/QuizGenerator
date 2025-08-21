@@ -675,12 +675,12 @@
                                             var cubeSize = element.shapeSize || 80;
                                             var cubeViewBox = '0 0 ' + (cubeSize + 40) + ' ' + (cubeSize + 40);
                                             var cubeDepth = cubeSize * 0.3;
-                                            var frontX = 20;
-                                            var frontY = cubeDepth + 20;
+                                            var cubeFrontX = 20;
+                                            var cubeFrontY = cubeDepth + 20;
                                             return '<svg width="100%" height="100%" viewBox="' + cubeViewBox + '" style="background: #ffffff;">' +
-                                                '<rect x="' + frontX + '" y="' + frontY + '" width="' + cubeSize + '" height="' + cubeSize + '" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
-                                                '<polygon points="' + frontX + ',' + frontY + ' ' + (frontX + cubeDepth) + ',' + (frontY - cubeDepth) + ' ' + (frontX + cubeSize + cubeDepth) + ',' + (frontY - cubeDepth) + ' ' + (frontX + cubeSize) + ',' + frontY + '" fill="' + (element.fillColor || '#bfdbfe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
-                                                '<polygon points="' + (frontX + cubeSize) + ',' + frontY + ' ' + (frontX + cubeSize + cubeDepth) + ',' + (frontY - cubeDepth) + ' ' + (frontX + cubeSize + cubeDepth) + ',' + (frontY + cubeSize - cubeDepth) + ' ' + (frontX + cubeSize) + ',' + (frontY + cubeSize) + '" fill="' + (element.fillColor || '#93c5fd') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '<rect x="' + cubeFrontX + '" y="' + cubeFrontY + '" width="' + cubeSize + '" height="' + cubeSize + '" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '<polygon points="' + cubeFrontX + ',' + cubeFrontY + ' ' + (cubeFrontX + cubeDepth) + ',' + (cubeFrontY - cubeDepth) + ' ' + (cubeFrontX + cubeSize + cubeDepth) + ',' + (cubeFrontY - cubeDepth) + ' ' + (cubeFrontX + cubeSize) + ',' + cubeFrontY + '" fill="' + (element.fillColor || '#bfdbfe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '<polygon points="' + (cubeFrontX + cubeSize) + ',' + cubeFrontY + ' ' + (cubeFrontX + cubeSize + cubeDepth) + ',' + (cubeFrontY - cubeDepth) + ' ' + (cubeFrontX + cubeSize + cubeDepth) + ',' + (cubeFrontY + cubeSize - cubeDepth) + ' ' + (cubeFrontX + cubeSize) + ',' + (cubeFrontY + cubeSize) + '" fill="' + (element.fillColor || '#93c5fd') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
                                                 '</svg>';
 
                                         case 'sphere':
@@ -702,12 +702,12 @@
                                             var cuboidHeight = element.shapeHeight || 80;
                                             var cuboidDepth = element.shapeDepth || 60;
                                             var cuboidViewBox = '0 0 ' + (cuboidWidth + cuboidDepth + 20) + ' ' + (cuboidHeight + cuboidDepth + 20);
-                                            var frontX = 10;
-                                            var frontY = cuboidDepth + 10;
+                                            var cuboidFrontX = 10;
+                                            var cuboidFrontY = cuboidDepth + 10;
                                             return '<svg width="100%" height="100%" viewBox="' + cuboidViewBox + '" style="background: #ffffff;">' +
-                                                '<rect x="' + frontX + '" y="' + frontY + '" width="' + cuboidWidth + '" height="' + cuboidHeight + '" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
-                                                '<polygon points="' + frontX + ',' + frontY + ' ' + (frontX + cuboidDepth) + ',' + (frontY - cuboidDepth) + ' ' + (frontX + cuboidWidth + cuboidDepth) + ',' + (frontY - cuboidDepth) + ' ' + (frontX + cuboidWidth) + ',' + frontY + '" fill="' + (element.fillColor || '#bfdbfe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
-                                                '<polygon points="' + (frontX + cuboidWidth) + ',' + frontY + ' ' + (frontX + cuboidWidth + cuboidDepth) + ',' + (frontY - cuboidDepth) + ' ' + (frontX + cuboidWidth + cuboidDepth) + ',' + (frontY + cuboidHeight - cuboidDepth) + ' ' + (frontX + cuboidWidth) + ',' + (frontY + cuboidHeight) + '" fill="' + (element.fillColor || '#93c5fd') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '<rect x="' + cuboidFrontX + '" y="' + cuboidFrontY + '" width="' + cuboidWidth + '" height="' + cuboidHeight + '" fill="' + (element.fillColor || '#dbeafe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '<polygon points="' + cuboidFrontX + ',' + cuboidFrontY + ' ' + (cuboidFrontX + cuboidDepth) + ',' + (cuboidFrontY - cuboidDepth) + ' ' + (cuboidFrontX + cuboidWidth + cuboidDepth) + ',' + (cuboidFrontY - cuboidDepth) + ' ' + (cuboidFrontX + cuboidWidth) + ',' + cuboidFrontY + '" fill="' + (element.fillColor || '#bfdbfe') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
+                                                '<polygon points="' + (cuboidFrontX + cuboidWidth) + ',' + cuboidFrontY + ' ' + (cuboidFrontX + cuboidWidth + cuboidDepth) + ',' + (cuboidFrontY - cuboidDepth) + ' ' + (cuboidFrontX + cuboidWidth + cuboidDepth) + ',' + (cuboidFrontY + cuboidHeight - cuboidDepth) + ' ' + (cuboidFrontX + cuboidWidth) + ',' + (cuboidFrontY + cuboidHeight) + '" fill="' + (element.fillColor || '#93c5fd') + '" stroke="' + (element.strokeColor || '#3b82f6') + '" stroke-width="' + (element.strokeWidth || 2) + '" />' +
                                                 '</svg>';
 
                                         default:

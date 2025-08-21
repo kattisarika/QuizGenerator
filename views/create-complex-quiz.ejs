@@ -1330,21 +1330,21 @@
                     const cubeSize = element.shapeSize || 80;
                     const cubeViewBox = `0 0 ${cubeSize + 40} ${cubeSize + 50}`;
                     const cubeDepth = cubeSize * 0.3; // 3D depth effect
-                    const frontX = 20;
-                    const frontY = cubeDepth + 20;
+                    const cubeFrontX = 20;
+                    const cubeFrontY = cubeDepth + 20;
                     return `<svg width="100%" height="100%" viewBox="${cubeViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
                         <!-- Front face -->
-                        <rect x="${frontX}" y="${frontY}" width="${cubeSize}" height="${cubeSize}"
+                        <rect x="${cubeFrontX}" y="${cubeFrontY}" width="${cubeSize}" height="${cubeSize}"
                               fill="${element.fillColor || '#dbeafe'}"
                               stroke="${element.strokeColor || '#3b82f6'}"
                               stroke-width="${element.strokeWidth || 2}" />
                         <!-- Top face -->
-                        <polygon points="${frontX},${frontY} ${frontX + cubeDepth},${frontY - cubeDepth} ${frontX + cubeSize + cubeDepth},${frontY - cubeDepth} ${frontX + cubeSize},${frontY}"
+                        <polygon points="${cubeFrontX},${cubeFrontY} ${cubeFrontX + cubeDepth},${cubeFrontY - cubeDepth} ${cubeFrontX + cubeSize + cubeDepth},${cubeFrontY - cubeDepth} ${cubeFrontX + cubeSize},${cubeFrontY}"
                                 fill="${element.fillColor || '#bfdbfe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
                         <!-- Right face -->
-                        <polygon points="${frontX + cubeSize},${frontY} ${frontX + cubeSize + cubeDepth},${frontY - cubeDepth} ${frontX + cubeSize + cubeDepth},${frontY + cubeSize - cubeDepth} ${frontX + cubeSize},${frontY + cubeSize}"
+                        <polygon points="${cubeFrontX + cubeSize},${cubeFrontY} ${cubeFrontX + cubeSize + cubeDepth},${cubeFrontY - cubeDepth} ${cubeFrontX + cubeSize + cubeDepth},${cubeFrontY + cubeSize - cubeDepth} ${cubeFrontX + cubeSize},${cubeFrontY + cubeSize}"
                                 fill="${element.fillColor || '#93c5fd'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
@@ -1376,21 +1376,21 @@
                     const cuboidHeight = element.shapeHeight || 80;
                     const cuboidDepth = element.shapeDepth || 60;
                     const cuboidViewBox = `0 0 ${cuboidWidth + cuboidDepth + 20} ${cuboidHeight + cuboidDepth + 30}`;
-                    const frontX = 10;
-                    const frontY = cuboidDepth + 10;
+                    const cuboidFrontX = 10;
+                    const cuboidFrontY = cuboidDepth + 10;
                     return `<svg width="100%" height="100%" viewBox="${cuboidViewBox}" style="border: 1px solid #e2e8f0; background: #ffffff;">
                         <!-- Front face -->
-                        <rect x="${frontX}" y="${frontY}" width="${cuboidWidth}" height="${cuboidHeight}"
+                        <rect x="${cuboidFrontX}" y="${cuboidFrontY}" width="${cuboidWidth}" height="${cuboidHeight}"
                               fill="${element.fillColor || '#dbeafe'}"
                               stroke="${element.strokeColor || '#3b82f6'}"
                               stroke-width="${element.strokeWidth || 2}" />
                         <!-- Top face -->
-                        <polygon points="${frontX},${frontY} ${frontX + cuboidDepth},${frontY - cuboidDepth} ${frontX + cuboidWidth + cuboidDepth},${frontY - cuboidDepth} ${frontX + cuboidWidth},${frontY}"
+                        <polygon points="${cuboidFrontX},${cuboidFrontY} ${cuboidFrontX + cuboidDepth},${cuboidFrontY - cuboidDepth} ${cuboidFrontX + cuboidWidth + cuboidDepth},${cuboidFrontY - cuboidDepth} ${cuboidFrontX + cuboidWidth},${cuboidFrontY}"
                                 fill="${element.fillColor || '#bfdbfe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
                         <!-- Right face -->
-                        <polygon points="${frontX + cuboidWidth},${frontY} ${frontX + cuboidWidth + cuboidDepth},${frontY - cuboidDepth} ${frontX + cuboidWidth + cuboidDepth},${frontY + cuboidHeight - cuboidDepth} ${frontX + cuboidWidth},${frontY + cuboidHeight}"
+                        <polygon points="${cuboidFrontX + cuboidWidth},${cuboidFrontY} ${cuboidFrontX + cuboidWidth + cuboidDepth},${cuboidFrontY - cuboidDepth} ${cuboidFrontX + cuboidWidth + cuboidDepth},${cuboidFrontY + cuboidHeight - cuboidDepth} ${cuboidFrontX + cuboidWidth},${cuboidFrontY + cuboidHeight}"
                                 fill="${element.fillColor || '#93c5fd'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
@@ -1920,6 +1920,21 @@
             }
         }
         window.updateShapeDimension = updateShapeDimension;
+
+        // Add element to canvas (for quick buttons)
+        function addElementToCanvas(type) {
+            // Find a good position for the new element
+            const canvas = document.getElementById('quiz-canvas');
+            const canvasRect = canvas.getBoundingClientRect();
+
+            // Calculate position relative to canvas (center-ish with some randomness)
+            const x = Math.max(50, Math.min(canvasRect.width - 200, 100 + Math.random() * 200));
+            const y = Math.max(50, Math.min(canvasRect.height - 150, 100 + Math.random() * 150));
+
+            // Create the element
+            createElement(type, x, y);
+        }
+        window.addElementToCanvas = addElementToCanvas;
 
         // Trigger image upload dialog
         function triggerImageUpload(elementId) {
