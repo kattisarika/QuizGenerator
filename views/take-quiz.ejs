@@ -1608,6 +1608,17 @@
             
             // Debug: Check quiz data from EJS
             console.log('🔍 Quiz Data Debug:');
+            console.log('  - Quiz object exists:', typeof quiz !== 'undefined');
+            <% if (typeof quiz !== 'undefined') { %>
+                console.log('  - Quiz ID:', '<%= quiz._id %>');
+                console.log('  - Quiz title:', '<%= quiz.title %>');
+                console.log('  - Quiz has pdfImages:', <%= quiz.pdfImages ? 'true' : 'false' %>);
+                console.log('  - Quiz pdfImages length:', <%= quiz.pdfImages ? quiz.pdfImages.length : 0 %>);
+                <% if (quiz.pdfImages && quiz.pdfImages.length > 0) { %>
+                    console.log('  - First PDF image URL:', '<%= quiz.pdfImages[0].url %>');
+                    console.log('  - First PDF image S3 key:', '<%= quiz.pdfImages[0].s3Key %>');
+                <% } %>
+            <% } %>
             console.log('  - Quiz ID:', '<%= quiz._id %>');
             console.log('  - Quiz title:', '<%= quiz.title %>');
             console.log('  - PDF Images property:', '<%= quiz.pdfImages ? "exists" : "missing" %>');

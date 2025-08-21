@@ -2878,6 +2878,9 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
 
     console.log('Creating quiz:', { title, description });
 
+    // Initialize variables for file processing
+    let documentImages = []; // Declare at function scope
+
     // Process question paper
     if (req.files.questionPaper && req.files.questionPaper[0]) {
       const questionFile = req.files.questionPaper[0];
@@ -2902,7 +2905,6 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
         console.log('Parsed questions count:', extractedQuestions.length);
         
         // Extract images from uploaded documents
-        let documentImages = [];
         const fileExtension = path.extname(questionFile.originalname).toLowerCase();
         
         if (fileExtension === '.pdf') {
@@ -3002,6 +3004,8 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
     }));
 
     console.log('Final questions to save:', extractedQuestions.length);
+    console.log('📸 Final documentImages to save:', documentImages.length);
+    console.log('📸 documentImages array:', JSON.stringify(documentImages, null, 2));
 
     const quiz = new Quiz({
       title,
@@ -3023,6 +3027,10 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
     await quiz.save();
     console.log('Quiz saved successfully with ID:', quiz._id);
     console.log('Question paper stored at:', questionFileUrl);
+    console.log('📸 PDF Images saved to quiz:', quiz.pdfImages.length);
+    if (quiz.pdfImages.length > 0) {
+      console.log('📸 First image URL:', quiz.pdfImages[0].url);
+    }
     if (answerFileUrl) {
       console.log('Answer paper stored at:', answerFileUrl);
     }
