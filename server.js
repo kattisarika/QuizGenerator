@@ -2240,14 +2240,19 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
       .sort({ createdAt: -1 });
     
     // Fetch student's quiz results from all their organizations
-    const quizResults = await QuizResult.find({ 
+    const quizResults = await QuizResult.find({
       student: req.user._id,
       organizationId: { $in: organizationIds }
-    });
-    
+    }).populate('quiz', 'title');
+
+    // Get complex quiz results for dashboard display
+    const complexQuizResults = quizResults.filter(result => result.isComplexQuiz);
+    const pendingComplexQuizzes = complexQuizResults.filter(result => result.gradingStatus === 'pending');
+    const gradedComplexQuizzes = complexQuizResults.filter(result => result.gradingStatus === 'graded');
+
     // Calculate completed count excluding archived quizzes (attemptNumber > 1)
     const completedCount = quizResults.filter(result => result.attemptNumber <= 1).length;
-    
+
     // Calculate average score excluding archived quizzes
     let averageScore = 0;
     if (completedCount > 0) {
@@ -2265,12 +2270,14 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
     console.log(`Organization IDs used: ${organizationIds.join(', ')}`);
     console.log(`=== END STUDENT DASHBOARD DEBUG ===\n`);
     
-    res.render('student-dashboard', { 
-      user: req.user, 
+    res.render('student-dashboard', {
+      user: req.user,
       quizzes: availableQuizzes,
       completedCount,
       averageScore,
       organizations: organizations,
+      pendingComplexQuizzes: pendingComplexQuizzes,
+      gradedComplexQuizzes: gradedComplexQuizzes,
       needsMigration: allUserAccounts.length > 1 && (!req.user.organizationMemberships || req.user.organizationMemberships.length === 0)
     });
   } catch (error) {

@@ -509,6 +509,44 @@
             box-shadow: var(--shadow-xl);
         }
 
+        /* Complex Quiz Result Cards */
+        .complex-quiz-item {
+            background: #f8fafc;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 6px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .complex-quiz-item:hover {
+            background: #e2e8f0;
+        }
+
+        .pending-quiz-item {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 3px solid #f59e0b;
+        }
+
+        .graded-quiz-item {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 3px solid #10b981;
+        }
+
+        .badge-icon {
+            margin-left: 4px;
+            font-size: 12px;
+        }
+
+        .badge-purple { color: #8B5CF6; }
+        .badge-red { color: #EF4444; }
+        .badge-green { color: #10B981; }
+
         .action-card h3 {
             font-size: 20px;
             margin-bottom: 10px;
@@ -1368,6 +1406,67 @@
                             <i class="fas fa-chart-bar" aria-hidden="true"></i> View Results
                         </a>
                     </div>
+
+                    <!-- Complex Quiz Results Card -->
+                    <% if (pendingComplexQuizzes && pendingComplexQuizzes.length > 0) { %>
+                        <div class="action-card" role="region" aria-labelledby="complex-pending-action" style="border-left: 4px solid #f59e0b;">
+                            <div style="font-size: 48px; margin-bottom: 15px; color: #f59e0b;" aria-hidden="true">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <h3 id="complex-pending-action">Pending Complex Quiz Results</h3>
+                            <p><%= pendingComplexQuizzes.length %> complex quiz<%= pendingComplexQuizzes.length > 1 ? 's' : '' %> awaiting teacher review</p>
+                            <div style="margin-bottom: 15px;">
+                                <% pendingComplexQuizzes.slice(0, 3).forEach(result => { %>
+                                    <div style="background: #fef3c7; padding: 8px 12px; margin: 5px 0; border-radius: 6px; font-size: 14px; color: #92400e;">
+                                        <i class="fas fa-clock"></i> <%= result.quiz.title %>
+                                    </div>
+                                <% }); %>
+                                <% if (pendingComplexQuizzes.length > 3) { %>
+                                    <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+                                        + <%= pendingComplexQuizzes.length - 3 %> more pending...
+                                    </div>
+                                <% } %>
+                            </div>
+                            <a href="/my-results" class="btn btn-warning" aria-label="View pending complex quiz results">
+                                <i class="fas fa-eye" aria-hidden="true"></i> View Pending Results
+                            </a>
+                        </div>
+                    <% } %>
+
+                    <% if (gradedComplexQuizzes && gradedComplexQuizzes.length > 0) { %>
+                        <div class="action-card" role="region" aria-labelledby="complex-graded-action" style="border-left: 4px solid #10b981;">
+                            <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" aria-hidden="true">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <h3 id="complex-graded-action">New Complex Quiz Results</h3>
+                            <p><%= gradedComplexQuizzes.length %> complex quiz<%= gradedComplexQuizzes.length > 1 ? 's' : '' %> graded by your teacher</p>
+                            <div style="margin-bottom: 15px;">
+                                <% gradedComplexQuizzes.slice(0, 3).forEach(result => { %>
+                                    <div style="background: #d1fae5; padding: 8px 12px; margin: 5px 0; border-radius: 6px; font-size: 14px; color: #065f46; display: flex; justify-content: space-between; align-items: center;">
+                                        <span><i class="fas fa-check-circle"></i> <%= result.quiz.title %></span>
+                                        <span style="font-weight: 600;">
+                                            <%= result.manualPercentage || result.percentage %>%
+                                            <% if (result.manualPercentage >= 100) { %>
+                                                <i class="fas fa-crown" style="color: #8B5CF6; margin-left: 4px;" title="Purple Badge"></i>
+                                            <% } else if (result.manualPercentage >= 90) { %>
+                                                <i class="fas fa-medal" style="color: #EF4444; margin-left: 4px;" title="Red Badge"></i>
+                                            <% } else if (result.manualPercentage >= 80) { %>
+                                                <i class="fas fa-star" style="color: #10B981; margin-left: 4px;" title="Green Badge"></i>
+                                            <% } %>
+                                        </span>
+                                    </div>
+                                <% }); %>
+                                <% if (gradedComplexQuizzes.length > 3) { %>
+                                    <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+                                        + <%= gradedComplexQuizzes.length - 3 %> more results...
+                                    </div>
+                                <% } %>
+                            </div>
+                            <a href="/my-results" class="btn btn-success" aria-label="View graded complex quiz results">
+                                <i class="fas fa-trophy" aria-hidden="true"></i> View Results & Badges
+                            </a>
+                        </div>
+                    <% } %>
 
                     <div class="action-card" role="region" aria-labelledby="material-action">
                         <div style="font-size: 48px; margin-bottom: 15px; color: var(--warning-color);" aria-hidden="true">
