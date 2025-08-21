@@ -4807,7 +4807,31 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
       console.log('Complex quiz answers:', JSON.stringify(answers, null, 2));
 
       try {
-        // For complex quizzes, we store the answers as-is since they're free-form
+        // For complex quizzes, convert answers to the expected format
+        const formattedAnswers = [];
+        const complexAnswersData = answers || {};
+
+        // Convert complex quiz answers to QuizResult format
+        Object.keys(complexAnswersData).forEach((elementId, index) => {
+          formattedAnswers.push({
+            questionIndex: index,
+            selectedAnswer: complexAnswersData[elementId] || '',
+            isCorrect: false, // Will be determined by teacher
+            correctAnswer: '', // Will be set by teacher
+            elementId: elementId // Store the original element ID for reference
+          });
+        });
+
+        // If no answers, create a placeholder
+        if (formattedAnswers.length === 0) {
+          formattedAnswers.push({
+            questionIndex: 0,
+            selectedAnswer: 'No answers provided',
+            isCorrect: false,
+            correctAnswer: ''
+          });
+        }
+
         const quizResultData = {
           student: req.user._id,
           studentName: req.user.displayName,
@@ -4815,11 +4839,11 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
           quizTitle: quiz.title,
           organizationId: req.user.organizationId, // Required field
           teacherId: quiz.createdBy, // Required field - quiz creator
-          answers: answers || {}, // Store complex answers object
+          answers: formattedAnswers, // Formatted answers array
           score: 0, // Complex quizzes don't have automatic scoring
           percentage: 0,
           correctAnswers: 0,
-          totalQuestions: Object.keys(answers || {}).length,
+          totalQuestions: formattedAnswers.length,
           totalPoints: 0, // Required field - will be set by teacher
           timeTaken: timeSpent || 0,
           submittedAt: new Date(),
@@ -4827,7 +4851,8 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
           status: 'pending-recorrection', // Use existing status for teacher review
           isComplexQuiz: true,
           needsManualGrading: true, // Flag for teacher review
-          gradingStatus: 'pending' // Status for teacher grading workflow
+          gradingStatus: 'pending', // Status for teacher grading workflow
+          complexAnswersData: complexAnswersData // Store original complex answers for teacher review
         };
 
         console.log('Creating quiz result with data:', JSON.stringify(quizResultData, null, 2));

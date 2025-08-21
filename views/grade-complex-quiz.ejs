@@ -268,12 +268,12 @@
                 <h3><i class="fas fa-edit"></i> Student Answers</h3>
                 
                 <div class="student-answers">
-                    <% if (result.answers && Object.keys(result.answers).length > 0) { %>
-                        <% Object.keys(result.answers).forEach((elementId, index) => { %>
+                    <% if (result.complexAnswersData && Object.keys(result.complexAnswersData).length > 0) { %>
+                        <% Object.keys(result.complexAnswersData).forEach((elementId, index) => { %>
                             <div class="answer-item">
                                 <div class="answer-label">Answer Area <%= index + 1 %> (Element: <%= elementId %>)</div>
                                 <div class="answer-content">
-                                    <%= result.answers[elementId] || 'No answer provided' %>
+                                    <%= result.complexAnswersData[elementId] || 'No answer provided' %>
                                 </div>
                             </div>
                         <% }); %>
@@ -317,7 +317,7 @@
     <script>
         // Complex quiz data from server
         const complexQuizData = <%- JSON.stringify(result.quiz.complexQuizData) %>;
-        const studentAnswers = <%- JSON.stringify(result.answers) %>;
+        const studentAnswers = <%- JSON.stringify(result.complexAnswersData || {}) %>;
         
         console.log('Complex quiz data:', complexQuizData);
         console.log('Student answers:', studentAnswers);

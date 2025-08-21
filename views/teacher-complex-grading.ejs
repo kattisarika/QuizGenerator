@@ -222,7 +222,7 @@
             <div class="stat-card">
                 <div class="stat-number">
                     <%= pendingResults.reduce((total, result) => {
-                        const answerCount = Object.keys(result.answers || {}).length;
+                        const answerCount = Object.keys(result.complexAnswersData || {}).length;
                         return total + answerCount;
                     }, 0) %>
                 </div>
@@ -252,7 +252,7 @@
                                 <div class="submission-meta">
                                     <div><i class="fas fa-user"></i>Student: <%= result.student.displayName %></div>
                                     <div><i class="fas fa-clock"></i>Submitted: <%= new Date(result.submittedAt).toLocaleString() %></div>
-                                    <div><i class="fas fa-edit"></i>Answers: <%= Object.keys(result.answers || {}).length %> response(s)</div>
+                                    <div><i class="fas fa-edit"></i>Answers: <%= Object.keys(result.complexAnswersData || {}).length %> response(s)</div>
                                 </div>
                             </div>
                             <div class="submission-actions">

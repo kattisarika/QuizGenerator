@@ -178,6 +178,11 @@ const quizResultSchema = new mongoose.Schema({
   teacherComments: {
     type: String,
     default: ''
+  },
+  // Store original complex quiz answers for teacher review
+  complexAnswersData: {
+    type: Object,
+    default: null
   }
 }, {
   timestamps: true
