@@ -1477,6 +1477,9 @@
                 return;
             }
 
+            // Sync current content from DOM before preview
+            syncElementsContent();
+
             // Create preview window
             const previewWindow = window.open('', '_blank', 'width=800,height=600');
             const previewContent = generatePreviewHTML();
@@ -1498,8 +1501,11 @@
                     }
                 }
 
+                // Get the current content from the DOM element (for edited content)
+                var currentContent = getCurrentElementContent(element);
+
                 elementsHTML += '<div style="position: absolute; left: ' + element.x + 'px; top: ' + element.y + 'px; width: ' + element.width + 'px; height: ' + element.height + 'px; ' + styleString + '">' +
-                    getElementContent(element) +
+                    currentContent +
                     '</div>';
             });
 
@@ -1529,6 +1535,123 @@
             return previewHTML;
         }
 
+        // Get current content from DOM element (captures edited content)
+        function getCurrentElementContent(element) {
+            const domElement = document.getElementById(element.id);
+            if (!domElement) {
+                // Fallback to original content if DOM element not found
+                return getElementContent(element);
+            }
+
+            switch(element.type) {
+                case 'textbox':
+                    // Get the current text from contenteditable div
+                    const textDiv = domElement.querySelector('[contenteditable="true"]');
+                    return textDiv ? '<div>' + textDiv.innerHTML + '</div>' : getElementContent(element);
+
+                case 'table':
+                    // Get the current table with all edited cell content
+                    const table = domElement.querySelector('table');
+                    if (table) {
+                        // Clone the table and remove contenteditable and onclick attributes for preview
+                        const clonedTable = table.cloneNode(true);
+                        const cells = clonedTable.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            cell.removeAttribute('contenteditable');
+                            cell.removeAttribute('onclick');
+                            // Clean up the style to remove outline
+                            cell.style.outline = 'none';
+                        });
+                        return clonedTable.outerHTML;
+                    }
+                    return getElementContent(element);
+
+                case 'question':
+                case 'sub-question':
+                    // Get current question content
+                    const questionDiv = domElement.querySelector('[contenteditable="true"]');
+                    if (questionDiv) {
+                        const questionType = element.type === 'question' ? 'Question' : 'Sub-question';
+                        const bgColor = element.type === 'question' ? '#f0f9ff' : '#fefce8';
+                        const borderColor = element.type === 'question' ? '#0ea5e9' : '#eab308';
+                        const marginLeft = element.type === 'sub-question' ? 'margin-left: 20px;' : '';
+
+                        return '<div style="padding: 15px; background: ' + bgColor + '; border-left: 4px solid ' + borderColor + '; ' + marginLeft + '">' +
+                            '<strong>' + questionType + ':</strong>' +
+                            '<div style="margin-top: 8px;">' + questionDiv.innerHTML + '</div>' +
+                            '</div>';
+                    }
+                    return getElementContent(element);
+
+                case 'answer-area':
+                    // Get current answer area content
+                    const textarea = domElement.querySelector('textarea');
+                    if (textarea) {
+                        return '<div style="padding: 15px; background: #f0fdf4; border: 2px dashed #22c55e; border-radius: 8px;">' +
+                            '<div style="color: #16a34a; font-weight: 600; margin-bottom: 8px;">' +
+                            '<i class="fas fa-edit" style="margin-right: 8px;"></i>Answer Area' +
+                            '</div>' +
+                            '<div style="width: 100%; min-height: 60px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px; background: white;">' +
+                            (textarea.value || 'Students will write their answer here...') +
+                            '</div>' +
+                            '</div>';
+                    }
+                    return getElementContent(element);
+
+                case 'image':
+                    // Images should already be properly stored in element.content
+                    return getElementContent(element);
+
+                case 'latex':
+                    // LaTeX content should be preserved
+                    return getElementContent(element);
+
+                default:
+                    // For other elements, get the current innerHTML
+                    return domElement.innerHTML || getElementContent(element);
+            }
+        }
+
+        // Sync current DOM content back to element data
+        function syncElementsContent() {
+            quizElements.forEach(function(element) {
+                const domElement = document.getElementById(element.id);
+                if (!domElement) return;
+
+                switch(element.type) {
+                    case 'textbox':
+                        const textDiv = domElement.querySelector('[contenteditable="true"]');
+                        if (textDiv) {
+                            element.content = textDiv.innerHTML;
+                        }
+                        break;
+
+                    case 'question':
+                    case 'sub-question':
+                        const questionDiv = domElement.querySelector('[contenteditable="true"]');
+                        if (questionDiv) {
+                            element.content = questionDiv.innerHTML;
+                        }
+                        break;
+
+                    case 'answer-area':
+                        const textarea = domElement.querySelector('textarea');
+                        if (textarea) {
+                            element.content = textarea.value;
+                        }
+                        break;
+
+                    case 'table':
+                        const table = domElement.querySelector('table');
+                        if (table) {
+                            // Store the current table HTML
+                            element.content = table.outerHTML;
+                        }
+                        break;
+                }
+            });
+        }
+
         // Save quiz
         function saveQuiz() {
             if (!quizSettings.title) {
@@ -1540,6 +1663,9 @@
                 alert('Please add some elements to the quiz');
                 return;
             }
+
+            // Sync current content from DOM before saving
+            syncElementsContent();
 
             const quizData = {
                 ...quizSettings,
