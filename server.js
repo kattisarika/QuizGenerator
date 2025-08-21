@@ -145,9 +145,9 @@ const requireApprovedTeacher = (req, res, next) => {
   next();
 };
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Middleware with increased payload limits for complex quizzes
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static('public'));
 
 // Multer configuration for document uploads (S3)
