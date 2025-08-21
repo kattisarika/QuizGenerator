@@ -555,6 +555,17 @@
                         </h4>
                         <div class="pdf-images-grid">
                             <% quiz.pdfImages.forEach((pdfImage, imgIndex) => { %>
+                                <!-- Debug: Show what pdfImage contains -->
+                                <script>
+                                    console.log('🔍 EJS Debug - Image <%= imgIndex %>:', {
+                                        url: '<%= pdfImage.url || "UNDEFINED" %>',
+                                        title: '<%= pdfImage.title || "UNDEFINED" %>',
+                                        type: '<%= pdfImage.type || "UNDEFINED" %>',
+                                        source: '<%= pdfImage.source || "UNDEFINED" %>',
+                                        fullObject: <%- JSON.stringify(pdfImage) %>
+                                    });
+                                </script>
+
                                 <div class="pdf-image-item">
                                     <div class="pdf-image-header">
                                         <span class="pdf-image-label">
@@ -586,11 +597,22 @@
                                         </div>
                                     <% } else { %>
                                         <!-- Regular Image Display -->
-                                        <img src="<%= pdfImage.url %>"
-                                             alt="<%= pdfImage.title %>"
+                                        <% const imageUrl = pdfImage.url || 'https://via.placeholder.com/600x400/cccccc/666666?text=No+Image+URL'; %>
+                                        <img src="<%= imageUrl %>"
+                                             alt="<%= pdfImage.title || 'Document Image' %>"
                                              class="pdf-image"
                                              style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
-                                             onclick="openImageModal('<%= pdfImage.url %>', '<%= pdfImage.title %>')">
+                                             onclick="openImageModal('<%= imageUrl %>', '<%= pdfImage.title || 'Document Image' %>')"
+                                             data-debug-url="<%= pdfImage.url || 'EMPTY' %>"
+                                             data-debug-title="<%= pdfImage.title || 'EMPTY' %>">
+
+                                        <!-- Debug info displayed below image -->
+                                        <div style="font-size: 10px; color: #666; margin-top: 5px; padding: 5px; background: #f0f0f0; border-radius: 3px;">
+                                            <strong>Debug:</strong><br>
+                                            URL: <%= pdfImage.url || 'EMPTY/UNDEFINED' %><br>
+                                            Title: <%= pdfImage.title || 'EMPTY/UNDEFINED' %><br>
+                                            Type: <%= pdfImage.type || 'EMPTY/UNDEFINED' %>
+                                        </div>
                                     <% } %>
 
                                     <div class="image-info">
