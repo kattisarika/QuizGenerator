@@ -778,7 +778,11 @@
                                     });
 
                                     // Initialize complex quiz navigation
-                                    initializeComplexQuizNavigation(questionGroups.length);
+                                    if (window.initializeComplexQuizNavigation) {
+                                        window.initializeComplexQuizNavigation(questionGroups.length);
+                                    } else {
+                                        console.error('initializeComplexQuizNavigation not found');
+                                    }
 
                                     // Process LaTeX if MathJax is available
                                     if (window.MathJax) {
@@ -1699,12 +1703,12 @@
         }
 
         // One Question Per Page Navigation System
-        let currentQuestion = 0;
-        let totalQuestions = <%= quiz.questions.length %>;
+        let regularCurrentQuestion = 0;
+        let regularTotalQuestions = <%= quiz.questions.length %>;
         let studentAnswers = {}; // Store student answers
 
         function nextQuestion() {
-            console.log('⏭️ nextQuestion called, current:', currentQuestion);
+            console.log('⏭️ nextQuestion called, current:', regularCurrentQuestion);
 
             // Check if current question is answered
             if (!isCurrentQuestionAnswered()) {
@@ -1714,20 +1718,20 @@
 
             hideAnswerRequiredAlert();
 
-            if (currentQuestion < totalQuestions - 1) {
-                currentQuestion++;
-                showQuestion(currentQuestion);
+            if (regularCurrentQuestion < regularTotalQuestions - 1) {
+                regularCurrentQuestion++;
+                showQuestion(regularCurrentQuestion);
                 updateNavigationState();
                 updateProgress();
             }
         }
 
         function previousQuestion() {
-            console.log('⏮️ previousQuestion called, current:', currentQuestion);
+            console.log('⏮️ previousQuestion called, current:', regularCurrentQuestion);
 
-            if (currentQuestion > 0) {
-                currentQuestion--;
-                showQuestion(currentQuestion);
+            if (regularCurrentQuestion > 0) {
+                regularCurrentQuestion--;
+                showQuestion(regularCurrentQuestion);
                 updateNavigationState();
                 updateProgress();
             }
@@ -1736,9 +1740,9 @@
         function goToQuestion(index) {
             console.log('🎯 goToQuestion called, index:', index);
 
-            if (index >= 0 && index < totalQuestions) {
-                currentQuestion = index;
-                showQuestion(currentQuestion);
+            if (index >= 0 && index < regularTotalQuestions) {
+                regularCurrentQuestion = index;
+                showQuestion(regularCurrentQuestion);
                 updateNavigationState();
                 updateProgress();
             }
@@ -1746,7 +1750,7 @@
 
         // Check if current question is answered
         function isCurrentQuestionAnswered() {
-            const currentQuestionElement = document.getElementById(`question-${currentQuestion}`);
+            const currentQuestionElement = document.getElementById(`question-${regularCurrentQuestion}`);
             if (!currentQuestionElement) return false;
 
             // Check for multiple choice answers
@@ -1801,11 +1805,11 @@
 
             // Update previous button
             if (prevBtn) {
-                prevBtn.disabled = currentQuestion === 0;
+                prevBtn.disabled = regularCurrentQuestion === 0;
             }
 
             // Update next/submit button
-            if (currentQuestion === totalQuestions - 1) {
+            if (regularCurrentQuestion === regularTotalQuestions - 1) {
                 // Last question - show submit button
                 if (nextBtn) nextBtn.style.display = 'none';
                 if (submitBtn) submitBtn.style.display = 'inline-block';
@@ -1829,7 +1833,7 @@
             indicators.forEach((indicator, index) => {
                 indicator.classList.remove('current', 'answered');
 
-                if (index === currentQuestion) {
+                if (index === regularCurrentQuestion) {
                     indicator.classList.add('current');
                 }
 
@@ -1884,17 +1888,17 @@
             // Update question counter
             const questionNumber = document.getElementById('current-question-number');
             if (questionNumber) {
-                questionNumber.textContent = currentQuestion + 1;
+                questionNumber.textContent = regularCurrentQuestion + 1;
             }
 
             // Update progress percentage
             const progressPercentage = document.getElementById('progress-percentage');
             const progressBar = document.getElementById('progress-bar');
 
-            const answeredQuestions = Array.from({length: totalQuestions}, (_, i) => i)
+            const answeredQuestions = Array.from({length: regularTotalQuestions}, (_, i) => i)
                 .filter(i => isQuestionAnswered(i)).length;
 
-            const percentage = Math.round((answeredQuestions / totalQuestions) * 100);
+            const percentage = Math.round((answeredQuestions / regularTotalQuestions) * 100);
 
             if (progressPercentage) {
                 progressPercentage.textContent = percentage;
@@ -1953,7 +1957,9 @@
             });
         }
 
-        // Complex Quiz Navigation System
+
+
+        // Complex Quiz Navigation System (Global Scope)
         let complexCurrentQuestion = 0;
         let complexTotalQuestions = 0;
 
@@ -2178,55 +2184,6 @@
             }
         }
 
-        // Make functions globally available
-        window.nextQuestion = nextQuestion;
-        window.previousQuestion = previousQuestion;
-        window.goToQuestion = goToQuestion;
-        window.updateProgress = updateProgress;
-        window.updateNavigationState = updateNavigationState;
-        window.initializeOneQuestionPerPage = initializeOneQuestionPerPage;
-        window.initializeComplexQuizNavigation = initializeComplexQuizNavigation;
-        window.nextComplexQuestion = nextComplexQuestion;
-        window.previousComplexQuestion = previousComplexQuestion;
-
-        // Track answers
-        document.addEventListener('change', function(e) {
-            if (e.target.type === 'radio') {
-                const questionIndex = parseInt(e.target.dataset.question);
-                const optionIndex = parseInt(e.target.dataset.option);
-                const selectedAnswer = e.target.value;
-                
-                answers[questionIndex] = {
-                    selectedAnswer: selectedAnswer,
-                    optionIndex: optionIndex
-                };
-                
-                // Mark indicator as answered
-                document.getElementById(`indicator-${questionIndex}`).classList.add('answered');
-            }
-        });
-
-        // Handle complex quiz submission
-        function handleComplexQuizSubmission() {
-            // Validate that all complex questions are answered
-            if (!validateAllComplexQuestionsAnswered()) {
-                return; // Stop submission if validation fails
-            }
-
-            const complexAnswers = {};
-
-            // Collect answers from complex quiz answer areas
-            document.querySelectorAll('textarea[id^="complex-answer-"]').forEach(textarea => {
-                const elementId = textarea.id.replace('complex-answer-', '');
-                complexAnswers[elementId] = textarea.value;
-            });
-
-            console.log('Complex quiz answers:', complexAnswers);
-
-            // Submit complex quiz
-            submitComplexQuiz(complexAnswers);
-        }
-
         // Validate all complex questions are answered
         function validateAllComplexQuestionsAnswered() {
             const unansweredQuestions = [];
@@ -2253,6 +2210,59 @@
             }
 
             return true;
+        }
+
+        // Make functions globally available
+        window.nextQuestion = nextQuestion;
+        window.previousQuestion = previousQuestion;
+        window.goToQuestion = goToQuestion;
+        window.updateProgress = updateProgress;
+        window.updateNavigationState = updateNavigationState;
+        window.initializeOneQuestionPerPage = initializeOneQuestionPerPage;
+        window.initializeComplexQuizNavigation = initializeComplexQuizNavigation;
+        window.nextComplexQuestion = nextComplexQuestion;
+        window.previousComplexQuestion = previousComplexQuestion;
+        window.validateAllComplexQuestionsAnswered = validateAllComplexQuestionsAnswered;
+        window.initializeComplexQuizNavigation = initializeComplexQuizNavigation;
+        window.nextComplexQuestion = nextComplexQuestion;
+        window.previousComplexQuestion = previousComplexQuestion;
+
+        // Track answers
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'radio') {
+                const questionIndex = parseInt(e.target.dataset.question);
+                const optionIndex = parseInt(e.target.dataset.option);
+                const selectedAnswer = e.target.value;
+                
+                answers[questionIndex] = {
+                    selectedAnswer: selectedAnswer,
+                    optionIndex: optionIndex
+                };
+                
+                // Mark indicator as answered
+                document.getElementById(`indicator-${questionIndex}`).classList.add('answered');
+            }
+        });
+
+        // Handle complex quiz submission
+        function handleComplexQuizSubmission() {
+            // Validate that all complex questions are answered
+            if (window.validateAllComplexQuestionsAnswered && !window.validateAllComplexQuestionsAnswered()) {
+                return; // Stop submission if validation fails
+            }
+
+            const complexAnswers = {};
+
+            // Collect answers from complex quiz answer areas
+            document.querySelectorAll('textarea[id^="complex-answer-"]').forEach(textarea => {
+                const elementId = textarea.id.replace('complex-answer-', '');
+                complexAnswers[elementId] = textarea.value;
+            });
+
+            console.log('Complex quiz answers:', complexAnswers);
+
+            // Submit complex quiz
+            submitComplexQuiz(complexAnswers);
         }
 
         // Submit complex quiz function
@@ -2312,7 +2322,7 @@
             
             // Collect all answers from the form
             const answersArray = [];
-            for (let i = 0; i < totalQuestions; i++) {
+            for (let i = 0; i < regularTotalQuestions; i++) {
                 const questionElement = document.getElementById(`question-${i}`);
                 let selectedAnswer = '';
 
@@ -2376,7 +2386,7 @@
         function validateAllQuestionsAnswered() {
             const unansweredQuestions = [];
 
-            for (let i = 0; i < totalQuestions; i++) {
+            for (let i = 0; i < regularTotalQuestions; i++) {
                 if (!isQuestionAnswered(i)) {
                     unansweredQuestions.push(i + 1);
                 }
