@@ -567,7 +567,11 @@
 
                                         case 'image':
                                             if (element.content && element.content.startsWith('data:image')) {
-                                                return '<img src="' + element.content + '" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" alt="Quiz Image">';
+                                                const objectFit = element.objectFit || 'contain';
+                                                const objectPosition = element.objectPosition || 'center';
+                                                return '<div style="width: 100%; height: 100%; overflow: hidden; border-radius: 4px;">' +
+                                                    '<img src="' + element.content + '" style="width: 100%; height: 100%; object-fit: ' + objectFit + '; object-position: ' + objectPosition + '; border-radius: 4px; display: block;" alt="Quiz Image">' +
+                                                    '</div>';
                                             } else {
                                                 return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8fafc; border: 2px dashed #cbd5e1; color: #64748b;">' +
                                                     '<div style="text-align: center;"><i class="fas fa-image fa-2x"></i><br><small>Image</small></div>' +

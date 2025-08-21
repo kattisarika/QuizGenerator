@@ -306,6 +306,8 @@
             transition: all 0.3s ease;
             min-width: 100px;
             min-height: 50px;
+            overflow: hidden;
+            box-sizing: border-box;
         }
 
         .canvas-element:hover {
@@ -1148,14 +1150,16 @@
                     return `<div contenteditable="true" style="outline: none; width: 100%; height: 100%;">${element.content || 'Click to edit text...'}</div>`;
                 case 'image':
                     if (element.content && element.content.startsWith('data:image')) {
-                        return `<div style="position: relative; width: 100%; height: 100%;">
-                            <img src="${element.content}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
+                        const objectFit = element.objectFit || 'contain';
+                        const objectPosition = element.objectPosition || 'center';
+                        return `<div style="position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 4px;">
+                            <img src="${element.content}" style="width: 100%; height: 100%; object-fit: ${objectFit}; object-position: ${objectPosition}; border-radius: 4px; display: block;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
                             <div style="position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
                                 <i class="fas fa-edit"></i> Change
                             </div>
                         </div>`;
                     } else {
-                        return `<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8fafc; border: 2px dashed #cbd5e1; cursor: pointer;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
+                        return `<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8fafc; border: 2px dashed #cbd5e1; cursor: pointer; overflow: hidden;" onclick="event.stopPropagation(); triggerImageUpload('${element.id}')">
                             <div style="text-align: center; color: #64748b;">
                                 <i class="fas fa-image fa-2x mb-2"></i><br>
                                 <small>Click to upload image</small>
@@ -1465,6 +1469,34 @@
                             </button>
                             <small class="text-muted">Supported formats: JPG, PNG, GIF (max 5MB)</small>
                         </div>
+                        ${elementData.content && elementData.content.startsWith('data:image') ? `
+                        <div class="property-group">
+                            <label>Image Fit</label>
+                            <select onchange="updateImageProperty('${elementData.id}', 'objectFit', this.value)" class="form-control">
+                                <option value="contain" ${(elementData.objectFit || 'contain') === 'contain' ? 'selected' : ''}>Fit to Container</option>
+                                <option value="cover" ${elementData.objectFit === 'cover' ? 'selected' : ''}>Fill Container</option>
+                                <option value="fill" ${elementData.objectFit === 'fill' ? 'selected' : ''}>Stretch to Fill</option>
+                                <option value="scale-down" ${elementData.objectFit === 'scale-down' ? 'selected' : ''}>Scale Down</option>
+                                <option value="none" ${elementData.objectFit === 'none' ? 'selected' : ''}>Original Size</option>
+                            </select>
+                            <small class="text-muted">How the image should fit within the container</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Image Position</label>
+                            <select onchange="updateImageProperty('${elementData.id}', 'objectPosition', this.value)" class="form-control">
+                                <option value="center" ${(elementData.objectPosition || 'center') === 'center' ? 'selected' : ''}>Center</option>
+                                <option value="top" ${elementData.objectPosition === 'top' ? 'selected' : ''}>Top</option>
+                                <option value="bottom" ${elementData.objectPosition === 'bottom' ? 'selected' : ''}>Bottom</option>
+                                <option value="left" ${elementData.objectPosition === 'left' ? 'selected' : ''}>Left</option>
+                                <option value="right" ${elementData.objectPosition === 'right' ? 'selected' : ''}>Right</option>
+                                <option value="top left" ${elementData.objectPosition === 'top left' ? 'selected' : ''}>Top Left</option>
+                                <option value="top right" ${elementData.objectPosition === 'top right' ? 'selected' : ''}>Top Right</option>
+                                <option value="bottom left" ${elementData.objectPosition === 'bottom left' ? 'selected' : ''}>Bottom Left</option>
+                                <option value="bottom right" ${elementData.objectPosition === 'bottom right' ? 'selected' : ''}>Bottom Right</option>
+                            </select>
+                            <small class="text-muted">Position of the image within the container</small>
+                        </div>
+                        ` : ''}
                     `;
                 case 'table':
                     return `
@@ -1605,6 +1637,22 @@
             }
         }
         window.updateShapeProperty = updateShapeProperty;
+
+        // Update image properties
+        function updateImageProperty(elementId, property, value) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (elementData) {
+                // Store the property in the element data
+                elementData[property] = value;
+
+                // Re-render the element to apply the changes
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.innerHTML = getElementContent(elementData);
+                }
+            }
+        }
+        window.updateImageProperty = updateImageProperty;
 
         // Trigger image upload dialog
         function triggerImageUpload(elementId) {
