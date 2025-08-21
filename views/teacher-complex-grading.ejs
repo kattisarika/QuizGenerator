@@ -134,6 +134,11 @@
             color: #92400e;
         }
 
+        .status-recorrection {
+            background: #fecaca;
+            color: #991b1b;
+        }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -256,9 +261,14 @@
                                 </div>
                             </div>
                             <div class="submission-actions">
-                                <span class="status-badge status-pending">Pending</span>
+                                <% if (result.status === 'pending-recorrection') { %>
+                                    <span class="status-badge status-recorrection">Re-grading Request</span>
+                                <% } else { %>
+                                    <span class="status-badge status-pending">Pending</span>
+                                <% } %>
                                 <a href="/teacher/grade-complex-quiz/<%= result._id %>" class="btn-grade">
-                                    <i class="fas fa-clipboard-check"></i> Grade Now
+                                    <i class="fas fa-clipboard-check"></i>
+                                    <%= result.status === 'pending-recorrection' ? 'Re-grade' : 'Grade Now' %>
                                 </a>
                             </div>
                         </div>

@@ -2676,7 +2676,10 @@ app.get('/teacher/complex-quiz-grading', requireAuth, requireRole(['teacher']), 
       teacherId: req.user._id,
       isComplexQuiz: true,
       needsManualGrading: true,
-      gradingStatus: 'pending'
+      $or: [
+        { gradingStatus: 'pending' },
+        { status: 'pending-recorrection' } // Include recorrection requests
+      ]
     })
     .populate('student', 'displayName email')
     .populate('quiz', 'title')
@@ -2749,6 +2752,9 @@ app.post('/teacher/grade-complex-quiz/:resultId', requireAuth, requireRole(['tea
     result.score = result.manualScore; // Update main score field
     result.percentage = result.manualPercentage; // Update main percentage field
 
+    // Assign badge based on teacher's grading for complex quizzes
+    result.assignBadge();
+
     await result.save();
 
     console.log('Complex quiz graded by teacher:', req.user.displayName, 'Result ID:', result._id);
@@ -2763,6 +2769,59 @@ app.post('/teacher/grade-complex-quiz/:resultId', requireAuth, requireRole(['tea
     res.status(500).json({
       success: false,
       message: 'Error grading complex quiz: ' + error.message
+    });
+  }
+});
+
+// Route for students to request complex quiz re-grading
+app.post('/request-complex-quiz-recorrection', requireAuth, requireRole(['student']), async (req, res) => {
+  try {
+    const { resultId } = req.body;
+
+    // Find the quiz result
+    const result = await QuizResult.findById(resultId);
+    if (!result) {
+      return res.status(404).json({ success: false, message: 'Quiz result not found' });
+    }
+
+    // Verify this student owns the result
+    if (result.student.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    // Verify this is a complex quiz that has been graded
+    if (!result.isComplexQuiz) {
+      return res.status(400).json({ success: false, message: 'This is not a complex quiz' });
+    }
+
+    if (result.gradingStatus !== 'graded') {
+      return res.status(400).json({ success: false, message: 'This quiz has not been graded yet' });
+    }
+
+    if (result.status === 'pending-recorrection') {
+      return res.status(400).json({ success: false, message: 'Re-grading request already pending' });
+    }
+
+    // Update the result status
+    result.status = 'pending-recorrection';
+    result.gradingStatus = 'pending'; // Reset to pending for re-grading
+    result.recorrectionRequested = true;
+    result.recorrectionRequestedAt = new Date();
+
+    await result.save();
+
+    console.log('Complex quiz re-grading requested by student:', req.user.displayName, 'Result ID:', result._id);
+
+    res.json({
+      success: true,
+      message: 'Re-grading request submitted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error requesting complex quiz re-grading:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error requesting re-grading: ' + error.message
     });
   }
 });
