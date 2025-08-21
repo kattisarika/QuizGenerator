@@ -1417,9 +1417,15 @@
                             <p><%= pendingComplexQuizzes.length %> complex quiz<%= pendingComplexQuizzes.length > 1 ? 's' : '' %> awaiting teacher review</p>
                             <div style="margin-bottom: 15px;">
                                 <% pendingComplexQuizzes.slice(0, 3).forEach(result => { %>
-                                    <div style="background: #fef3c7; padding: 8px 12px; margin: 5px 0; border-radius: 6px; font-size: 14px; color: #92400e;">
-                                        <i class="fas fa-clock"></i> <%= result.quiz.title %>
-                                    </div>
+                                    <% if (result.quiz && result.quiz.title) { %>
+                                        <div style="background: #fef3c7; padding: 8px 12px; margin: 5px 0; border-radius: 6px; font-size: 14px; color: #92400e;">
+                                            <i class="fas fa-clock"></i> <%= result.quiz.title %>
+                                        </div>
+                                    <% } else { %>
+                                        <div style="background: #fee2e2; padding: 8px 12px; margin: 5px 0; border-radius: 6px; font-size: 14px; color: #991b1b;">
+                                            <i class="fas fa-exclamation-triangle"></i> Quiz no longer available (pending review)
+                                        </div>
+                                    <% } %>
                                 <% }); %>
                                 <% if (pendingComplexQuizzes.length > 3) { %>
                                     <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
@@ -1442,19 +1448,28 @@
                             <p><%= gradedComplexQuizzes.length %> complex quiz<%= gradedComplexQuizzes.length > 1 ? 's' : '' %> graded by your teacher</p>
                             <div style="margin-bottom: 15px;">
                                 <% gradedComplexQuizzes.slice(0, 3).forEach(result => { %>
-                                    <div style="background: #d1fae5; padding: 8px 12px; margin: 5px 0; border-radius: 6px; font-size: 14px; color: #065f46; display: flex; justify-content: space-between; align-items: center;">
-                                        <span><i class="fas fa-check-circle"></i> <%= result.quiz.title %></span>
-                                        <span style="font-weight: 600;">
-                                            <%= result.manualPercentage || result.percentage %>%
-                                            <% if (result.manualPercentage >= 100) { %>
-                                                <i class="fas fa-crown" style="color: #8B5CF6; margin-left: 4px;" title="Purple Badge"></i>
-                                            <% } else if (result.manualPercentage >= 90) { %>
-                                                <i class="fas fa-medal" style="color: #EF4444; margin-left: 4px;" title="Red Badge"></i>
-                                            <% } else if (result.manualPercentage >= 80) { %>
-                                                <i class="fas fa-star" style="color: #10B981; margin-left: 4px;" title="Green Badge"></i>
-                                            <% } %>
-                                        </span>
-                                    </div>
+                                    <% if (result.quiz && result.quiz.title) { %>
+                                        <div style="background: #d1fae5; padding: 8px 12px; margin: 5px 0; border-radius: 6px; font-size: 14px; color: #065f46; display: flex; justify-content: space-between; align-items: center;">
+                                            <span><i class="fas fa-check-circle"></i> <%= result.quiz.title %></span>
+                                            <span style="font-weight: 600;">
+                                                <%= result.manualPercentage || result.percentage %>%
+                                                <% if ((result.manualPercentage || result.percentage) >= 100) { %>
+                                                    <i class="fas fa-crown" style="color: #8B5CF6; margin-left: 4px;" title="Purple Badge"></i>
+                                                <% } else if ((result.manualPercentage || result.percentage) >= 90) { %>
+                                                    <i class="fas fa-medal" style="color: #EF4444; margin-left: 4px;" title="Red Badge"></i>
+                                                <% } else if ((result.manualPercentage || result.percentage) >= 80) { %>
+                                                    <i class="fas fa-star" style="color: #10B981; margin-left: 4px;" title="Green Badge"></i>
+                                                <% } %>
+                                            </span>
+                                        </div>
+                                    <% } else { %>
+                                        <div style="background: #fef3c7; padding: 8px 12px; margin: 5px 0; border-radius: 6px; font-size: 14px; color: #92400e; display: flex; justify-content: space-between; align-items: center;">
+                                            <span><i class="fas fa-exclamation-triangle"></i> Quiz no longer available</span>
+                                            <span style="font-weight: 600;">
+                                                <%= result.manualPercentage || result.percentage %>%
+                                            </span>
+                                        </div>
+                                    <% } %>
                                 <% }); %>
                                 <% if (gradedComplexQuizzes.length > 3) { %>
                                     <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">

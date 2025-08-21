@@ -1856,7 +1856,18 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
     }).populate('quiz', 'title');
 
     // Get complex quiz results for dashboard display
-    const complexQuizResults = quizResults.filter(result => result.isComplexQuiz);
+    // Filter out results where the quiz has been deleted (quiz is null)
+    const allComplexQuizResults = quizResults.filter(result => result.isComplexQuiz);
+    const orphanedResults = allComplexQuizResults.filter(result => !result.quiz);
+
+    // Log orphaned results for debugging
+    if (orphanedResults.length > 0) {
+      console.log(`Found ${orphanedResults.length} orphaned quiz results for student ${req.user.email}`);
+      // Optionally clean up orphaned results (uncomment if needed)
+      // await QuizResult.deleteMany({ _id: { $in: orphanedResults.map(r => r._id) } });
+    }
+
+    const complexQuizResults = allComplexQuizResults.filter(result => result.quiz);
     const pendingComplexQuizzes = complexQuizResults.filter(result => result.gradingStatus === 'pending');
     const gradedComplexQuizzes = complexQuizResults.filter(result => result.gradingStatus === 'graded');
 
