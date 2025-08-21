@@ -244,6 +244,77 @@
         .question-image:hover {
             transform: scale(1.02);
         }
+
+        /* Complex Quiz Styles */
+        .complex-quiz-container {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        #complex-quiz-canvas {
+            background: #fafafa;
+            background-image:
+                linear-gradient(rgba(0,0,0,.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            position: relative;
+            min-height: 600px;
+        }
+
+        .complex-quiz-container h3 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 15px 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Complex Quiz Element Styles */
+        .complex-quiz-container textarea {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            transition: border-color 0.2s ease;
+        }
+
+        .complex-quiz-container textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .complex-quiz-container table {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+
+        .complex-quiz-container table td {
+            border: 1px solid #e2e8f0 !important;
+            padding: 8px !important;
+        }
+
+        #submit-complex-quiz-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        #submit-complex-quiz-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -405,6 +476,129 @@
 
                 <form id="quiz-form">
                     <div id="questions-container">
+                        <% if (quiz.isComplexQuiz && quiz.complexQuizData) { %>
+                            <!-- Complex Quiz Canvas Rendering -->
+                            <div class="complex-quiz-container" style="position: relative; width: 100%; min-height: 600px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px 0;">
+                                <div id="complex-quiz-canvas" style="position: relative; width: 100%; height: 600px; overflow: auto;">
+                                    <!-- Complex quiz elements will be rendered here -->
+                                </div>
+                            </div>
+
+                            <script>
+                                // Complex quiz data from server
+                                const complexQuizData = <%- JSON.stringify(quiz.complexQuizData) %>;
+                                console.log('Complex quiz data:', complexQuizData);
+
+                                // Render complex quiz elements
+                                function renderComplexQuiz() {
+                                    const canvas = document.getElementById('complex-quiz-canvas');
+                                    if (!canvas || !complexQuizData || !complexQuizData.elements) {
+                                        console.log('No complex quiz data to render');
+                                        return;
+                                    }
+
+                                    console.log('Rendering', complexQuizData.elements.length, 'complex quiz elements');
+
+                                    complexQuizData.elements.forEach((element, index) => {
+                                        const elementDiv = document.createElement('div');
+                                        elementDiv.id = element.id;
+                                        elementDiv.style.position = 'absolute';
+                                        elementDiv.style.left = element.x + 'px';
+                                        elementDiv.style.top = element.y + 'px';
+                                        elementDiv.style.width = element.width + 'px';
+                                        elementDiv.style.height = element.height + 'px';
+
+                                        // Apply element styles
+                                        if (element.style) {
+                                            Object.keys(element.style).forEach(key => {
+                                                elementDiv.style[key] = element.style[key];
+                                            });
+                                        }
+
+                                        // Render element content based on type
+                                        elementDiv.innerHTML = getComplexElementContent(element);
+
+                                        canvas.appendChild(elementDiv);
+                                        console.log('Rendered element:', element.id, element.type);
+                                    });
+                                }
+
+                                // Get element content for student view
+                                function getComplexElementContent(element) {
+                                    switch(element.type) {
+                                        case 'textbox':
+                                            return '<div style="width: 100%; height: 100%; padding: 8px; overflow: auto;">' + (element.content || 'Text content') + '</div>';
+
+                                        case 'question':
+                                            return '<div style="padding: 15px; background: #f0f9ff; border-left: 4px solid #0ea5e9; height: 100%; box-sizing: border-box;">' +
+                                                '<strong style="color: #0ea5e9;">Question:</strong>' +
+                                                '<div style="margin-top: 8px;">' + (element.content || 'Question text') + '</div>' +
+                                                '</div>';
+
+                                        case 'sub-question':
+                                            return '<div style="padding: 15px; background: #fefce8; border-left: 4px solid #eab308; margin-left: 20px; height: 100%; box-sizing: border-box;">' +
+                                                '<strong style="color: #eab308;">Sub-question:</strong>' +
+                                                '<div style="margin-top: 8px;">' + (element.content || 'Sub-question text') + '</div>' +
+                                                '</div>';
+
+                                        case 'answer-area':
+                                            const answerId = 'complex-answer-' + element.id;
+                                            return '<div style="padding: 15px; background: #f0fdf4; border: 2px dashed #22c55e; border-radius: 8px; height: 100%; box-sizing: border-box;">' +
+                                                '<div style="color: #16a34a; font-weight: 600; margin-bottom: 8px;">' +
+                                                '<i class="fas fa-edit" style="margin-right: 8px;"></i>Answer Area' +
+                                                '</div>' +
+                                                '<textarea id="' + answerId + '" style="width: 100%; height: calc(100% - 40px); border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px; resize: none;" placeholder="Write your answer here..."></textarea>' +
+                                                '</div>';
+
+                                        case 'table':
+                                            if (element.content && element.content.includes('<table')) {
+                                                // If content contains table HTML, use it directly
+                                                return element.content;
+                                            } else {
+                                                // Fallback table
+                                                return '<table style="width: 100%; border-collapse: collapse; height: 100%;">' +
+                                                    '<tr><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 1</td><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 2</td></tr>' +
+                                                    '<tr><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 3</td><td style="border: 1px solid #e2e8f0; padding: 8px;">Cell 4</td></tr>' +
+                                                    '</table>';
+                                            }
+
+                                        case 'image':
+                                            if (element.content && element.content.startsWith('data:image')) {
+                                                return '<img src="' + element.content + '" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" alt="Quiz Image">';
+                                            } else {
+                                                return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8fafc; border: 2px dashed #cbd5e1; color: #64748b;">' +
+                                                    '<div style="text-align: center;"><i class="fas fa-image fa-2x"></i><br><small>Image</small></div>' +
+                                                    '</div>';
+                                            }
+
+                                        case 'latex':
+                                            return '<div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 10px; background: #fefce8; border: 1px solid #eab308; border-radius: 4px;">' +
+                                                '<div class="math-content">$$' + (element.content || 'x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}') + '$$</div>' +
+                                                '</div>';
+
+                                        default:
+                                            return '<div style="padding: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; height: 100%; box-sizing: border-box;">' +
+                                                (element.content || 'Content') +
+                                                '</div>';
+                                    }
+                                }
+
+                                // Render complex quiz when page loads
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    renderComplexQuiz();
+
+                                    // Process LaTeX if MathJax is available
+                                    if (window.MathJax) {
+                                        setTimeout(() => {
+                                            MathJax.typesetPromise().catch(console.error);
+                                        }, 500);
+                                    }
+                                });
+                            </script>
+                        <% } else { %>
+                            <!-- Regular Quiz Questions -->
+                        <% } %>
+
                         <% quiz.questions.forEach((question, index) => { %>
                             <div class="question-container" id="question-<%= index %>" style="display: <%= index === 0 ? 'block' : 'none' %>;">
                                 <div class="question-header">
@@ -602,6 +796,15 @@
                     </div>
 
                     <div class="quiz-navigation">
+                        <% if (quiz.isComplexQuiz && quiz.complexQuizData) { %>
+                            <!-- Complex Quiz Navigation -->
+                            <div class="nav-buttons">
+                                <button type="submit" id="submit-complex-quiz-btn" class="btn btn-success">
+                                    <i class="fas fa-check"></i> Submit Complex Quiz
+                                </button>
+                            </div>
+                        <% } else { %>
+                            <!-- Regular Quiz Navigation -->
                         <div class="nav-buttons">
                             <button type="button" id="prev-btn" class="btn btn-secondary" disabled>
                                 <i class="fas fa-chevron-left"></i> Previous
@@ -624,7 +827,7 @@
                                 </div>
                             <% }); %>
                         </div>
-                    </div>
+                        <% } %>
                 </form>
             </div>
         </div>
@@ -955,10 +1158,64 @@
             }
         });
 
+        // Handle complex quiz submission
+        function handleComplexQuizSubmission() {
+            const complexAnswers = {};
+
+            // Collect answers from complex quiz answer areas
+            document.querySelectorAll('textarea[id^="complex-answer-"]').forEach(textarea => {
+                const elementId = textarea.id.replace('complex-answer-', '');
+                complexAnswers[elementId] = textarea.value;
+            });
+
+            console.log('Complex quiz answers:', complexAnswers);
+
+            // Submit complex quiz
+            submitComplexQuiz(complexAnswers);
+        }
+
+        // Submit complex quiz function
+        function submitComplexQuiz(complexAnswers) {
+            const submitData = {
+                answers: complexAnswers,
+                isComplexQuiz: true,
+                timeSpent: Math.floor((Date.now() - startTime) / 1000)
+            };
+
+            console.log('Submitting complex quiz:', submitData);
+
+            fetch(`/submit-quiz/<%= quiz._id %>`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(submitData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Complex quiz submitted successfully!');
+                    window.location.href = '/student/dashboard';
+                } else {
+                    alert('Error submitting quiz: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting complex quiz:', error);
+                alert('Error submitting quiz. Please try again.');
+            });
+        }
+
         // Handle form submission
         document.getElementById('quiz-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
+            // Check if this is a complex quiz
+            if (typeof complexQuizData !== 'undefined' && complexQuizData) {
+                handleComplexQuizSubmission();
+                return;
+            }
+
             // Validate that all questions are answered
             if (!validateAllQuestionsAnswered()) {
                 return; // Stop submission if validation fails

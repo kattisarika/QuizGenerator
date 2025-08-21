@@ -4698,9 +4698,44 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
       });
     }
     
-    const { answers, timeTaken } = req.body;
+    const { answers, timeTaken, isComplexQuiz, timeSpent } = req.body;
+
+    // Handle complex quiz submission
+    if (isComplexQuiz && quiz.isComplexQuiz) {
+      console.log('Processing complex quiz submission');
+      console.log('Complex quiz answers:', answers);
+
+      // For complex quizzes, we store the answers as-is since they're free-form
+      const quizResult = new QuizResult({
+        student: req.user._id,
+        studentName: req.user.displayName,
+        quiz: quiz._id,
+        quizTitle: quiz.title,
+        answers: answers, // Store complex answers object
+        score: 0, // Complex quizzes don't have automatic scoring
+        percentage: 0,
+        correctAnswers: 0,
+        totalQuestions: Object.keys(answers).length,
+        timeTaken: timeSpent || 0,
+        submittedAt: new Date(),
+        isComplexQuiz: true
+      });
+
+      await quizResult.save();
+
+      console.log('Complex quiz result saved:', quizResult._id);
+
+      return res.json({
+        success: true,
+        message: 'Complex quiz submitted successfully',
+        resultId: quizResult._id,
+        isComplexQuiz: true
+      });
+    }
+
+    // Regular quiz processing
     const answersArray = Array.isArray(answers) ? answers : [];
-    
+
     // Debug: Log received answers
     console.log('Received answers from frontend:', JSON.stringify(answersArray, null, 2));
     
