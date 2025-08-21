@@ -1472,6 +1472,9 @@
             // Initialize one-question-per-page navigation with delay
             setTimeout(() => {
                 initializeOneQuestionPerPage();
+
+                // Set up beforeunload protection after initialization
+                setupBeforeUnloadProtection();
             }, 100);
         });
 
@@ -2203,6 +2206,53 @@
             return true;
         }
 
+        // Beforeunload handler to prevent accidental navigation
+        let isSubmitting = false;
+
+        function beforeUnloadHandler(e) {
+            // Only show warning if not submitting and there are answers
+            if (!isSubmitting && hasAnyAnswers()) {
+                e.preventDefault();
+                e.returnValue = ''; // Chrome requires returnValue to be set
+                return ''; // For older browsers
+            }
+        }
+
+        // Check if user has entered any answers
+        function hasAnyAnswers() {
+            // Check regular quiz answers
+            const radioButtons = document.querySelectorAll('input[type="radio"]:checked');
+            const textInputs = document.querySelectorAll('input[type="text"], textarea');
+            const richTextElements = document.querySelectorAll('[contenteditable="true"]');
+
+            // Check if any radio buttons are selected
+            if (radioButtons.length > 0) return true;
+
+            // Check if any text inputs have content
+            for (let input of textInputs) {
+                if (input.value.trim() !== '') return true;
+            }
+
+            // Check if any rich text elements have content
+            for (let element of richTextElements) {
+                if (element.textContent.trim() !== '') return true;
+            }
+
+            return false;
+        }
+
+        // Set up beforeunload protection
+        function setupBeforeUnloadProtection() {
+            window.addEventListener('beforeunload', beforeUnloadHandler);
+        }
+
+        // Remove beforeunload protection
+        function removeBeforeUnloadProtection() {
+            isSubmitting = true;
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+            window.onbeforeunload = null;
+        }
+
         // Make functions globally available
         window.nextQuestion = nextQuestion;
         window.previousQuestion = previousQuestion;
@@ -2214,6 +2264,7 @@
         window.nextComplexQuestion = nextComplexQuestion;
         window.previousComplexQuestion = previousComplexQuestion;
         window.validateAllComplexQuestionsAnswered = validateAllComplexQuestionsAnswered;
+        window.removeBeforeUnloadProtection = removeBeforeUnloadProtection;
         window.initializeComplexQuizNavigation = initializeComplexQuizNavigation;
         window.nextComplexQuestion = nextComplexQuestion;
         window.previousComplexQuestion = previousComplexQuestion;
@@ -2237,6 +2288,9 @@
 
         // Handle complex quiz submission
         function handleComplexQuizSubmission() {
+            // Remove beforeunload warning before submission
+            removeBeforeUnloadProtection();
+
             // Validate that all complex questions are answered
             if (window.validateAllComplexQuestionsAnswered && !window.validateAllComplexQuestionsAnswered()) {
                 return; // Stop submission if validation fails
@@ -2276,18 +2330,27 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Ensure beforeunload protection is removed
+                    removeBeforeUnloadProtection();
+
                     if (data.needsManualGrading) {
                         alert('✅ Complex quiz submitted successfully!\n\n📝 Your answers have been sent to your teacher for review and grading.\n\n⏳ You will receive your results once your teacher has completed the review.');
                     } else {
                         alert('Complex quiz submitted successfully!');
                     }
-                    window.location.href = '/student/dashboard';
+
+                    // Use replace instead of href to avoid back button issues
+                    window.location.replace('/student/dashboard');
                 } else {
+                    // Re-enable beforeunload protection if submission failed
+                    setupBeforeUnloadProtection();
                     alert('Error submitting quiz: ' + data.message);
                 }
             })
             .catch(error => {
                 console.error('Error submitting complex quiz:', error);
+                // Re-enable beforeunload protection if submission failed
+                setupBeforeUnloadProtection();
                 alert('Error submitting quiz. Please try again.');
             });
         }
@@ -2297,6 +2360,9 @@
         if (quizForm) {
             quizForm.addEventListener('submit', function(e) {
                 e.preventDefault();
+
+                // Remove beforeunload warning before submission
+                removeBeforeUnloadProtection();
 
             // Check if this is a complex quiz
             if (typeof complexQuizData !== 'undefined' && complexQuizData) {
@@ -2361,14 +2427,21 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Ensure beforeunload protection is removed
+                    removeBeforeUnloadProtection();
+
                     // Show completion message with results
                     showCompletionMessage(data);
                 } else {
+                    // Re-enable beforeunload protection if submission failed
+                    setupBeforeUnloadProtection();
                     alert('Error submitting quiz: ' + data.message);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                // Re-enable beforeunload protection if submission failed
+                setupBeforeUnloadProtection();
                 alert('Error submitting quiz. Please try again.');
             });
         });
@@ -2401,9 +2474,9 @@
 
         // Show completion message
         function showCompletionMessage(data) {
-            // Set quiz completed flag to prevent beforeunload warning
-            quizCompleted = true;
-            
+            // Remove beforeunload protection when showing completion
+            removeBeforeUnloadProtection();
+
             const message = `
                 <div style="text-align: center; padding: 40px;">
                     <h2 style="color: #28a745;">🎉 Quiz Completed!</h2>
@@ -2420,20 +2493,9 @@
                     </div>
                 </div>
             `;
-            
+
             document.querySelector('.quiz-taking-container').innerHTML = message;
         }
-
-        // Prevent accidental navigation away from quiz
-        let isSubmittingQuiz = false;
-        let quizCompleted = false;
-        window.addEventListener('beforeunload', function(e) {
-            if (!isSubmittingQuiz && !quizCompleted) {
-                e.preventDefault();
-                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-                return 'You have unsaved changes. Are you sure you want to leave?';
-            }
-        });
         } else {
             console.error('Quiz form not found');
         }
