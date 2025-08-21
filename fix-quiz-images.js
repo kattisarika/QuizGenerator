@@ -21,7 +21,7 @@ const Quiz = mongoose.model('Quiz', quizSchema);
 
 async function fixQuizImages() {
   try {
-    const quizId = '68a6a685e55d3088ef4abc14'; // Updated to current quiz ID
+    const quizId = '68a6a685e55d3088ef4abc14'; // Current quiz ID from error logs
     
     console.log(`🔍 Looking for quiz: ${quizId}`);
     
