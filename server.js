@@ -4817,7 +4817,7 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
             questionIndex: index,
             selectedAnswer: complexAnswersData[elementId] || '',
             isCorrect: false, // Will be determined by teacher
-            correctAnswer: '', // Will be set by teacher
+            correctAnswer: 'To be graded by teacher', // Required field - placeholder for complex quizzes
             elementId: elementId // Store the original element ID for reference
           });
         });
@@ -4828,7 +4828,7 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
             questionIndex: 0,
             selectedAnswer: 'No answers provided',
             isCorrect: false,
-            correctAnswer: ''
+            correctAnswer: 'To be graded by teacher' // Required field
           });
         }
 
