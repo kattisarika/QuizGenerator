@@ -1923,16 +1923,29 @@
 
         // Add element to canvas (for quick buttons)
         function addElementToCanvas(type) {
-            // Find a good position for the new element
-            const canvas = document.getElementById('quiz-canvas');
-            const canvasRect = canvas.getBoundingClientRect();
+            try {
+                // Find a good position for the new element
+                const canvas = document.getElementById('canvas');
+                if (!canvas) {
+                    console.error('Canvas element not found!');
+                    // Fallback to default position
+                    createElement(type, 150, 150);
+                    return;
+                }
 
-            // Calculate position relative to canvas (center-ish with some randomness)
-            const x = Math.max(50, Math.min(canvasRect.width - 200, 100 + Math.random() * 200));
-            const y = Math.max(50, Math.min(canvasRect.height - 150, 100 + Math.random() * 150));
+                const canvasRect = canvas.getBoundingClientRect();
 
-            // Create the element
-            createElement(type, x, y);
+                // Calculate position relative to canvas (center-ish with some randomness)
+                const x = Math.max(50, Math.min(canvasRect.width - 200, 100 + Math.random() * 200));
+                const y = Math.max(50, Math.min(canvasRect.height - 150, 100 + Math.random() * 150));
+
+                // Create the element
+                createElement(type, x, y);
+            } catch (error) {
+                console.error('Error in addElementToCanvas:', error);
+                // Fallback to default position
+                createElement(type, 150, 150);
+            }
         }
         window.addElementToCanvas = addElementToCanvas;
 
