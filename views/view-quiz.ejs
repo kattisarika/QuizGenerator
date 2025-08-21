@@ -130,31 +130,7 @@
                                         </div>
                                     <% } %>
                                     
-                                    <!-- PDF Images Display -->
-                                    <% if (quiz.pdfImages && quiz.pdfImages.length > 0) { %>
-                                        <div class="pdf-images-container">
-                                            <h4 class="pdf-images-title">
-                                                <i class="fas fa-images"></i> Document Images
-                                            </h4>
-                                            <div class="pdf-images-grid">
-                                                <% quiz.pdfImages.forEach((pdfImage, imgIndex) => { %>
-                                                    <div class="pdf-image-item">
-                                                        <div class="pdf-image-header">
-                                                            <span class="pdf-image-label">Page <%= pdfImage.page %></span>
-                                                            <% if (pdfImage.imageIndex > 1) { %>
-                                                                <span class="pdf-image-subtitle">Image <%= pdfImage.imageIndex %></span>
-                                                            <% } %>
-                                                        </div>
-                                                        <img src="<%= pdfImage.url %>" 
-                                                             alt="PDF Page <%= pdfImage.page %> Image <%= pdfImage.imageIndex %>" 
-                                                             class="pdf-image" 
-                                                             style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
-                                                             onclick="openImageModal('<%= pdfImage.url %>', 'Page <%= pdfImage.page %>')">
-                                                    </div>
-                                                <% }); %>
-                                            </div>
-                                        </div>
-                                    <% } %>
+
                                     
                                     <div class="options-list">
                                         <% question.options.forEach((option, optIndex) => { %>

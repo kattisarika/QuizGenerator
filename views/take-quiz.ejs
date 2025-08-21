@@ -78,25 +78,7 @@
             color: #f39c12;
         }
 
-        /* PDF Images Styles */
-        .pdf-images-container {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
 
-        .pdf-images-title {
-            color: #1e40af;
-            margin-bottom: 20px;
-            font-size: 18px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
 
         .document-source {
             margin-left: auto;
@@ -471,38 +453,7 @@
                     <h1><%= quiz.title %></h1>
                     <p><%= quiz.description %></p>
                     
-                    <!-- Re-extract PDF Images Button (Only for Teachers/Admins) -->
-                    <% if (quiz.pdfImages && quiz.pdfImages.length === 0 && quiz.questionPaperUrl && user && (user.role === 'teacher' || user.role === 'admin')) { %>
-                        <div class="reextract-section" style="margin-top: 15px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px;">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div>
-                                    <i class="fas fa-exclamation-triangle" style="color: #f39c12; margin-right: 8px;"></i>
-                                    <strong style="color: #856404;">PDF Images Missing</strong>
-                                    <p style="margin: 5px 0 0 0; color: #856404; font-size: 14px;">
-                                        This quiz has no PDF images. Click the button to re-extract them from the original question paper.
-                                    </p>
-                                </div>
-                                <button id="reextract-pdf-btn" class="btn btn-warning" style="white-space: nowrap;">
-                                    <i class="fas fa-sync-alt"></i> Re-extract PDF Images
-                                </button>
-                            </div>
-                        </div>
-                    <% } %>
-                    
-                    <!-- Student Notice for Missing PDF Images -->
-                    <% if (quiz.pdfImages && quiz.pdfImages.length === 0 && quiz.questionPaperUrl && user && user.role === 'student') { %>
-                        <div class="reextract-section" style="margin-top: 15px; padding: 15px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px;">
-                            <div style="display: flex; align-items: center;">
-                                <div>
-                                    <i class="fas fa-info-circle" style="color: #2196f3; margin-right: 8px;"></i>
-                                    <strong style="color: #1976d2;">PDF Images Missing</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1976d2; font-size: 14px;">
-                                        This quiz is missing PDF images. Please contact your teacher to fix this issue.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    <% } %>
+
                 </div>
                 
                 <div class="quiz-timer">
@@ -524,116 +475,7 @@
             </div>
 
             <div class="quiz-content">
-                <!-- Document Images Display (Quiz Level) -->
-                <% if (quiz.pdfImages && quiz.pdfImages.length > 0) { %>
-                    <!-- PDF Images Available Notice -->
-                    <div class="alert alert-info" style="margin-bottom: 20px; border-left: 4px solid #3b82f6;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <i class="fas fa-images" style="color: #3b82f6; font-size: 18px;"></i>
-                            <div>
-                                <strong>Document Images Available</strong>
-                                <p style="margin: 5px 0 0 0; color: #6b7280;">
-                                    This quiz includes <%= quiz.pdfImages.length %> image<%= quiz.pdfImages.length > 1 ? 's' : '' %> extracted from the original document.
-                                    Scroll down to view them or click any image to see it in full size.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="pdf-images-container" style="margin-bottom: 30px;">
-                        <h4 class="pdf-images-title">
-                            <i class="fas fa-images"></i> Document Images
-                            <span class="document-source">
-                                <% if (quiz.pdfImages[0].source === 'docx') { %>
-                                    <i class="fas fa-file-word" title="DOCX Document"></i>
-                                <% } else if (quiz.pdfImages[0].source === 'pdf') { %>
-                                    <i class="fas fa-file-pdf" title="PDF Document"></i>
-                                <% } else { %>
-                                    <i class="fas fa-image" title="Uploaded Images"></i>
-                                <% } %>
-                            </span>
-                        </h4>
-                        <div class="pdf-images-grid">
-                            <% quiz.pdfImages.forEach((pdfImage, imgIndex) => { %>
-                                <!-- Debug: Show what pdfImage contains -->
-                                <script>
-                                    console.log('🔍 EJS Debug - Image <%= imgIndex %>:', {
-                                        url: '<%= pdfImage.url || "UNDEFINED" %>',
-                                        title: '<%= pdfImage.title || "UNDEFINED" %>',
-                                        type: '<%= pdfImage.type || "UNDEFINED" %>',
-                                        source: '<%= pdfImage.source || "UNDEFINED" %>'
-                                    });
-                                </script>
-
-                                <div class="pdf-image-item">
-                                    <div class="pdf-image-header">
-                                        <span class="pdf-image-label">
-                                            <% if ((pdfImage.source || 'pdf') === 'docx') { %>
-                                                <i class="fas fa-file-word"></i> <%= pdfImage.title || 'Document Image' %>
-                                            <% } else if ((pdfImage.source || 'pdf') === 'pdf') { %>
-                                                <i class="fas fa-file-pdf"></i> <%= pdfImage.title || 'Document Image' %>
-                                            <% } else { %>
-                                                <i class="fas fa-image"></i> <%= pdfImage.title || 'Document Image' %>
-                                            <% } %>
-                                        </span>
-                                        <% if (pdfImage.description) { %>
-                                            <span class="pdf-image-subtitle"><%= pdfImage.description %></span>
-                                        <% } %>
-                                    </div>
-
-                                    <% if ((pdfImage.type || 'image') === 'pdf') { %>
-                                        <!-- PDF Document Display -->
-                                        <div class="pdf-document-display" style="border: 2px dashed #dee2e6; padding: 20px; text-align: center; background: #f8f9fa; border-radius: 8px;">
-                                            <i class="fas fa-file-pdf" style="font-size: 48px; color: #dc3545; margin-bottom: 15px;"></i>
-                                            <h5 style="margin: 0 0 10px 0; color: #495057;"><%= pdfImage.title %></h5>
-                                            <p style="margin: 0 0 15px 0; color: #6c757d;"><%= pdfImage.description %></p>
-                                            <button class="btn btn-primary btn-sm" onclick="openPdfViewer('<%= pdfImage.url %>', '<%= pdfImage.title %>')">
-                                                <i class="fas fa-eye"></i> View PDF
-                                            </button>
-                                            <button class="btn btn-outline-secondary btn-sm ml-2" onclick="downloadPdf('<%= pdfImage.url %>', '<%= pdfImage.title %>')">
-                                                <i class="fas fa-download"></i> Download
-                                            </button>
-                                        </div>
-                                    <% } else { %>
-                                        <!-- Regular Image Display -->
-                                        <!-- DEBUG: Show what's actually in pdfImage -->
-                                        <div style="background: #ffebee; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 11px;">
-                                            <strong>🔍 EJS pdfImage Debug:</strong><br>
-                                            Raw object: <%= JSON.stringify(pdfImage) %><br>
-                                            url property: "<%= pdfImage.url %>"<br>
-                                            url type: <%= typeof pdfImage.url %><br>
-                                            url is undefined: <%= pdfImage.url === undefined %><br>
-                                            url is null: <%= pdfImage.url === null %><br>
-                                            url is empty string: <%= pdfImage.url === '' %>
-                                        </div>
-                                        <% const imageUrl = pdfImage.url || 'https://via.placeholder.com/600x400/cccccc/666666?text=No+Image+URL'; %>
-                                        <img src="<%= imageUrl %>"
-                                             alt="<%= pdfImage.title || 'Document Image' %>"
-                                             class="pdf-image"
-                                             style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;"
-                                             onclick="openImageModal('<%= imageUrl %>', '<%= pdfImage.title || 'Document Image' %>')"
-                                             data-debug-url="<%= pdfImage.url || 'EMPTY' %>"
-                                             data-debug-title="<%= pdfImage.title || 'EMPTY' %>">
-
-                                        <!-- Debug info displayed below image -->
-                                        <div style="font-size: 10px; color: #666; margin-top: 5px; padding: 5px; background: #f0f0f0; border-radius: 3px;">
-                                            <strong>Debug:</strong><br>
-                                            URL: <%= pdfImage.url || 'EMPTY/UNDEFINED' %><br>
-                                            Title: <%= pdfImage.title || 'EMPTY/UNDEFINED' %><br>
-                                            Type: <%= pdfImage.type || 'EMPTY/UNDEFINED' %>
-                                        </div>
-                                    <% } %>
-
-                                    <div class="image-info">
-                                        <small class="text-muted">
-                                            <%= (pdfImage.source || 'PDF').toUpperCase() %> • <%= pdfImage.title || 'Document Image' %>
-                                        </small>
-                                    </div>
-                                </div>
-                            <% }); %>
-                        </div>
-                    </div>
-                <% } %>
 
                 <form id="quiz-form">
                     <div id="questions-container">
@@ -1528,83 +1370,7 @@
             });
         }
 
-        // PDF document images loading functionality
-        function loadPdfImages() {
-            const pdfImages = document.querySelectorAll('.pdf-image');
-            const pdfImagesContainer = document.querySelector('.pdf-images-container');
-            
-            if (!pdfImagesContainer) {
-                console.log('📋 No PDF images container found - quiz may not have PDF images');
-                return;
-            }
-            
-            if (pdfImages.length === 0) {
-                console.log('📋 No PDF image elements found in container');
-                return;
-            }
 
-            console.log(`🔗 Loading ${pdfImages.length} PDF document images`);
-
-            pdfImages.forEach((img, index) => {
-                // Get the current src attribute
-                const currentSrc = img.getAttribute('src');
-                
-                if (!currentSrc || currentSrc === 'undefined' || currentSrc.includes('undefined')) {
-                    console.log(`❌ PDF image ${index} has invalid src: "${currentSrc}"`);
-                    return;
-                }
-
-                console.log(`🔗 Loading PDF image ${index + 1}: ${currentSrc}`);
-
-                // Add loading state
-                img.style.opacity = '0.5';
-                img.style.filter = 'grayscale(100%)';
-
-                // Load the image
-                img.onload = function() {
-                    img.style.opacity = '1';
-                    img.style.filter = 'none';
-                    console.log(`✅ PDF image ${index + 1} loaded successfully`);
-                };
-
-                img.onerror = function() {
-                    img.style.opacity = '0.3';
-                    img.style.filter = 'grayscale(100%)';
-                    
-                    // Add error overlay
-                    const errorOverlay = document.createElement('div');
-                    errorOverlay.style.cssText = `
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        bottom: 0;
-                        background: rgba(220, 53, 69, 0.8);
-                        color: white;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        text-align: center;
-                        border-radius: 8px;
-                        font-size: 12px;
-                        padding: 10px;
-                    `;
-                    errorOverlay.innerHTML = '<i class="fas fa-exclamation-triangle"></i><br>Image failed to load';
-                    
-                    // Make the image container relative positioned
-                    const container = img.closest('.pdf-image-item');
-                    if (container) {
-                        container.style.position = 'relative';
-                        container.appendChild(errorOverlay);
-                    }
-                    
-                    console.error(`❌ PDF image ${index + 1} failed to load: ${currentSrc}`);
-                };
-
-                // Force reload the image
-                img.src = currentSrc;
-            });
-        }
 
         // Load images when page loads
         document.addEventListener('DOMContentLoaded', function() {
@@ -1612,39 +1378,10 @@
             
             // Debug: Check what images exist
             const questionImageContainers = document.querySelectorAll('.question-image-container');
-            const pdfImages = document.querySelectorAll('.pdf-image');
-            const pdfDocuments = document.querySelectorAll('.pdf-document-display');
-            const pdfImagesContainer = document.querySelector('.pdf-images-container');
-            
+
             console.log('🔍 Image Debug Info:');
             console.log('  - Question image containers found:', questionImageContainers.length);
-            console.log('  - PDF images found:', pdfImages.length);
-            console.log('  - PDF documents found:', pdfDocuments.length);
-            console.log('  - PDF images container exists:', !!pdfImagesContainer);
-            
-            // Debug: Check quiz data from EJS
-            console.log('🔍 Quiz Data Debug:');
-            console.log('  - Quiz object exists:', typeof quiz !== 'undefined');
-            <% if (typeof quiz !== 'undefined') { %>
-                console.log('  - Quiz ID:', '<%= quiz._id %>');
-                console.log('  - Quiz title:', '<%= quiz.title %>');
-                console.log('  - Quiz has pdfImages:', <%= quiz.pdfImages ? 'true' : 'false' %>);
-                console.log('  - Quiz pdfImages type:', '<%= typeof quiz.pdfImages %>');
-                console.log('  - Quiz pdfImages is array:', <%= Array.isArray(quiz.pdfImages) %>);
-                console.log('  - Quiz pdfImages length:', <%= quiz.pdfImages ? quiz.pdfImages.length : 0 %>);
-                console.log('  - Quiz pdfImages raw:', <%- JSON.stringify(quiz.pdfImages) %>);
-                <% if (quiz.pdfImages && quiz.pdfImages.length > 0) { %>
-                    console.log('  - First PDF image URL:', '<%= quiz.pdfImages[0].url %>');
-                    console.log('  - First PDF image title:', '<%= quiz.pdfImages[0].title %>');
-                    console.log('  - First PDF image source:', '<%= quiz.pdfImages[0].source %>');
-                    console.log('  - First PDF image type:', '<%= quiz.pdfImages[0].type %>');
-                <% } %>
-            <% } %>
-            console.log('  - Quiz ID:', '<%= quiz._id %>');
-            console.log('  - Quiz title:', '<%= quiz.title %>');
-            console.log('  - PDF Images property:', '<%= quiz.pdfImages ? "exists" : "missing" %>');
-            console.log('  - PDF Images length:', '<%= quiz.pdfImages ? quiz.pdfImages.length : "undefined" %>');
-            
+
             if (questionImageContainers.length > 0) {
                 questionImageContainers.forEach((container, index) => {
                     const s3Key = container.dataset.s3Key;
@@ -1652,25 +1389,9 @@
                     console.log(`  - Question ${index}: s3Key="${s3Key}", questionIndex="${questionIndex}"`);
                 });
             }
-            
-            if (pdfImages.length > 0) {
-                pdfImages.forEach((img, index) => {
-                    const src = img.getAttribute('src');
-                    console.log(`  - PDF Image ${index}: src="${src}"`);
-                });
-            }
-            
-            if (pdfDocuments.length > 0) {
-                pdfDocuments.forEach((doc, index) => {
-                    const title = doc.querySelector('h5')?.textContent || 'Unknown PDF';
-                    console.log(`  - PDF Document ${index}: "${title}"`);
-                });
-            }
-            
+
             // Load question images after a short delay
             setTimeout(loadQuestionImages, 500);
-            // Load PDF document images after a short delay
-            setTimeout(loadPdfImages, 800);
         });
 
         // Image modal functions
@@ -1736,72 +1457,7 @@
             }
         };
 
-        // Re-extract PDF Images functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const reextractBtn = document.getElementById('reextract-pdf-btn');
-            if (reextractBtn) {
-                reextractBtn.addEventListener('click', async function() {
-                    // Store original button state BEFORE any async operations
-                    const originalText = reextractBtn.innerHTML;
-                    const originalDisabled = reextractBtn.disabled;
-                    
-                    try {
-                        // Show loading state
-                        reextractBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extracting...';
-                        reextractBtn.disabled = true;
-                        
-                        console.log('🔄 Starting PDF image re-extraction for quiz:', quizId);
-                        
-                        // Call the re-extraction API
-                        const response = await fetch(`/api/reextract-pdf-images/${quizId}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                        }
-                        
-                        const data = await response.json();
-                        console.log('✅ Re-extraction result:', data);
-                        
-                        if (data.success) {
-                            // Show success message
-                            alert(`🎉 Success! Extracted ${data.imagesCount} images from the PDF.\n\nPlease refresh the page to see the images.`);
-                            
-                            // Hide the re-extract section
-                            const reextractSection = document.querySelector('.reextract-section');
-                            if (reextractSection) {
-                                reextractSection.style.display = 'none';
-                            }
-                        } else {
-                            // Show error message
-                            alert(`❌ Error: ${data.message}`);
-                        }
-                        
-                    } catch (error) {
-                        console.error('❌ Error during re-extraction:', error);
-                        
-                        // Show more specific error message
-                        if (error.message.includes('HTTP 403')) {
-                            alert('❌ Access Denied (403). You may not have permission to re-extract images for this quiz, or your session has expired. Please check the console for details.');
-                        } else if (error.message.includes('HTTP 401')) {
-                            alert('❌ Unauthorized (401). Please log in again.');
-                        } else {
-                            alert('❌ Error during re-extraction. Please check the console for details.');
-                        }
-                    } finally {
-                        // Restore button state
-                        reextractBtn.innerHTML = originalText;
-                        reextractBtn.disabled = originalDisabled;
-                    }
-                });
-                
-                console.log('✅ Re-extract button event listener added');
-            }
-        });
+
 
         // Rich Text Editor and Math Support Functions
         function toggleStudentEditor(questionIndex, editorType) {

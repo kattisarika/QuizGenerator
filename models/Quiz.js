@@ -102,35 +102,7 @@ const quizSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  // Simplified PDF Images schema
-  pdfImages: [{
-    url: {
-      type: String,
-      required: true
-    },
-    title: {
-      type: String,
-      default: 'Document Image'
-    },
-    description: {
-      type: String,
-      default: ''
-    },
-    type: {
-      type: String,
-      enum: ['image', 'pdf', 'document'],
-      default: 'image'
-    },
-    source: {
-      type: String,
-      enum: ['pdf', 'docx', 'doc', 'upload'],
-      default: 'pdf'
-    },
-    order: {
-      type: Number,
-      default: 1
-    }
-  }],
+
   // Complex quiz data stored directly in MongoDB (using Mixed type for flexibility)
   complexQuizData: {
     type: mongoose.Schema.Types.Mixed,

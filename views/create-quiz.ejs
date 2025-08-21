@@ -140,24 +140,7 @@
             opacity: 0.9;
         }
         
-        /* Image Extraction Preview Styles */
-        #imageExtractionPreview {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            border: 1px solid #e9ecef;
-        }
-        
-        #extractedImagesGrid .card {
-            border: 2px dashed #dee2e6;
-            background: white;
-            transition: all 0.3s ease;
-        }
-        
-        #extractedImagesGrid .card:hover {
-            border-color: #667eea;
-            transform: scale(1.05);
-        }
+
         .file-info {
             background: #f8f9fa;
             border-radius: 10px;
@@ -695,29 +678,7 @@
                                 </div>
                             </div>
 
-                            <!-- Image Extraction Preview -->
-                            <div id="imageExtractionPreview" class="mb-4" style="display: none;">
-                                <div class="card border-success">
-                                    <div class="card-header bg-light">
-                                        <h6 class="text-success mb-0">
-                                            <i class="fas fa-images me-2"></i>Images Extracted from Document
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <p class="text-muted mb-3">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            These images were automatically extracted from your uploaded document and will be available in the quiz.
-                                        </p>
-                                        <div id="extractedImagesGrid" class="row">
-                                            <!-- Extracted images will be displayed here -->
-                                        </div>
-                                        <div class="alert alert-success mt-3 mb-0">
-                                            <i class="fas fa-check-circle me-2"></i>
-                                            <strong>Success!</strong> Images have been extracted and will be included in your quiz.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+
 
                             <!-- Format Instructions -->
                             <div class="alert alert-info">
@@ -1254,10 +1215,7 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 `;
                 infoDiv.style.display = 'block';
 
-                // Show image extraction preview for question paper if it's PDF or DOCX
-                if (type === 'questionPaper' && (fileType === 'PDF' || fileType === 'DOCX')) {
-                    showImageExtractionPreview();
-                }
+
             }
         }
 
@@ -1269,55 +1227,10 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             document.getElementById(type).value = '';
             document.getElementById(type + 'Info').style.display = 'none';
 
-            // Hide image extraction preview if question paper is removed
-            if (type === 'questionPaper') {
-                hideImageExtractionPreview();
-            }
+
         }
 
-        function showImageExtractionPreview() {
-            const previewDiv = document.getElementById('imageExtractionPreview');
-            const grid = document.getElementById('extractedImagesGrid');
 
-            // Show preview section
-            previewDiv.style.display = 'block';
-
-            // Add sample preview (in real implementation, images will be extracted server-side)
-            grid.innerHTML = `
-                <div class="col-md-4 mb-3">
-                    <div class="card border-light">
-                        <div class="card-body text-center py-4">
-                            <i class="fas fa-image fa-3x text-primary mb-2"></i>
-                            <p class="mb-0 text-muted">Images will be extracted</p>
-                            <small class="text-muted">during quiz creation</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card border-light">
-                        <div class="card-body text-center py-4">
-                            <i class="fas fa-chart-bar fa-3x text-success mb-2"></i>
-                            <p class="mb-0 text-muted">Charts & Diagrams</p>
-                            <small class="text-muted">automatically detected</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card border-light">
-                        <div class="card-body text-center py-4">
-                            <i class="fas fa-calculator fa-3x text-info mb-2"></i>
-                            <p class="mb-0 text-muted">Math Formulas</p>
-                            <small class="text-muted">preserved as images</small>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function hideImageExtractionPreview() {
-            const previewDiv = document.getElementById('imageExtractionPreview');
-            previewDiv.style.display = 'none';
-        }
 
         // Subject selection update function
         function updateSubjectSelection() {

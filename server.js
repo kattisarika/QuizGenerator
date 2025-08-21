@@ -320,52 +320,7 @@ async function makeS3ObjectPublic(s3Key) {
   }
 }
 
-// API endpoint to get pre-signed URLs for quiz images
-app.get('/api/quiz/:quizId/images', requireAuth, async (req, res) => {
-  try {
-    const { quizId } = req.params;
-    const { expiresIn = 3600 } = req.query; // Default 1 hour
 
-    console.log(`🔗 Generating pre-signed URLs for quiz ${quizId} images`);
-
-    // Find the quiz
-    const quiz = await Quiz.findById(quizId);
-    if (!quiz) {
-      return res.status(404).json({ error: 'Quiz not found' });
-    }
-
-    // Check if user has access to this quiz
-    if (quiz.organizationId && req.user.organizationId) {
-      if (quiz.organizationId.toString() !== req.user.organizationId.toString()) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
-    }
-
-    if (!quiz.pdfImages || quiz.pdfImages.length === 0) {
-      return res.json({ images: [] });
-    }
-
-    // Generate pre-signed URLs for all images
-    const imagesWithUrls = await generatePresignedUrls(
-      quiz.pdfImages.map(img => img.s3Key), 
-      parseInt(expiresIn)
-    );
-
-    // Map back to original structure with pre-signed URLs
-    const result = quiz.pdfImages.map((img, index) => ({
-      ...img.toObject(),
-      url: imagesWithUrls[index]?.url || null,
-      presignedUrl: imagesWithUrls[index]?.url || null
-    }));
-
-    console.log(`✅ Generated ${result.length} pre-signed URLs for quiz ${quizId}`);
-    res.json({ images: result });
-
-  } catch (error) {
-    console.error('❌ Error generating pre-signed URLs:', error);
-    res.status(500).json({ error: 'Failed to generate image URLs' });
-  }
-});
 
 // API endpoint to get a single pre-signed URL for an image
 app.get('/api/image/:s3Key', requireAuth, async (req, res) => {
@@ -774,352 +729,11 @@ async function extractTextFromFile(fileBuffer, originalName) {
   }
 }
 
-// Helper function to extract images from DOCX files
-async function extractImagesFromDOCX(fileBuffer, quizId) {
-  try {
-    console.log(`📄 Starting DOCX image extraction for quiz: ${quizId}`);
-    
-    // Check if mammoth is available
-    let mammoth;
-    try {
-      mammoth = require('mammoth');
-      console.log('✅ mammoth library loaded successfully');
-    } catch (libError) {
-      console.error('❌ mammoth library not available:', libError.message);
-      return [];
-    }
-    
-    // Extract both text and images from DOCX
-    const result = await mammoth.extractRawText({ 
-      buffer: fileBuffer,
-      includeDefaultStyleMap: true
-    });
-    
-    // Extract images using mammoth's image extraction
-    const images = [];
-    
-    try {
-      // Use mammoth's convertToHtml to get image data
-      const htmlResult = await mammoth.convertToHtml({ 
-        buffer: fileBuffer,
-        convertImage: mammoth.images.imgElement
-      });
-      
-      if (htmlResult.value) {
-        // Parse HTML to find image elements
-        const imageRegex = /<img[^>]+src="data:image\/([^;]+);base64,([^"]+)"/g;
-        let match;
-        let imageIndex = 1;
-        
-        while ((match = imageRegex.exec(htmlResult.value)) !== null) {
-          try {
-            const imageType = match[1];
-            const base64Data = match[2];
-            const imageBuffer = Buffer.from(base64Data, 'base64');
-            
-            if (imageBuffer.length > 0) {
-              const imageFileName = `quiz_${quizId}_docx_img_${imageIndex}.${imageType}`;
-              
-                             // Upload image to S3
-               const s3Key = await uploadToS3({
-                 buffer: imageBuffer,
-                 originalname: imageFileName,
-                 mimetype: `image/${imageType}`
-               }, 'quiz-images');
-               
-               console.log(`✅ DOCX image ${imageIndex} uploaded to S3: ${s3Key}`);
-               
-               images.push({
-                 page: 1, // DOCX doesn't have pages like PDF
-                 imageIndex: imageIndex,
-                 s3Key: s3Key, // Store S3 key instead of URL
-                 width: 800, // Default width
-                 height: 600, // Default height
-                 originalName: imageFileName,
-                 source: 'docx'
-               });
-              
-              imageIndex++;
-            }
-          } catch (imgError) {
-            console.error(`❌ Error processing DOCX image ${imageIndex}:`, imgError.message);
-            continue;
-          }
-        }
-      }
-      
-      console.log(`🎯 DOCX image extraction completed. Total images: ${images.length}`);
-      return images;
-      
-    } catch (htmlError) {
-      console.error('❌ Error converting DOCX to HTML for image extraction:', htmlError.message);
-      return [];
-    }
-    
-  } catch (error) {
-    console.error('❌ Critical error in extractImagesFromDOCX:', error);
-    console.error('❌ Error stack:', error.stack);
-    return [];
-  }
-}
 
-// Enhanced function to extract images from PDF using pdf-lib and pdf-parse
-async function extractImagesFromPDF(fileBuffer, quizId) {
-  try {
-    console.log(`📄 Starting PDF image extraction for quiz: ${quizId}`);
-    console.log(`📄 File buffer size: ${fileBuffer.length} bytes`);
-    
-    // Import required libraries
-    let pdfLib, pdfParse;
-    try {
-      pdfLib = require('pdf-lib');
-      pdfParse = require('pdf-parse');
-      console.log('✅ pdf-lib and pdf-parse libraries loaded successfully');
-    } catch (libError) {
-      console.error('❌ Required libraries not available:', libError.message);
-      return [];
-    }
-    
-    const images = [];
-    
-    try {
-      // Parse PDF to get page count and extract embedded images
-      const pdfData = await pdfParse(fileBuffer);
-      console.log(`📄 PDF parsed successfully. Pages: ${pdfData.numpages}`);
-      
-      // Load PDF document with pdf-lib
-      const pdfDoc = await pdfLib.PDFDocument.load(fileBuffer);
-      const pages = pdfDoc.getPages();
-      console.log(`📄 PDF loaded with pdf-lib. Pages: ${pages.length}`);
-      
-      // Extract embedded images from the PDF
-      const embeddedImages = await pdfDoc.getImages();
-      console.log(`📸 Found ${embeddedImages.length} embedded images in PDF`);
-      
-      if (embeddedImages.length > 0) {
-        // Process each embedded image
-        for (let imgIndex = 0; imgIndex < embeddedImages.length; imgIndex++) {
-          try {
-            const embeddedImage = embeddedImages[imgIndex];
-            console.log(`📸 Processing embedded image ${imgIndex + 1}...`);
-            
-            // Get image data
-            const imageData = await pdfDoc.embedPng(embeddedImage);
-            const imageBytes = await imageData.arrayBuffer();
-            const imageBuffer = Buffer.from(imageBytes);
-            
-            console.log(`📸 Image ${imgIndex + 1} buffer size: ${imageBuffer.length} bytes`);
-            
-            if (imageBuffer.length > 0) {
-              const imageFileName = `quiz_${quizId}_embedded_img_${imgIndex + 1}.png`;
-              
-              // Upload image to S3
-              const s3Key = await uploadToS3({
-                buffer: imageBuffer,
-                originalname: imageFileName,
-                mimetype: 'image/png'
-              }, 'quiz-images');
-              
-              console.log(`✅ Embedded image uploaded to S3: ${s3Key}`);
-              
-              images.push({
-                page: 1, // Use page 1 for embedded images
-                imageIndex: imgIndex + 1,
-                s3Key: s3Key,
-                width: embeddedImage.width || 800,
-                height: embeddedImage.height || 600,
-                originalName: imageFileName,
-                source: 'pdf' // Use valid enum value
-              });
-              
-              console.log(`✅ Successfully processed embedded image ${imgIndex + 1}`);
-            }
-          } catch (imgError) {
-            console.error(`❌ Error processing embedded image ${imgIndex + 1}:`, imgError.message);
-            continue;
-          }
-        }
-      }
-      
-      // If no embedded images found, try to convert pages to actual images
-      if (images.length === 0) {
-        console.log('📄 No embedded images found, processing all PDF pages...');
-        console.log(`📄 Total pages to process: ${pages.length}`);
-        
-        try {
-          console.log(`📄 Processing ${pages.length} PDF pages...`);
-          
-          // Process each page individually to give users access to all pages
-          for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-            try {
-              const page = pages[pageIndex];
-              console.log(`📄 Processing page ${pageIndex + 1} of ${pages.length}...`);
-              
-              // Create a new PDF with just this page
-              const singlePagePdf = await pdfLib.PDFDocument.create();
-              const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [pageIndex]);
-              singlePagePdf.addPage(copiedPage);
-              
-              // Convert PDF to bytes
-              const pdfBytes = await singlePagePdf.save();
-              const pdfBuffer = Buffer.from(pdfBytes);
-              
-              const pageFileName = `quiz_${quizId}_page_${pageIndex + 1}.pdf`;
-              
-              console.log(`📄 Uploading page ${pageIndex + 1} to S3...`);
-              const s3Key = await uploadToS3({
-                buffer: pdfBuffer,
-                originalname: pageFileName,
-                mimetype: 'application/pdf'
-              }, 'quiz-images');
-              
-              console.log(`✅ Page ${pageIndex + 1} uploaded to S3: ${s3Key}`);
-              
-              const pageData = {
-                url: `https://skillon-test.s3.amazonaws.com/${s3Key}`,
-                title: `Page ${pageIndex + 1}`,
-                description: `PDF page ${pageIndex + 1} of ${pages.length}`,
-                type: 'pdf',
-                source: 'pdf',
-                order: pageIndex + 1
-              };
-              
-              console.log(`📄 Page data for page ${pageIndex + 1}:`, JSON.stringify(pageData, null, 2));
-              
-              images.push(pageData);
-              
-              console.log(`✅ Successfully processed page ${pageIndex + 1}. Total images so far: ${images.length}`);
-              
-            } catch (pageError) {
-              console.error(`❌ Error processing page ${pageIndex + 1}:`, pageError.message);
-              console.error(`❌ Page error stack:`, pageError.stack);
-              continue;
-            }
-          }
-          
-          console.log(`✅ Successfully processed ${images.length} PDF pages`);
-          console.log(`📄 Final images array:`, JSON.stringify(images, null, 2));
-          
-        } catch (pdfError) {
-          console.error('❌ Error processing PDF pages:', pdfError.message);
-          console.error('❌ PDF error stack:', pdfError.stack);
-          
-          // Fallback: store original PDF if page processing fails
-          console.log('🔄 Fallback: storing original PDF...');
-          
-          const originalFileName = `quiz_${quizId}_original.pdf`;
-          const s3Key = await uploadToS3({
-            buffer: fileBuffer,
-            originalname: originalFileName,
-            mimetype: 'application/pdf'
-          }, 'quiz-images');
-          
-          images.push({
-            page: 1,
-            imageIndex: 1,
-            s3Key: s3Key,
-            width: pages[0] ? pages[0].getWidth() : 800,
-            height: pages[0] ? pages[0].getHeight() : 600,
-            originalName: originalFileName,
-            source: 'pdf',
-            isFullDocument: true,
-            totalPages: pages.length
-          });
-        }
-      }
-      
-      console.log(`🎯 Image extraction completed. Total items: ${images.length}`);
-      
-      // Log all extracted items for debugging
-      images.forEach((img, index) => {
-        console.log(`📸 Item ${index + 1}: ${img.type}, Page: ${img.page}, S3: ${img.s3Key}`);
-      });
-      
-      return images;
-      
-    } catch (conversionError) {
-      console.error('❌ Error during PDF processing:', conversionError);
-      return [];
-    }
-    
-  } catch (error) {
-    console.error('❌ Critical error in extractImagesFromPDF:', error);
-    console.error('❌ Error stack:', error.stack);
-    return [];
-  }
-}
 
-// Fallback function to extract first page using pdf-lib
-async function extractFirstPageAsImage(fileBuffer, quizId) {
-  try {
-    console.log(`🔄 Fallback: Extracting first page using pdf-lib for quiz: ${quizId}`);
-    
-    // Import required libraries
-    let pdfLib;
-    try {
-      pdfLib = require('pdf-lib');
-      console.log('✅ pdf-lib library loaded for fallback');
-    } catch (libError) {
-      console.error('❌ pdf-lib library not available for fallback:', libError.message);
-      return [];
-    }
-    
-    try {
-      // Load PDF document with pdf-lib
-      const pdfDoc = await pdfLib.PDFDocument.load(fileBuffer);
-      const pages = pdfDoc.getPages();
-      
-      if (pages.length > 0) {
-        const page = pages[0]; // Get first page
-        console.log(`🔄 Processing first page (${page.getWidth()} x ${page.getHeight()})`);
-        
-        // Create a new PDF with just the first page
-        const singlePagePdf = await pdfLib.PDFDocument.create();
-        const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [0]);
-        singlePagePdf.addPage(copiedPage);
-        
-        // Convert PDF to bytes
-        const pdfBytes = await singlePagePdf.save();
-        const pdfBuffer = Buffer.from(pdfBytes);
-        
-        const pageFileName = `quiz_${quizId}_fallback_page1.pdf`;
-        
-        // Upload to S3
-        const s3Key = await uploadToS3({
-          buffer: pdfBuffer,
-          originalname: pageFileName,
-          mimetype: 'application/pdf'
-        }, 'quiz-images');
-        
-        console.log(`✅ Fallback page uploaded to S3: ${s3Key}`);
-        
-        return [{
-          page: 1,
-          imageIndex: 1,
-          s3Key: s3Key,
-          width: page.getWidth(),
-          height: page.getHeight(),
-          originalName: pageFileName,
-          source: 'pdf',
-          isIndividualPage: true,
-          pageNumber: 1,
-          totalPages: 1
-        }];
-      }
-      
-      console.log('⚠️  Fallback extraction returned no pages');
-      return [];
-      
-    } catch (conversionError) {
-      console.error('❌ Fallback conversion failed:', conversionError.message);
-      return [];
-    }
-    
-  } catch (error) {
-    console.error('❌ Critical error in fallback extraction:', error);
-    return [];
-  }
-}
+
+
+
 
 // Language-specific parsing patterns
 function getLanguagePatterns(language) {
@@ -2838,7 +2452,7 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
     let extractedQuestions = [];
     let questionFileUrl = null;
     let answerFileUrl = null;
-    let documentImages = []; // Initialize documentImages array
+
 
     // Debug: Log all form data
     console.log('Received form data:', req.body);
@@ -2898,44 +2512,9 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
         extractedQuestions = parseQuestionsFromText(questionText, language);
         console.log('Parsed questions count:', extractedQuestions.length);
         
-        // Extract images from uploaded documents
-        const fileExtension = path.extname(questionFile.originalname).toLowerCase();
-        
-        if (fileExtension === '.pdf') {
-          console.log('📄 PDF detected, extracting images...');
-          documentImages = await extractImagesFromPDF(questionFile.buffer, 'temp_' + Date.now());
-          console.log(`🎯 Extracted ${documentImages.length} images from PDF`);
-        } else if (fileExtension === '.docx') {
-          console.log('📄 DOCX detected, extracting images...');
-          documentImages = await extractImagesFromDOCX(questionFile.buffer, 'temp_' + Date.now());
-          console.log(`🎯 Extracted ${documentImages.length} images from DOCX`);
-        } else if (fileExtension === '.doc') {
-          console.log('📄 DOC detected, attempting image extraction...');
-          // DOC files are more limited, but we can try
-          try {
-            documentImages = await extractImagesFromDOCX(questionFile.buffer, 'temp_' + Date.now());
-            console.log(`🎯 Extracted ${documentImages.length} images from DOC`);
-          } catch (docError) {
-            console.log('⚠️  DOC image extraction not supported, continuing without images');
-            documentImages = [];
-          }
-        }
-        
-        if (documentImages.length > 0) {
-          console.log('📸 Document images extracted successfully:');
-          documentImages.forEach((img, index) => {
-            console.log(`  - Image ${index + 1}: ${img.title} - ${img.url}`);
-          });
-        } else {
-          console.log('📸 No images found in the uploaded document');
-        }
+        // Note: Image extraction has been removed
 
-        // Debug: Log the documentImages array structure
-        console.log('🔍 documentImages array before quiz creation:');
-        console.log('  - Type:', typeof documentImages);
-        console.log('  - Is Array:', Array.isArray(documentImages));
-        console.log('  - Length:', documentImages.length);
-        console.log('  - Full array:', JSON.stringify(documentImages, null, 2));
+
         
         if (extractedQuestions.length === 0) {
           console.log('Error: No questions parsed from text');
@@ -3005,8 +2584,6 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
     }));
 
     console.log('Final questions to save:', extractedQuestions.length);
-    console.log('📸 Final documentImages to save:', documentImages.length);
-    console.log('📸 documentImages array:', JSON.stringify(documentImages, null, 2));
 
     const quiz = new Quiz({
       title,
@@ -3021,30 +2598,14 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
       organizationId: req.user.organizationId, // Add organization context for SaaS
       isApproved: true,  // Auto-approve teacher quizzes
       questionPaperUrl: questionFileUrl, // Store S3 URL
-      answerPaperUrl: answerFileUrl || null, // Store S3 URL if provided
-      pdfImages: documentImages // Store extracted document images
+      answerPaperUrl: answerFileUrl || null // Store S3 URL if provided
     });
 
     await quiz.save();
     console.log('Quiz saved successfully with ID:', quiz._id);
     console.log('Question paper stored at:', questionFileUrl);
 
-    // Verify what was actually saved to database
-    const savedQuiz = await Quiz.findById(quiz._id);
-    console.log('🔍 Verification - Quiz retrieved from database:');
-    console.log('  - Quiz ID:', savedQuiz._id);
-    console.log('  - PDF Images count:', savedQuiz.pdfImages ? savedQuiz.pdfImages.length : 'null/undefined');
-    console.log('  - PDF Images type:', typeof savedQuiz.pdfImages);
-    console.log('  - PDF Images is array:', Array.isArray(savedQuiz.pdfImages));
 
-    if (savedQuiz.pdfImages && savedQuiz.pdfImages.length > 0) {
-      console.log('  - First image URL:', savedQuiz.pdfImages[0].url);
-      console.log('  - First image title:', savedQuiz.pdfImages[0].title);
-      console.log('  - First image source:', savedQuiz.pdfImages[0].source);
-      console.log('  - First image type:', savedQuiz.pdfImages[0].type);
-    } else {
-      console.log('  - ❌ NO PDF IMAGES FOUND IN SAVED QUIZ!');
-    }
     if (answerFileUrl) {
       console.log('Answer paper stored at:', answerFileUrl);
     }
@@ -4667,19 +4228,7 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
     const quizPlain = quiz.toObject ? quiz.toObject() : quiz;
     console.log('Quiz plain object keys:', Object.keys(quizPlain));
 
-    // Debug PDF Images specifically
-    console.log('=== PDF IMAGES DEBUG ===');
-    console.log('Quiz has pdfImages property:', 'pdfImages' in quiz);
-    console.log('Quiz pdfImages type:', typeof quiz.pdfImages);
-    console.log('Quiz pdfImages is array:', Array.isArray(quiz.pdfImages));
-    console.log('Quiz pdfImages length:', quiz.pdfImages ? quiz.pdfImages.length : 'null/undefined');
-    console.log('Quiz pdfImages raw:', quiz.pdfImages);
-    if (quiz.pdfImages && quiz.pdfImages.length > 0) {
-      console.log('First PDF image:', JSON.stringify(quiz.pdfImages[0], null, 2));
-      console.log('First PDF image URL:', quiz.pdfImages[0].url);
-      console.log('First PDF image title:', quiz.pdfImages[0].title);
-    }
-    console.log('========================');
+
     
     quiz.questions.forEach((q, index) => {
       console.log(`Question ${index + 1}:`, {
@@ -5786,144 +5335,9 @@ app.get('/api/debug-auth', (req, res) => {
   });
 });
 
-// API endpoint to get pre-signed URLs for quiz images
-app.get('/api/quiz/:quizId/images', requireAuth, async (req, res) => {
-  try {
-    const { quizId } = req.params;
-    console.log(`🖼️  Getting pre-signed URLs for quiz: ${quizId}`);
-    
-    // Find the quiz
-    const Quiz = require('./models/Quiz');
-    const quiz = await Quiz.findById(quizId);
-    
-    if (!quiz) {
-      return res.status(404).json({ success: false, message: 'Quiz not found' });
-    }
-    
-    if (!quiz.pdfImages || quiz.pdfImages.length === 0) {
-      return res.json({ success: true, images: [] });
-    }
-    
-    // Generate pre-signed URLs for each image
-    const imagesWithUrls = [];
-    
-    for (const image of quiz.pdfImages) {
-      try {
-        // Generate pre-signed URL (expires in 1 hour)
-        const presignedUrl = await s3.getSignedUrlPromise('getObject', {
-          Bucket: process.env.AWS_BUCKET_NAME,
-          Key: image.s3Key,
-          Expires: 3600 // 1 hour
-        });
-        
-        imagesWithUrls.push({
-          ...image.toObject(),
-          presignedUrl: presignedUrl,
-          expiresAt: new Date(Date.now() + 3600000) // 1 hour from now
-        });
-        
-      } catch (urlError) {
-        console.error(`❌ Error generating URL for image ${image.s3Key}:`, urlError.message);
-        // Continue with other images
-      }
-    }
-    
-    console.log(`✅ Generated ${imagesWithUrls.length} pre-signed URLs`);
-    
-    res.json({
-      success: true,
-      images: imagesWithUrls,
-      quizTitle: quiz.title,
-      totalImages: imagesWithUrls.length
-    });
-    
-  } catch (error) {
-    console.error('❌ Error getting quiz images:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error getting quiz images: ' + error.message 
-    });
-  }
-});
 
-// API endpoint to re-extract PDF images for an existing quiz
-app.post('/api/reextract-pdf-images/:quizId', requireAuth, requireRole(['teacher', 'admin']), async (req, res) => {
-  try {
-    const { quizId } = req.params;
-    console.log(`🔄 Re-extracting PDF images for quiz: ${quizId}`);
-    console.log(`👤 User info: ID=${req.user._id}, Role=${req.user.role}, Email=${req.user.email}`);
-    
-    // Find the quiz
-    const Quiz = require('./models/Quiz');
-    const quiz = await Quiz.findById(quizId);
-    
-    if (!quiz) {
-      return res.status(404).json({ success: false, message: 'Quiz not found' });
-    }
-    
-    console.log(`📋 Quiz info: Created by=${quiz.createdBy}, Title=${quiz.title}`);
-    
-    // Check if user has permission (quiz creator or admin)
-    if (quiz.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      console.log(`❌ Permission denied: User ${req.user._id} (${req.user.role}) cannot modify quiz ${quiz.createdBy}`);
-      return res.status(403).json({ 
-        success: false, 
-        message: 'You can only re-extract images for your own quizzes',
-        userRole: req.user.role,
-        quizCreator: quiz.createdBy.toString(),
-        userId: req.user._id.toString()
-      });
-    }
-    
-    // Check if quiz has a question paper URL
-    if (!quiz.questionPaperUrl) {
-      return res.status(400).json({ success: false, message: 'Quiz does not have a question paper to extract images from' });
-    }
-    
-    console.log(`📄 Question paper URL: ${quiz.questionPaperUrl}`);
-    
-    // Download the question paper file
-    const response = await fetch(quiz.questionPaperUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download question paper: ${response.statusText}`);
-    }
-    
-    const fileBuffer = await response.arrayBuffer();
-    console.log(`📥 Downloaded question paper, size: ${fileBuffer.byteLength} bytes`);
-    
-    // Extract images from the PDF
-    const documentImages = await extractImagesFromPDF(Buffer.from(fileBuffer), quizId);
-    console.log(`🎯 Extracted ${documentImages.length} images from PDF`);
-    
-    if (documentImages.length === 0) {
-      return res.status(400).json({ success: false, message: 'No images found in the PDF' });
-    }
-    
-    // Update the quiz with extracted images
-    quiz.pdfImages = documentImages.map(img => ({
-      s3Key: img,
-      originalName: `extracted_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`,
-      source: 'document-extraction'
-    }));
-    
-    await quiz.save();
-    console.log(`✅ Quiz updated with ${documentImages.length} extracted images`);
-    
-    res.json({ 
-      success: true, 
-      message: `Successfully extracted ${documentImages.length} images from PDF`,
-      imagesCount: documentImages.length,
-      quizId: quiz._id
-    });
-    
-  } catch (error) {
-    console.error('❌ Error re-extracting PDF images:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error re-extracting PDF images: ' + error.message 
-    });
-  }
-});
+
+
 
 // Logout route with timeout parameter
 app.get('/logout', (req, res) => {
