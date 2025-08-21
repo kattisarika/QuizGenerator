@@ -149,24 +149,9 @@ const quizSchema = new mongoose.Schema({
       default: false
     }
   }],
-  // Complex quiz data stored directly in MongoDB
+  // Complex quiz data stored directly in MongoDB (using Mixed type for flexibility)
   complexQuizData: {
-    type: {
-      elements: [{
-        id: String,
-        type: String,
-        x: Number,
-        y: Number,
-        width: Number,
-        height: Number,
-        content: String,
-        style: Object
-      }],
-      canvasSize: {
-        width: { type: Number, default: 1000 },
-        height: { type: Number, default: 800 }
-      }
-    },
+    type: mongoose.Schema.Types.Mixed,
     required: false
   },
   isComplexQuiz: {
