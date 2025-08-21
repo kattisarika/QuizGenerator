@@ -2389,10 +2389,18 @@ app.get('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireAp
 
 // Save complex quiz route
 app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  console.log('=== COMPLEX QUIZ CREATION START ===');
+
   try {
-    console.log('Complex quiz creation request received');
+    console.log('Request body keys:', Object.keys(req.body || {}));
+    console.log('User info:', {
+      id: req.user?._id,
+      name: req.user?.displayName,
+      orgId: req.user?.organizationId
+    });
 
     if (!req.body) {
+      console.log('ERROR: No request body provided');
       return res.status(400).json({
         success: false,
         message: 'No request body provided'
@@ -2406,13 +2414,29 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
     const quizType = req.body.quizType;
     const elements = req.body.elements;
 
+    console.log('Extracted data:', {
+      title: title,
+      gradeLevel: gradeLevel,
+      subject: subject,
+      elementsCount: elements ? elements.length : 0
+    });
+
     // Validate required fields
     if (!title || !gradeLevel || !subject || !elements || elements.length === 0) {
+      console.log('ERROR: Missing required fields:', {
+        hasTitle: !!title,
+        hasGradeLevel: !!gradeLevel,
+        hasSubject: !!subject,
+        hasElements: !!elements,
+        elementsLength: elements ? elements.length : 0
+      });
       return res.status(400).json({
         success: false,
         message: 'Missing required fields or no elements provided'
       });
     }
+
+    console.log('Validation passed - proceeding with quiz creation');
 
 
 
@@ -2448,11 +2472,17 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
     }
 
     // Process elements to ensure proper data types
+    console.log('Starting element processing...');
+
     const processedElements = elements.map((element, index) => {
-      console.log(`Processing element ${index + 1}:`, element.id, element.type);
+      console.log(`Processing element ${index + 1}:`, {
+        id: element.id,
+        type: element.type,
+        contentLength: element.content ? element.content.length : 0
+      });
 
       try {
-        return {
+        const processed = {
           id: String(element.id || ''),
           type: String(element.type || ''),
           x: Number(element.x) || 0,
@@ -2462,6 +2492,9 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
           content: sanitizeContent(element.content),
           style: element.style || {}
         };
+
+        console.log(`Element ${index + 1} processed successfully`);
+        return processed;
       } catch (error) {
         console.error(`Error processing element ${element.id}:`, error);
         // Return a safe default element
@@ -2477,6 +2510,8 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
         };
       }
     });
+
+    console.log('Element processing completed. Processed count:', processedElements.length);
 
     console.log('Processed elements count:', processedElements.length);
 
@@ -2527,7 +2562,9 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
     }
 
     // Create quiz object with complex data
-    const quiz = new Quiz({
+    console.log('Creating quiz object...');
+
+    const quizData = {
       title: finalTitle,
       description: description || 'Complex quiz created with drag-and-drop builder',
       questions: questions,
@@ -2541,10 +2578,17 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
       isApproved: true,
       isComplexQuiz: true,
       complexQuizData: complexQuizData
+    };
+
+    console.log('Quiz data prepared:', {
+      title: quizData.title,
+      questionsCount: quizData.questions.length,
+      elementsCount: complexQuizData.elements.length,
+      hasComplexData: !!quizData.complexQuizData
     });
 
-    console.log('Attempting to save quiz with title:', finalTitle);
-    console.log('Elements count:', processedElements.length);
+    const quiz = new Quiz(quizData);
+    console.log('Quiz object created, attempting to save...');
 
     // Save quiz to MongoDB
     await quiz.save();
@@ -2559,18 +2603,34 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
     });
 
   } catch (error) {
-    console.error('Error creating complex quiz:', error);
-    console.error('Error details:', error.message);
+    console.error('=== ERROR CREATING COMPLEX QUIZ ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+
     if (error.errors) {
-      console.error('Validation errors:', JSON.stringify(error.errors, null, 2));
+      console.error('Validation errors:');
+      Object.keys(error.errors).forEach(key => {
+        console.error(`  ${key}:`, error.errors[key].message);
+      });
     }
+
+    if (error.code) {
+      console.error('Error code:', error.code);
+    }
+
+    console.error('=== END ERROR DETAILS ===');
 
     res.status(500).json({
       success: false,
       message: 'Failed to create complex quiz: ' + error.message,
-      details: error.errors ? Object.keys(error.errors) : []
+      errorType: error.constructor.name,
+      details: error.errors ? Object.keys(error.errors) : [],
+      code: error.code
     });
   }
+
+  console.log('=== COMPLEX QUIZ CREATION END ===');
 });
 
 // Get complex quiz data from MongoDB
