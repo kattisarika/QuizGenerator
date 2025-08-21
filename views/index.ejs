@@ -7,31 +7,152 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            background: white;
+            background: #ffebee; /* Pastel red background */
             min-height: 100vh;
             font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        /* Navigation Bar Styles */
+        .navbar-custom {
+            background: white !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-custom .navbar-brand {
+            color: #ff5722 !important; /* Orange color */
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .navbar-custom .navbar-brand:hover {
+            color: #e64a19 !important; /* Darker orange on hover */
+        }
+
+        .navbar-custom .navbar-nav .nav-link {
+            color: #d32f2f !important; /* Red color */
+            font-weight: 600;
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem !important;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-custom .navbar-nav .nav-link:hover {
+            color: white !important;
+            background: linear-gradient(45deg, #ff5722, #d32f2f);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 87, 34, 0.3);
+        }
+
+        .navbar-custom .btn-nav {
+            margin: 0 0.25rem;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-nav-primary {
+            background: linear-gradient(45deg, #ff5722, #d32f2f);
+            color: white !important;
+            border: 2px solid transparent;
+        }
+
+        .btn-nav-primary:hover {
+            background: white;
+            color: #ff5722 !important;
+            border: 2px solid #ff5722;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 87, 34, 0.3);
+        }
+
+        .btn-nav-outline {
+            background: transparent;
+            color: #d32f2f !important;
+            border: 2px solid #d32f2f;
+        }
+
+        .btn-nav-outline:hover {
+            background: linear-gradient(45deg, #ff5722, #d32f2f);
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(211, 47, 47, 0.3);
+        }
+
+        .navbar-toggler {
+            border: none;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23d32f2f' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
 
         .hero-section {
-            padding: 4rem 0;
+            padding: 8rem 0 4rem 0; /* Added top padding for fixed navbar */
             text-align: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: black;
+            background: linear-gradient(135deg, #ffcdd2 0%, #f8bbd9 50%, #f48fb1 100%); /* Pastel red gradient */
+            color: #2c3e50;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="%23ffffff" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="%23ffffff" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
         }
 
         .hero-title {
             font-size: 3.5rem;
             font-weight: bold;
             margin-bottom: 1rem;
-            color: white;
+            color: #2c3e50; /* Dark color for better contrast on pastel background */
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.5);
+            position: relative;
+            z-index: 1;
         }
 
         .hero-subtitle {
             font-size: 1.5rem;
             margin-bottom: 2rem;
-            opacity: 0.9;
-            color: white;
+            color: #34495e; /* Slightly lighter dark color */
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .lead1 {
+            color: #5d6d7e;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
         }
 
         .cta-buttons {
@@ -48,49 +169,85 @@
         }
 
         .btn-primary-custom {
-            background: white;
-            color: #667eea;
-            border: 2px solid white;
+            background: linear-gradient(45deg, #ff5722, #d32f2f);
+            color: white;
+            border: 2px solid transparent;
+            position: relative;
+            z-index: 1;
         }
 
         .btn-primary-custom:hover {
-            background: transparent;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            background: white;
+            color: #ff5722;
+            border: 2px solid #ff5722;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(255, 87, 34, 0.4);
         }
 
         .btn-outline-custom {
-            background: transparent;
-            color: white;
-            border: 2px solid rgba(255,255,255,0.5);
+            background: white;
+            color: #d32f2f;
+            border: 2px solid #d32f2f;
+            position: relative;
+            z-index: 1;
         }
 
         .btn-outline-custom:hover {
-            background: white;
-            color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            background: linear-gradient(45deg, #ff5722, #d32f2f);
+            color: white;
+            border: 2px solid transparent;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(211, 47, 47, 0.4);
         }
 
         .features-section {
             background: white;
             padding: 4rem 0;
+            position: relative;
+        }
+
+        .features-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, #ffebee 0%, white 20%, white 80%, #ffebee 100%);
+            pointer-events: none;
+        }
+
+        .features-section .container {
+            position: relative;
+            z-index: 1;
         }
 
         .feature-card {
             text-align: center;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(255, 87, 34, 0.1);
             margin-bottom: 2rem;
             height: 100%;
+            background: white;
+            border: 1px solid rgba(255, 87, 34, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(255, 87, 34, 0.2);
+            border-color: rgba(255, 87, 34, 0.3);
         }
 
         .feature-icon {
-            font-size: 3rem;
-            color: #667eea;
-            margin-bottom: 1rem;
+            font-size: 3.5rem;
+            background: linear-gradient(45deg, #ff5722, #d32f2f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+            display: block;
         }
 
         .debug-info {
@@ -111,8 +268,65 @@
     </style>
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-graduation-cap me-2"></i>
+                SkillOns
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">
+                            <i class="fas fa-star me-1"></i>Features
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#pricing">
+                            <i class="fas fa-tags me-1"></i>Pricing
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">
+                            <i class="fas fa-info-circle me-1"></i>About
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contact">
+                            <i class="fas fa-envelope me-1"></i>Contact
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="navbar-nav">
+                    <% if (user) { %>
+                        <a href="/dashboard" class="btn btn-nav btn-nav-primary">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                        <a href="/logout" class="btn btn-nav btn-nav-outline">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
+                        </a>
+                    <% } else { %>
+                        <a href="/login" class="btn btn-nav btn-nav-outline">
+                            <i class="fas fa-sign-in-alt me-1"></i>Sign In
+                        </a>
+                        <a href="/signup" class="btn btn-nav btn-nav-primary">
+                            <i class="fas fa-rocket me-1"></i>Get Started
+                        </a>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </nav>
+
     <!-- Hero Section -->
-    <div class="hero-section">
+    <div class="hero-section" id="home">
         <div class="container">
             <h1 class="hero-title">
                 <i class="fas fa-graduation-cap me-3"></i>
@@ -177,12 +391,12 @@
     </div> -->
 
     <!-- Features Section -->
-    <div class="features-section">
+    <div class="features-section" id="features">
         <div class="container">
             <div class="row">
                 <div class="col-12 text-center mb-5">
-                    <h2>Why Choose SkillOns?</h2>
-                    <p class="lead">Complete isolation, unlimited possibilities</p>
+                    <h2 style="color: #2c3e50; font-weight: bold; margin-bottom: 1rem;">Why Choose SkillOns?</h2>
+                    <p class="lead" style="color: #5d6d7e; font-size: 1.2rem;">Complete isolation, unlimited possibilities</p>
                 </div>
             </div>
 
@@ -432,6 +646,38 @@
                     this.style.boxShadow = '';
                 });
             });
+        });
+    </script>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Smooth scrolling for navigation links -->
+    <script>
+        // Add smooth scrolling to navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add navbar background on scroll
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar-custom');
+            if (window.scrollY > 50) {
+                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+                navbar.style.backdropFilter = 'blur(10px)';
+            } else {
+                navbar.style.background = 'white';
+                navbar.style.backdropFilter = 'none';
+            }
         });
     </script>
 </body>
