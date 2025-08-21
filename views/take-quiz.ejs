@@ -1615,8 +1615,8 @@
                 console.log('  - Quiz has pdfImages:', <%= quiz.pdfImages ? 'true' : 'false' %>);
                 console.log('  - Quiz pdfImages length:', <%= quiz.pdfImages ? quiz.pdfImages.length : 0 %>);
                 <% if (quiz.pdfImages && quiz.pdfImages.length > 0) { %>
-                    console.log('  - First PDF image URL:', '<%= quiz.pdfImages[0].url %>');
                     console.log('  - First PDF image S3 key:', '<%= quiz.pdfImages[0].s3Key %>');
+                    console.log('  - First PDF image source:', '<%= quiz.pdfImages[0].source %>');
                 <% } %>
             <% } %>
             console.log('  - Quiz ID:', '<%= quiz._id %>');

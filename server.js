@@ -2875,8 +2875,9 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
     console.log('Form validation passed:', { gradeLevel, subjects, language });
 
     console.log('Creating quiz:', { title, description, gradeLevel, subjects });
-
-    console.log('Creating quiz:', { title, description });
+    console.log('Description value received:', description);
+    console.log('Description type:', typeof description);
+    console.log('Description length:', description ? description.length : 'null/undefined');
 
     // Process question paper
     if (req.files.questionPaper && req.files.questionPaper[0]) {
@@ -3006,7 +3007,7 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
 
     const quiz = new Quiz({
       title,
-      description,
+      description: description || `Quiz created from uploaded document on ${new Date().toLocaleDateString()}`,
       gradeLevel,
       subjects: [subjects], // Convert single subject to array for database
       language: language, // Include selected language
@@ -3026,7 +3027,8 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
     console.log('Question paper stored at:', questionFileUrl);
     console.log('📸 PDF Images saved to quiz:', quiz.pdfImages.length);
     if (quiz.pdfImages.length > 0) {
-      console.log('📸 First image URL:', quiz.pdfImages[0].url);
+      console.log('📸 First image S3 key:', quiz.pdfImages[0].s3Key);
+      console.log('📸 First image source:', quiz.pdfImages[0].source);
     }
     if (answerFileUrl) {
       console.log('Answer paper stored at:', answerFileUrl);
