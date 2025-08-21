@@ -754,24 +754,8 @@
                                             elementsDiv.appendChild(elementDiv);
                                         });
 
-                                        // Add answer area for the question
-                                        if (group.questionElement) {
-                                            const answerDiv = document.createElement('div');
-                                            answerDiv.style.position = 'absolute';
-                                            answerDiv.style.left = '20px';
-                                            answerDiv.style.bottom = '20px';
-                                            answerDiv.style.right = '20px';
-                                            answerDiv.style.zIndex = '20';
-                                            answerDiv.innerHTML = `
-                                                <div style="background: #f0fdf4; border: 2px dashed #22c55e; border-radius: 8px; padding: 15px;">
-                                                    <div style="color: #16a34a; font-weight: 600; margin-bottom: 8px;">
-                                                        <i class="fas fa-edit" style="margin-right: 8px;"></i>Your Answer:
-                                                    </div>
-                                                    <textarea id="complex-answer-${group.questionElement.id}" style="width: 100%; height: 80px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px; resize: vertical; font-family: 'Inter', sans-serif;" placeholder="Type your answer here..."></textarea>
-                                                </div>
-                                            `;
-                                            elementsDiv.appendChild(answerDiv);
-                                        }
+                                        // Note: Answer areas are now handled by explicit 'answer-area' elements
+                                        // No automatic answer box creation to avoid duplicates
 
                                         questionGroupDiv.appendChild(elementsDiv);
                                         canvas.appendChild(questionGroupDiv);
@@ -1953,6 +1937,12 @@
                     updateAnswerStatus();
                     updateProgress();
                     hideAnswerRequiredAlert();
+
+                    // Also update complex quiz status if this is a complex answer area
+                    if (e.target.id && e.target.id.startsWith('complex-answer-')) {
+                        updateComplexAnswerStatus();
+                        hideComplexAnswerRequiredAlert();
+                    }
                 }
             });
         }
@@ -2054,13 +2044,14 @@
             const questionGroup = document.getElementById(`complex-question-${questionIndex}`);
             if (!questionGroup) return false;
 
-            // Check for textarea answers
-            const textareas = questionGroup.querySelectorAll('textarea');
+            // Check for textarea answers in answer-area elements
+            const textareas = questionGroup.querySelectorAll('textarea[id^="complex-answer-"]');
             if (textareas.length > 0) {
                 return Array.from(textareas).some(textarea => textarea.value.trim() !== '');
             }
 
-            return false;
+            // If no answer-area elements, consider the question answered (for questions without explicit answer areas)
+            return true;
         }
 
         // Show complex answer required alert
