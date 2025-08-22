@@ -455,6 +455,13 @@
                                 <i class="fas fa-star me-1"></i>Create sophisticated quizzes with drag-and-drop, charts, and LaTeX
                             </small>
                         </div>
+                        
+                        <!-- Test Button for Manual Quiz Creator -->
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-info btn-sm" onclick="testManualQuizCreator()">
+                                <i class="fas fa-bug me-1"></i>Test Manual Quiz Creator
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body p-4">
                         <!-- Tab Navigation -->
@@ -465,7 +472,7 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="btn btn-success btn-lg shadow-sm" onclick="showManualQuizCreator()" type="button">
+                                <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab" aria-controls="manual" aria-selected="false" onclick="showManualQuizCreator()">
                                     <i class="fas fa-edit me-2"></i>Create Quiz Manually
                                 </button>
                             </li>
@@ -476,246 +483,238 @@
                             <!-- Upload Documents Tab -->
                             <div class="tab-pane fade show active" id="upload" role="tabpanel" aria-labelledby="upload-tab">
                                 <form action="/create-quiz" method="POST" enctype="multipart/form-data" id="quizForm">
-                            <!-- Basic Quiz Information -->
-                            <div class="mb-4">
-                                <h5 class="text-primary mb-3">
-                                    <i class="fas fa-info-circle me-2"></i>Quiz Information
-                                </h5>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="title" class="form-label">Quiz Title *</label>
-                                        <input type="text" class="form-control" id="title" name="title" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="description" class="form-label">Description</label>
-                                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                                    </div>
-                                </div>
+                                    <!-- Basic Quiz Information -->
+                                    <div class="mb-4">
+                                        <h5 class="text-primary mb-3">
+                                            <i class="fas fa-info-circle me-2"></i>Quiz Information
+                                        </h5>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="title" class="form-label">Quiz Title *</label>
+                                                <input type="text" class="form-control" id="title" name="title" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="description" class="form-label">Description</label>
+                                                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                                            </div>
+                                        </div>
 
-                                <!-- Quiz Type Selection -->
-                                <div class="row mt-3">
-                                    <div class="col-md-12 mb-3">
-                                        <label class="form-label">Quiz Type *</label>
-                                        <div class="quiz-type-selector">
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="quiz-type-card" onclick="selectQuizType('regular')">
-                                                        <input type="radio" id="type-regular" name="quizType" value="regular" checked hidden>
-                                                        <div class="quiz-type-content active" id="regular-card">
-                                                            <div class="quiz-type-icon">
-                                                                <i class="fas fa-book"></i>
+                                        <!-- Quiz Type Selection -->
+                                        <div class="row mt-3">
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">Quiz Type *</label>
+                                                <div class="quiz-type-selector">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="quiz-type-card" onclick="selectQuizType('regular')">
+                                                                <input type="radio" id="type-regular" name="quizType" value="regular" checked hidden>
+                                                                <div class="quiz-type-content active" id="regular-card">
+                                                                    <div class="quiz-type-icon">
+                                                                        <i class="fas fa-book"></i>
+                                                                    </div>
+                                                                    <h5>Regular Quiz</h5>
+                                                                    <p class="mb-0">Standard quiz for practice and assessment</p>
+                                                                    <ul class="quiz-features">
+                                                                        <li><i class="fas fa-check"></i> Self-paced</li>
+                                                                        <li><i class="fas fa-check"></i> Immediate results</li>
+                                                                        <li><i class="fas fa-check"></i> Multiple attempts</li>
+                                                                    </ul>
+                                                                </div>
                                                             </div>
-                                                            <h5>Regular Quiz</h5>
-                                                            <p class="mb-0">Standard quiz for practice and assessment</p>
-                                                            <ul class="quiz-features">
-                                                                <li><i class="fas fa-check"></i> Self-paced</li>
-                                                                <li><i class="fas fa-check"></i> Immediate results</li>
-                                                                <li><i class="fas fa-check"></i> Multiple attempts</li>
-                                                            </ul>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="quiz-type-card" onclick="selectQuizType('competitive')">
+                                                                <input type="radio" id="type-competitive" name="quizType" value="competitive" hidden>
+                                                                <div class="quiz-type-content" id="competitive-card">
+                                                                    <div class="quiz-type-icon">
+                                                                        <i class="fas fa-trophy"></i>
+                                                                    </div>
+                                                                    <h5>Competitive Quiz</h5>
+                                                                    <p class="mb-0">Real-time competition with leaderboard</p>
+                                                                    <ul class="quiz-features">
+                                                                        <li><i class="fas fa-check"></i> Live leaderboard</li>
+                                                                        <li><i class="fas fa-check"></i> Time-based scoring</li>
+                                                                        <li><i class="fas fa-check"></i> Single attempt</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-6">
-                                                    <div class="quiz-type-card" onclick="selectQuizType('competitive')">
-                                                        <input type="radio" id="type-competitive" name="quizType" value="competitive" hidden>
-                                                        <div class="quiz-type-content" id="competitive-card">
-                                                            <div class="quiz-type-icon">
-                                                                <i class="fas fa-trophy"></i>
-                                                            </div>
-                                                            <h5>Competitive Quiz</h5>
-                                                            <p class="mb-0">Real-time competition with leaderboard</p>
-                                                            <ul class="quiz-features">
-                                                                <li><i class="fas fa-check"></i> Live leaderboard</li>
-                                                                <li><i class="fas fa-check"></i> Time-based scoring</li>
-                                                                <li><i class="fas fa-check"></i> Single attempt</li>
-                                                            </ul>
-                                                        </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Grade Level and Subject Selection -->
+                                        <div class="row mt-3">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="gradeLevel" class="form-label">Grade Level *</label>
+                                                <select class="form-select" id="gradeLevel" name="gradeLevel" required>
+                                                    <option value="">Select Grade Level</option>
+                                                    <option value="1st grade">1st Grade</option>
+                                                    <option value="2nd grade">2nd Grade</option>
+                                                    <option value="3rd grade">3rd Grade</option>
+                                                    <option value="4th grade">4th Grade</option>
+                                                    <option value="5th grade">5th Grade</option>
+                                                    <option value="6th grade">6th Grade</option>
+                                                    <option value="7th grade">7th Grade</option>
+                                                    <option value="8th grade">8th Grade</option>
+                                                    <option value="9th grade">9th Grade</option>
+                                                    <option value="10th grade">10th Grade</option>
+                                                    <option value="11th grade">11th Grade</option>
+                                                    <option value="12th grade">12th Grade</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Subjects *</label>
+                                                <div class="radio-group">
+                                                    <div class="radio-item">
+                                                        <input type="radio" id="subject-english" name="subjects" value="English" onchange="updateSubjectSelection()">
+                                                        <label for="subject-english">English</label>
                                                     </div>
+                                                    <div class="radio-item">
+                                                        <input type="radio" id="subject-science" name="subjects" value="Science" onchange="updateSubjectSelection()">
+                                                        <label for="subject-science">Science</label>
+                                                    </div>
+                                                    <div class="radio-item">
+                                                        <input type="radio" id="subject-math" name="subjects" value="Math" onchange="updateSubjectSelection()">
+                                                        <label for="subject-math">Math</label>
+                                                    </div>
+                                                </div>
+                                                <div id="subject-selection-info" class="mt-2" style="display: none;">
+                                                    <small class="text-success">
+                                                        <i class="fas fa-check-circle"></i>
+                                                        <span id="selected-subjects-text"></span>
+                                                    </small>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="testSubjectSelection()">
+                                                        <i class="fas fa-bug"></i> Test Subject Selection
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Language Selection -->
+                                        <div class="row mt-3">
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">Language *</label>
+                                                <div class="radio-group">
+                                                    <div class="radio-item">
+                                                        <input type="radio" id="language-english" name="language" value="English" onchange="updateLanguageSelection()" checked>
+                                                        <label for="language-english">
+                                                            <i class="fas fa-flag me-2"></i>English
+                                                        </label>
+                                                    </div>
+                                                    <div class="radio-item">
+                                                        <input type="radio" id="language-spanish" name="language" value="Spanish" onchange="updateLanguageSelection()">
+                                                        <label for="language-spanish">
+                                                            <i class="fas fa-flag me-2"></i>Spanish (Español)
+                                                        </label>
+                                                    </div>
+                                                    <div class="radio-item">
+                                                        <input type="radio" id="language-french" name="language" value="French" onchange="updateLanguageSelection()">
+                                                        <label for="language-french">
+                                                            <i class="fas fa-flag me-2"></i>French (Français)
+                                                        </label>
+                                                    </div>
+                                                    <div class="radio-item">
+                                                        <input type="radio" id="language-kannada" name="language" value="Kannada" onchange="updateLanguageSelection()">
+                                                        <label for="language-kannada">
+                                                            <i class="fas fa-flag me-2"></i>Kannada (ಕನ್ನಡ)
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div id="language-selection-info" class="mt-2" style="display: none;">
+                                                    <small class="text-success">
+                                                        <i class="fas fa-check-circle"></i>
+                                                        <span id="selected-language-text">English selected</span>
+                                                    </small>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        Select the primary language for this quiz content
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <!-- Grade Level and Subject Selection -->
-                                <div class="row mt-3">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="gradeLevel" class="form-label">Grade Level *</label>
-                                        <select class="form-select" id="gradeLevel" name="gradeLevel" required>
-                                            <option value="">Select Grade Level</option>
-                                            <option value="1st grade">1st Grade</option>
-                                            <option value="2nd grade">2nd Grade</option>
-                                            <option value="3rd grade">3rd Grade</option>
-                                            <option value="4th grade">4th Grade</option>
-                                            <option value="5th grade">5th Grade</option>
-                                            <option value="6th grade">6th Grade</option>
-                                            <option value="7th grade">7th Grade</option>
-                                            <option value="8th grade">8th Grade</option>
-                                            <option value="9th grade">9th Grade</option>
-                                            <option value="10th grade">10th Grade</option>
-                                            <option value="11th grade">11th Grade</option>
-                                            <option value="12th grade">12th Grade</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Subjects *</label>
-                                        <div class="radio-group">
-                                            <div class="radio-item">
-                                                <input type="radio" id="subject-english" name="subjects" value="English" onchange="updateSubjectSelection()">
-                                                <label for="subject-english">English</label>
+                                    <!-- File Upload Section -->
+                                    <div class="mb-4">
+                                        <h5 class="text-primary mb-3">
+                                            <i class="fas fa-file-upload me-2"></i>Upload Documents
+                                        </h5>
+                                        <p class="text-muted mb-3">
+                                            <i class="fas fa-magic me-2"></i>
+                                            Upload your quiz documents. Text will be parsed for questions and images will be automatically extracted from PDFs and DOCX files.
+                                        </p>
+
+                                        <!-- Question Paper Upload -->
+                                        <div class="mb-4">
+                                            <label class="form-label">Question Paper *</label>
+                                            <div class="file-upload-area" onclick="document.getElementById('questionPaper').click()">
+                                                <div class="upload-icon">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </div>
+                                                <h6>Upload Question Paper</h6>
+                                                <p class="text-muted">Drag and drop or click to upload PDF/DOC file</p>
+                                                <small class="text-muted">Supported formats: PDF, DOC, DOCX (Max 10MB)</small>
                                             </div>
-                                            <div class="radio-item">
-                                                <input type="radio" id="subject-science" name="subjects" value="Science" onchange="updateSubjectSelection()">
-                                                <label for="subject-science">Science</label>
-                                            </div>
-                                            <div class="radio-item">
-                                                <input type="radio" id="subject-math" name="subjects" value="Math" onchange="updateSubjectSelection()">
-                                                <label for="subject-math">Math</label>
-                                            </div>
-                                            <div class="radio-item">
-                                                <input type="radio" id="language-kannada" name="language" value="Kannada" onchange="updateLanguageSelection()">
-                                                <label for="language-kannada">
-                                                    <i class="fas fa-flag me-2"></i>Kannada (ಕನ್ನಡ)
-                                                </label>
-                                            </div>
+                                            <input type="file" id="questionPaper" name="questionPaper" accept=".pdf,.doc,.docx"
+                                                   style="display: none;" required onchange="handleFileSelect(this, 'questionPaper')">
+                                            <div id="questionPaperInfo" class="file-info" style="display: none;"></div>
                                         </div>
-                                        <div id="subject-selection-info" class="mt-2" style="display: none;">
-                                            <small class="text-success">
-                                                <i class="fas fa-check-circle"></i>
-                                                <span id="selected-subjects-text"></span>
-                                            </small>
-                                        </div>
-                                        <div class="mt-2">
-                                            <button type="button" class="btn btn-sm btn-outline-info" onclick="testSubjectSelection()">
-                                                <i class="fas fa-bug"></i> Test Subject Selection
-                                            </button>
+
+                                        <!-- Answer Paper Upload -->
+                                        <div class="mb-4">
+                                            <label class="form-label">Answer Key (Optional)</label>
+                                            <div class="file-upload-area" onclick="document.getElementById('answerPaper').click()">
+                                                <div class="upload-icon">
+                                                    <i class="fas fa-file-alt"></i>
+                                                </div>
+                                                <h6>Upload Answer Key</h6>
+                                                <p class="text-muted">Drag and drop or click to upload answer key</p>
+                                                <small class="text-muted">Supported formats: PDF, DOC, DOCX (Max 10MB)</small>
+                                            </div>
+                                            <input type="file" id="answerPaper" name="answerPaper" accept=".pdf,.doc,.docx"
+                                                   style="display: none;" onchange="handleFileSelect(this, 'answerPaper')">
+                                            <div id="answerPaperInfo" class="file-info" style="display: none;"></div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <!-- Language Selection -->
-                                <div class="row mt-3">
-                                    <div class="col-md-12 mb-3">
-                                        <label class="form-label">Language *</label>
-                                        <div class="radio-group">
-                                            <div class="radio-item">
-                                                <input type="radio" id="language-english" name="language" value="English" onchange="updateLanguageSelection()" checked>
-                                                <label for="language-english">
-                                                    <i class="fas fa-flag me-2"></i>English
-                                                </label>
-                                            </div>
-                                            <div class="radio-item">
-                                                <input type="radio" id="language-spanish" name="language" value="Spanish" onchange="updateLanguageSelection()">
-                                                <label for="language-spanish">
-                                                    <i class="fas fa-flag me-2"></i>Spanish (Español)
-                                                </label>
-                                            </div>
-                                            <div class="radio-item">
-                                                <input type="radio" id="language-french" name="language" value="French" onchange="updateLanguageSelection()">
-                                                <label for="language-french">
-                                                    <i class="fas fa-flag me-2"></i>French (Français)
-                                                </label>
-                                            </div>
-                                            <div class="radio-item">
-                                                <input type="radio" id="language-kannada" name="language" value="Kannada" onchange="updateLanguageSelection()">
-                                                <label for="language-kannada">
-                                                    <i class="fas fa-flag me-2"></i>Kannada (ಕನ್ನಡ)
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div id="language-selection-info" class="mt-2" style="display: none;">
-                                            <small class="text-success">
-                                                <i class="fas fa-check-circle"></i>
-                                                <span id="selected-language-text">English selected</span>
-                                            </small>
-                                        </div>
-                                        <div class="mt-2">
-                                            <small class="text-muted">
-                                                <i class="fas fa-info-circle"></i>
-                                                Select the primary language for this quiz content
-                                            </small>
+                                    <!-- Format Instructions -->
+                                    <div class="alert alert-info">
+                                        <h6><i class="fas fa-info-circle me-2"></i>Document Format Guidelines</h6>
+                                        <ul class="mb-2">
+                                            <li><strong>Question Paper:</strong> Questions should be numbered (1., 2., etc.) with options marked A., B., C., D.</li>
+                                            <li><strong>Answer Key:</strong> Answers should be in format "1. A", "2. B", etc.</li>
+                                            <li><strong>Images:</strong> PDF and DOCX files will have images automatically extracted and included in the quiz.</li>
+                                        </ul>
+                                        <div class="mt-3">
+                                            <strong>Example Question Format:</strong><br>
+                                            1. What is the capital of France?<br>
+                                            A. London<br>
+                                            B. Paris<br>
+                                            C. Berlin<br>
+                                            D. Madrid
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <!-- File Upload Section -->
-                            <div class="mb-4">
-                                <h5 class="text-primary mb-3">
-                                    <i class="fas fa-file-upload me-2"></i>Upload Documents
-                                </h5>
-                                <p class="text-muted mb-3">
-                                    <i class="fas fa-magic me-2"></i>
-                                    Upload your quiz documents. Text will be parsed for questions and images will be automatically extracted from PDFs and DOCX files.
-                                </p>
-
-                                <!-- Question Paper Upload -->
-                                <div class="mb-4">
-                                    <label class="form-label">Question Paper *</label>
-                                    <div class="file-upload-area" onclick="document.getElementById('questionPaper').click()">
-                                        <div class="upload-icon">
-                                            <i class="fas fa-file-pdf"></i>
-                                        </div>
-                                        <h6>Upload Question Paper</h6>
-                                        <p class="text-muted">Drag and drop or click to upload PDF/DOC file</p>
-                                        <small class="text-muted">Supported formats: PDF, DOC, DOCX (Max 10MB)</small>
+                                    <!-- Submit Button -->
+                                    <div class="text-center">
+                                        <button type="submit" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-save me-2"></i>Create Quiz
+                                        </button>
+                                        <a href="/teacher/dashboard" class="btn btn-outline-secondary btn-lg ms-2">
+                                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                                        </a>
                                     </div>
-                                    <input type="file" id="questionPaper" name="questionPaper" accept=".pdf,.doc,.docx"
-                                           style="display: none;" required onchange="handleFileSelect(this, 'questionPaper')">
-                                    <div id="questionPaperInfo" class="file-info" style="display: none;"></div>
-                                </div>
-
-                                <!-- Answer Paper Upload -->
-                                <div class="mb-4">
-                                    <label class="form-label">Answer Key (Optional)</label>
-                                    <div class="file-upload-area" onclick="document.getElementById('answerPaper').click()">
-                                        <div class="upload-icon">
-                                            <i class="fas fa-file-alt"></i>
-                                        </div>
-                                        <h6>Upload Answer Key</h6>
-                                        <p class="text-muted">Drag and drop or click to upload answer key</p>
-                                        <small class="text-muted">Supported formats: PDF, DOC, DOCX (Max 10MB)</small>
-                                    </div>
-                                    <input type="file" id="answerPaper" name="answerPaper" accept=".pdf,.doc,.docx"
-                                           style="display: none;" onchange="handleFileSelect(this, 'answerPaper')">
-                                    <div id="answerPaperInfo" class="file-info" style="display: none;"></div>
-                                </div>
-                            </div>
-
-
-
-                            <!-- Format Instructions -->
-                            <div class="alert alert-info">
-                                <h6><i class="fas fa-info-circle me-2"></i>Document Format Guidelines</h6>
-                                <ul class="mb-2">
-                                    <li><strong>Question Paper:</strong> Questions should be numbered (1., 2., etc.) with options marked A., B., C., D.</li>
-                                    <li><strong>Answer Key:</strong> Answers should be in format "1. A", "2. B", etc.</li>
-                                    <li><strong>Images:</strong> PDF and DOCX files will have images automatically extracted and included in the quiz.</li>
-                                </ul>
-                                <div class="mt-3">
-                                    <strong>Example Question Format:</strong><br>
-                                        1. What is the capital of France?<br>
-                                        A. London<br>
-                                        B. Paris<br>
-                                        C. Berlin<br>
-                                        D. Madrid</li>
-                                </ul>
-                            </div>
-
-                            <!-- Submit Button -->
-                            <div class="text-center">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-save me-2"></i>Create Quiz
-                                </button>
-                                <a href="/teacher/dashboard" class="btn btn-outline-secondary btn-lg ms-2">
-                                    <i class="fas fa-arrow-left me-2"></i>Cancel
-                                </a>
-                            </div>
                                 </form>
                             </div>
 
-                            <!-- Manual Quiz Creator (Hidden by default) -->
-                            <div id="manualQuizCreator" style="display: none;" class="mt-4">
+                            <!-- Manual Quiz Creator Tab -->
+                            <div class="tab-pane fade" id="manual" role="tabpanel" aria-labelledby="manual-tab">
                                 <!-- Back Button -->
                                 <div class="mb-3">
                                     <button type="button" class="btn btn-outline-secondary" onclick="showUploadTab()">
@@ -1106,13 +1105,6 @@
                                 </form>
                             </div>
                             <!-- End Manual Quiz Creator -->
-                        </div>
-                    </div>
-                            </div>
-
-
-
-
                         </div>
                     </div>
                 </div>
@@ -1984,6 +1976,8 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
 
         // Initialize math support when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing quiz creator...');
+            
             // Add math support to existing options
             setTimeout(addMathToOptions, 100);
 
@@ -2008,7 +2002,28 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 // Wait for MathJax to load
             }
 
+            // Test if manual quiz creator elements exist
+            const manualTab = document.getElementById('manual');
+            const uploadTab = document.getElementById('upload');
+            
+            console.log('Manual Tab element:', manualTab ? 'Found' : 'NOT FOUND');
+            console.log('Upload Tab element:', uploadTab ? 'Found' : 'NOT FOUND');
+            
+            if (!manualTab) {
+                console.error('Manual Tab element is missing from the DOM');
+            }
+            if (!uploadTab) {
+                console.error('Upload Tab element is missing from the DOM');
+            }
 
+            // Add tab change event listener
+            const manualTabButton = document.getElementById('manual-tab');
+            if (manualTabButton) {
+                manualTabButton.addEventListener('shown.bs.tab', function() {
+                    console.log('Manual tab shown, initializing form...');
+                    initializeManualQuizForm();
+                });
+            }
         });
 
 
@@ -2079,55 +2094,127 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
         function showManualQuizCreator() {
             console.log('Showing Manual Quiz Creator...');
 
-            // Hide the upload tab content
+            try {
+                // Use Bootstrap tab system to show manual tab
+                const manualTab = document.getElementById('manual-tab');
+                if (manualTab && typeof bootstrap !== 'undefined') {
+                    // Trigger Bootstrap tab
+                    const tab = new bootstrap.Tab(manualTab);
+                    tab.show();
+                    
+                    // Initialize the form properly after tab is shown
+                    setTimeout(() => {
+                        initializeManualQuizForm();
+                    }, 100);
+                    
+                    console.log('Manual Quiz Creator tab activated via Bootstrap');
+                } else {
+                    console.log('Bootstrap not available or manual tab not found, using fallback');
+                    // Fallback: manually show the manual tab content
+                    showManualTabFallback();
+                }
+            } catch (error) {
+                console.error('Error showing manual quiz creator:', error);
+                // Fallback: manually show the manual tab content
+                showManualTabFallback();
+            }
+        }
+
+        // Fallback function to manually show manual tab
+        function showManualTabFallback() {
+            console.log('Using fallback method to show manual tab...');
+            
+            // Hide upload tab
             const uploadTab = document.getElementById('upload');
             if (uploadTab) {
                 uploadTab.style.display = 'none';
                 uploadTab.classList.remove('show', 'active');
             }
-
-            // Show the manual quiz creator
-            const manualCreator = document.getElementById('manualQuizCreator');
-            if (manualCreator) {
-                manualCreator.style.display = 'block';
-                console.log('Manual Quiz Creator shown successfully');
+            
+            // Show manual tab
+            const manualTab = document.getElementById('manual');
+            if (manualTab) {
+                manualTab.style.display = 'block';
+                manualTab.classList.add('show', 'active');
+                
+                // Initialize the form
+                initializeManualQuizForm();
+                console.log('Manual tab shown using fallback method');
             } else {
-                console.error('Manual Quiz Creator not found');
+                console.error('Manual tab content not found');
             }
+        }
 
-            // Update tab buttons
-            const uploadTabButton = document.getElementById('upload-tab');
-            if (uploadTabButton) {
-                uploadTabButton.classList.remove('active');
+        // Test function for manual quiz creator
+        function testManualQuizCreator() {
+            console.log('=== TESTING MANUAL QUIZ CREATOR ===');
+            
+            // Check if elements exist
+            const manualTab = document.getElementById('manual');
+            const manualTabButton = document.getElementById('manual-tab');
+            const uploadTab = document.getElementById('upload');
+            
+            console.log('Manual Tab:', manualTab ? 'Found' : 'NOT FOUND');
+            console.log('Manual Tab Button:', manualTabButton ? 'Found' : 'NOT FOUND');
+            console.log('Upload Tab:', uploadTab ? 'Found' : 'NOT FOUND');
+            
+            if (manualTab) {
+                console.log('Manual Tab HTML:', manualTab.outerHTML.substring(0, 200) + '...');
+                console.log('Manual Tab Display:', manualTab.style.display);
+                console.log('Manual Tab Classes:', manualTab.className);
             }
+            
+            // Check Bootstrap availability
+            if (typeof bootstrap !== 'undefined') {
+                console.log('Bootstrap is available');
+                console.log('Bootstrap version:', bootstrap.VERSION || 'Unknown');
+            } else {
+                console.log('Bootstrap is NOT available');
+            }
+            
+            // Try to show manual tab
+            try {
+                showManualQuizCreator();
+            } catch (error) {
+                console.error('Error in test:', error);
+            }
+        }
 
-            // Scroll to manual creator
-            if (manualCreator) {
-                manualCreator.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Initialize manual quiz form
+        function initializeManualQuizForm() {
+            // Reset form state
+            manualQuestions = [];
+            currentQuestionNumber = 1;
+            currentQuestionImage = null;
+            
+            // Update question number display
+            document.getElementById('questionNumber').textContent = currentQuestionNumber;
+            
+            // Clear any existing questions list
+            const questionsList = document.getElementById('questionsList');
+            if (questionsList) {
+                questionsList.style.display = 'none';
             }
+            
+            // Clear the form
+            clearQuestionForm();
+            
+            console.log('Manual quiz form initialized');
         }
 
         // Function to go back to upload tab
         function showUploadTab() {
             console.log('Showing Upload Tab...');
 
-            // Hide manual quiz creator
-            const manualCreator = document.getElementById('manualQuizCreator');
-            if (manualCreator) {
-                manualCreator.style.display = 'none';
-            }
-
-            // Show upload tab
-            const uploadTab = document.getElementById('upload');
+            // Use Bootstrap tab system to show upload tab
+            const uploadTab = document.getElementById('upload-tab');
             if (uploadTab) {
-                uploadTab.style.display = 'block';
-                uploadTab.classList.add('show', 'active');
-            }
-
-            // Update tab buttons
-            const uploadTabButton = document.getElementById('upload-tab');
-            if (uploadTabButton) {
-                uploadTabButton.classList.add('active');
+                // Trigger Bootstrap tab
+                const tab = new bootstrap.Tab(uploadTab);
+                tab.show();
+                console.log('Upload tab activated');
+            } else {
+                console.error('Upload tab not found');
             }
         }
     </script>
