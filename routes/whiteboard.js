@@ -2,7 +2,28 @@ const express = require('express');
 const router = express.Router();
 const WhiteboardSession = require('../models/WhiteboardSession');
 const User = require('../models/User');
-const { requireAuth, requireRole } = require('../middleware/auth');
+
+// Middleware functions (these should match the ones in server.js)
+const requireAuth = (req, res, next) => {
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: 'Authentication required' });
+};
+
+const requireRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (roles.includes(req.user.role)) {
+      return next();
+    }
+
+    res.status(403).json({ error: 'Insufficient permissions' });
+  };
+};
 
 // Create new whiteboard session (Teachers only)
 router.post('/create', requireAuth, requireRole(['teacher']), async (req, res) => {

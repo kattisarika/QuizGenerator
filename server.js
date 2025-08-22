@@ -25,6 +25,7 @@ const {
 } = require('./middleware/tenancy');
 const organizationRoutes = require('./routes/organization');
 const quizSessionRoutes = require('./routes/quizSession');
+const whiteboardRoutes = require('./routes/whiteboard');
 
 
 // AWS S3 configuration
@@ -805,10 +806,6 @@ app.use('/', organizationRoutes);
 
 // Quiz Session routes for competitive quizzes
 app.use('/api/quiz-session', quizSessionRoutes);
-
-// Whiteboard routes
-const whiteboardRoutes = require('./routes/whiteboard');
-app.use('/api/whiteboard', whiteboardRoutes);
 
 
 
@@ -1881,6 +1878,9 @@ app.get('/student/download-content/:contentId', requireAuth, requireRole(['stude
     res.status(500).send('Error downloading content');
   }
 });
+
+// Whiteboard routes
+app.use('/api/whiteboard', whiteboardRoutes);
 
 // Whiteboard Dashboard
 app.get('/whiteboard/dashboard', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
