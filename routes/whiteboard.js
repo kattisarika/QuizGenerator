@@ -219,15 +219,48 @@ router.post('/:sessionId/end', requireAuth, requireRole(['teacher']), async (req
       });
     }
 
+    // Calculate duration if session was started
+    const duration = session.actualStartTime
+      ? Math.round((new Date() - session.actualStartTime) / (1000 * 60))
+      : 0;
+
     session.status = 'ended';
     session.endTime = new Date();
-    
-    // Calculate duration if session was started
-    if (session.actualStartTime) {
-      session.duration = Math.round((session.endTime - session.actualStartTime) / (1000 * 60));
-    }
+    session.duration = duration;
+
+    // Add system message about session ending
+    session.addChatMessage({
+      userId: null,
+      userName: 'System',
+      message: `Session ended by ${req.user.displayName}. Duration: ${duration} minutes.`,
+      isSystemMessage: true
+    });
 
     await session.save();
+
+    // If Socket.IO is available, notify all participants
+    if (req.app.get('io')) {
+      const io = req.app.get('io');
+
+      // Notify all participants
+      io.to(session.sessionId).emit('session-ended', {
+        message: 'The live class has been ended by your teacher.',
+        teacherName: session.teacherName,
+        sessionTitle: session.title,
+        duration: duration,
+        endTime: new Date().toISOString(),
+        redirectUrl: '/student/dashboard'
+      });
+
+      // Send system chat message
+      io.to(session.sessionId).emit('chat-message', {
+        id: new Date().getTime().toString(),
+        userName: 'System',
+        message: `🔴 Live class ended by ${session.teacherName}`,
+        timestamp: new Date(),
+        isSystemMessage: true
+      });
+    }
 
     res.json({
       success: true,
@@ -236,7 +269,8 @@ router.post('/:sessionId/end', requireAuth, requireRole(['teacher']), async (req
         sessionId: session.sessionId,
         status: session.status,
         endTime: session.endTime,
-        duration: session.duration
+        duration: session.duration,
+        participantCount: session.participants.filter(p => p.status === 'admitted').length
       }
     });
 

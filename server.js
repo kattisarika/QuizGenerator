@@ -48,6 +48,9 @@ const io = socketIo(server, {
   }
 });
 
+// Make Socket.IO available to routes
+app.set('io', io);
+
 const PORT = process.env.PORT || 3000;
 
 
@@ -5804,9 +5807,140 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle session end
+  socket.on('end-session', async (sessionId) => {
+    try {
+      const WhiteboardSession = require('./models/WhiteboardSession');
+      const session = await WhiteboardSession.findOne({
+        sessionId: sessionId
+      });
+
+      if (session && socket.userRole === 'teacher') {
+        // Calculate session duration
+        const duration = session.actualStartTime
+          ? Math.round((new Date() - session.actualStartTime) / (1000 * 60))
+          : 0;
+
+        session.status = 'ended';
+        session.endTime = new Date();
+        session.duration = duration;
+
+        // Add system message about session ending
+        session.addChatMessage({
+          userId: null,
+          userName: 'System',
+          message: `Session ended by ${socket.userName}. Duration: ${duration} minutes.`,
+          isSystemMessage: true
+        });
+
+        await session.save();
+
+        console.log(`Session ${sessionId} ended by teacher ${socket.userName}`);
+
+        // Notify all participants with detailed information
+        io.to(sessionId).emit('session-ended', {
+          message: 'The live class has been ended by your teacher.',
+          teacherName: session.teacherName,
+          sessionTitle: session.title,
+          duration: duration,
+          endTime: new Date().toISOString(),
+          redirectUrl: '/student/dashboard'
+        });
+
+        // Also send a system chat message to all participants
+        io.to(sessionId).emit('chat-message', {
+          id: new Date().getTime().toString(),
+          userName: 'System',
+          message: `🔴 Live class ended by ${session.teacherName}`,
+          timestamp: new Date(),
+          isSystemMessage: true
+        });
+
+        // Send notification to teacher
+        socket.emit('session-end-confirmed', {
+          message: 'Session ended successfully',
+          duration: duration,
+          participantCount: session.participants.filter(p => p.status === 'admitted').length
+        });
+      }
+    } catch (error) {
+      console.error('Error ending session:', error);
+      socket.emit('error', { message: 'Failed to end session' });
+    }
+  });
+
+  // Handle audio toggle
+  socket.on('audio-toggle', (data) => {
+    console.log('Audio toggle from:', socket.userName, data.enabled);
+    socket.to(data.sessionId).emit('audio-toggle', {
+      userId: socket.userId,
+      userName: socket.userName,
+      enabled: data.enabled
+    });
+  });
+
+  // Handle video toggle
+  socket.on('video-toggle', (data) => {
+    console.log('Video toggle from:', socket.userName, data.enabled);
+    socket.to(data.sessionId).emit('video-toggle', {
+      userId: socket.userId,
+      userName: socket.userName,
+      enabled: data.enabled
+    });
+  });
+
+  // Handle student audio permission (teacher only)
+  socket.on('student-audio-permission', (data) => {
+    if (socket.userRole === 'teacher') {
+      console.log('Student audio permission changed:', data.allowed);
+      socket.to(data.sessionId).emit('student-audio-permission', {
+        allowed: data.allowed
+      });
+    }
+  });
+
+  // WebRTC signaling handlers
+  socket.on('webrtc-offer', (data) => {
+    console.log('WebRTC offer from:', socket.userName, 'to:', data.targetUserId);
+    socket.to(data.sessionId).emit('webrtc-offer', {
+      fromUserId: socket.userId,
+      fromUserName: socket.userName,
+      targetUserId: data.targetUserId,
+      offer: data.offer
+    });
+  });
+
+  socket.on('webrtc-answer', (data) => {
+    console.log('WebRTC answer from:', socket.userName, 'to:', data.targetUserId);
+    socket.to(data.sessionId).emit('webrtc-answer', {
+      fromUserId: socket.userId,
+      fromUserName: socket.userName,
+      targetUserId: data.targetUserId,
+      answer: data.answer
+    });
+  });
+
+  socket.on('webrtc-ice-candidate', (data) => {
+    console.log('ICE candidate from:', socket.userName, 'to:', data.targetUserId);
+    socket.to(data.sessionId).emit('webrtc-ice-candidate', {
+      fromUserId: socket.userId,
+      fromUserName: socket.userName,
+      targetUserId: data.targetUserId,
+      candidate: data.candidate
+    });
+  });
+
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+
+    // If user was in a session, notify other participants
+    if (socket.sessionId && socket.userName) {
+      socket.to(socket.sessionId).emit('participant-left', {
+        userId: socket.userId,
+        name: socket.userName
+      });
+    }
   });
 });
 

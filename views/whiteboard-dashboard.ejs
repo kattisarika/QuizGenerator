@@ -292,6 +292,18 @@
                                             Allow student chat
                                         </label>
                                     </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="allowStudentVoice">
+                                        <label class="form-check-label" for="allowStudentVoice">
+                                            Allow student microphone
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="allowStudentVideo">
+                                        <label class="form-check-label" for="allowStudentVideo">
+                                            Allow student camera
+                                        </label>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-check mb-2">
@@ -306,6 +318,41 @@
                                             Record session
                                         </label>
                                     </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="enableAudio" checked>
+                                        <label class="form-check-label" for="enableAudio">
+                                            Enable audio
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="enableVideo" checked>
+                                        <label class="form-check-label" for="enableVideo">
+                                            Enable video
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Audio/Video Quality Settings -->
+                        <div class="mb-3">
+                            <h6 class="text-primary">Audio/Video Quality</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="audioQuality" class="form-label">Audio Quality</label>
+                                    <select class="form-select" id="audioQuality">
+                                        <option value="low">Low (Better Performance)</option>
+                                        <option value="medium" selected>Medium (Balanced)</option>
+                                        <option value="high">High (Best Quality)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="videoQuality" class="form-label">Video Quality</label>
+                                    <select class="form-select" id="videoQuality">
+                                        <option value="low">Low (Better Performance)</option>
+                                        <option value="medium" selected>Medium (Balanced)</option>
+                                        <option value="high">High (Best Quality)</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -469,8 +516,14 @@
                     maxParticipants: parseInt(document.getElementById('maxParticipants').value),
                     allowStudentDrawing: document.getElementById('allowStudentDrawing').checked,
                     allowStudentChat: document.getElementById('allowStudentChat').checked,
+                    allowStudentVoice: document.getElementById('allowStudentVoice').checked,
+                    allowStudentVideo: document.getElementById('allowStudentVideo').checked,
                     autoAdmitStudents: document.getElementById('autoAdmitStudents').checked,
-                    recordSession: document.getElementById('recordSession').checked
+                    recordSession: document.getElementById('recordSession').checked,
+                    enableAudio: document.getElementById('enableAudio').checked,
+                    enableVideo: document.getElementById('enableVideo').checked,
+                    audioQuality: document.getElementById('audioQuality').value,
+                    videoQuality: document.getElementById('videoQuality').value
                 }
             };
 

@@ -102,6 +102,24 @@ const whiteboardSessionSchema = new mongoose.Schema({
     recordSession: {
       type: Boolean,
       default: false
+    },
+    enableAudio: {
+      type: Boolean,
+      default: true
+    },
+    enableVideo: {
+      type: Boolean,
+      default: true
+    },
+    audioQuality: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      default: 'medium'
+    },
+    videoQuality: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      default: 'medium'
     }
   },
   

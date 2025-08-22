@@ -128,11 +128,164 @@
         }
 
         .sidebar {
-            width: 300px;
+            width: 350px;
             background: white;
             border-left: 1px solid #dee2e6;
             display: flex;
             flex-direction: column;
+        }
+
+        .video-container {
+            background: #000;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .teacher-video {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .student-videos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .student-video {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid #dee2e6;
+        }
+
+        .student-video.speaking {
+            border-color: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+
+        .video-controls {
+            background: rgba(0, 0, 0, 0.8);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 0.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .video-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .video-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .video-btn.active {
+            background: #28a745;
+        }
+
+        .video-btn.muted {
+            background: #dc3545;
+        }
+
+        .audio-controls {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .audio-controls h6 {
+            margin-bottom: 0.75rem;
+            color: #495057;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .control-btn {
+            background: #6c757d;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+        }
+
+        .control-btn:hover {
+            background: #5a6268;
+        }
+
+        .control-btn.active {
+            background: #28a745;
+        }
+
+        .control-btn.danger {
+            background: #dc3545;
+        }
+
+        .control-btn.danger:hover {
+            background: #c82333;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .volume-slider {
+            flex: 1;
+        }
+
+        .permission-request-audio {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
         }
 
         .sidebar-tabs {
@@ -449,7 +602,10 @@
         <div class="sidebar">
             <!-- Sidebar Tabs -->
             <div class="sidebar-tabs">
-                <button class="sidebar-tab active" onclick="showSidebarTab('participants')">
+                <button class="sidebar-tab active" onclick="showSidebarTab('video')">
+                    <i class="fas fa-video me-1"></i>Video
+                </button>
+                <button class="sidebar-tab" onclick="showSidebarTab('participants')">
                     <i class="fas fa-users me-1"></i>Participants
                 </button>
                 <button class="sidebar-tab" onclick="showSidebarTab('chat')">
@@ -459,8 +615,87 @@
 
             <!-- Sidebar Content -->
             <div class="sidebar-content">
+                <!-- Video Tab -->
+                <div id="videoTab" class="tab-content">
+                    <!-- Teacher Video Section -->
+                    <div class="video-container">
+                        <video id="teacherVideo" class="teacher-video" autoplay muted playsinline style="display: none;"></video>
+                        <div id="teacherVideoPlaceholder" class="video-placeholder">
+                            <div>
+                                <i class="fas fa-video-slash fa-2x mb-2"></i>
+                                <div>Teacher Video Off</div>
+                            </div>
+                        </div>
+                        <div class="video-controls" id="teacherVideoControls" style="display: none;">
+                            <button class="video-btn" id="teacherMuteBtn" onclick="toggleTeacherAudio()">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <button class="video-btn" id="teacherVideoBtn" onclick="toggleTeacherVideo()">
+                                <i class="fas fa-video"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Audio Controls -->
+                    <div class="audio-controls">
+                        <h6><i class="fas fa-volume-up me-2"></i>Audio Controls</h6>
+
+                        <% if (user.role === 'teacher') { %>
+                        <!-- Teacher Audio Controls -->
+                        <div class="control-group">
+                            <span>Microphone:</span>
+                            <button class="control-btn" id="micBtn" onclick="toggleMicrophone()">
+                                <i class="fas fa-microphone-slash"></i> Off
+                            </button>
+                        </div>
+                        <div class="control-group">
+                            <span>Camera:</span>
+                            <button class="control-btn" id="cameraBtn" onclick="toggleCamera()">
+                                <i class="fas fa-video-slash"></i> Off
+                            </button>
+                        </div>
+                        <div class="control-group">
+                            <span>Student Audio:</span>
+                            <button class="control-btn" id="studentAudioBtn" onclick="toggleStudentAudio()">
+                                <i class="fas fa-microphone-slash"></i> Muted
+                            </button>
+                        </div>
+                        <% } else { %>
+                        <!-- Student Audio Controls -->
+                        <% if (participant && participant.permissions && participant.permissions.canSpeak) { %>
+                        <div class="control-group">
+                            <span>Microphone:</span>
+                            <button class="control-btn" id="micBtn" onclick="toggleMicrophone()">
+                                <i class="fas fa-microphone-slash"></i> Off
+                            </button>
+                        </div>
+                        <% } else { %>
+                        <div class="permission-request-audio">
+                            <i class="fas fa-microphone-slash me-2"></i>
+                            Microphone access not granted by teacher
+                        </div>
+                        <% } %>
+                        <% } %>
+
+                        <!-- Volume Control -->
+                        <div class="volume-control">
+                            <i class="fas fa-volume-down"></i>
+                            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50">
+                            <i class="fas fa-volume-up"></i>
+                        </div>
+                    </div>
+
+                    <!-- Student Videos Grid -->
+                    <div id="studentVideosContainer">
+                        <h6><i class="fas fa-users me-2"></i>Student Videos</h6>
+                        <div class="student-videos" id="studentVideos">
+                            <!-- Student video elements will be added here -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Participants Tab -->
-                <div id="participantsTab" class="tab-content">
+                <div id="participantsTab" class="tab-content" style="display: none;">
                     <% if (user.role === 'teacher' && waitingParticipants && waitingParticipants.length > 0) { %>
                     <div class="permission-request">
                         <h6><i class="fas fa-clock me-2"></i>Waiting for Approval</h6>
@@ -518,6 +753,21 @@
 
         // Initialize socket connection
         const socket = io();
+
+        // WebRTC variables
+        let localStream = null;
+        let peerConnections = {};
+        let isAudioEnabled = false;
+        let isVideoEnabled = false;
+        let isStudentAudioAllowed = false;
+
+        // WebRTC configuration
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
         
         // Canvas setup
         const canvas = document.getElementById('whiteboardCanvas');
@@ -552,7 +802,45 @@
             // Set up socket event listeners
             setupSocketEvents();
 
+            // Initialize audio/video
+            initializeMediaDevices();
+
             console.log('Whiteboard initialized for user:', sessionData.user.name);
+        }
+
+        // Initialize media devices
+        async function initializeMediaDevices() {
+            try {
+                // Check if user has permissions for audio/video
+                const hasAudioPermission = sessionData.user.role === 'teacher' ||
+                    (sessionData.participant.permissions && sessionData.participant.permissions.canSpeak);
+                const hasVideoPermission = sessionData.user.role === 'teacher' ||
+                    (sessionData.participant.permissions && sessionData.participant.permissions.canVideo);
+
+                if (hasAudioPermission || hasVideoPermission) {
+                    // Request media permissions but don't start streaming yet
+                    const constraints = {
+                        audio: hasAudioPermission,
+                        video: hasVideoPermission
+                    };
+
+                    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                    // Mute by default
+                    if (localStream.getAudioTracks().length > 0) {
+                        localStream.getAudioTracks()[0].enabled = false;
+                    }
+                    if (localStream.getVideoTracks().length > 0) {
+                        localStream.getVideoTracks()[0].enabled = false;
+                    }
+
+                    console.log('Media devices initialized');
+                    updateMediaControls();
+                }
+            } catch (error) {
+                console.error('Error accessing media devices:', error);
+                showMediaError(error.message);
+            }
         }
 
         // Canvas event handlers
@@ -679,6 +967,11 @@
             socket.on('chat-message', (message) => {
                 console.log('Received chat message:', message);
                 addChatMessage(message);
+
+                // If it's a system message about session ending, show visual indicator
+                if (message.isSystemMessage && message.message.includes('ended')) {
+                    showSessionEndingIndicator();
+                }
             });
 
             socket.on('chat-history', (messages) => {
@@ -691,14 +984,62 @@
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             });
 
-            socket.on('session-ended', () => {
-                alert('The session has been ended by the teacher.');
-                window.location.href = sessionData.user.role === 'teacher' ? '/whiteboard/dashboard' : '/student/dashboard';
+            socket.on('session-ended', (data) => {
+                console.log('Session ended:', data);
+
+                // Show detailed notification to students
+                if (sessionData.user.role === 'student') {
+                    showSessionEndNotification(data);
+                } else {
+                    // For teachers, show simple confirmation
+                    alert(`Session ended successfully. Duration: ${data.duration} minutes.`);
+                    window.location.href = '/whiteboard/dashboard';
+                }
+            });
+
+            socket.on('session-end-confirmed', (data) => {
+                console.log('Session end confirmed:', data);
+                alert(`${data.message}\nDuration: ${data.duration} minutes\nParticipants: ${data.participantCount}`);
+                window.location.href = '/whiteboard/dashboard';
             });
 
             socket.on('error', (error) => {
                 console.error('Socket error:', error);
                 alert(error.message || 'An error occurred');
+            });
+
+            // Audio/Video event handlers
+            socket.on('audio-toggle', (data) => {
+                console.log('Audio toggle received:', data);
+                updateParticipantAudioStatus(data.userId, data.enabled);
+            });
+
+            socket.on('video-toggle', (data) => {
+                console.log('Video toggle received:', data);
+                updateParticipantVideoStatus(data.userId, data.enabled);
+            });
+
+            socket.on('student-audio-permission', (data) => {
+                console.log('Student audio permission changed:', data);
+                if (sessionData.user.role === 'student') {
+                    updateStudentAudioPermission(data.allowed);
+                }
+            });
+
+            // WebRTC signaling events
+            socket.on('webrtc-offer', async (data) => {
+                console.log('Received WebRTC offer:', data);
+                await handleWebRTCOffer(data);
+            });
+
+            socket.on('webrtc-answer', async (data) => {
+                console.log('Received WebRTC answer:', data);
+                await handleWebRTCAnswer(data);
+            });
+
+            socket.on('webrtc-ice-candidate', async (data) => {
+                console.log('Received ICE candidate:', data);
+                await handleICECandidate(data);
             });
         }
 
@@ -750,11 +1091,160 @@
             currentSize = e.target.value;
         });
 
+        // Media control functions
+        function toggleMicrophone() {
+            if (!localStream) return;
+
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                isAudioEnabled = !isAudioEnabled;
+                audioTrack.enabled = isAudioEnabled;
+
+                const micBtn = document.getElementById('micBtn');
+                if (isAudioEnabled) {
+                    micBtn.innerHTML = '<i class="fas fa-microphone"></i> On';
+                    micBtn.classList.add('active');
+                } else {
+                    micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i> Off';
+                    micBtn.classList.remove('active');
+                }
+
+                // Notify other participants
+                socket.emit('audio-toggle', {
+                    sessionId: sessionData.sessionId,
+                    userId: sessionData.user.id,
+                    enabled: isAudioEnabled
+                });
+            }
+        }
+
+        function toggleCamera() {
+            if (!localStream) return;
+
+            const videoTrack = localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                isVideoEnabled = !isVideoEnabled;
+                videoTrack.enabled = isVideoEnabled;
+
+                const cameraBtn = document.getElementById('cameraBtn');
+                const teacherVideo = document.getElementById('teacherVideo');
+                const placeholder = document.getElementById('teacherVideoPlaceholder');
+
+                if (isVideoEnabled) {
+                    cameraBtn.innerHTML = '<i class="fas fa-video"></i> On';
+                    cameraBtn.classList.add('active');
+
+                    if (sessionData.user.role === 'teacher') {
+                        teacherVideo.srcObject = localStream;
+                        teacherVideo.style.display = 'block';
+                        placeholder.style.display = 'none';
+                        document.getElementById('teacherVideoControls').style.display = 'flex';
+                    }
+                } else {
+                    cameraBtn.innerHTML = '<i class="fas fa-video-slash"></i> Off';
+                    cameraBtn.classList.remove('active');
+
+                    if (sessionData.user.role === 'teacher') {
+                        teacherVideo.style.display = 'none';
+                        placeholder.style.display = 'flex';
+                        document.getElementById('teacherVideoControls').style.display = 'none';
+                    }
+                }
+
+                // Notify other participants
+                socket.emit('video-toggle', {
+                    sessionId: sessionData.sessionId,
+                    userId: sessionData.user.id,
+                    enabled: isVideoEnabled
+                });
+            }
+        }
+
+        function toggleStudentAudio() {
+            if (sessionData.user.role !== 'teacher') return;
+
+            isStudentAudioAllowed = !isStudentAudioAllowed;
+            const btn = document.getElementById('studentAudioBtn');
+
+            if (isStudentAudioAllowed) {
+                btn.innerHTML = '<i class="fas fa-microphone"></i> Allowed';
+                btn.classList.add('active');
+            } else {
+                btn.innerHTML = '<i class="fas fa-microphone-slash"></i> Muted';
+                btn.classList.remove('active');
+            }
+
+            // Notify all students about audio permission change
+            socket.emit('student-audio-permission', {
+                sessionId: sessionData.sessionId,
+                allowed: isStudentAudioAllowed
+            });
+        }
+
+        function toggleTeacherAudio() {
+            if (sessionData.user.role === 'teacher') {
+                toggleMicrophone();
+            }
+        }
+
+        function toggleTeacherVideo() {
+            if (sessionData.user.role === 'teacher') {
+                toggleCamera();
+            }
+        }
+
+        function updateMediaControls() {
+            // Update button states based on current media state
+            const micBtn = document.getElementById('micBtn');
+            const cameraBtn = document.getElementById('cameraBtn');
+
+            if (micBtn) {
+                micBtn.innerHTML = isAudioEnabled ?
+                    '<i class="fas fa-microphone"></i> On' :
+                    '<i class="fas fa-microphone-slash"></i> Off';
+                micBtn.classList.toggle('active', isAudioEnabled);
+            }
+
+            if (cameraBtn) {
+                cameraBtn.innerHTML = isVideoEnabled ?
+                    '<i class="fas fa-video"></i> On' :
+                    '<i class="fas fa-video-slash"></i> Off';
+                cameraBtn.classList.toggle('active', isVideoEnabled);
+            }
+        }
+
+        function showMediaError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'permission-request-audio';
+            errorDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Media Error: ${message}
+            `;
+
+            const videoTab = document.getElementById('videoTab');
+            videoTab.insertBefore(errorDiv, videoTab.firstChild);
+        }
+
+        // Volume control
+        document.addEventListener('DOMContentLoaded', function() {
+            const volumeSlider = document.getElementById('volumeSlider');
+            if (volumeSlider) {
+                volumeSlider.addEventListener('input', function() {
+                    const volume = this.value / 100;
+
+                    // Apply volume to all audio elements
+                    document.querySelectorAll('video, audio').forEach(element => {
+                        element.volume = volume;
+                    });
+                });
+            }
+        });
+
         // Sidebar tab switching
         function showSidebarTab(tabName) {
             document.querySelectorAll('.sidebar-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
-            
+
             event.target.classList.add('active');
             document.getElementById(tabName + 'Tab').style.display = 'block';
         }
@@ -879,9 +1369,149 @@
             console.log('Redo action');
         }
 
+        // Show session end notification for students
+        function showSessionEndNotification(data) {
+            // Create a modal-like notification
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            `;
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                background: white;
+                border-radius: 15px;
+                padding: 2rem;
+                max-width: 500px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            `;
+
+            const endTime = new Date(data.endTime).toLocaleTimeString();
+
+            modal.innerHTML = `
+                <div style="color: #dc3545; font-size: 3rem; margin-bottom: 1rem;">
+                    <i class="fas fa-stop-circle"></i>
+                </div>
+                <h2 style="color: #333; margin-bottom: 1rem;">Live Class Ended</h2>
+                <p style="color: #666; font-size: 1.1rem; margin-bottom: 1.5rem;">
+                    ${data.message}
+                </p>
+                <div style="background: #f8f9fa; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <p style="margin: 0.5rem 0; color: #555;">
+                        <strong>Session:</strong> ${data.sessionTitle}
+                    </p>
+                    <p style="margin: 0.5rem 0; color: #555;">
+                        <strong>Teacher:</strong> ${data.teacherName}
+                    </p>
+                    <p style="margin: 0.5rem 0; color: #555;">
+                        <strong>Duration:</strong> ${data.duration} minutes
+                    </p>
+                    <p style="margin: 0.5rem 0; color: #555;">
+                        <strong>Ended at:</strong> ${endTime}
+                    </p>
+                </div>
+                <button onclick="redirectToDashboard()" style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 25px;
+                    padding: 1rem 2rem;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: transform 0.3s ease;
+                " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <i class="fas fa-home" style="margin-right: 0.5rem;"></i>
+                    Return to Dashboard
+                </button>
+            `;
+
+            notification.appendChild(modal);
+            document.body.appendChild(notification);
+
+            // Auto-redirect after 10 seconds
+            setTimeout(() => {
+                redirectToDashboard();
+            }, 10000);
+        }
+
+        function redirectToDashboard() {
+            window.location.href = '/student/dashboard';
+        }
+
+        // Show session ending indicator
+        function showSessionEndingIndicator() {
+            // Add a red banner at the top
+            const banner = document.createElement('div');
+            banner.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                background: linear-gradient(135deg, #dc3545, #c82333);
+                color: white;
+                text-align: center;
+                padding: 0.75rem;
+                font-weight: 600;
+                z-index: 9999;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+                animation: slideDown 0.5s ease-out;
+            `;
+
+            banner.innerHTML = `
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Session is ending... You will be redirected shortly.
+                <i class="fas fa-exclamation-triangle ms-2"></i>
+            `;
+
+            // Add animation keyframes
+            if (!document.getElementById('sessionEndingStyles')) {
+                const style = document.createElement('style');
+                style.id = 'sessionEndingStyles';
+                style.textContent = `
+                    @keyframes slideDown {
+                        from { transform: translateY(-100%); }
+                        to { transform: translateY(0); }
+                    }
+                    @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.7; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            banner.style.animation = 'slideDown 0.5s ease-out, pulse 1s infinite';
+            document.body.appendChild(banner);
+
+            // Disable drawing and interactions
+            const canvas = document.getElementById('whiteboardCanvas');
+            canvas.style.pointerEvents = 'none';
+            canvas.style.opacity = '0.7';
+
+            // Disable toolbar
+            const toolbar = document.querySelector('.toolbar');
+            if (toolbar) {
+                toolbar.style.opacity = '0.5';
+                toolbar.style.pointerEvents = 'none';
+            }
+        }
+
         // Session actions
         function endSession() {
-            if (confirm('Are you sure you want to end this session?')) {
+            if (confirm('Are you sure you want to end this session? All students will be notified and disconnected.')) {
                 socket.emit('end-session', sessionData.sessionId);
             }
         }
@@ -890,6 +1520,154 @@
             if (confirm('Are you sure you want to leave this session?')) {
                 socket.emit('leave-session', sessionData.sessionId);
                 window.location.href = sessionData.user.role === 'teacher' ? '/whiteboard/dashboard' : '/student/dashboard';
+            }
+        }
+
+        // WebRTC functions
+        async function createPeerConnection(userId) {
+            const peerConnection = new RTCPeerConnection(rtcConfig);
+
+            // Add local stream to peer connection
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+            }
+
+            // Handle remote stream
+            peerConnection.ontrack = (event) => {
+                console.log('Received remote stream from:', userId);
+                const remoteStream = event.streams[0];
+                displayRemoteVideo(userId, remoteStream);
+            };
+
+            // Handle ICE candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit('webrtc-ice-candidate', {
+                        sessionId: sessionData.sessionId,
+                        targetUserId: userId,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            peerConnections[userId] = peerConnection;
+            return peerConnection;
+        }
+
+        async function handleWebRTCOffer(data) {
+            try {
+                const peerConnection = await createPeerConnection(data.fromUserId);
+                await peerConnection.setRemoteDescription(data.offer);
+
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                socket.emit('webrtc-answer', {
+                    sessionId: sessionData.sessionId,
+                    targetUserId: data.fromUserId,
+                    answer: answer
+                });
+            } catch (error) {
+                console.error('Error handling WebRTC offer:', error);
+            }
+        }
+
+        async function handleWebRTCAnswer(data) {
+            try {
+                const peerConnection = peerConnections[data.fromUserId];
+                if (peerConnection) {
+                    await peerConnection.setRemoteDescription(data.answer);
+                }
+            } catch (error) {
+                console.error('Error handling WebRTC answer:', error);
+            }
+        }
+
+        async function handleICECandidate(data) {
+            try {
+                const peerConnection = peerConnections[data.fromUserId];
+                if (peerConnection) {
+                    await peerConnection.addIceCandidate(data.candidate);
+                }
+            } catch (error) {
+                console.error('Error handling ICE candidate:', error);
+            }
+        }
+
+        function displayRemoteVideo(userId, stream) {
+            // Remove existing video element if it exists
+            const existingVideo = document.getElementById(`video-${userId}`);
+            if (existingVideo) {
+                existingVideo.remove();
+            }
+
+            // Create new video element
+            const video = document.createElement('video');
+            video.id = `video-${userId}`;
+            video.srcObject = stream;
+            video.autoplay = true;
+            video.playsInline = true;
+            video.muted = false; // Don't mute remote videos
+
+            // Add to appropriate container
+            if (sessionData.user.role === 'teacher' || userId === 'teacher') {
+                // If this is teacher video or we're a teacher viewing student
+                video.className = 'student-video';
+                document.getElementById('studentVideos').appendChild(video);
+            } else {
+                // Student viewing teacher
+                video.className = 'teacher-video';
+                const container = document.querySelector('.video-container');
+                container.insertBefore(video, container.firstChild);
+            }
+        }
+
+        function updateParticipantAudioStatus(userId, enabled) {
+            const video = document.getElementById(`video-${userId}`);
+            if (video) {
+                // Add visual indicator for audio status
+                video.classList.toggle('speaking', enabled);
+            }
+
+            // Update participant list if needed
+            updateParticipantsList();
+        }
+
+        function updateParticipantVideoStatus(userId, enabled) {
+            const video = document.getElementById(`video-${userId}`);
+            if (video && !enabled) {
+                // Hide video when disabled
+                video.style.display = 'none';
+            } else if (video && enabled) {
+                video.style.display = 'block';
+            }
+        }
+
+        function updateStudentAudioPermission(allowed) {
+            const micBtn = document.getElementById('micBtn');
+            const permissionDiv = document.querySelector('.permission-request-audio');
+
+            if (allowed) {
+                if (permissionDiv) {
+                    permissionDiv.style.display = 'none';
+                }
+                if (micBtn) {
+                    micBtn.style.display = 'block';
+                }
+            } else {
+                if (permissionDiv) {
+                    permissionDiv.style.display = 'block';
+                }
+                if (micBtn) {
+                    micBtn.style.display = 'none';
+                }
+
+                // Mute student if audio was enabled
+                if (isAudioEnabled) {
+                    toggleMicrophone();
+                }
             }
         }
 
