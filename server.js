@@ -71,6 +71,38 @@ const connectDB = async () => {
       }
     });
     console.log('✅ MongoDB connected successfully!');
+
+    // Clean up any existing teachers without organizationId (except super_admin)
+    try {
+      const invalidTeachers = await User.find({
+        role: 'teacher',
+        email: { $ne: 'skillonusers@gmail.com' }, // Exclude super admin
+        $or: [
+          { organizationId: null },
+          { organizationId: { $exists: false } }
+        ]
+      });
+
+      if (invalidTeachers.length > 0) {
+        console.log(`🧹 Found ${invalidTeachers.length} teachers without organizationId. Cleaning up...`);
+
+        // Log the teachers being removed
+        invalidTeachers.forEach(teacher => {
+          console.log(`  ❌ Removing invalid teacher: ${teacher.email} (ID: ${teacher._id})`);
+        });
+
+        // Remove invalid teachers
+        const result = await User.deleteMany({
+          _id: { $in: invalidTeachers.map(t => t._id) }
+        });
+
+        console.log(`✅ Successfully removed ${result.deletedCount} invalid teacher accounts`);
+      } else {
+        console.log('✅ No invalid teacher accounts found');
+      }
+    } catch (cleanupError) {
+      console.error('❌ Error during teacher cleanup:', cleanupError);
+    }
   } catch (err) {
     console.error('❌ MongoDB connection error:', err);
     console.error('Error details:', err.message);
@@ -629,10 +661,25 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             
             // Update the first temp user as the primary account
             const primaryUser = tempUsers[0];
+
+            // Validate that teacher has organizationId before completing OAuth
+            if (primaryUser.role === 'teacher' && !primaryUser.organizationId) {
+              console.error('Temporary teacher user missing organizationId:', primaryUser.email);
+              // Clean up invalid temporary users
+              try {
+                const tempUserIds = tempUsers.map(u => u._id);
+                await User.deleteMany({ _id: { $in: tempUserIds } });
+                console.log('Deleted invalid temporary teacher users');
+              } catch (deleteError) {
+                console.error('Error deleting invalid temporary users:', deleteError);
+              }
+              return cb(new Error('Teacher account setup incomplete. Please create an organization first.'), null);
+            }
+
             primaryUser.googleId = profile.id;
             primaryUser.displayName = profile.displayName;
             primaryUser.photos = profile.photos;
-            
+
             // If there are multiple organizations, store them in an array for future org switching
             if (tempUsers.length > 1) {
               primaryUser.organizationMemberships = tempUsers.map(u => ({
@@ -643,21 +690,32 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 joinedAt: u.createdAt || new Date()
               }));
             }
-            
+
             try {
               await primaryUser.save();
               console.log(`Primary user updated with ${tempUsers.length} organization(s)`);
-              
+
               // Delete the duplicate temporary users (keep only the primary one)
               if (tempUsers.length > 1) {
                 const duplicateIds = tempUsers.slice(1).map(u => u._id);
                 await User.deleteMany({ _id: { $in: duplicateIds } });
                 console.log(`Removed ${duplicateIds.length} duplicate temporary users`);
               }
-              
+
               user = primaryUser;
             } catch (saveError) {
               console.error('Error updating temporary users:', saveError);
+              // If save fails due to validation, clean up the temp users
+              if (saveError.name === 'ValidationError' && saveError.message.includes('organizationId')) {
+                try {
+                  const tempUserIds = tempUsers.map(u => u._id);
+                  await User.deleteMany({ _id: { $in: tempUserIds } });
+                  console.log('Deleted invalid temporary users after validation error');
+                } catch (deleteError) {
+                  console.error('Error deleting invalid temporary users:', deleteError);
+                }
+                return cb(new Error('Teacher account validation failed. Please create an organization first.'), null);
+              }
               return cb(new Error('Failed to update users'), null);
             }
           } else {
@@ -688,6 +746,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           }
         } else {
           console.log('Existing user found');
+
+          // Validate existing teacher users have organizationId
+          if (user.role === 'teacher' && user.email !== 'skillonusers@gmail.com' && !user.organizationId) {
+            console.error('Existing teacher user missing organizationId:', user.email);
+            return cb(new Error('Teacher account incomplete. Please contact administrator to assign an organization.'), null);
+          }
+
           // Existing user - check if they should be super admin
           if (user.email === 'skillonusers@gmail.com' && user.role !== 'super_admin') {
             user.role = 'super_admin';

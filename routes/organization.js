@@ -165,11 +165,23 @@ router.post('/api/create-organization', async (req, res) => {
     });
     
     await organization.save();
-    
+
     // Update user with organization reference
     tempUser.organizationId = organization._id;
+
+    // Validate that the teacher now has organizationId before saving
+    if (!tempUser.organizationId) {
+      throw new Error('Failed to assign organizationId to teacher');
+    }
+
     await tempUser.save();
-    
+
+    // Double-check that the user was saved correctly
+    const savedUser = await User.findById(tempUser._id);
+    if (!savedUser || !savedUser.organizationId) {
+      throw new Error('Teacher was not properly saved with organizationId');
+    }
+
     // Log organization creation
     console.log(`New organization created: ${organizationName} (${subdomain}) by ${email}`);
     console.log('Organization details:', {
@@ -178,7 +190,8 @@ router.post('/api/create-organization', async (req, res) => {
       ownerId: organization.ownerId,
       settings: organization.settings
     });
-    
+    console.log('Teacher organizationId assigned:', savedUser.organizationId);
+
     res.json({
       success: true,
       organizationId: organization._id,
@@ -187,16 +200,24 @@ router.post('/api/create-organization', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating organization:', error);
-    
+
+    // Clean up temporary user if organization creation fails
+    try {
+      await User.deleteOne({ _id: tempUser._id });
+      console.log('Cleaned up temporary user after organization creation failure');
+    } catch (cleanupError) {
+      console.error('Error cleaning up temporary user:', cleanupError);
+    }
+
     // Provide more specific error messages
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
-        error: 'Validation failed', 
-        details: validationErrors 
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validationErrors
       });
     }
-    
+
     if (error.code === 11000) {
       // Duplicate key error
       if (error.keyPattern?.subdomain) {
@@ -207,7 +228,13 @@ router.post('/api/create-organization', async (req, res) => {
       }
       return res.status(400).json({ error: 'Duplicate entry found' });
     }
-    
+
+    if (error.message.includes('organizationId')) {
+      return res.status(500).json({
+        error: 'Failed to properly assign organization to teacher. Please try again.'
+      });
+    }
+
     res.status(500).json({ error: 'Failed to create organization. Please try again.' });
   }
 });

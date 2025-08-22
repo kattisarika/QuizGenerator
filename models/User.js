@@ -47,6 +47,16 @@ const userSchema = new mongoose.Schema({
     required: function() {
       // Don't require organizationId for super_admin or temporary users during org creation
       return this.role !== 'super_admin' && !this.googleId?.startsWith('temp_');
+    },
+    validate: {
+      validator: function(value) {
+        // For teachers (except super_admin), organizationId is mandatory
+        if (this.role === 'teacher' && this.role !== 'super_admin') {
+          return value != null;
+        }
+        return true;
+      },
+      message: 'Teachers must have an organizationId'
     }
   },
   organizationRole: {
@@ -164,6 +174,17 @@ userSchema.pre('save', function(next) {
   if (this.isModified() && !this.isNew) {
     this.lastActive = new Date();
   }
+
+  // Strict validation for teachers - prevent saving without organizationId
+  if (this.role === 'teacher' && this.role !== 'super_admin') {
+    // Allow temporary users during organization creation process
+    if (!this.googleId?.startsWith('temp_') && !this.organizationId) {
+      const error = new Error('Teachers must have an organizationId. Cannot save teacher without organization.');
+      error.name = 'ValidationError';
+      return next(error);
+    }
+  }
+
   next();
 });
 
