@@ -677,8 +677,8 @@
                     <button class="btn-canvas btn-info-canvas" onclick="openQuizSettings()">
                         <i class="fas fa-cog me-1"></i>Quiz Settings
                     </button>
-                    <button class="btn-canvas btn-primary-canvas" onclick="saveQuiz()">
-                        <i class="fas fa-save me-1"></i>Save Quiz
+                    <button class="btn-canvas btn-success-canvas" onclick="saveQuiz()" style="background: #28a745; font-weight: 600;">
+                        <i class="fas fa-check me-1"></i>Complete Quiz
                     </button>
                 </div>
             </div>
@@ -1208,7 +1208,18 @@
 
             console.log('Element created:', element);
 
+            // Add to global quizElements for compatibility
             quizElements.push(element);
+
+            // Add to current page
+            if (questionPages[currentQuestionIndex]) {
+                questionPages[currentQuestionIndex].elements.push(element);
+            } else {
+                // Create first page if it doesn't exist
+                createNewQuestionPage();
+                questionPages[currentQuestionIndex].elements.push(element);
+            }
+
             renderElement(element);
             selectElement(elementId);
 
@@ -1221,6 +1232,7 @@
             }
 
             console.log('Total elements:', quizElements.length);
+            console.log('Current page elements:', questionPages[currentQuestionIndex]?.elements.length);
         }
 
         // Render element on canvas
@@ -2736,115 +2748,194 @@
         }
         window.openQuizSettings = openQuizSettings;
 
-        // Question Navigation System
+        // Question Navigation System - Page-by-Page Implementation
         let currentQuestionIndex = 0;
-        let questionElements = [];
+        let questionPages = []; // Array of question page objects
+        let currentPageElements = []; // Elements on current page
 
         // Initialize question navigation
         function initializeQuestionNavigation() {
-            updateQuestionList();
-            updateNavigationButtons();
-        }
-
-        // Update the list of question elements
-        function updateQuestionList() {
-            questionElements = quizElements.filter(element =>
-                element.type === 'question' || element.type === 'sub-question'
-            );
-
-            // If no questions exist, create a virtual first question
-            if (questionElements.length === 0) {
-                currentQuestionIndex = 0;
-            } else {
-                // Ensure current index is within bounds
-                currentQuestionIndex = Math.max(0, Math.min(currentQuestionIndex, questionElements.length - 1));
+            // Initialize with first empty page if no questions exist
+            if (questionPages.length === 0) {
+                createNewQuestionPage();
             }
-
             updateNavigationButtons();
-            updateQuestionCounter();
+            showCurrentQuestionPage();
         }
 
-        // Navigate to next question
+        // Create a new question page
+        function createNewQuestionPage() {
+            const newPage = {
+                id: `page-${Date.now()}`,
+                questionNumber: questionPages.length + 1,
+                elements: [],
+                title: `Question ${questionPages.length + 1}`
+            };
+            questionPages.push(newPage);
+            return newPage;
+        }
+
+        // Update the current page elements list
+        function updateCurrentPageElements() {
+            if (questionPages[currentQuestionIndex]) {
+                currentPageElements = questionPages[currentQuestionIndex].elements;
+            } else {
+                currentPageElements = [];
+            }
+        }
+
+        // Navigate to next question page
         function nextQuestion() {
-            if (questionElements.length === 0) {
-                // If no questions exist, create a new question
-                createElement('question', 400, 200);
-                return;
+            // Save current page before navigating
+            saveCurrentPageElements();
+
+            if (currentQuestionIndex < questionPages.length - 1) {
+                // Go to next existing page
+                currentQuestionIndex++;
+            } else {
+                // Create new page
+                createNewQuestionPage();
+                currentQuestionIndex = questionPages.length - 1;
             }
 
-            if (currentQuestionIndex < questionElements.length - 1) {
-                currentQuestionIndex++;
-                navigateToQuestion(currentQuestionIndex);
-            } else {
-                // At the last question, create a new one
-                const newY = questionElements.length > 0 ?
-                    Math.max(...questionElements.map(q => q.y + q.height)) + 50 : 200;
-                createElement('question', 400, newY);
-            }
+            showCurrentQuestionPage();
+            updateNavigationButtons();
         }
 
-        // Navigate to previous question
+        // Navigate to previous question page
         function previousQuestion() {
             if (currentQuestionIndex > 0) {
+                // Save current page before navigating
+                saveCurrentPageElements();
+
                 currentQuestionIndex--;
-                navigateToQuestion(currentQuestionIndex);
+                showCurrentQuestionPage();
+                updateNavigationButtons();
             }
         }
 
-        // Navigate to a specific question
-        function navigateToQuestion(index) {
-            if (index < 0 || index >= questionElements.length) return;
+        // Save current page elements to the page object
+        function saveCurrentPageElements() {
+            if (questionPages[currentQuestionIndex]) {
+                // Get all elements currently on canvas
+                const canvasElements = Array.from(document.querySelectorAll('.quiz-element')).map(el => {
+                    const elementData = quizElements.find(qe => qe.id === el.id);
+                    if (elementData) {
+                        // Update position and content from DOM
+                        elementData.x = parseInt(el.style.left) || elementData.x;
+                        elementData.y = parseInt(el.style.top) || elementData.y;
 
-            currentQuestionIndex = index;
+                        // Update content based on element type
+                        if (elementData.type === 'text') {
+                            const textArea = el.querySelector('textarea, .ql-editor');
+                            if (textArea) {
+                                elementData.content = textArea.innerHTML || textArea.value;
+                            }
+                        } else if (elementData.type === 'question') {
+                            const questionText = el.querySelector('.question-text');
+                            const optionsContainer = el.querySelector('.options-container');
+                            if (questionText) {
+                                elementData.questionText = questionText.innerHTML;
+                            }
+                            if (optionsContainer) {
+                                elementData.options = Array.from(optionsContainer.querySelectorAll('.option-input')).map(input => input.value);
+                            }
+                        }
+                    }
+                    return elementData;
+                }).filter(Boolean);
 
-            // Highlight the current question
-            highlightCurrentQuestion();
+                questionPages[currentQuestionIndex].elements = canvasElements;
+            }
+        }
 
-            // Scroll to the question
-            scrollToQuestion(questionElements[index]);
+        // Show current question page
+        function showCurrentQuestionPage() {
+            // Clear canvas
+            clearCanvas();
 
-            // Update navigation
-            updateNavigationButtons();
+            // Load elements for current page
+            if (questionPages[currentQuestionIndex] && questionPages[currentQuestionIndex].elements) {
+                questionPages[currentQuestionIndex].elements.forEach(element => {
+                    // Add element back to quizElements if not already there
+                    if (!quizElements.find(qe => qe.id === element.id)) {
+                        quizElements.push(element);
+                    }
+
+                    // Render element on canvas
+                    renderElementOnCanvas(element);
+                });
+            }
+
+            updateCurrentPageElements();
             updateQuestionCounter();
         }
 
-        // Highlight the current question
-        function highlightCurrentQuestion() {
-            // Remove previous highlights
-            document.querySelectorAll('.quiz-element').forEach(el => {
-                el.classList.remove('current-question');
-            });
+        // Navigate to a specific question page
+        function navigateToQuestion(index) {
+            if (index < 0 || index >= questionPages.length) return;
 
-            // Highlight current question
-            if (questionElements[currentQuestionIndex]) {
-                const questionElement = document.getElementById(questionElements[currentQuestionIndex].id);
-                if (questionElement) {
-                    questionElement.classList.add('current-question');
-                }
-            }
+            // Save current page
+            saveCurrentPageElements();
+
+            currentQuestionIndex = index;
+            showCurrentQuestionPage();
+            updateNavigationButtons();
         }
 
-        // Scroll to a specific question
-        function scrollToQuestion(questionElement) {
-            if (!questionElement) return;
-
-            const canvas = document.getElementById('canvas');
-            const elementDiv = document.getElementById(questionElement.id);
-
-            if (canvas && elementDiv) {
-                // Calculate scroll position to center the question
-                const canvasRect = canvas.getBoundingClientRect();
-                const elementRect = elementDiv.getBoundingClientRect();
-
-                const scrollX = elementDiv.offsetLeft - (canvasRect.width / 2) + (elementDiv.offsetWidth / 2);
-                const scrollY = elementDiv.offsetTop - (canvasRect.height / 2) + (elementDiv.offsetHeight / 2);
-
-                canvas.scrollTo({
-                    left: Math.max(0, scrollX),
-                    top: Math.max(0, scrollY),
-                    behavior: 'smooth'
-                });
+        // Render an element on the canvas
+        function renderElementOnCanvas(element) {
+            // Remove existing element if it exists
+            const existingElement = document.getElementById(element.id);
+            if (existingElement) {
+                existingElement.remove();
             }
+
+            // Create element based on type
+            const elementDiv = document.createElement('div');
+            elementDiv.id = element.id;
+            elementDiv.className = 'quiz-element';
+            elementDiv.style.position = 'absolute';
+            elementDiv.style.left = element.x + 'px';
+            elementDiv.style.top = element.y + 'px';
+            elementDiv.style.width = element.width + 'px';
+            elementDiv.style.height = element.height + 'px';
+
+            // Add content based on element type
+            if (element.type === 'text') {
+                elementDiv.innerHTML = `
+                    <div class="text-element">
+                        <div class="ql-editor" style="min-height: ${element.height}px;">${element.content || 'Enter text here...'}</div>
+                    </div>
+                `;
+            } else if (element.type === 'question') {
+                elementDiv.innerHTML = `
+                    <div class="question-element">
+                        <div class="question-text">${element.questionText || 'Enter question here...'}</div>
+                        <div class="options-container">
+                            ${(element.options || ['Option 1', 'Option 2', 'Option 3', 'Option 4']).map((option, index) => `
+                                <div class="option">
+                                    <input type="radio" name="q${element.id}" value="${index}">
+                                    <input type="text" class="option-input" value="${option}" placeholder="Option ${index + 1}">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else if (element.type === 'image') {
+                elementDiv.innerHTML = `
+                    <div class="image-element">
+                        <img src="${element.src || '/placeholder-image.png'}" alt="Quiz Image" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                `;
+            }
+
+            // Make element draggable and selectable
+            makeElementDraggable(elementDiv);
+            makeElementSelectable(elementDiv);
+
+            // Add to canvas
+            document.getElementById('canvas').appendChild(elementDiv);
         }
 
         // Update navigation button states
@@ -2856,9 +2947,18 @@
                 prevBtn.disabled = currentQuestionIndex <= 0;
             }
 
-            // Next button is always enabled (creates new question if at end)
             if (nextBtn) {
+                // Next button is always enabled (creates new question page if at end)
                 nextBtn.disabled = false;
+
+                // Update button text based on whether we're at the last page
+                if (currentQuestionIndex === questionPages.length - 1) {
+                    nextBtn.innerHTML = '<i class="fas fa-plus"></i>';
+                    nextBtn.title = 'Add new question';
+                } else {
+                    nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                    nextBtn.title = 'Go to next question';
+                }
             }
         }
 
@@ -2866,11 +2966,7 @@
         function updateQuestionCounter() {
             const counter = document.getElementById('question-counter');
             if (counter) {
-                if (questionElements.length === 0) {
-                    counter.textContent = 'No Questions';
-                } else {
-                    counter.textContent = `Q${currentQuestionIndex + 1}/${questionElements.length}`;
-                }
+                counter.textContent = `Q${currentQuestionIndex + 1} of ${questionPages.length}`;
             }
         }
 
@@ -3115,19 +3211,34 @@
         function saveQuiz() {
             if (!quizSettings.title) {
                 alert('Please set quiz settings first');
+                openQuizSettings();
                 return;
             }
 
-            if (quizElements.length === 0) {
-                alert('Please add some elements to the quiz');
+            if (questionPages.length === 0 || questionPages.every(page => page.elements.length === 0)) {
+                alert('Please add some questions to the quiz');
                 return;
             }
+
+            // Save current page before saving quiz
+            saveCurrentPageElements();
+
+            // Collect all elements from all pages
+            const allElements = [];
+            questionPages.forEach((page, pageIndex) => {
+                page.elements.forEach(element => {
+                    // Add page information to element
+                    element.pageNumber = pageIndex + 1;
+                    element.questionNumber = pageIndex + 1;
+                    allElements.push(element);
+                });
+            });
 
             // Sync current content from DOM before saving
             syncElementsContent();
 
             // Clean and optimize elements data
-            const cleanElements = quizElements.map(element => {
+            const cleanElements = allElements.map(element => {
                 const cleanElement = {
                     id: element.id || '',
                     type: element.type || '',
@@ -3225,8 +3336,23 @@
             .then(data => {
                 console.log('Server response data:', data);
                 if (data.success) {
-                    alert('Quiz saved successfully!');
-                    window.location.href = '/teacher/dashboard';
+                    // Show success message with preview option
+                    const userChoice = confirm(
+                        'Quiz saved successfully!\n\n' +
+                        'Would you like to preview the quiz now?\n\n' +
+                        'Click "OK" to preview or "Cancel" to return to dashboard.'
+                    );
+
+                    if (userChoice && data.quizId) {
+                        // Open preview in new tab
+                        window.open(`/view-quiz/${data.quizId}`, '_blank');
+                        // Also redirect to dashboard
+                        setTimeout(() => {
+                            window.location.href = '/teacher/dashboard';
+                        }, 1000);
+                    } else {
+                        window.location.href = '/teacher/dashboard';
+                    }
                 } else {
                     console.error('Save failed:', data);
                     alert('Error saving quiz: ' + data.message + (data.details ? '\nDetails: ' + data.details.join(', ') : ''));
@@ -3256,6 +3382,25 @@
         }
         window.saveQuiz = saveQuiz;
 
+        // Clear canvas of all elements
+        function clearCanvas() {
+            const canvas = document.getElementById('canvas');
+            if (canvas) {
+                // Remove all canvas elements
+                const elements = canvas.querySelectorAll('.canvas-element');
+                elements.forEach(element => element.remove());
+
+                // Clear quizElements array
+                quizElements.length = 0;
+
+                // Show placeholder if no elements
+                const placeholder = document.querySelector('.canvas-placeholder');
+                if (placeholder) {
+                    placeholder.style.display = 'flex';
+                }
+            }
+        }
+
         // Make functions globally available for onclick handlers
         window.addElementToCanvas = addElementToCanvas;
         window.testDragDrop = testDragDrop;
@@ -3266,6 +3411,9 @@
         window.openQuizSettings = openQuizSettings;
         window.nextQuestion = nextQuestion;
         window.previousQuestion = previousQuestion;
+        window.navigateToQuestion = navigateToQuestion;
+        window.saveCurrentPageElements = saveCurrentPageElements;
+        window.showCurrentQuestionPage = showCurrentQuestionPage;
         window.deleteElement = deleteElement;
         window.duplicateElement = duplicateElement;
         window.updateElementProperty = updateElementProperty;
