@@ -456,12 +456,7 @@
                             </small>
                         </div>
                         
-                        <!-- Test Button for Manual Quiz Creator -->
-                        <div class="mt-3">
-                            <button type="button" class="btn btn-info btn-sm" onclick="testManualQuizCreator()">
-                                <i class="fas fa-bug me-1"></i>Test Manual Quiz Creator
-                            </button>
-                        </div>
+
                     </div>
                     <div class="card-body p-4">
                         <!-- Tab Navigation -->
@@ -2145,40 +2140,7 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             }
         }
 
-        // Test function for manual quiz creator
-        function testManualQuizCreator() {
-            console.log('=== TESTING MANUAL QUIZ CREATOR ===');
-            
-            // Check if elements exist
-            const manualTab = document.getElementById('manual');
-            const manualTabButton = document.getElementById('manual-tab');
-            const uploadTab = document.getElementById('upload');
-            
-            console.log('Manual Tab:', manualTab ? 'Found' : 'NOT FOUND');
-            console.log('Manual Tab Button:', manualTabButton ? 'Found' : 'NOT FOUND');
-            console.log('Upload Tab:', uploadTab ? 'Found' : 'NOT FOUND');
-            
-            if (manualTab) {
-                console.log('Manual Tab HTML:', manualTab.outerHTML.substring(0, 200) + '...');
-                console.log('Manual Tab Display:', manualTab.style.display);
-                console.log('Manual Tab Classes:', manualTab.className);
-            }
-            
-            // Check Bootstrap availability
-            if (typeof bootstrap !== 'undefined') {
-                console.log('Bootstrap is available');
-                console.log('Bootstrap version:', bootstrap.VERSION || 'Unknown');
-            } else {
-                console.log('Bootstrap is NOT available');
-            }
-            
-            // Try to show manual tab
-            try {
-                showManualQuizCreator();
-            } catch (error) {
-                console.error('Error in test:', error);
-            }
-        }
+
 
         // Initialize manual quiz form
         function initializeManualQuizForm() {
