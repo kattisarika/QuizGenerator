@@ -118,15 +118,30 @@ router.post('/create', requireAuth, requireRole(['teacher']), async (req, res) =
   }
 });
 
-// Get teacher's sessions
+// Get teacher's sessions with pagination
 router.get('/my-sessions', requireAuth, requireRole(['teacher']), async (req, res) => {
   try {
-    const sessions = await WhiteboardSession.find({
-      teacherId: req.user._id
-    })
-    .select('sessionId joinCode title description subject gradeLevel status participants createdAt actualStartTime endTime')
-    .sort({ createdAt: -1 })
-    .limit(50);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const status = req.query.status; // Filter by status if provided
+
+    // Build query
+    const query = { teacherId: req.user._id };
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    // Get total count for pagination
+    const totalSessions = await WhiteboardSession.countDocuments(query);
+    const totalPages = Math.ceil(totalSessions / limit);
+
+    // Get sessions with pagination
+    const sessions = await WhiteboardSession.find(query)
+      .select('sessionId joinCode title description subject gradeLevel status participants createdAt actualStartTime endTime duration')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     const sessionsWithStats = sessions.map(session => ({
       sessionId: session.sessionId,
@@ -141,12 +156,21 @@ router.get('/my-sessions', requireAuth, requireRole(['teacher']), async (req, re
       createdAt: session.createdAt,
       actualStartTime: session.actualStartTime,
       endTime: session.endTime,
+      duration: session.duration,
       joinLink: session.generateJoinLink()
     }));
 
     res.json({
       success: true,
-      sessions: sessionsWithStats
+      sessions: sessionsWithStats,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalSessions: totalSessions,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+        limit: limit
+      }
     });
 
   } catch (error) {
@@ -653,6 +677,132 @@ router.get('/:sessionId/details', requireAuth, async (req, res) => {
     console.error('Error getting session details:', error);
     res.status(500).json({
       error: 'Failed to get session details'
+    });
+  }
+});
+
+// Delete session (Teachers only)
+router.delete('/:sessionId', requireAuth, requireRole(['teacher']), async (req, res) => {
+  try {
+    const session = await WhiteboardSession.findOne({
+      sessionId: req.params.sessionId,
+      teacherId: req.user._id
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: 'Session not found'
+      });
+    }
+
+    // Check if session is currently active
+    if (session.status === 'active') {
+      return res.status(400).json({
+        error: 'Cannot delete an active session. Please end the session first.'
+      });
+    }
+
+    // If Socket.IO is available, notify any remaining participants
+    if (req.app.get('io') && session.status !== 'ended') {
+      const io = req.app.get('io');
+
+      // Notify all participants that session is being deleted
+      io.to(session.sessionId).emit('session-deleted', {
+        message: 'This session has been deleted by the teacher.',
+        sessionTitle: session.title,
+        teacherName: session.teacherName
+      });
+    }
+
+    // Delete the session
+    await WhiteboardSession.findByIdAndDelete(session._id);
+
+    res.json({
+      success: true,
+      message: 'Session deleted successfully',
+      deletedSession: {
+        sessionId: session.sessionId,
+        title: session.title,
+        status: session.status
+      }
+    });
+
+  } catch (error) {
+    console.error('Error deleting session:', error);
+    res.status(500).json({
+      error: 'Failed to delete session'
+    });
+  }
+});
+
+// Bulk delete sessions (Teachers only)
+router.post('/bulk-delete', requireAuth, requireRole(['teacher']), async (req, res) => {
+  try {
+    const { sessionIds } = req.body;
+
+    if (!sessionIds || !Array.isArray(sessionIds) || sessionIds.length === 0) {
+      return res.status(400).json({
+        error: 'Session IDs array is required'
+      });
+    }
+
+    // Find sessions belonging to the teacher
+    const sessions = await WhiteboardSession.find({
+      sessionId: { $in: sessionIds },
+      teacherId: req.user._id
+    });
+
+    if (sessions.length === 0) {
+      return res.status(404).json({
+        error: 'No sessions found'
+      });
+    }
+
+    // Check for active sessions
+    const activeSessions = sessions.filter(s => s.status === 'active');
+    if (activeSessions.length > 0) {
+      return res.status(400).json({
+        error: `Cannot delete ${activeSessions.length} active session(s). Please end them first.`,
+        activeSessions: activeSessions.map(s => ({ sessionId: s.sessionId, title: s.title }))
+      });
+    }
+
+    // Notify participants if Socket.IO is available
+    if (req.app.get('io')) {
+      const io = req.app.get('io');
+
+      sessions.forEach(session => {
+        if (session.status !== 'ended') {
+          io.to(session.sessionId).emit('session-deleted', {
+            message: 'This session has been deleted by the teacher.',
+            sessionTitle: session.title,
+            teacherName: session.teacherName
+          });
+        }
+      });
+    }
+
+    // Delete sessions
+    const deleteResult = await WhiteboardSession.deleteMany({
+      sessionId: { $in: sessionIds },
+      teacherId: req.user._id
+    });
+
+    res.json({
+      success: true,
+      message: `${deleteResult.deletedCount} session(s) deleted successfully`,
+      deletedCount: deleteResult.deletedCount,
+      deletedSessions: sessions.map(s => ({
+        sessionId: s.sessionId,
+        title: s.title,
+        status: s.status
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error bulk deleting sessions:', error);
+    res.status(500).json({
+      error: 'Failed to delete sessions'
     });
   }
 });

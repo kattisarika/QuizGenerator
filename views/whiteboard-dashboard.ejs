@@ -149,6 +149,104 @@
             padding: 1.5rem;
             margin-bottom: 2rem;
         }
+
+        .session-checkbox {
+            margin-right: 1rem;
+        }
+
+        .session-card.selected {
+            border: 2px solid #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 2rem 0;
+        }
+
+        .pagination-btn {
+            background: white;
+            border: 1px solid #dee2e6;
+            color: #495057;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .pagination-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            color: #495057;
+        }
+
+        .pagination-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .pagination-btn:disabled {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            color: #6c757d;
+            font-size: 0.875rem;
+            margin: 0 1rem;
+        }
+
+        .bulk-actions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .bulk-actions.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .session-controls {
+                flex-wrap: wrap;
+            }
+
+            .pagination {
+                flex-wrap: wrap;
+                gap: 0.25rem;
+            }
+
+            .pagination-btn {
+                padding: 0.375rem 0.5rem;
+                font-size: 0.875rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -204,11 +302,52 @@
             </div>
         </div>
 
+        <!-- Session Controls -->
+        <div class="quick-actions">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center gap-3">
+                        <div>
+                            <label for="statusFilter" class="form-label mb-0">Filter by Status:</label>
+                            <select class="form-select form-select-sm" id="statusFilter" onchange="filterSessions()">
+                                <option value="all">All Sessions</option>
+                                <option value="waiting">Waiting</option>
+                                <option value="active">Active</option>
+                                <option value="ended">Ended</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="pageSize" class="form-label mb-0">Per Page:</label>
+                            <select class="form-select form-select-sm" id="pageSize" onchange="changePageSize()">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-outline-danger" id="bulkDeleteBtn" onclick="toggleBulkDelete()" style="display: none;">
+                        <i class="fas fa-trash me-2"></i>Delete Selected
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="toggleSelectMode()">
+                        <i class="fas fa-check-square me-2"></i>Select Mode
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Sessions List -->
         <div class="row">
             <div class="col-12">
                 <div id="sessionsContainer">
                     <!-- Sessions will be loaded here -->
+                </div>
+
+                <!-- Pagination -->
+                <div id="paginationContainer" class="d-flex justify-content-center mt-4">
+                    <!-- Pagination controls will be loaded here -->
                 </div>
             </div>
         </div>
@@ -383,10 +522,17 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Global variables
+        let currentPage = 1;
+        let currentPageSize = 10;
+        let currentStatus = 'all';
+        let selectMode = false;
+        let selectedSessions = new Set();
+
         // Load sessions on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadSessions();
-            
+
             // Password protection toggle
             document.getElementById('passwordProtected').addEventListener('change', function() {
                 const passwordField = document.getElementById('passwordField');
@@ -394,15 +540,27 @@
             });
         });
 
-        // Load teacher's sessions
-        async function loadSessions() {
+        // Load teacher's sessions with pagination
+        async function loadSessions(page = 1, status = 'all', pageSize = 10) {
             try {
-                const response = await fetch('/api/whiteboard/my-sessions');
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: pageSize,
+                    status: status
+                });
+
+                const response = await fetch(`/api/whiteboard/my-sessions?${params}`);
                 const data = await response.json();
 
                 if (data.success) {
                     displaySessions(data.sessions);
                     updateStats(data.sessions);
+                    displayPagination(data.pagination);
+
+                    // Update global state
+                    currentPage = page;
+                    currentStatus = status;
+                    currentPageSize = pageSize;
                 } else {
                     console.error('Failed to load sessions:', data.error);
                 }
@@ -414,26 +572,35 @@
         // Display sessions in the UI
         function displaySessions(sessions) {
             const container = document.getElementById('sessionsContainer');
-            
+
             if (sessions.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-5">
                         <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-3"></i>
-                        <h4 class="text-muted">No sessions yet</h4>
-                        <p class="text-muted">Create your first whiteboard session to get started</p>
-                        <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#createSessionModal">
-                            <i class="fas fa-plus me-2"></i>Create First Session
-                        </button>
+                        <h4 class="text-muted">No sessions found</h4>
+                        <p class="text-muted">
+                            ${currentStatus === 'all' ? 'Create your first whiteboard session to get started' : `No ${currentStatus} sessions found`}
+                        </p>
+                        ${currentStatus === 'all' ? `
+                            <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#createSessionModal">
+                                <i class="fas fa-plus me-2"></i>Create First Session
+                            </button>
+                        ` : ''}
                     </div>
                 `;
                 return;
             }
 
             container.innerHTML = sessions.map(session => `
-                <div class="session-card">
+                <div class="session-card ${selectedSessions.has(session.sessionId) ? 'selected' : ''}" data-session-id="${session.sessionId}">
                     <div class="row align-items-center">
                         <div class="col-md-8">
                             <div class="d-flex align-items-center mb-2">
+                                ${selectMode ? `
+                                    <input type="checkbox" class="session-checkbox"
+                                           onchange="toggleSessionSelection('${session.sessionId}')"
+                                           ${selectedSessions.has(session.sessionId) ? 'checked' : ''}>
+                                ` : ''}
                                 <h5 class="mb-0 me-3">${session.title}</h5>
                                 <span class="session-status status-${session.status}">${session.status}</span>
                             </div>
@@ -448,12 +615,21 @@
                                 <span class="participant-badge">
                                     <i class="fas fa-graduation-cap me-1"></i>${session.gradeLevel}
                                 </span>
+                                ${session.duration ? `
+                                    <span class="participant-badge">
+                                        <i class="fas fa-clock me-1"></i>${session.duration} min
+                                    </span>
+                                ` : ''}
                             </div>
                         </div>
                         <div class="col-md-4 text-end">
                             <div class="join-code mb-2">${session.joinCode}</div>
                             <div class="btn-group" role="group">
                                 ${getSessionActions(session)}
+                                <button class="delete-btn" onclick="deleteSession('${session.sessionId}', '${session.title}')"
+                                        title="Delete Session">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -616,9 +792,208 @@
             window.open(`/whiteboard/view/${sessionId}`, '_blank');
         }
 
+        // Display pagination controls
+        function displayPagination(pagination) {
+            const container = document.getElementById('paginationContainer');
+
+            if (pagination.totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '<div class="pagination">';
+
+            // Previous button
+            paginationHTML += `
+                <button class="pagination-btn" onclick="loadSessions(${pagination.currentPage - 1}, '${currentStatus}', ${currentPageSize})"
+                        ${!pagination.hasPrevPage ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+            `;
+
+            // Page numbers
+            const startPage = Math.max(1, pagination.currentPage - 2);
+            const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+
+            if (startPage > 1) {
+                paginationHTML += `<button class="pagination-btn" onclick="loadSessions(1, '${currentStatus}', ${currentPageSize})">1</button>`;
+                if (startPage > 2) {
+                    paginationHTML += '<span class="pagination-info">...</span>';
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `
+                    <button class="pagination-btn ${i === pagination.currentPage ? 'active' : ''}"
+                            onclick="loadSessions(${i}, '${currentStatus}', ${currentPageSize})">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            if (endPage < pagination.totalPages) {
+                if (endPage < pagination.totalPages - 1) {
+                    paginationHTML += '<span class="pagination-info">...</span>';
+                }
+                paginationHTML += `<button class="pagination-btn" onclick="loadSessions(${pagination.totalPages}, '${currentStatus}', ${currentPageSize})">${pagination.totalPages}</button>`;
+            }
+
+            // Next button
+            paginationHTML += `
+                <button class="pagination-btn" onclick="loadSessions(${pagination.currentPage + 1}, '${currentStatus}', ${currentPageSize})"
+                        ${!pagination.hasNextPage ? 'disabled' : ''}>
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            `;
+
+            paginationHTML += '</div>';
+
+            // Add pagination info
+            paginationHTML += `
+                <div class="text-center mt-2">
+                    <small class="pagination-info">
+                        Showing ${((pagination.currentPage - 1) * pagination.limit) + 1} to
+                        ${Math.min(pagination.currentPage * pagination.limit, pagination.totalSessions)}
+                        of ${pagination.totalSessions} sessions
+                    </small>
+                </div>
+            `;
+
+            container.innerHTML = paginationHTML;
+        }
+
+        // Filter sessions by status
+        function filterSessions() {
+            const status = document.getElementById('statusFilter').value;
+            currentPage = 1; // Reset to first page
+            loadSessions(currentPage, status, currentPageSize);
+        }
+
+        // Change page size
+        function changePageSize() {
+            const pageSize = parseInt(document.getElementById('pageSize').value);
+            currentPage = 1; // Reset to first page
+            loadSessions(currentPage, currentStatus, pageSize);
+        }
+
+        // Toggle select mode
+        function toggleSelectMode() {
+            selectMode = !selectMode;
+            selectedSessions.clear();
+
+            const btn = event.target;
+            if (selectMode) {
+                btn.innerHTML = '<i class="fas fa-times me-2"></i>Cancel Select';
+                btn.classList.add('btn-warning');
+                btn.classList.remove('btn-outline-secondary');
+            } else {
+                btn.innerHTML = '<i class="fas fa-check-square me-2"></i>Select Mode';
+                btn.classList.remove('btn-warning');
+                btn.classList.add('btn-outline-secondary');
+            }
+
+            updateBulkDeleteButton();
+            loadSessions(currentPage, currentStatus, currentPageSize); // Refresh to show/hide checkboxes
+        }
+
+        // Toggle session selection
+        function toggleSessionSelection(sessionId) {
+            if (selectedSessions.has(sessionId)) {
+                selectedSessions.delete(sessionId);
+            } else {
+                selectedSessions.add(sessionId);
+            }
+
+            updateBulkDeleteButton();
+
+            // Update visual state
+            const sessionCard = document.querySelector(`[data-session-id="${sessionId}"]`);
+            if (sessionCard) {
+                sessionCard.classList.toggle('selected', selectedSessions.has(sessionId));
+            }
+        }
+
+        // Update bulk delete button visibility
+        function updateBulkDeleteButton() {
+            const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+            if (selectMode && selectedSessions.size > 0) {
+                bulkDeleteBtn.style.display = 'inline-block';
+                bulkDeleteBtn.innerHTML = `<i class="fas fa-trash me-2"></i>Delete Selected (${selectedSessions.size})`;
+            } else {
+                bulkDeleteBtn.style.display = 'none';
+            }
+        }
+
+        // Delete single session
+        async function deleteSession(sessionId, sessionTitle) {
+            if (!confirm(`Are you sure you want to delete the session "${sessionTitle}"?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/whiteboard/${sessionId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`Session "${sessionTitle}" deleted successfully!`);
+                    loadSessions(currentPage, currentStatus, currentPageSize);
+                } else {
+                    alert('Error deleting session: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error deleting session:', error);
+                alert('Error deleting session. Please try again.');
+            }
+        }
+
+        // Bulk delete sessions
+        async function toggleBulkDelete() {
+            if (selectedSessions.size === 0) {
+                alert('Please select sessions to delete.');
+                return;
+            }
+
+            const sessionCount = selectedSessions.size;
+            if (!confirm(`Are you sure you want to delete ${sessionCount} selected session(s)?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/whiteboard/bulk-delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionIds: Array.from(selectedSessions)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`${data.deletedCount} session(s) deleted successfully!`);
+                    selectedSessions.clear();
+                    toggleSelectMode(); // Exit select mode
+                    loadSessions(currentPage, currentStatus, currentPageSize);
+                } else {
+                    alert('Error deleting sessions: ' + data.error);
+                    if (data.activeSessions) {
+                        console.log('Active sessions that cannot be deleted:', data.activeSessions);
+                    }
+                }
+            } catch (error) {
+                console.error('Error bulk deleting sessions:', error);
+                alert('Error deleting sessions. Please try again.');
+            }
+        }
+
         // Refresh sessions
         function refreshSessions() {
-            loadSessions();
+            loadSessions(currentPage, currentStatus, currentPageSize);
         }
     </script>
 </body>
