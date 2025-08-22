@@ -465,8 +465,8 @@
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab" aria-controls="manual" aria-selected="false">
-                                    <i class="fas fa-edit me-2"></i>Create Questions Manually
+                                <button class="btn btn-success btn-lg shadow-sm" onclick="showManualQuizCreator()" type="button">
+                                    <i class="fas fa-edit me-2"></i>Create Quiz Manually
                                 </button>
                             </li>
                         </ul>
@@ -714,8 +714,21 @@
                                 </form>
                             </div>
 
-                            <!-- Create Questions Manually Tab -->
-                            <div class="tab-pane fade" id="manual" role="tabpanel" aria-labelledby="manual-tab">
+                            <!-- Manual Quiz Creator (Hidden by default) -->
+                            <div id="manualQuizCreator" style="display: none;" class="mt-4">
+                                <!-- Back Button -->
+                                <div class="mb-3">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="showUploadTab()">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Upload Documents
+                                    </button>
+                                </div>
+
+                                <!-- Manual Quiz Creation Header -->
+                                <div class="card-header text-center mb-4">
+                                    <h3><i class="fas fa-edit me-2"></i>Create Quiz Manually</h3>
+                                    <p class="mb-0">Build your quiz questions step by step with full control</p>
+                                </div>
+
                                 <form id="manualQuizForm">
                                     <!-- Quiz Type Selection -->
                                     <div class="mb-4">
@@ -1092,6 +1105,7 @@
                                     </div>
                                 </form>
                             </div>
+                            <!-- End Manual Quiz Creator -->
                         </div>
                     </div>
                             </div>
@@ -2060,6 +2074,62 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             originalAddOption();
             setTimeout(addMathToOptions, 100);
         };
+
+        // Show Manual Quiz Creator
+        function showManualQuizCreator() {
+            console.log('Showing Manual Quiz Creator...');
+
+            // Hide the upload tab content
+            const uploadTab = document.getElementById('upload');
+            if (uploadTab) {
+                uploadTab.style.display = 'none';
+                uploadTab.classList.remove('show', 'active');
+            }
+
+            // Show the manual quiz creator
+            const manualCreator = document.getElementById('manualQuizCreator');
+            if (manualCreator) {
+                manualCreator.style.display = 'block';
+                console.log('Manual Quiz Creator shown successfully');
+            } else {
+                console.error('Manual Quiz Creator not found');
+            }
+
+            // Update tab buttons
+            const uploadTabButton = document.getElementById('upload-tab');
+            if (uploadTabButton) {
+                uploadTabButton.classList.remove('active');
+            }
+
+            // Scroll to manual creator
+            if (manualCreator) {
+                manualCreator.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Function to go back to upload tab
+        function showUploadTab() {
+            console.log('Showing Upload Tab...');
+
+            // Hide manual quiz creator
+            const manualCreator = document.getElementById('manualQuizCreator');
+            if (manualCreator) {
+                manualCreator.style.display = 'none';
+            }
+
+            // Show upload tab
+            const uploadTab = document.getElementById('upload');
+            if (uploadTab) {
+                uploadTab.style.display = 'block';
+                uploadTab.classList.add('show', 'active');
+            }
+
+            // Update tab buttons
+            const uploadTabButton = document.getElementById('upload-tab');
+            if (uploadTabButton) {
+                uploadTabButton.classList.add('active');
+            }
+        }
     </script>
 </body>
 </html>
