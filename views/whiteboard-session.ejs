@@ -537,19 +537,22 @@
         // Initialize the whiteboard
         function initializeWhiteboard() {
             resizeCanvas();
-            
-            // Join the session room
-            socket.emit('join-session', sessionData.sessionId);
-            
-            // Load participants and chat
-            loadParticipants();
-            loadChatHistory();
-            
+
+            // Join the session room with user data
+            socket.emit('join-session', {
+                sessionId: sessionData.sessionId,
+                userId: sessionData.user.id,
+                userName: sessionData.user.name,
+                userRole: sessionData.user.role
+            });
+
             // Set up canvas event listeners
             setupCanvasEvents();
-            
+
             // Set up socket event listeners
             setupSocketEvents();
+
+            console.log('Whiteboard initialized for user:', sessionData.user.name);
         }
 
         // Canvas event handlers
@@ -569,30 +572,37 @@
             if (!sessionData.participant.permissions?.canDraw && sessionData.user.role !== 'teacher') {
                 return;
             }
-            
+
             isDrawing = true;
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            
+
             ctx.beginPath();
             ctx.moveTo(x, y);
+
+            // Emit start drawing event
+            socket.emit('drawing', {
+                sessionId: sessionData.sessionId,
+                x: x,
+                y: y,
+                tool: currentTool,
+                color: currentColor,
+                size: currentSize,
+                type: 'start'
+            });
         }
 
         function draw(e) {
             if (!isDrawing) return;
-            
+
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            
-            ctx.lineWidth = currentSize;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = currentTool === 'eraser' ? '#FFFFFF' : currentColor;
-            
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            
+
+            // Draw locally
+            drawLine(x, y, currentTool, currentColor, currentSize);
+
             // Emit drawing data to other participants
             socket.emit('drawing', {
                 sessionId: sessionData.sessionId,
@@ -601,14 +611,31 @@
                 tool: currentTool,
                 color: currentColor,
                 size: currentSize,
-                drawing: isDrawing
+                drawing: isDrawing,
+                type: 'draw'
             });
+        }
+
+        // Separate function for actual drawing
+        function drawLine(x, y, tool, color, size) {
+            ctx.lineWidth = size;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = tool === 'eraser' ? '#FFFFFF' : color;
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
         }
 
         function stopDrawing() {
             if (isDrawing) {
                 isDrawing = false;
                 ctx.beginPath();
+
+                // Emit stop drawing event
+                socket.emit('drawing', {
+                    sessionId: sessionData.sessionId,
+                    type: 'end'
+                });
             }
         }
 
@@ -626,29 +653,77 @@
         // Socket event handlers
         function setupSocketEvents() {
             socket.on('drawing', (data) => {
+                console.log('Received drawing data:', data);
                 if (data.userId !== sessionData.user.id) {
                     drawFromRemote(data);
                 }
             });
-            
+
             socket.on('participant-joined', (participant) => {
+                console.log('Participant joined:', participant);
                 addSystemMessage(`${participant.name} joined the session`);
-                loadParticipants();
+                updateParticipantsList();
             });
-            
+
             socket.on('participant-left', (participant) => {
+                console.log('Participant left:', participant);
                 addSystemMessage(`${participant.name} left the session`);
-                loadParticipants();
+                updateParticipantsList();
             });
-            
+
+            socket.on('participants-list', (participants) => {
+                console.log('Received participants list:', participants);
+                displayParticipants(participants);
+            });
+
             socket.on('chat-message', (message) => {
+                console.log('Received chat message:', message);
                 addChatMessage(message);
             });
-            
+
+            socket.on('chat-history', (messages) => {
+                console.log('Received chat history:', messages);
+                messages.forEach(message => addChatMessage(message, false));
+            });
+
+            socket.on('clear-canvas', () => {
+                console.log('Canvas cleared by teacher');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            });
+
             socket.on('session-ended', () => {
                 alert('The session has been ended by the teacher.');
                 window.location.href = sessionData.user.role === 'teacher' ? '/whiteboard/dashboard' : '/student/dashboard';
             });
+
+            socket.on('error', (error) => {
+                console.error('Socket error:', error);
+                alert(error.message || 'An error occurred');
+            });
+        }
+
+        // Draw from remote user
+        function drawFromRemote(data) {
+            const prevStrokeStyle = ctx.strokeStyle;
+            const prevLineWidth = ctx.lineWidth;
+
+            ctx.lineWidth = data.size;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = data.tool === 'eraser' ? '#FFFFFF' : data.color;
+
+            if (data.type === 'start') {
+                ctx.beginPath();
+                ctx.moveTo(data.x, data.y);
+            } else if (data.type === 'draw') {
+                ctx.lineTo(data.x, data.y);
+                ctx.stroke();
+            } else if (data.type === 'end') {
+                ctx.beginPath();
+            }
+
+            // Restore previous settings
+            ctx.strokeStyle = prevStrokeStyle;
+            ctx.lineWidth = prevLineWidth;
         }
 
         // Tool selection
@@ -684,17 +759,42 @@
             document.getElementById(tabName + 'Tab').style.display = 'block';
         }
 
-        // Load participants
-        function loadParticipants() {
-            // This would typically fetch from the server
-            // For now, we'll use the session data
-            console.log('Loading participants...');
+        // Display participants in the sidebar
+        function displayParticipants(participants) {
+            const participantsList = document.getElementById('participantsList');
+
+            participantsList.innerHTML = participants.map(participant => {
+                const avatar = participant.name.charAt(0).toUpperCase();
+                const statusClass = participant.status === 'admitted' ? 'status-online' : 'status-waiting';
+                const roleIcon = participant.role === 'teacher' ? 'fas fa-chalkboard-teacher' : 'fas fa-user-graduate';
+
+                return `
+                    <li class="participant-item">
+                        <div class="participant-avatar">${avatar}</div>
+                        <div class="participant-info">
+                            <p class="participant-name">
+                                <i class="${roleIcon} me-1"></i>${participant.name}
+                            </p>
+                            <p class="participant-role">${participant.role}</p>
+                        </div>
+                        <span class="participant-status ${statusClass}">${participant.status}</span>
+                    </li>
+                `;
+            }).join('');
         }
 
-        // Load chat history
-        function loadChatHistory() {
-            // This would typically fetch chat history from the server
-            console.log('Loading chat history...');
+        // Update participants list
+        function updateParticipantsList() {
+            fetch(`/api/whiteboard/${sessionData.sessionId}/participants`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayParticipants(data.participants.filter(p => p.status === 'admitted'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching participants:', error);
+                });
         }
 
         // Send chat message
@@ -702,8 +802,9 @@
             e.preventDefault();
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
-            
+
             if (message) {
+                console.log('Sending message:', message);
                 socket.emit('chat-message', {
                     sessionId: sessionData.sessionId,
                     message: message
@@ -713,19 +814,36 @@
         }
 
         // Add chat message to UI
-        function addChatMessage(message) {
+        function addChatMessage(message, scrollToBottom = true) {
             const chatMessages = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${message.userId === sessionData.user.id ? 'own' : ''}`;
-            
-            messageDiv.innerHTML = `
-                <div class="message-sender">${message.userName}</div>
-                <p class="message-text">${message.message}</p>
-                <div class="message-time">${new Date(message.timestamp).toLocaleTimeString()}</div>
-            `;
-            
+
+            // Determine if this is the current user's message
+            const isOwnMessage = message.userId && message.userId.toString() === sessionData.user.id;
+            const isSystemMessage = message.isSystemMessage || false;
+
+            let messageClass = 'chat-message';
+            if (isOwnMessage) messageClass += ' own';
+            if (isSystemMessage) messageClass += ' system';
+
+            messageDiv.className = messageClass;
+
+            if (isSystemMessage) {
+                messageDiv.innerHTML = `<p class="message-text">${message.message}</p>`;
+            } else {
+                const timestamp = message.timestamp ? new Date(message.timestamp) : new Date();
+                messageDiv.innerHTML = `
+                    <div class="message-sender">${message.userName || 'Unknown'}</div>
+                    <p class="message-text">${message.message}</p>
+                    <div class="message-time">${timestamp.toLocaleTimeString()}</div>
+                `;
+            }
+
             chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            if (scrollToBottom) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
         }
 
         // Add system message
@@ -742,8 +860,12 @@
         // Canvas actions
         function clearCanvas() {
             if (sessionData.user.role === 'teacher') {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                socket.emit('clear-canvas', sessionData.sessionId);
+                if (confirm('Are you sure you want to clear the entire canvas?')) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    socket.emit('clear-canvas', sessionData.sessionId);
+                }
+            } else {
+                alert('Only teachers can clear the canvas');
             }
         }
 

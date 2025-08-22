@@ -5663,57 +5663,145 @@ app.post('/temp-login', (req, res) => {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  // Join session room
-  socket.on('join-session', (sessionId) => {
-    socket.join(sessionId);
-    console.log(`Socket ${socket.id} joined session ${sessionId}`);
+  // Join session room with user identification
+  socket.on('join-session', async (data) => {
+    try {
+      const { sessionId, userId, userName, userRole } = data;
+
+      // Store user info in socket
+      socket.userId = userId;
+      socket.userName = userName;
+      socket.userRole = userRole;
+      socket.sessionId = sessionId;
+
+      // Join the session room
+      socket.join(sessionId);
+      console.log(`User ${userName} (${socket.id}) joined session ${sessionId}`);
+
+      // Update participant's last active time
+      const WhiteboardSession = require('./models/WhiteboardSession');
+      const session = await WhiteboardSession.findOne({ sessionId });
+
+      if (session) {
+        const participant = session.participants.find(p =>
+          p.userId && p.userId.toString() === userId
+        );
+
+        if (participant) {
+          participant.lastActive = new Date();
+          await session.save();
+        }
+
+        // Notify other participants
+        socket.to(sessionId).emit('participant-joined', {
+          userId,
+          name: userName,
+          role: userRole
+        });
+
+        // Send current participants list to the new user
+        socket.emit('participants-list', session.participants.filter(p => p.status === 'admitted'));
+
+        // Send chat history to the new user
+        socket.emit('chat-history', session.chatMessages.slice(-50)); // Last 50 messages
+      }
+    } catch (error) {
+      console.error('Error joining session:', error);
+    }
   });
 
   // Handle drawing events
   socket.on('drawing', (data) => {
+    console.log('Drawing event received:', data);
+
+    // Broadcast drawing to all other participants in the session
     socket.to(data.sessionId).emit('drawing', {
       ...data,
-      userId: socket.userId
+      userId: socket.userId,
+      userName: socket.userName
     });
   });
 
   // Handle chat messages
   socket.on('chat-message', async (data) => {
     try {
+      console.log('Chat message received:', data);
+
       const WhiteboardSession = require('./models/WhiteboardSession');
       const session = await WhiteboardSession.findOne({
         sessionId: data.sessionId
       });
 
-      if (session) {
-        const message = session.addChatMessage({
-          userId: socket.userId,
-          userName: socket.userName,
-          message: data.message
-        });
+      if (session && socket.userId) {
+        // Check if user has chat permission
+        const participant = session.participants.find(p =>
+          p.userId && p.userId.toString() === socket.userId
+        );
 
-        await session.save();
+        if (participant && (participant.permissions.canChat || socket.userRole === 'teacher')) {
+          const message = session.addChatMessage({
+            userId: socket.userId,
+            userName: socket.userName,
+            message: data.message
+          });
 
-        // Broadcast message to all participants
-        io.to(data.sessionId).emit('chat-message', message);
+          await session.save();
+          console.log('Chat message saved:', message);
+
+          // Broadcast message to all participants including sender
+          io.to(data.sessionId).emit('chat-message', message);
+        } else {
+          socket.emit('error', { message: 'You do not have permission to chat' });
+        }
       }
     } catch (error) {
       console.error('Error handling chat message:', error);
+      socket.emit('error', { message: 'Failed to send message' });
     }
   });
 
   // Handle canvas clear
   socket.on('clear-canvas', (sessionId) => {
-    socket.to(sessionId).emit('clear-canvas');
+    console.log('Canvas clear requested by:', socket.userName);
+    if (socket.userRole === 'teacher') {
+      socket.to(sessionId).emit('clear-canvas');
+    }
   });
 
   // Handle leaving session
   socket.on('leave-session', (sessionId) => {
+    console.log('User leaving session:', socket.userName);
     socket.leave(sessionId);
     socket.to(sessionId).emit('participant-left', {
       userId: socket.userId,
       name: socket.userName
     });
+  });
+
+  // Handle participant status updates
+  socket.on('update-participant-status', async (data) => {
+    try {
+      const { sessionId, userId, status } = data;
+
+      if (socket.userRole === 'teacher') {
+        const WhiteboardSession = require('./models/WhiteboardSession');
+        const session = await WhiteboardSession.findOne({ sessionId });
+
+        if (session) {
+          const participant = session.updateParticipantStatus(userId, status);
+          await session.save();
+
+          // Notify all participants of the status change
+          io.to(sessionId).emit('participant-status-updated', {
+            userId,
+            status,
+            participant
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating participant status:', error);
+    }
   });
 
   // Handle disconnect
