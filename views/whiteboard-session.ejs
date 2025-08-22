@@ -460,6 +460,33 @@
             text-align: center;
         }
 
+        .waiting-participant {
+            margin-bottom: 0.5rem;
+        }
+
+        .waiting-participant .participant-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #ffc107;
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .permission-request h6 {
+            color: #856404;
+            margin-bottom: 1rem;
+        }
+
+        .permission-request .btn-group .btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
         .btn-sm {
             padding: 0.375rem 0.75rem;
             font-size: 0.875rem;
@@ -607,6 +634,7 @@
                 </button>
                 <button class="sidebar-tab" onclick="showSidebarTab('participants')">
                     <i class="fas fa-users me-1"></i>Participants
+                    <span id="waitingBadge" class="badge bg-warning text-dark ms-1" style="display: none;">0</span>
                 </button>
                 <button class="sidebar-tab" onclick="showSidebarTab('chat')">
                     <i class="fas fa-comments me-1"></i>Chat
@@ -805,6 +833,18 @@
             // Initialize audio/video
             initializeMediaDevices();
 
+            // Load initial participants list
+            setTimeout(() => {
+                updateParticipantsList();
+            }, 1000);
+
+            // Request notification permission for teachers
+            if (sessionData.user.role === 'teacher' && 'Notification' in window) {
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+            }
+
             console.log('Whiteboard initialized for user:', sessionData.user.name);
         }
 
@@ -962,6 +1002,20 @@
             socket.on('participants-list', (participants) => {
                 console.log('Received participants list:', participants);
                 displayParticipants(participants);
+
+                // Check for waiting participants and notify teacher
+                if (sessionData.user.role === 'teacher') {
+                    const waitingCount = participants.filter(p => p.status === 'waiting').length;
+                    if (waitingCount > 0) {
+                        // Show browser notification if permission granted
+                        if (Notification.permission === 'granted') {
+                            new Notification(`${waitingCount} student(s) waiting for admission`, {
+                                body: 'Click to view and admit students',
+                                icon: '/favicon.ico'
+                            });
+                        }
+                    }
+                }
             });
 
             socket.on('chat-message', (message) => {
@@ -1050,6 +1104,43 @@
             socket.on('webrtc-ice-candidate', async (data) => {
                 console.log('Received ICE candidate:', data);
                 await handleICECandidate(data);
+            });
+
+            // Participant admission events
+            socket.on('participant-admitted', (data) => {
+                console.log('Participant admitted:', data);
+                if (sessionData.user.role === 'teacher') {
+                    updateParticipantsList();
+                }
+                addSystemMessage(`${data.userName} was admitted to the session`);
+            });
+
+            socket.on('participant-denied', (data) => {
+                console.log('Participant denied:', data);
+                if (sessionData.user.role === 'teacher') {
+                    updateParticipantsList();
+                }
+                addSystemMessage(`${data.userName} was denied access to the session`);
+            });
+
+            socket.on('participant-status-updated', (data) => {
+                console.log('Participant status updated:', data);
+
+                // If this is about the current user
+                if (data.userId === sessionData.user.id) {
+                    if (data.status === 'admitted') {
+                        // Student was admitted - reload the page to get full access
+                        location.reload();
+                    } else if (data.status === 'denied') {
+                        alert('Your request to join this session was denied by the teacher.');
+                        window.location.href = '/student/dashboard';
+                    }
+                } else {
+                    // Update participant list for teachers
+                    if (sessionData.user.role === 'teacher') {
+                        updateParticipantsList();
+                    }
+                }
             });
         }
 
@@ -1290,11 +1381,153 @@
                 .then(data => {
                     if (data.success) {
                         displayParticipants(data.participants.filter(p => p.status === 'admitted'));
+
+                        // Update waiting participants for teachers
+                        if (sessionData.user.role === 'teacher') {
+                            displayWaitingParticipants(data.participants.filter(p => p.status === 'waiting'));
+                        }
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching participants:', error);
                 });
+        }
+
+        // Display waiting participants (for teachers)
+        function displayWaitingParticipants(waitingParticipants) {
+            const waitingList = document.getElementById('waitingList');
+            const waitingSection = document.querySelector('.permission-request');
+            const waitingBadge = document.getElementById('waitingBadge');
+
+            if (!waitingList) return;
+
+            // Update badge
+            if (waitingBadge) {
+                if (waitingParticipants.length > 0) {
+                    waitingBadge.textContent = waitingParticipants.length;
+                    waitingBadge.style.display = 'inline';
+                } else {
+                    waitingBadge.style.display = 'none';
+                }
+            }
+
+            if (waitingParticipants.length === 0) {
+                if (waitingSection) {
+                    waitingSection.style.display = 'none';
+                }
+                return;
+            }
+
+            if (waitingSection) {
+                waitingSection.style.display = 'block';
+            }
+
+            waitingList.innerHTML = waitingParticipants.map(participant => `
+                <div class="waiting-participant" data-user-id="${participant.userId}">
+                    <div class="d-flex align-items-center justify-content-between mb-2 p-2 border rounded">
+                        <div class="d-flex align-items-center">
+                            <div class="participant-avatar me-2">${participant.name.charAt(0).toUpperCase()}</div>
+                            <div>
+                                <strong>${participant.name}</strong>
+                                <br>
+                                <small class="text-muted">${participant.email}</small>
+                                <br>
+                                <small class="text-muted">Joined: ${new Date(participant.joinedAt).toLocaleTimeString()}</small>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-success" onclick="admitParticipant('${participant.userId}', '${participant.name}')">
+                                <i class="fas fa-check me-1"></i>Admit
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="denyParticipant('${participant.userId}', '${participant.name}')">
+                                <i class="fas fa-times me-1"></i>Deny
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Admit participant (teacher only)
+        async function admitParticipant(userId, userName) {
+            if (sessionData.user.role !== 'teacher') return;
+
+            try {
+                const response = await fetch(`/api/whiteboard/${sessionData.sessionId}/participants/${userId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'admitted' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`${userName} admitted successfully`);
+
+                    // Update participants list
+                    updateParticipantsList();
+
+                    // Add system message
+                    addSystemMessage(`${userName} was admitted to the session`);
+
+                    // Notify via socket
+                    socket.emit('participant-admitted', {
+                        sessionId: sessionData.sessionId,
+                        userId: userId,
+                        userName: userName
+                    });
+                } else {
+                    alert('Error admitting participant: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error admitting participant:', error);
+                alert('Error admitting participant. Please try again.');
+            }
+        }
+
+        // Deny participant (teacher only)
+        async function denyParticipant(userId, userName) {
+            if (sessionData.user.role !== 'teacher') return;
+
+            if (!confirm(`Are you sure you want to deny ${userName} access to this session?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/whiteboard/${sessionData.sessionId}/participants/${userId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'denied' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`${userName} denied successfully`);
+
+                    // Update participants list
+                    updateParticipantsList();
+
+                    // Add system message
+                    addSystemMessage(`${userName} was denied access to the session`);
+
+                    // Notify via socket
+                    socket.emit('participant-denied', {
+                        sessionId: sessionData.sessionId,
+                        userId: userId,
+                        userName: userName
+                    });
+                } else {
+                    alert('Error denying participant: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error denying participant:', error);
+                alert('Error denying participant. Please try again.');
+            }
         }
 
         // Send chat message

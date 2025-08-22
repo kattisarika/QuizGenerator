@@ -5930,6 +5930,23 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Handle participant admission events
+  socket.on('participant-admitted', (data) => {
+    console.log('Participant admitted by teacher:', socket.userName);
+    socket.to(data.sessionId).emit('participant-admitted', {
+      userId: data.userId,
+      userName: data.userName
+    });
+  });
+
+  socket.on('participant-denied', (data) => {
+    console.log('Participant denied by teacher:', socket.userName);
+    socket.to(data.sessionId).emit('participant-denied', {
+      userId: data.userId,
+      userName: data.userName
+    });
+  });
+
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);

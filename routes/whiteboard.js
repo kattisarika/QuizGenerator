@@ -573,6 +573,22 @@ router.post('/:sessionId/participants/:userId/status', requireAuth, requireRole(
 
     await session.save();
 
+    // Notify all participants via Socket.IO
+    if (req.app.get('io')) {
+      const io = req.app.get('io');
+
+      io.to(session.sessionId).emit('participant-status-updated', {
+        userId: req.params.userId,
+        status: status,
+        participant: {
+          userId: participant.userId,
+          name: participant.name,
+          status: participant.status,
+          permissions: participant.permissions
+        }
+      });
+    }
+
     res.json({
       success: true,
       message: `Participant ${status} successfully`,
