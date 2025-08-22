@@ -487,6 +487,21 @@
             padding: 0.25rem 0.5rem;
         }
 
+        .student-audio-indicator {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .audio-indicator-content {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         .btn-sm {
             padding: 0.375rem 0.75rem;
             font-size: 0.875rem;
@@ -785,6 +800,11 @@
             participant: <%- JSON.stringify(participant || {}) %>
         };
 
+        // Production environment check for logging
+        const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const log = isProduction ? () => {} : console.log;
+        const logError = console.error; // Always log errors
+
         // Initialize socket connection
         const socket = io();
 
@@ -856,7 +876,7 @@
                 }
             }
 
-            console.log('Whiteboard initialized for user:', sessionData.user.name);
+            log('Whiteboard initialized for user:', sessionData.user.name);
         }
 
         // Initialize media devices
@@ -992,7 +1012,8 @@
         // Socket event handlers
         function setupSocketEvents() {
             socket.on('drawing', (data) => {
-                console.log('Received drawing data:', data);
+                // Reduced logging for high-frequency drawing events
+                // console.log('Received drawing data:', data);
                 if (data.userId !== sessionData.user.id) {
                     drawFromRemote(data);
                 }
@@ -1003,12 +1024,25 @@
                 addSystemMessage(`${participant.name} joined the session`);
                 updateParticipantsList();
 
-                // Only teacher initiates WebRTC connections to students
-                if (sessionData.user.role === 'teacher' && participant.role === 'student' && localStream) {
-                    console.log('Teacher initiating WebRTC connection to new student:', participant.name);
-                    setTimeout(() => {
-                        initiateWebRTCConnection(participant.userId);
-                    }, 1500);
+                if (localStream) {
+                    if (sessionData.user.role === 'teacher' && participant.role === 'student') {
+                        // Teacher initiates connection to new student
+                        console.log('Teacher initiating WebRTC connection to new student:', participant.name);
+                        setTimeout(() => {
+                            initiateWebRTCConnection(participant.userId);
+                        }, 1500);
+                    } else if (sessionData.user.role === 'student' && participant.role === 'teacher') {
+                        // Student initiates connection to teacher if they have permissions
+                        const hasAudioPermission = sessionData.participant.permissions && sessionData.participant.permissions.canSpeak;
+                        const hasVideoPermission = sessionData.participant.permissions && sessionData.participant.permissions.canVideo;
+
+                        if (hasAudioPermission || hasVideoPermission) {
+                            console.log('Student initiating WebRTC connection to teacher for audio/video');
+                            setTimeout(() => {
+                                initiateWebRTCConnection(participant.userId);
+                            }, 2000);
+                        }
+                    }
                 }
             });
 
@@ -1120,17 +1154,20 @@
 
             // WebRTC signaling events
             socket.on('webrtc-offer', async (data) => {
-                console.log('Received WebRTC offer:', data);
+                // Reduced logging for WebRTC events
+                // console.log('Received WebRTC offer:', data);
                 await handleWebRTCOffer(data);
             });
 
             socket.on('webrtc-answer', async (data) => {
-                console.log('Received WebRTC answer:', data);
+                // Reduced logging for WebRTC events
+                // console.log('Received WebRTC answer:', data);
                 await handleWebRTCAnswer(data);
             });
 
             socket.on('webrtc-ice-candidate', async (data) => {
-                console.log('Received ICE candidate:', data);
+                // Reduced logging for ICE candidates
+                // console.log('Received ICE candidate:', data);
                 await handleICECandidate(data);
             });
 
@@ -1233,10 +1270,29 @@
                 if (isAudioEnabled) {
                     micBtn.innerHTML = '<i class="fas fa-microphone"></i> On';
                     micBtn.classList.add('active');
+
+                    // If student is enabling audio, ensure WebRTC connection exists
+                    if (sessionData.user.role === 'student') {
+                        ensureWebRTCConnectionToTeacher();
+                    }
                 } else {
                     micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i> Off';
                     micBtn.classList.remove('active');
                 }
+
+                // Update audio track in existing peer connections
+                Object.keys(peerConnections).forEach(async (userId) => {
+                    const pc = peerConnections[userId];
+                    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+                    if (sender) {
+                        try {
+                            await sender.replaceTrack(isAudioEnabled ? audioTrack : null);
+                            console.log('Audio track updated for user:', userId);
+                        } catch (error) {
+                            console.error('Error updating audio track:', error);
+                        }
+                    }
+                });
 
                 // Notify other participants
                 socket.emit('audio-toggle', {
@@ -1244,6 +1300,28 @@
                     userId: sessionData.user.id,
                     enabled: isAudioEnabled
                 });
+
+                console.log('Microphone toggled:', isAudioEnabled);
+            }
+        }
+
+        // Ensure WebRTC connection exists for student to send audio to teacher
+        async function ensureWebRTCConnectionToTeacher() {
+            if (sessionData.user.role !== 'student') return;
+
+            try {
+                const response = await fetch(`/api/whiteboard/${sessionData.sessionId}/participants`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const teacherParticipant = data.participants.find(p => p.role === 'teacher' && p.status === 'admitted');
+                    if (teacherParticipant && !peerConnections[teacherParticipant.userId]) {
+                        console.log('Creating WebRTC connection to teacher for audio');
+                        await initiateWebRTCConnection(teacherParticipant.userId);
+                    }
+                }
+            } catch (error) {
+                console.error('Error ensuring WebRTC connection to teacher:', error);
             }
         }
 
@@ -1829,20 +1907,20 @@
 
         // WebRTC functions
         async function createPeerConnection(userId) {
-            console.log('Creating peer connection for user:', userId);
+            // console.log('Creating peer connection for user:', userId);
             const peerConnection = new RTCPeerConnection(rtcConfig);
 
             // Add local stream to peer connection
             if (localStream) {
                 localStream.getTracks().forEach(track => {
-                    console.log('Adding track to peer connection:', track.kind);
+                    // console.log('Adding track to peer connection:', track.kind);
                     peerConnection.addTrack(track, localStream);
                 });
             }
 
             // Handle remote stream
             peerConnection.ontrack = (event) => {
-                console.log('Received remote stream from:', userId, event.streams);
+                console.log('Received remote stream from:', userId);
                 const remoteStream = event.streams[0];
                 if (remoteStream) {
                     displayRemoteVideo(userId, remoteStream);
@@ -1852,7 +1930,7 @@
             // Handle ICE candidates
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
-                    console.log('Sending ICE candidate to:', userId);
+                    // console.log('Sending ICE candidate to:', userId);
                     socket.emit('webrtc-ice-candidate', {
                         sessionId: sessionData.sessionId,
                         targetUserId: userId,
@@ -1863,7 +1941,9 @@
 
             // Handle connection state changes
             peerConnection.onconnectionstatechange = () => {
-                console.log('Connection state changed for', userId, ':', peerConnection.connectionState);
+                if (peerConnection.connectionState === 'failed' || peerConnection.connectionState === 'disconnected') {
+                    console.log('Connection issue for', userId, ':', peerConnection.connectionState);
+                }
             };
 
             peerConnections[userId] = peerConnection;
@@ -1914,13 +1994,26 @@
 
                     console.log('Found admitted participants:', admittedParticipants);
 
-                    // Only teacher initiates connections to students
                     if (sessionData.user.role === 'teacher') {
+                        // Teacher initiates connections to all students
                         for (const participant of admittedParticipants) {
                             if (localStream && !peerConnections[participant.userId]) {
-                                console.log('Initiating connection to student:', participant.name);
-                                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay
+                                console.log('Teacher initiating connection to student:', participant.name);
+                                await new Promise(resolve => setTimeout(resolve, 500));
                                 await initiateWebRTCConnection(participant.userId);
+                            }
+                        }
+                    } else if (sessionData.user.role === 'student') {
+                        // Student initiates connection to teacher if they have audio/video permissions
+                        const teacherParticipant = admittedParticipants.find(p => p.role === 'teacher');
+                        if (teacherParticipant && localStream && !peerConnections[teacherParticipant.userId]) {
+                            const hasAudioPermission = sessionData.participant.permissions && sessionData.participant.permissions.canSpeak;
+                            const hasVideoPermission = sessionData.participant.permissions && sessionData.participant.permissions.canVideo;
+
+                            if (hasAudioPermission || hasVideoPermission) {
+                                console.log('Student initiating connection to teacher for audio/video');
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                                await initiateWebRTCConnection(teacherParticipant.userId);
                             }
                         }
                     }
@@ -1971,8 +2064,8 @@
         }
 
         function displayRemoteVideo(userId, stream) {
-            console.log('Displaying remote video for user:', userId, 'Stream:', stream);
-            console.log('Current user role:', sessionData.user.role);
+            console.log('Displaying remote video for user:', userId);
+            // console.log('Current user role:', sessionData.user.role);
 
             // For students viewing teacher video
             if (sessionData.user.role === 'student') {
@@ -2002,7 +2095,7 @@
                     console.log('Teacher video should now be visible to student');
                 }
             } else if (sessionData.user.role === 'teacher') {
-                // Teacher viewing student video - add to student grid
+                // Teacher receiving student audio/video
 
                 // Remove existing video element if it exists
                 const existingVideo = document.getElementById(`video-${userId}`);
@@ -2016,7 +2109,7 @@
                 video.srcObject = stream;
                 video.autoplay = true;
                 video.playsInline = true;
-                video.muted = false;
+                video.muted = false; // Teacher should hear student audio
                 video.controls = false;
                 video.className = 'student-video';
 
@@ -2030,11 +2123,27 @@
                     video.play().catch(e => console.error('Error playing student video:', e));
                 };
 
-                // Add to student videos grid
-                const studentVideos = document.getElementById('studentVideos');
-                if (studentVideos) {
-                    studentVideos.appendChild(video);
-                    console.log('Student video added to grid for user:', userId);
+                // Check if stream has video tracks
+                const hasVideo = stream.getVideoTracks().length > 0;
+                const hasAudio = stream.getAudioTracks().length > 0;
+
+                console.log(`Student ${userId} stream - Video: ${hasVideo}, Audio: ${hasAudio}`);
+
+                if (hasVideo) {
+                    // Add to student videos grid if there's video
+                    const studentVideos = document.getElementById('studentVideos');
+                    if (studentVideos) {
+                        studentVideos.appendChild(video);
+                        console.log('Student video added to grid for user:', userId);
+                    }
+                } else if (hasAudio) {
+                    // For audio-only, create a hidden video element to play audio
+                    video.style.display = 'none';
+                    document.body.appendChild(video);
+                    console.log('Student audio-only stream added for user:', userId);
+
+                    // Show audio indicator in student list
+                    updateStudentAudioIndicator(userId, true);
                 }
             }
         }
@@ -2046,8 +2155,53 @@
                 video.classList.toggle('speaking', enabled);
             }
 
+            // Update audio indicator
+            updateStudentAudioIndicator(userId, enabled);
+
             // Update participant list if needed
             updateParticipantsList();
+        }
+
+        function updateStudentAudioIndicator(userId, hasAudio) {
+            // Find or create audio indicator for student
+            let indicator = document.getElementById(`audio-indicator-${userId}`);
+
+            if (hasAudio && !indicator) {
+                // Create audio indicator
+                indicator = document.createElement('div');
+                indicator.id = `audio-indicator-${userId}`;
+                indicator.className = 'student-audio-indicator';
+                indicator.innerHTML = `
+                    <div class="audio-indicator-content">
+                        <i class="fas fa-microphone text-success"></i>
+                        <span>Student Audio Active</span>
+                    </div>
+                `;
+                indicator.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(40, 167, 69, 0.9);
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border-radius: 20px;
+                    font-size: 0.875rem;
+                    z-index: 1000;
+                    animation: fadeIn 0.3s ease;
+                `;
+
+                document.body.appendChild(indicator);
+
+                // Auto-hide after 3 seconds
+                setTimeout(() => {
+                    if (indicator && indicator.parentNode) {
+                        indicator.remove();
+                    }
+                }, 3000);
+            } else if (!hasAudio && indicator) {
+                // Remove audio indicator
+                indicator.remove();
+            }
         }
 
         function updateParticipantVideoStatus(userId, enabled) {
@@ -2071,6 +2225,26 @@
                 if (micBtn) {
                     micBtn.style.display = 'block';
                 }
+
+                // If student now has audio permission, initiate WebRTC connection to teacher
+                if (sessionData.user.role === 'student' && localStream) {
+                    setTimeout(async () => {
+                        try {
+                            const response = await fetch(`/api/whiteboard/${sessionData.sessionId}/participants`);
+                            const data = await response.json();
+
+                            if (data.success) {
+                                const teacherParticipant = data.participants.find(p => p.role === 'teacher' && p.status === 'admitted');
+                                if (teacherParticipant && !peerConnections[teacherParticipant.userId]) {
+                                    console.log('Student initiating WebRTC connection to teacher after audio permission granted');
+                                    await initiateWebRTCConnection(teacherParticipant.userId);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error initiating WebRTC after audio permission:', error);
+                        }
+                    }, 1000);
+                }
             } else {
                 if (permissionDiv) {
                     permissionDiv.style.display = 'block';
@@ -2086,13 +2260,22 @@
             }
         }
 
-        // Debug function to check video status
+        // Debug function to check audio/video status
         function debugVideoStatus() {
-            console.log('=== VIDEO DEBUG STATUS ===');
+            console.log('=== AUDIO/VIDEO DEBUG STATUS ===');
             console.log('User role:', sessionData.user.role);
             console.log('Local stream:', localStream);
+            console.log('Audio enabled:', isAudioEnabled);
             console.log('Video enabled:', isVideoEnabled);
             console.log('Peer connections:', Object.keys(peerConnections));
+
+            // Check permissions
+            if (sessionData.participant && sessionData.participant.permissions) {
+                console.log('Student permissions:', {
+                    canSpeak: sessionData.participant.permissions.canSpeak,
+                    canVideo: sessionData.participant.permissions.canVideo
+                });
+            }
 
             const teacherVideo = document.getElementById('teacherVideo');
             const placeholder = document.getElementById('teacherVideoPlaceholder');
@@ -2115,10 +2298,30 @@
                 console.log(`Peer connection ${userId}:`, {
                     connectionState: pc.connectionState,
                     iceConnectionState: pc.iceConnectionState,
-                    signalingState: pc.signalingState
+                    signalingState: pc.signalingState,
+                    senders: pc.getSenders().map(s => ({
+                        track: s.track ? s.track.kind : 'no track',
+                        enabled: s.track ? s.track.enabled : 'N/A'
+                    })),
+                    receivers: pc.getReceivers().map(r => ({
+                        track: r.track ? r.track.kind : 'no track'
+                    }))
                 });
             });
-            console.log('=== END VIDEO DEBUG ===');
+
+            // Check for student video elements
+            const studentVideos = document.querySelectorAll('.student-video');
+            console.log('Student video elements:', studentVideos.length);
+            studentVideos.forEach((video, index) => {
+                console.log(`Student video ${index}:`, {
+                    id: video.id,
+                    srcObject: video.srcObject,
+                    muted: video.muted,
+                    display: video.style.display
+                });
+            });
+
+            console.log('=== END AUDIO/VIDEO DEBUG ===');
         }
 
         // Make debug function available globally

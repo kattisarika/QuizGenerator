@@ -5662,9 +5662,18 @@ app.post('/temp-login', (req, res) => {
   res.redirect('/dashboard');
 });
 
+// Logging configuration
+const isProduction = process.env.NODE_ENV === 'production';
+const enableVerboseLogging = process.env.VERBOSE_LOGGING === 'true' || !isProduction;
+
+// Logging helpers
+const log = enableVerboseLogging ? console.log : () => {};
+const logError = console.error; // Always log errors
+const logInfo = console.log; // Always log important info
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  log('User connected:', socket.id);
 
   // Join session room with user identification
   socket.on('join-session', async (data) => {
@@ -5715,7 +5724,8 @@ io.on('connection', (socket) => {
 
   // Handle drawing events
   socket.on('drawing', (data) => {
-    console.log('Drawing event received:', data);
+    // Reduced logging for high-frequency drawing events
+    // console.log('Drawing event received:', data);
 
     // Broadcast drawing to all other participants in the session
     socket.to(data.sessionId).emit('drawing', {
@@ -5871,7 +5881,8 @@ io.on('connection', (socket) => {
 
   // Handle audio toggle
   socket.on('audio-toggle', (data) => {
-    console.log('Audio toggle from:', socket.userName, data.enabled);
+    // Reduced logging for frequent audio toggles
+    // console.log('Audio toggle from:', socket.userName, data.enabled);
     socket.to(data.sessionId).emit('audio-toggle', {
       userId: socket.userId,
       userName: socket.userName,
@@ -5881,7 +5892,8 @@ io.on('connection', (socket) => {
 
   // Handle video toggle
   socket.on('video-toggle', (data) => {
-    console.log('Video toggle from:', socket.userName, data.enabled);
+    // Reduced logging for frequent video toggles
+    // console.log('Video toggle from:', socket.userName, data.enabled);
     socket.to(data.sessionId).emit('video-toggle', {
       userId: socket.userId,
       userName: socket.userName,
@@ -5901,7 +5913,8 @@ io.on('connection', (socket) => {
 
   // WebRTC signaling handlers
   socket.on('webrtc-offer', (data) => {
-    console.log('WebRTC offer from:', socket.userName, 'to:', data.targetUserId);
+    // Reduced logging for high-frequency WebRTC events
+    // console.log('WebRTC offer from:', socket.userName, 'to:', data.targetUserId);
     socket.to(data.sessionId).emit('webrtc-offer', {
       fromUserId: socket.userId,
       fromUserName: socket.userName,
@@ -5911,7 +5924,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('webrtc-answer', (data) => {
-    console.log('WebRTC answer from:', socket.userName, 'to:', data.targetUserId);
+    // Reduced logging for high-frequency WebRTC events
+    // console.log('WebRTC answer from:', socket.userName, 'to:', data.targetUserId);
     socket.to(data.sessionId).emit('webrtc-answer', {
       fromUserId: socket.userId,
       fromUserName: socket.userName,
@@ -5921,7 +5935,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('webrtc-ice-candidate', (data) => {
-    console.log('ICE candidate from:', socket.userName, 'to:', data.targetUserId);
+    // Reduced logging for high-frequency ICE candidate events
+    // console.log('ICE candidate from:', socket.userName, 'to:', data.targetUserId);
     socket.to(data.sessionId).emit('webrtc-ice-candidate', {
       fromUserId: socket.userId,
       fromUserName: socket.userName,
@@ -5949,7 +5964,7 @@ io.on('connection', (socket) => {
 
   // Handle disconnect
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    log('User disconnected:', socket.id);
 
     // If user was in a session, notify other participants
     if (socket.sessionId && socket.userName) {
