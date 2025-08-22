@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whiteboard Sessions - Skillons</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .dashboard-container {
+            padding: 2rem 0;
+        }
+
+        .dashboard-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .session-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .session-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .session-status {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-active {
+            background: #d1edff;
+            color: #0c5460;
+        }
+
+        .status-ended {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .create-session-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            border: none;
+            width: 100%;
+        }
+
+        .create-session-card:hover {
+            transform: translateY(-5px);
+            color: white;
+        }
+
+        .join-code {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 0.2rem;
+            color: #495057;
+        }
+
+        .participant-badge {
+            background: #e9ecef;
+            color: #495057;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+        }
+
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: transform 0.3s ease;
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .quick-actions {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0">
+                        <i class="fas fa-chalkboard-teacher me-3"></i>Whiteboard Sessions
+                    </h1>
+                    <p class="text-muted mb-0">Create and manage interactive whiteboard sessions for your students</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/teacher/dashboard" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                    <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#createSessionModal">
+                        <i class="fas fa-plus me-2"></i>New Session
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="quick-actions">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number" id="totalSessions">0</div>
+                        <div class="text-muted">Total Sessions</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number" id="activeSessions">0</div>
+                        <div class="text-muted">Active Sessions</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number" id="totalParticipants">0</div>
+                        <div class="text-muted">Total Participants</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <button class="btn btn-outline-primary w-100" onclick="refreshSessions()">
+                            <i class="fas fa-sync-alt me-2"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sessions List -->
+        <div class="row">
+            <div class="col-12">
+                <div id="sessionsContainer">
+                    <!-- Sessions will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Session Modal -->
+    <div class="modal fade" id="createSessionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus me-2"></i>Create New Whiteboard Session
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createSessionForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="sessionTitle" class="form-label">Session Title *</label>
+                                <input type="text" class="form-control" id="sessionTitle" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="sessionSubject" class="form-label">Subject</label>
+                                <select class="form-select" id="sessionSubject">
+                                    <option value="Math">Math</option>
+                                    <option value="Science">Science</option>
+                                    <option value="English">English</option>
+                                    <option value="History">History</option>
+                                    <option value="Geography">Geography</option>
+                                    <option value="Art">Art</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="sessionGrade" class="form-label">Grade Level *</label>
+                                <select class="form-select" id="sessionGrade" required>
+                                    <option value="">Select Grade</option>
+                                    <option value="1st grade">1st Grade</option>
+                                    <option value="2nd grade">2nd Grade</option>
+                                    <option value="3rd grade">3rd Grade</option>
+                                    <option value="4th grade">4th Grade</option>
+                                    <option value="5th grade">5th Grade</option>
+                                    <option value="6th grade">6th Grade</option>
+                                    <option value="7th grade">7th Grade</option>
+                                    <option value="8th grade">8th Grade</option>
+                                    <option value="9th grade">9th Grade</option>
+                                    <option value="10th grade">10th Grade</option>
+                                    <option value="11th grade">11th Grade</option>
+                                    <option value="12th grade">12th Grade</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="maxParticipants" class="form-label">Max Participants</label>
+                                <input type="number" class="form-control" id="maxParticipants" value="50" min="1" max="100">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="sessionDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="sessionDescription" rows="3"></textarea>
+                        </div>
+
+                        <!-- Session Settings -->
+                        <div class="mb-3">
+                            <h6 class="text-primary">Session Settings</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="allowStudentDrawing">
+                                        <label class="form-check-label" for="allowStudentDrawing">
+                                            Allow student drawing
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="allowStudentChat" checked>
+                                        <label class="form-check-label" for="allowStudentChat">
+                                            Allow student chat
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="autoAdmitStudents">
+                                        <label class="form-check-label" for="autoAdmitStudents">
+                                            Auto-admit students
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="recordSession">
+                                        <label class="form-check-label" for="recordSession">
+                                            Record session
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Password Protection -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="passwordProtected">
+                                <label class="form-check-label" for="passwordProtected">
+                                    Password protect this session
+                                </label>
+                            </div>
+                            <div id="passwordField" style="display: none;" class="mt-2">
+                                <input type="password" class="form-control" id="sessionPassword" placeholder="Enter session password">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-gradient" onclick="createSession()">
+                        <i class="fas fa-plus me-2"></i>Create Session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load sessions on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSessions();
+            
+            // Password protection toggle
+            document.getElementById('passwordProtected').addEventListener('change', function() {
+                const passwordField = document.getElementById('passwordField');
+                passwordField.style.display = this.checked ? 'block' : 'none';
+            });
+        });
+
+        // Load teacher's sessions
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/whiteboard/my-sessions');
+                const data = await response.json();
+
+                if (data.success) {
+                    displaySessions(data.sessions);
+                    updateStats(data.sessions);
+                } else {
+                    console.error('Failed to load sessions:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+
+        // Display sessions in the UI
+        function displaySessions(sessions) {
+            const container = document.getElementById('sessionsContainer');
+            
+            if (sessions.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No sessions yet</h4>
+                        <p class="text-muted">Create your first whiteboard session to get started</p>
+                        <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#createSessionModal">
+                            <i class="fas fa-plus me-2"></i>Create First Session
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = sessions.map(session => `
+                <div class="session-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center mb-2">
+                                <h5 class="mb-0 me-3">${session.title}</h5>
+                                <span class="session-status status-${session.status}">${session.status}</span>
+                            </div>
+                            <p class="text-muted mb-2">${session.description || 'No description'}</p>
+                            <div class="d-flex align-items-center">
+                                <span class="participant-badge">
+                                    <i class="fas fa-users me-1"></i>${session.admittedCount}/${session.participantCount} participants
+                                </span>
+                                <span class="participant-badge">
+                                    <i class="fas fa-book me-1"></i>${session.subject}
+                                </span>
+                                <span class="participant-badge">
+                                    <i class="fas fa-graduation-cap me-1"></i>${session.gradeLevel}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="join-code mb-2">${session.joinCode}</div>
+                            <div class="btn-group" role="group">
+                                ${getSessionActions(session)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Get action buttons based on session status
+        function getSessionActions(session) {
+            switch (session.status) {
+                case 'waiting':
+                    return `
+                        <button class="btn btn-success btn-sm" onclick="startSession('${session.sessionId}')">
+                            <i class="fas fa-play me-1"></i>Start
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="openSession('${session.sessionId}')">
+                            <i class="fas fa-external-link-alt me-1"></i>Open
+                        </button>
+                    `;
+                case 'active':
+                    return `
+                        <button class="btn btn-primary btn-sm" onclick="openSession('${session.sessionId}')">
+                            <i class="fas fa-external-link-alt me-1"></i>Join
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="endSession('${session.sessionId}')">
+                            <i class="fas fa-stop me-1"></i>End
+                        </button>
+                    `;
+                case 'ended':
+                    return `
+                        <button class="btn btn-outline-secondary btn-sm" onclick="viewSession('${session.sessionId}')">
+                            <i class="fas fa-eye me-1"></i>View
+                        </button>
+                    `;
+                default:
+                    return '';
+            }
+        }
+
+        // Update statistics
+        function updateStats(sessions) {
+            document.getElementById('totalSessions').textContent = sessions.length;
+            document.getElementById('activeSessions').textContent = sessions.filter(s => s.status === 'active').length;
+            document.getElementById('totalParticipants').textContent = sessions.reduce((sum, s) => sum + s.participantCount, 0);
+        }
+
+        // Create new session
+        async function createSession() {
+            const form = document.getElementById('createSessionForm');
+            const formData = new FormData(form);
+            
+            const sessionData = {
+                title: document.getElementById('sessionTitle').value,
+                description: document.getElementById('sessionDescription').value,
+                subject: document.getElementById('sessionSubject').value,
+                gradeLevel: document.getElementById('sessionGrade').value,
+                isPasswordProtected: document.getElementById('passwordProtected').checked,
+                password: document.getElementById('sessionPassword').value,
+                settings: {
+                    maxParticipants: parseInt(document.getElementById('maxParticipants').value),
+                    allowStudentDrawing: document.getElementById('allowStudentDrawing').checked,
+                    allowStudentChat: document.getElementById('allowStudentChat').checked,
+                    autoAdmitStudents: document.getElementById('autoAdmitStudents').checked,
+                    recordSession: document.getElementById('recordSession').checked
+                }
+            };
+
+            try {
+                const response = await fetch('/api/whiteboard/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(sessionData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createSessionModal'));
+                    modal.hide();
+                    
+                    // Reset form
+                    form.reset();
+                    
+                    // Reload sessions
+                    loadSessions();
+                    
+                    // Show success message
+                    alert(`Session created successfully! Join code: ${data.session.joinCode}`);
+                } else {
+                    alert('Error creating session: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error creating session:', error);
+                alert('Error creating session. Please try again.');
+            }
+        }
+
+        // Start session
+        async function startSession(sessionId) {
+            try {
+                const response = await fetch(`/api/whiteboard/${sessionId}/start`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    loadSessions();
+                    alert('Session started successfully!');
+                } else {
+                    alert('Error starting session: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error starting session:', error);
+                alert('Error starting session. Please try again.');
+            }
+        }
+
+        // End session
+        async function endSession(sessionId) {
+            if (!confirm('Are you sure you want to end this session?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/whiteboard/${sessionId}/end`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    loadSessions();
+                    alert('Session ended successfully!');
+                } else {
+                    alert('Error ending session: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error ending session:', error);
+                alert('Error ending session. Please try again.');
+            }
+        }
+
+        // Open session in whiteboard
+        function openSession(sessionId) {
+            window.open(`/whiteboard/session/${sessionId}`, '_blank');
+        }
+
+        // View ended session
+        function viewSession(sessionId) {
+            window.open(`/whiteboard/view/${sessionId}`, '_blank');
+        }
+
+        // Refresh sessions
+        function refreshSessions() {
+            loadSessions();
+        }
+    </script>
+</body>
+</html>

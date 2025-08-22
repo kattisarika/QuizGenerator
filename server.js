@@ -806,6 +806,10 @@ app.use('/', organizationRoutes);
 // Quiz Session routes for competitive quizzes
 app.use('/api/quiz-session', quizSessionRoutes);
 
+// Whiteboard routes
+const whiteboardRoutes = require('./routes/whiteboard');
+app.use('/api/whiteboard', whiteboardRoutes);
+
 
 
 // Helper functions for file processing
@@ -1876,6 +1880,24 @@ app.get('/student/download-content/:contentId', requireAuth, requireRole(['stude
     console.error('Error downloading content:', error);
     res.status(500).send('Error downloading content');
   }
+});
+
+// Whiteboard Dashboard
+app.get('/whiteboard/dashboard', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('whiteboard-dashboard', { user: req.user });
+});
+
+// Whiteboard Join Page
+app.get('/whiteboard/join', requireAuth, (req, res) => {
+  res.render('whiteboard-join', { user: req.user });
+});
+
+// Direct join with session ID
+app.get('/whiteboard/join/:sessionId', requireAuth, (req, res) => {
+  res.render('whiteboard-join', {
+    user: req.user,
+    sessionId: req.params.sessionId
+  });
 });
 
 app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req, res) => {

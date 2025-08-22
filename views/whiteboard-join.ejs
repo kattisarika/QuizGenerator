@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Whiteboard Session - Skillons</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .join-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .join-header {
+            margin-bottom: 2rem;
+        }
+
+        .join-header i {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .join-code-input {
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 0.2rem;
+            text-transform: uppercase;
+            border: 3px solid #e9ecef;
+            border-radius: 15px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .join-code-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .password-input {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .password-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .btn-join {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            border-radius: 25px;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            width: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .btn-join:hover {
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        .btn-join:disabled {
+            opacity: 0.6;
+            transform: none;
+        }
+
+        .status-message {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .status-waiting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status-admitted {
+            background: #d1edff;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .status-denied {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .session-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .session-info h6 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-spinner {
+            display: none;
+            margin: 1rem 0;
+        }
+
+        .join-methods {
+            margin-bottom: 2rem;
+        }
+
+        .method-tab {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .method-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .method-tab:hover {
+            border-color: #667eea;
+        }
+
+        .join-form {
+            display: none;
+        }
+
+        .join-form.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="join-container">
+        <div class="join-header">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <h2>Join Whiteboard Session</h2>
+            <p class="text-muted">Enter the session code or link to join the class</p>
+        </div>
+
+        <!-- Join Methods -->
+        <div class="join-methods">
+            <div class="method-tab active" onclick="switchMethod('code')">
+                <i class="fas fa-keyboard me-2"></i>
+                <strong>Join with Code</strong>
+                <br>
+                <small>Enter the 6-digit code provided by your teacher</small>
+            </div>
+            <div class="method-tab" onclick="switchMethod('link')">
+                <i class="fas fa-link me-2"></i>
+                <strong>Join with Link</strong>
+                <br>
+                <small>Paste the session link shared by your teacher</small>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" style="display: none;"></div>
+
+        <!-- Join by Code Form -->
+        <div id="codeForm" class="join-form active">
+            <form onsubmit="joinByCode(event)">
+                <div class="mb-3">
+                    <input 
+                        type="text" 
+                        class="form-control join-code-input" 
+                        id="joinCode" 
+                        placeholder="ABC123" 
+                        maxlength="6" 
+                        required
+                        oninput="formatJoinCode(this)"
+                    >
+                </div>
+                
+                <div id="passwordSection" style="display: none;">
+                    <div class="mb-3">
+                        <input 
+                            type="password" 
+                            class="form-control password-input" 
+                            id="sessionPassword" 
+                            placeholder="Session password"
+                        >
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-join" id="joinButton">
+                    <i class="fas fa-sign-in-alt me-2"></i>Join Session
+                </button>
+            </form>
+        </div>
+
+        <!-- Join by Link Form -->
+        <div id="linkForm" class="join-form">
+            <form onsubmit="joinByLink(event)">
+                <div class="mb-3">
+                    <input 
+                        type="url" 
+                        class="form-control password-input" 
+                        id="sessionLink" 
+                        placeholder="https://skillons.com/whiteboard/join/..."
+                        required
+                    >
+                </div>
+                
+                <div id="passwordSectionLink" style="display: none;">
+                    <div class="mb-3">
+                        <input 
+                            type="password" 
+                            class="form-control password-input" 
+                            id="sessionPasswordLink" 
+                            placeholder="Session password"
+                        >
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-join" id="joinButtonLink">
+                    <i class="fas fa-sign-in-alt me-2"></i>Join Session
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Joining session...</p>
+        </div>
+
+        <!-- Session Info (shown after joining) -->
+        <div id="sessionInfo" style="display: none;" class="session-info">
+            <h6><i class="fas fa-info-circle me-2"></i>Session Information</h6>
+            <div id="sessionDetails"></div>
+        </div>
+
+        <!-- Back to Dashboard -->
+        <div class="mt-3">
+            <a href="/student/dashboard" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentMethod = 'code';
+        let joinAttempts = 0;
+        const maxAttempts = 3;
+
+        // Switch between join methods
+        function switchMethod(method) {
+            currentMethod = method;
+            
+            // Update method tabs
+            document.querySelectorAll('.method-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.closest('.method-tab').classList.add('active');
+            
+            // Update forms
+            document.querySelectorAll('.join-form').forEach(form => {
+                form.classList.remove('active');
+            });
+            document.getElementById(method + 'Form').classList.add('active');
+            
+            // Clear any status messages
+            hideStatusMessage();
+        }
+
+        // Format join code input
+        function formatJoinCode(input) {
+            let value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            input.value = value;
+        }
+
+        // Join by code
+        async function joinByCode(event) {
+            event.preventDefault();
+            
+            const joinCode = document.getElementById('joinCode').value.trim();
+            const password = document.getElementById('sessionPassword').value;
+            
+            if (!joinCode) {
+                showStatusMessage('Please enter a join code', 'error');
+                return;
+            }
+            
+            if (joinCode.length !== 6) {
+                showStatusMessage('Join code must be 6 characters', 'error');
+                return;
+            }
+
+            await attemptJoin('/api/whiteboard/join-by-code', {
+                joinCode: joinCode,
+                password: password
+            });
+        }
+
+        // Join by link
+        async function joinByLink(event) {
+            event.preventDefault();
+            
+            const sessionLink = document.getElementById('sessionLink').value.trim();
+            const password = document.getElementById('sessionPasswordLink').value;
+            
+            if (!sessionLink) {
+                showStatusMessage('Please enter a session link', 'error');
+                return;
+            }
+
+            // Extract session ID from link
+            const sessionIdMatch = sessionLink.match(/\/whiteboard\/join\/([a-f0-9]+)/);
+            if (!sessionIdMatch) {
+                showStatusMessage('Invalid session link format', 'error');
+                return;
+            }
+
+            const sessionId = sessionIdMatch[1];
+            await attemptJoin(`/api/whiteboard/join/${sessionId}`, {
+                password: password
+            });
+        }
+
+        // Attempt to join session
+        async function attemptJoin(url, data) {
+            if (joinAttempts >= maxAttempts) {
+                showStatusMessage('Too many failed attempts. Please try again later.', 'error');
+                return;
+            }
+
+            showLoading(true);
+            hideStatusMessage();
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    handleJoinSuccess(result);
+                } else {
+                    handleJoinError(result.error, response.status);
+                }
+            } catch (error) {
+                console.error('Error joining session:', error);
+                showStatusMessage('Network error. Please check your connection and try again.', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Handle successful join
+        function handleJoinSuccess(result) {
+            joinAttempts = 0; // Reset attempts on success
+            
+            showSessionInfo(result.session);
+            
+            if (result.participant.status === 'admitted') {
+                showStatusMessage('Successfully joined the session!', 'success');
+                setTimeout(() => {
+                    window.location.href = `/whiteboard/session/${result.session.sessionId}`;
+                }, 2000);
+            } else if (result.participant.status === 'waiting') {
+                showStatusMessage('Waiting for teacher approval...', 'waiting');
+                startPollingForApproval(result.session.sessionId);
+            }
+        }
+
+        // Handle join errors
+        function handleJoinError(error, statusCode) {
+            joinAttempts++;
+            
+            if (statusCode === 401 && error.includes('password')) {
+                // Show password field
+                if (currentMethod === 'code') {
+                    document.getElementById('passwordSection').style.display = 'block';
+                } else {
+                    document.getElementById('passwordSectionLink').style.display = 'block';
+                }
+                showStatusMessage('This session requires a password', 'error');
+            } else if (statusCode === 404) {
+                showStatusMessage('Session not found. Please check the code/link and try again.', 'error');
+            } else if (statusCode === 403) {
+                showStatusMessage('Access denied. You may have been removed from this session.', 'error');
+            } else if (statusCode === 400 && error.includes('full')) {
+                showStatusMessage('This session is full. Please try again later.', 'error');
+            } else if (statusCode === 400 && error.includes('ended')) {
+                showStatusMessage('This session has ended.', 'error');
+            } else {
+                showStatusMessage(error || 'Failed to join session. Please try again.', 'error');
+            }
+        }
+
+        // Show session information
+        function showSessionInfo(session) {
+            const sessionDetails = document.getElementById('sessionDetails');
+            sessionDetails.innerHTML = `
+                <p><strong>Title:</strong> ${session.title}</p>
+                <p><strong>Teacher:</strong> ${session.teacherName}</p>
+                <p><strong>Status:</strong> ${session.status}</p>
+            `;
+            document.getElementById('sessionInfo').style.display = 'block';
+        }
+
+        // Show status message
+        function showStatusMessage(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.className = 'status-message';
+            
+            switch (type) {
+                case 'success':
+                    statusDiv.classList.add('status-admitted');
+                    break;
+                case 'waiting':
+                    statusDiv.classList.add('status-waiting');
+                    break;
+                case 'error':
+                default:
+                    statusDiv.classList.add('status-denied');
+                    break;
+            }
+            
+            statusDiv.innerHTML = `<i class="fas fa-info-circle me-2"></i>${message}`;
+            statusDiv.style.display = 'block';
+        }
+
+        // Hide status message
+        function hideStatusMessage() {
+            document.getElementById('statusMessage').style.display = 'none';
+        }
+
+        // Show/hide loading spinner
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            const buttons = document.querySelectorAll('.btn-join');
+            
+            spinner.style.display = show ? 'block' : 'none';
+            buttons.forEach(btn => {
+                btn.disabled = show;
+            });
+        }
+
+        // Poll for approval status
+        function startPollingForApproval(sessionId) {
+            const pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/whiteboard/status/${sessionId}`);
+                    const result = await response.json();
+                    
+                    if (result.success && result.participant) {
+                        if (result.participant.status === 'admitted') {
+                            clearInterval(pollInterval);
+                            showStatusMessage('You have been admitted to the session!', 'success');
+                            setTimeout(() => {
+                                window.location.href = `/whiteboard/session/${sessionId}`;
+                            }, 2000);
+                        } else if (result.participant.status === 'denied') {
+                            clearInterval(pollInterval);
+                            showStatusMessage('Your request to join was denied.', 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error polling for approval:', error);
+                }
+            }, 3000); // Poll every 3 seconds
+            
+            // Stop polling after 5 minutes
+            setTimeout(() => {
+                clearInterval(pollInterval);
+            }, 300000);
+        }
+
+        // Auto-focus on join code input
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('joinCode').focus();
+        });
+    </script>
+</body>
+</html>
