@@ -444,7 +444,17 @@
                 <div class="card">
                     <div class="card-header text-center">
                         <h2><i class="fas fa-plus-circle me-2"></i>Create New Quiz</h2>
-                        <p class="mb-0">Choose how you want to create your quiz</p>
+                        <p class="mb-3">Choose how you want to create your quiz</p>
+
+                        <!-- Complex Quiz Builder Button -->
+                        <div class="mb-0">
+                            <a href="/create-complex-quiz" class="btn btn-warning btn-lg shadow-sm me-2">
+                                <i class="fas fa-magic me-2"></i>Advanced Quiz Builder
+                            </a>
+                            <small class="d-block text-light mt-2 opacity-75">
+                                <i class="fas fa-star me-1"></i>Create sophisticated quizzes with drag-and-drop, charts, and LaTeX
+                            </small>
+                        </div>
                     </div>
                     <div class="card-body p-4">
                         <!-- Tab Navigation -->
@@ -457,12 +467,6 @@
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab" aria-controls="manual" aria-selected="false">
                                     <i class="fas fa-edit me-2"></i>Create Questions Manually
-                                </button>
-                            </li>
-
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="complex-builder-tab" data-bs-toggle="tab" data-bs-target="#complex-builder" type="button" role="tab" aria-controls="complex-builder" aria-selected="false">
-                                    <i class="fas fa-magic me-2"></i>Complex Quiz Builder
                                 </button>
                             </li>
                         </ul>
@@ -1094,60 +1098,7 @@
 
 
 
-                            <!-- Complex Quiz Builder Tab -->
-                            <div class="tab-pane fade" id="complex-builder" role="tabpanel" aria-labelledby="complex-builder-tab">
-                                <div class="text-center">
-                                    <div class="mb-4">
-                                        <i class="fas fa-magic fa-4x text-primary mb-3"></i>
-                                        <h4 class="text-primary">Advanced Quiz Builder</h4>
-                                        <p class="text-muted mb-4">Create sophisticated quizzes with drag-and-drop elements, charts, LaTeX formulas, and more!</p>
-                                    </div>
 
-                                    <div class="row justify-content-center mb-4">
-                                        <div class="col-md-8">
-                                            <div class="card border-primary">
-                                                <div class="card-body">
-                                                    <h5 class="card-title text-primary">
-                                                        <i class="fas fa-tools me-2"></i>Features Available
-                                                    </h5>
-                                                    <div class="row text-start">
-                                                        <div class="col-md-6">
-                                                            <ul class="list-unstyled">
-                                                                <li><i class="fas fa-check text-success me-2"></i>Drag & Drop Canvas</li>
-                                                                <li><i class="fas fa-check text-success me-2"></i>Text Boxes & Rich Text</li>
-                                                                <li><i class="fas fa-check text-success me-2"></i>Image Upload & Placement</li>
-                                                                <li><i class="fas fa-check text-success me-2"></i>Dynamic Tables</li>
-                                                            </ul>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <ul class="list-unstyled">
-                                                                <li><i class="fas fa-check text-success me-2"></i>Charts & Graphs</li>
-                                                                <li><i class="fas fa-check text-success me-2"></i>LaTeX Math Formulas</li>
-                                                                <li><i class="fas fa-check text-success me-2"></i>Question Hierarchy</li>
-                                                                <li><i class="fas fa-check text-success me-2"></i>Answer Areas</li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- White Panel for Complex Quiz Builder Button -->
-                                    <div class="card shadow-sm border-0" style="background: white; border-radius: 12px;">
-                                        <div class="card-body p-4">
-                                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                                <a href="/create-complex-quiz" class="btn btn-primary btn-lg shadow-sm">
-                                                    <i class="fas fa-rocket me-2"></i>Launch Complex Quiz Builder
-                                                </a>
-                                                <button type="button" class="btn btn-outline-secondary btn-lg shadow-sm" onclick="showComplexBuilderInfo()">
-                                                    <i class="fas fa-info-circle me-2"></i>Learn More
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
