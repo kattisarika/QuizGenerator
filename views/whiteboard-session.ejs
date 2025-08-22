@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= session.title %> - Whiteboard Session</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+
+        .session-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            position: relative;
+        }
+
+        .session-info {
+            flex: 1;
+        }
+
+        .session-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .session-meta {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .session-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 70px);
+        }
+
+        .whiteboard-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .toolbar {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            padding: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tool-group {
+            display: flex;
+            gap: 0.25rem;
+            align-items: center;
+            margin-right: 1rem;
+        }
+
+        .tool-btn {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .tool-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .color-picker {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .size-slider {
+            width: 100px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #whiteboardCanvas {
+            display: block;
+            cursor: crosshair;
+            background: white;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-left: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-tab.active {
+            background: white;
+            border-bottom: 2px solid #667eea;
+            color: #667eea;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .participants-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .participant-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            background: #f8f9fa;
+        }
+
+        .participant-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 0.75rem;
+        }
+
+        .participant-info {
+            flex: 1;
+        }
+
+        .participant-name {
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .participant-role {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin: 0;
+        }
+
+        .participant-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-online {
+            background: #d1edff;
+            color: #0c5460;
+        }
+
+        .status-drawing {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+            max-height: 300px;
+        }
+
+        .chat-message {
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .chat-message.own {
+            background: #e3f2fd;
+            margin-left: 2rem;
+        }
+
+        .chat-message.system {
+            background: #fff3cd;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #667eea;
+            margin-bottom: 0.25rem;
+        }
+
+        .message-text {
+            margin: 0;
+            font-size: 0.875rem;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        .chat-input {
+            border-top: 1px solid #dee2e6;
+            padding: 0.75rem;
+        }
+
+        .chat-form {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-form input {
+            flex: 1;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 0.5rem;
+        }
+
+        .chat-form button {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+
+        .permission-request {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            margin: 0.25rem;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .session-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-left: 1rem;
+        }
+
+        .status-active {
+            background: #d1edff;
+            color: #0c5460;
+        }
+
+        .status-waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 200px;
+            }
+            
+            .session-controls {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Session Header -->
+    <div class="session-header">
+        <div class="session-info">
+            <h1 class="session-title"><%= session.title %></h1>
+            <p class="session-meta">
+                Teacher: <%= session.teacherName %> | 
+                Grade: <%= session.gradeLevel %> | 
+                Subject: <%= session.subject %>
+            </p>
+        </div>
+        <div class="session-controls">
+            <span class="session-status status-<%= session.status %>">
+                <i class="fas fa-circle me-1"></i><%= session.status %>
+            </span>
+            <% if (user.role === 'teacher') { %>
+                <button class="btn btn-sm btn-danger" onclick="endSession()">
+                    <i class="fas fa-stop me-1"></i>End Session
+                </button>
+            <% } %>
+            <button class="btn btn-sm btn-outline-light" onclick="leaveSession()">
+                <i class="fas fa-sign-out-alt me-1"></i>Leave
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Whiteboard Area -->
+        <div class="whiteboard-area">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="tool-group">
+                    <button class="tool-btn active" data-tool="pen" title="Pen">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="tool-btn" data-tool="eraser" title="Eraser">
+                        <i class="fas fa-eraser"></i>
+                    </button>
+                    <button class="tool-btn" data-tool="text" title="Text">
+                        <i class="fas fa-font"></i>
+                    </button>
+                    <button class="tool-btn" data-tool="shapes" title="Shapes">
+                        <i class="fas fa-shapes"></i>
+                    </button>
+                </div>
+
+                <div class="tool-group">
+                    <input type="color" class="color-picker" id="colorPicker" value="#000000" title="Color">
+                    <input type="range" class="size-slider" id="sizeSlider" min="1" max="20" value="3" title="Size">
+                </div>
+
+                <div class="tool-group">
+                    <button class="tool-btn" onclick="clearCanvas()" title="Clear All">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="tool-btn" onclick="undoAction()" title="Undo">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button class="tool-btn" onclick="redoAction()" title="Redo">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+
+                <% if (user.role === 'teacher') { %>
+                <div class="tool-group">
+                    <input type="file" id="imageUpload" accept="image/*" style="display: none;" onchange="uploadImage(this)">
+                    <button class="tool-btn" onclick="document.getElementById('imageUpload').click()" title="Upload Image">
+                        <i class="fas fa-image"></i>
+                    </button>
+                </div>
+                <% } %>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="canvas-container">
+                <canvas id="whiteboardCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Sidebar Tabs -->
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" onclick="showSidebarTab('participants')">
+                    <i class="fas fa-users me-1"></i>Participants
+                </button>
+                <button class="sidebar-tab" onclick="showSidebarTab('chat')">
+                    <i class="fas fa-comments me-1"></i>Chat
+                </button>
+            </div>
+
+            <!-- Sidebar Content -->
+            <div class="sidebar-content">
+                <!-- Participants Tab -->
+                <div id="participantsTab" class="tab-content">
+                    <% if (user.role === 'teacher' && waitingParticipants && waitingParticipants.length > 0) { %>
+                    <div class="permission-request">
+                        <h6><i class="fas fa-clock me-2"></i>Waiting for Approval</h6>
+                        <div id="waitingList">
+                            <!-- Waiting participants will be loaded here -->
+                        </div>
+                    </div>
+                    <% } %>
+
+                    <h6><i class="fas fa-users me-2"></i>Active Participants</h6>
+                    <ul class="participants-list" id="participantsList">
+                        <!-- Participants will be loaded here -->
+                    </ul>
+                </div>
+
+                <!-- Chat Tab -->
+                <div id="chatTab" class="tab-content" style="display: none;">
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Chat messages will appear here -->
+                        </div>
+                        <% if (participant && participant.permissions && participant.permissions.canChat) { %>
+                        <div class="chat-input">
+                            <form class="chat-form" onsubmit="sendMessage(event)">
+                                <input type="text" id="messageInput" placeholder="Type a message..." maxlength="1000" required>
+                                <button type="submit">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <% } else { %>
+                        <div class="chat-input">
+                            <p class="text-muted text-center mb-0">Chat is disabled for you</p>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Session data
+        const sessionData = {
+            sessionId: '<%= session.sessionId %>',
+            user: {
+                id: '<%= user._id %>',
+                name: '<%= user.displayName %>',
+                role: '<%= user.role %>'
+            },
+            participant: <%- JSON.stringify(participant || {}) %>
+        };
+
+        // Initialize socket connection
+        const socket = io();
+        
+        // Canvas setup
+        const canvas = document.getElementById('whiteboardCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let currentColor = '#000000';
+        let currentSize = 3;
+
+        // Initialize canvas size
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        // Initialize the whiteboard
+        function initializeWhiteboard() {
+            resizeCanvas();
+            
+            // Join the session room
+            socket.emit('join-session', sessionData.sessionId);
+            
+            // Load participants and chat
+            loadParticipants();
+            loadChatHistory();
+            
+            // Set up canvas event listeners
+            setupCanvasEvents();
+            
+            // Set up socket event listeners
+            setupSocketEvents();
+        }
+
+        // Canvas event handlers
+        function setupCanvasEvents() {
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            if (!sessionData.participant.permissions?.canDraw && sessionData.user.role !== 'teacher') {
+                return;
+            }
+            
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            ctx.lineWidth = currentSize;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = currentTool === 'eraser' ? '#FFFFFF' : currentColor;
+            
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            
+            // Emit drawing data to other participants
+            socket.emit('drawing', {
+                sessionId: sessionData.sessionId,
+                x: x,
+                y: y,
+                tool: currentTool,
+                color: currentColor,
+                size: currentSize,
+                drawing: isDrawing
+            });
+        }
+
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                ctx.beginPath();
+            }
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
+                                            e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        // Socket event handlers
+        function setupSocketEvents() {
+            socket.on('drawing', (data) => {
+                if (data.userId !== sessionData.user.id) {
+                    drawFromRemote(data);
+                }
+            });
+            
+            socket.on('participant-joined', (participant) => {
+                addSystemMessage(`${participant.name} joined the session`);
+                loadParticipants();
+            });
+            
+            socket.on('participant-left', (participant) => {
+                addSystemMessage(`${participant.name} left the session`);
+                loadParticipants();
+            });
+            
+            socket.on('chat-message', (message) => {
+                addChatMessage(message);
+            });
+            
+            socket.on('session-ended', () => {
+                alert('The session has been ended by the teacher.');
+                window.location.href = sessionData.user.role === 'teacher' ? '/whiteboard/dashboard' : '/student/dashboard';
+            });
+        }
+
+        // Tool selection
+        document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTool = btn.dataset.tool;
+                
+                if (currentTool === 'eraser') {
+                    canvas.style.cursor = 'grab';
+                } else {
+                    canvas.style.cursor = 'crosshair';
+                }
+            });
+        });
+
+        // Color and size controls
+        document.getElementById('colorPicker').addEventListener('change', (e) => {
+            currentColor = e.target.value;
+        });
+
+        document.getElementById('sizeSlider').addEventListener('input', (e) => {
+            currentSize = e.target.value;
+        });
+
+        // Sidebar tab switching
+        function showSidebarTab(tabName) {
+            document.querySelectorAll('.sidebar-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').style.display = 'block';
+        }
+
+        // Load participants
+        function loadParticipants() {
+            // This would typically fetch from the server
+            // For now, we'll use the session data
+            console.log('Loading participants...');
+        }
+
+        // Load chat history
+        function loadChatHistory() {
+            // This would typically fetch chat history from the server
+            console.log('Loading chat history...');
+        }
+
+        // Send chat message
+        function sendMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                socket.emit('chat-message', {
+                    sessionId: sessionData.sessionId,
+                    message: message
+                });
+                input.value = '';
+            }
+        }
+
+        // Add chat message to UI
+        function addChatMessage(message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${message.userId === sessionData.user.id ? 'own' : ''}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-sender">${message.userName}</div>
+                <p class="message-text">${message.message}</p>
+                <div class="message-time">${new Date(message.timestamp).toLocaleTimeString()}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Add system message
+        function addSystemMessage(text) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message system';
+            messageDiv.innerHTML = `<p class="message-text">${text}</p>`;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Canvas actions
+        function clearCanvas() {
+            if (sessionData.user.role === 'teacher') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                socket.emit('clear-canvas', sessionData.sessionId);
+            }
+        }
+
+        function undoAction() {
+            // Implement undo functionality
+            console.log('Undo action');
+        }
+
+        function redoAction() {
+            // Implement redo functionality
+            console.log('Redo action');
+        }
+
+        // Session actions
+        function endSession() {
+            if (confirm('Are you sure you want to end this session?')) {
+                socket.emit('end-session', sessionData.sessionId);
+            }
+        }
+
+        function leaveSession() {
+            if (confirm('Are you sure you want to leave this session?')) {
+                socket.emit('leave-session', sessionData.sessionId);
+                window.location.href = sessionData.user.role === 'teacher' ? '/whiteboard/dashboard' : '/student/dashboard';
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeWhiteboard);
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>

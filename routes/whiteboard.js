@@ -529,4 +529,98 @@ router.post('/:sessionId/participants/:userId/status', requireAuth, requireRole(
   }
 });
 
+// Get session participants (for real-time updates)
+router.get('/:sessionId/participants', requireAuth, async (req, res) => {
+  try {
+    const session = await WhiteboardSession.findOne({
+      sessionId: req.params.sessionId
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: 'Session not found'
+      });
+    }
+
+    // Check if user is a participant
+    const userParticipant = session.participants.find(p =>
+      p.userId && p.userId.equals(req.user._id)
+    );
+
+    if (!userParticipant && req.user.role !== 'teacher') {
+      return res.status(403).json({
+        error: 'Access denied'
+      });
+    }
+
+    res.json({
+      success: true,
+      participants: session.participants.map(p => ({
+        userId: p.userId,
+        name: p.name,
+        role: p.role,
+        status: p.status,
+        permissions: p.permissions,
+        joinedAt: p.joinedAt,
+        lastActive: p.lastActive
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error getting participants:', error);
+    res.status(500).json({
+      error: 'Failed to get participants'
+    });
+  }
+});
+
+// Get session details
+router.get('/:sessionId/details', requireAuth, async (req, res) => {
+  try {
+    const session = await WhiteboardSession.findOne({
+      sessionId: req.params.sessionId
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        error: 'Session not found'
+      });
+    }
+
+    // Check if user is a participant
+    const userParticipant = session.participants.find(p =>
+      p.userId && p.userId.equals(req.user._id)
+    );
+
+    if (!userParticipant && req.user.role !== 'teacher') {
+      return res.status(403).json({
+        error: 'Access denied'
+      });
+    }
+
+    res.json({
+      success: true,
+      session: {
+        sessionId: session.sessionId,
+        title: session.title,
+        description: session.description,
+        subject: session.subject,
+        gradeLevel: session.gradeLevel,
+        teacherName: session.teacherName,
+        status: session.status,
+        participantCount: session.participants.length,
+        admittedCount: session.participants.filter(p => p.status === 'admitted').length,
+        createdAt: session.createdAt,
+        actualStartTime: session.actualStartTime
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting session details:', error);
+    res.status(500).json({
+      error: 'Failed to get session details'
+    });
+  }
+});
+
 module.exports = router;

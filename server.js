@@ -37,6 +37,17 @@ const s3 = new AWS.S3({
 });
 
 const app = express();
+const http = require('http');
+const socketIo = require('socket.io');
+
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 
@@ -1898,6 +1909,78 @@ app.get('/whiteboard/join/:sessionId', requireAuth, (req, res) => {
     user: req.user,
     sessionId: req.params.sessionId
   });
+});
+
+// Whiteboard Session Page (for active sessions)
+app.get('/whiteboard/session/:sessionId', requireAuth, async (req, res) => {
+  try {
+    const WhiteboardSession = require('./models/WhiteboardSession');
+    const session = await WhiteboardSession.findOne({
+      sessionId: req.params.sessionId
+    });
+
+    if (!session) {
+      return res.status(404).render('error', {
+        message: 'Session not found',
+        user: req.user
+      });
+    }
+
+    // Check if user is a participant in this session
+    const participant = session.participants.find(p =>
+      p.userId && p.userId.equals(req.user._id)
+    );
+
+    if (!participant) {
+      return res.status(403).render('error', {
+        message: 'You are not a participant in this session. Please join the session first.',
+        user: req.user
+      });
+    }
+
+    // Check if participant is admitted
+    if (participant.status !== 'admitted' && req.user.role !== 'teacher') {
+      return res.status(403).render('error', {
+        message: 'You have not been admitted to this session yet. Please wait for teacher approval.',
+        user: req.user
+      });
+    }
+
+    // Check if session is active
+    if (session.status === 'ended') {
+      return res.status(400).render('error', {
+        message: 'This session has ended.',
+        user: req.user
+      });
+    }
+
+    // Get waiting participants (for teachers)
+    const waitingParticipants = req.user.role === 'teacher'
+      ? session.participants.filter(p => p.status === 'waiting')
+      : [];
+
+    res.render('whiteboard-session', {
+      user: req.user,
+      session: {
+        sessionId: session.sessionId,
+        title: session.title,
+        description: session.description,
+        subject: session.subject,
+        gradeLevel: session.gradeLevel,
+        teacherName: session.teacherName,
+        status: session.status
+      },
+      participant,
+      waitingParticipants
+    });
+
+  } catch (error) {
+    console.error('Error loading whiteboard session:', error);
+    res.status(500).render('error', {
+      message: 'Error loading session',
+      user: req.user
+    });
+  }
 });
 
 app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req, res) => {
@@ -5576,12 +5659,76 @@ app.post('/temp-login', (req, res) => {
   res.redirect('/dashboard');
 });
 
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  // Join session room
+  socket.on('join-session', (sessionId) => {
+    socket.join(sessionId);
+    console.log(`Socket ${socket.id} joined session ${sessionId}`);
+  });
+
+  // Handle drawing events
+  socket.on('drawing', (data) => {
+    socket.to(data.sessionId).emit('drawing', {
+      ...data,
+      userId: socket.userId
+    });
+  });
+
+  // Handle chat messages
+  socket.on('chat-message', async (data) => {
+    try {
+      const WhiteboardSession = require('./models/WhiteboardSession');
+      const session = await WhiteboardSession.findOne({
+        sessionId: data.sessionId
+      });
+
+      if (session) {
+        const message = session.addChatMessage({
+          userId: socket.userId,
+          userName: socket.userName,
+          message: data.message
+        });
+
+        await session.save();
+
+        // Broadcast message to all participants
+        io.to(data.sessionId).emit('chat-message', message);
+      }
+    } catch (error) {
+      console.error('Error handling chat message:', error);
+    }
+  });
+
+  // Handle canvas clear
+  socket.on('clear-canvas', (sessionId) => {
+    socket.to(sessionId).emit('clear-canvas');
+  });
+
+  // Handle leaving session
+  socket.on('leave-session', (sessionId) => {
+    socket.leave(sessionId);
+    socket.to(sessionId).emit('participant-left', {
+      userId: socket.userId,
+      name: socket.userName
+    });
+  });
+
+  // Handle disconnect
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
 // Start server with MongoDB connection check
 const startServer = () => {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
     console.log('✅ Google OAuth is configured and ready!');
-    
+    console.log('🎨 Whiteboard sessions with Socket.IO enabled!');
+
     console.log('👥 Role-based system: Teachers, Students, and Admins');
     console.log(`🗄️  MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
   });
