@@ -2049,13 +2049,17 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
     const availableQuizzes = await Quiz.find(quizQuery)
       .populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
-      .sort({ createdAt: -1 });
+      .limit(100) // Limit to prevent memory issues
+      .lean(); // Use lean() for better performance
     
     // Fetch student's quiz results from all their organizations
     const quizResults = await QuizResult.find({
       student: req.user._id,
       organizationId: { $in: organizationIds }
-    }).populate('quiz', 'title');
+    })
+    .populate('quiz', 'title')
+    .sort({ completedAt: -1 })
+    .limit(200); // Limit to prevent memory issues
 
     // Get complex quiz results for dashboard display
     // Filter out results where the quiz has been deleted (quiz is null)
