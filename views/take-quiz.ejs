@@ -646,6 +646,24 @@
                 hasOptions: <%= quiz.questions[0].options ? 'true' : 'false' %>,
                 optionsCount: <%= quiz.questions[0].options ? quiz.questions[0].options.length : 0 %>
             });
+
+            // Check if first question is visible after page load
+            setTimeout(() => {
+                const firstQuestion = document.getElementById('question-0');
+                if (firstQuestion) {
+                    const isVisible = firstQuestion.style.display !== 'none' &&
+                                    window.getComputedStyle(firstQuestion).display !== 'none';
+                    console.log('🔍 FIRST QUESTION VISIBILITY CHECK:', {
+                        exists: true,
+                        display: firstQuestion.style.display,
+                        computedDisplay: window.getComputedStyle(firstQuestion).display,
+                        isVisible: isVisible,
+                        innerHTML: firstQuestion.innerHTML.substring(0, 200) + '...'
+                    });
+                } else {
+                    console.log('❌ FIRST QUESTION NOT FOUND IN DOM');
+                }
+            }, 1000);
         <% } %>
 
         // This script runs immediately to hide all questions except the first
@@ -656,18 +674,46 @@
             setTimeout(function() {
                 const questionContainers = document.querySelectorAll('.question-container');
                 console.log('Found question containers:', questionContainers.length);
+                console.log('Expected question containers:', <%= quiz.questions ? quiz.questions.length : 0 %>);
 
+                // Debug: Show all question container IDs
                 questionContainers.forEach((container, index) => {
-                    container.classList.remove('active');
-                    container.style.display = 'none';
-                    console.log(`Immediately hid question ${index}`);
+                    console.log(`Container ${index}: ID=${container.id}, classes=${container.className}`);
                 });
 
-                // Show only the first question
-                if (questionContainers.length > 0) {
-                    questionContainers[0].classList.add('active');
-                    questionContainers[0].style.display = 'block';
-                    console.log('Immediately showed first question');
+                // Only hide questions if we have the expected number
+                const expectedCount = <%= quiz.questions ? quiz.questions.length : 0 %>;
+                if (questionContainers.length === expectedCount) {
+                    questionContainers.forEach((container, index) => {
+                        if (container.classList) {
+                            container.classList.remove('active');
+                        }
+                        container.style.display = 'none';
+                        console.log(`Immediately hid question ${index}`);
+                    });
+
+                    // Show only the first question
+                    if (questionContainers.length > 0) {
+                        if (questionContainers[0].classList) {
+                            questionContainers[0].classList.add('active');
+                        }
+                        questionContainers[0].style.display = 'block';
+                        console.log('Immediately showed first question');
+                    }
+                } else {
+                    console.error(`❌ Question count mismatch! Found ${questionContainers.length}, expected ${expectedCount}`);
+                    console.log('This suggests duplicate question rendering or leftover elements');
+
+                    // Try to show only questions with proper IDs (question-0, question-1, etc.)
+                    for (let i = 0; i < expectedCount; i++) {
+                        const questionElement = document.getElementById(`question-${i}`);
+                        if (questionElement) {
+                            questionElement.style.display = i === 0 ? 'block' : 'none';
+                            if (i === 0) {
+                                console.log(`Showed question-${i} as first question`);
+                            }
+                        }
+                    }
                 }
             }, 10);
         });
@@ -1720,11 +1766,24 @@
             
             // Initialize one-question-per-page navigation with delay
             setTimeout(() => {
-                initializeOneQuestionPerPage();
+                // Only initialize if questions weren't already shown by immediate script
+                const firstQuestion = document.getElementById('question-0');
+                const isFirstQuestionVisible = firstQuestion &&
+                    firstQuestion.style.display === 'block';
+
+                if (!isFirstQuestionVisible) {
+                    console.log('🔄 First question not visible, running full initialization...');
+                    initializeOneQuestionPerPage();
+                } else {
+                    console.log('✅ First question already visible, skipping duplicate initialization');
+                    // Just set up navigation state
+                    updateNavigationState();
+                    updateProgress();
+                }
 
                 // Set up beforeunload protection after initialization
                 setupBeforeUnloadProtection();
-            }, 100);
+            }, 500);
         });
 
         // Initialize visual feedback for already answered questions
