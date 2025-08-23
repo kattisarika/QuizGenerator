@@ -707,8 +707,20 @@
 
             // Wait a tiny bit for DOM to be fully ready
             setTimeout(function() {
-                const questionContainers = document.querySelectorAll('.question-container');
-                console.log('Found question containers:', questionContainers.length);
+                // Check if this is a complex quiz
+                const isComplexQuiz = <%= quiz.isComplexQuiz ? 'true' : 'false' %>;
+                const hasComplexQuizData = <%= quiz.complexQuizData ? 'true' : 'false' %>;
+
+                console.log('🔍 Quiz type check:', { isComplexQuiz, hasComplexQuizData });
+
+                if (isComplexQuiz && hasComplexQuizData) {
+                    console.log('✅ Complex quiz detected - skipping regular question initialization');
+                    return; // Don't initialize regular question logic for complex quizzes
+                }
+
+                // Regular quiz initialization
+                const questionContainers = document.querySelectorAll('.question-container:not(.complex-question-group)');
+                console.log('Found regular question containers:', questionContainers.length);
                 console.log('Expected question containers:', <%= quiz.questions ? quiz.questions.length : 0 %>);
 
                 // Debug: Show all question container IDs
@@ -1594,7 +1606,18 @@
             
             // Initialize one-question-per-page navigation with delay
             setTimeout(() => {
-                // Only initialize if questions weren't already shown by immediate script
+                // Check if this is a complex quiz
+                const isComplexQuiz = <%= quiz.isComplexQuiz ? 'true' : 'false' %>;
+                const hasComplexQuizData = <%= quiz.complexQuizData ? 'true' : 'false' %>;
+
+                if (isComplexQuiz && hasComplexQuizData) {
+                    console.log('✅ Complex quiz detected - skipping regular quiz initialization');
+                    // Complex quiz initialization is handled by renderComplexQuiz()
+                    setupBeforeUnloadProtection();
+                    return;
+                }
+
+                // Regular quiz initialization
                 const firstQuestion = document.getElementById('question-0');
                 const isFirstQuestionVisible = firstQuestion &&
                     firstQuestion.style.display === 'block';
@@ -2166,18 +2189,27 @@
             console.log('🚀 Initializing one-question-per-page navigation');
             console.log('Total questions:', totalQuestions);
 
-            // Debug: Check if questions exist in DOM
-            const questionContainers = document.querySelectorAll('.question-container');
-            console.log('Found question containers:', questionContainers.length);
+            // Check if this is a complex quiz - if so, don't initialize regular quiz logic
+            const isComplexQuiz = <%= quiz.isComplexQuiz ? 'true' : 'false' %>;
+            const hasComplexQuizData = <%= quiz.complexQuizData ? 'true' : 'false' %>;
+
+            if (isComplexQuiz && hasComplexQuizData) {
+                console.log('✅ Complex quiz detected in initializeOneQuestionPerPage - aborting regular quiz initialization');
+                return;
+            }
+
+            // Debug: Check if questions exist in DOM (only regular questions)
+            const questionContainers = document.querySelectorAll('.question-container:not(.complex-question-group)');
+            console.log('Found regular question containers:', questionContainers.length);
 
             if (questionContainers.length === 0) {
-                console.error('❌ No question containers found! Quiz questions may not be rendered.');
+                console.error('❌ No regular question containers found! Quiz questions may not be rendered.');
                 console.log('Available elements with class containing "question":',
                     document.querySelectorAll('[class*="question"]').length);
 
-                // Show error message to user
+                // Show error message to user only if this is not a complex quiz
                 const questionsContainer = document.getElementById('questions-container');
-                if (questionsContainer) {
+                if (questionsContainer && !isComplexQuiz) {
                     questionsContainer.innerHTML = `
                         <div class="alert alert-danger" style="margin: 20px; padding: 20px; text-align: center;">
                             <i class="fas fa-exclamation-triangle"></i>
