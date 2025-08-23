@@ -461,6 +461,57 @@
             }
         }
 
+        // Function to load pre-signed URLs for complex quiz images
+        async function loadComplexQuizImageUrls() {
+            try {
+                const complexImageContainers = document.querySelectorAll('.complex-image-container[data-s3-key]');
+
+                if (complexImageContainers.length === 0) {
+                    return;
+                }
+
+                console.log(`Loading ${complexImageContainers.length} complex quiz images...`);
+
+                for (const container of complexImageContainers) {
+                    const s3Key = container.getAttribute('data-s3-key');
+                    const loadingDiv = container.querySelector('.complex-image-loading');
+                    const img = container.querySelector('.complex-image');
+
+                    try {
+                        console.log(`Loading complex image for S3 key: ${s3Key}`);
+
+                        const response = await fetch(`/get-image-url/${encodeURIComponent(s3Key)}`);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (data.presignedUrl) {
+                            // Hide loading, show image
+                            loadingDiv.style.display = 'none';
+                            img.src = data.presignedUrl;
+                            img.style.display = 'block';
+                            img.onclick = () => openImageModal(data.presignedUrl, 'Quiz Image');
+
+                            console.log(`✅ Loaded complex image for S3 key: ${s3Key}`);
+                        } else {
+                            // Hide container if no image URL received
+                            container.style.display = 'none';
+                            console.log(`No presigned URL received for complex image S3 key: ${s3Key}`);
+                        }
+                    } catch (error) {
+                        console.error(`❌ Error loading complex image for S3 key ${s3Key}:`, error);
+                        // Hide container on error to avoid showing error messages
+                        container.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error in loadComplexQuizImageUrls:', error);
+            }
+        }
+
         // Load question image URLs when page loads
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(loadQuestionImageUrls, 500);
@@ -468,6 +519,8 @@
             // Render complex quiz if elements exist
             <% if (quiz.elements && quiz.elements.length > 0) { %>
                 renderComplexQuizPreview();
+                // Load complex quiz images after rendering
+                setTimeout(loadComplexQuizImageUrls, 1000);
             <% } %>
         });
 
@@ -564,7 +617,14 @@
                             <div style="padding: 12px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
                                 <strong style="color: #f59e0b;"><i class="fas fa-image"></i> Image:</strong>
                                 <div style="margin-top: 8px;">
-                                    ${element.src ? `<img src="${element.src}" style="max-width: 300px; max-height: 200px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Quiz Image">` : '<span style="color: #6b7280;">Image element</span>'}
+                                    ${element.src ? `
+                                        <div class="complex-image-container" data-s3-key="${element.src}">
+                                            <div class="complex-image-loading" style="text-align: center; padding: 10px; color: #6b7280;">
+                                                <i class="fas fa-spinner fa-spin"></i> Loading image...
+                                            </div>
+                                            <img class="complex-image" style="max-width: 300px; max-height: 200px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;" alt="Quiz Image">
+                                        </div>
+                                    ` : '<span style="color: #6b7280;">Image element</span>'}
                                 </div>
                             </div>
                         `;

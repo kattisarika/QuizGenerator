@@ -2192,7 +2192,14 @@
                         badge = '<span class="element-type-badge element-type-image">Image</span>';
                         content = 'Image element';
                         if (element.src) {
-                            content += `<img src="${element.src}" class="preview-image" alt="Preview">`;
+                            content += `
+                                <div class="dashboard-image-container" data-s3-key="${element.src}">
+                                    <div class="dashboard-image-loading" style="display: inline-block; color: #6b7280; font-size: 11px;">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                                    </div>
+                                    <img class="preview-image dashboard-image" style="display: none;" alt="Preview">
+                                </div>
+                            `;
                         }
                         break;
 
@@ -2229,6 +2236,61 @@
             }
         }
 
+        // Function to load pre-signed URLs for dashboard preview images
+        async function loadDashboardImageUrls() {
+            try {
+                const dashboardImageContainers = document.querySelectorAll('.dashboard-image-container[data-s3-key]');
+
+                if (dashboardImageContainers.length === 0) {
+                    return;
+                }
+
+                console.log(`Loading ${dashboardImageContainers.length} dashboard preview images...`);
+
+                for (const container of dashboardImageContainers) {
+                    const s3Key = container.getAttribute('data-s3-key');
+                    const loadingDiv = container.querySelector('.dashboard-image-loading');
+                    const img = container.querySelector('.dashboard-image');
+
+                    try {
+                        console.log(`Loading dashboard image for S3 key: ${s3Key}`);
+
+                        const response = await fetch(`/get-image-url/${encodeURIComponent(s3Key)}`);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (data.presignedUrl) {
+                            // Hide loading, show image
+                            loadingDiv.style.display = 'none';
+                            img.src = data.presignedUrl;
+                            img.style.display = 'inline-block';
+                            img.style.maxWidth = '60px';
+                            img.style.maxHeight = '40px';
+                            img.style.borderRadius = '3px';
+                            img.style.marginLeft = '8px';
+                            img.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+
+                            console.log(`✅ Loaded dashboard image for S3 key: ${s3Key}`);
+                        } else {
+                            // Hide container if no image URL received
+                            container.style.display = 'none';
+                            console.log(`No presigned URL received for dashboard image S3 key: ${s3Key}`);
+                        }
+                    } catch (error) {
+                        console.error(`❌ Error loading dashboard image for S3 key ${s3Key}:`, error);
+                        // Hide container on error
+                        container.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error in loadDashboardImageUrls:', error);
+            }
+        }
+
         // Ensure quiz modal is hidden on page load and filter functionality
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Teacher dashboard page loaded');
@@ -2238,6 +2300,9 @@
 
             // Render quiz previews
             renderQuizPreviews();
+
+            // Load dashboard images after a short delay
+            setTimeout(loadDashboardImageUrls, 1000);
 
             // Add additional safety checks after short delays
             setTimeout(ensureQuizModalHidden, 100);
