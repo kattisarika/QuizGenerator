@@ -628,8 +628,25 @@
             hasQuestions: <%= quiz.questions ? 'true' : 'false' %>,
             questionsLength: <%= quiz.questions ? quiz.questions.length : 0 %>,
             hasElements: <%= quiz.elements ? 'true' : 'false' %>,
-            elementsLength: <%= quiz.elements ? quiz.elements.length : 0 %>
+            elementsLength: <%= quiz.elements ? quiz.elements.length : 0 %>,
+            hasComplexQuizData: <%= quiz.complexQuizData ? 'true' : 'false' %>
         });
+
+        // Debug: Show the actual quiz object structure
+        console.log('🔍 QUIZ OBJECT KEYS:', Object.keys({
+            <% Object.keys(quiz).forEach((key, index) => { %>
+                '<%= key %>': '<%= typeof quiz[key] %>'<%= index < Object.keys(quiz).length - 1 ? ',' : '' %>
+            <% }); %>
+        }));
+
+        <% if (quiz.questions && quiz.questions.length > 0) { %>
+            console.log('🔍 FIRST QUESTION SAMPLE:', {
+                question: '<%= quiz.questions[0].question ? quiz.questions[0].question.substring(0, 100).replace(/'/g, "\\'") : "No question text" %>',
+                type: '<%= quiz.questions[0].type || "unknown" %>',
+                hasOptions: <%= quiz.questions[0].options ? 'true' : 'false' %>,
+                optionsCount: <%= quiz.questions[0].options ? quiz.questions[0].options.length : 0 %>
+            });
+        <% } %>
 
         // This script runs immediately to hide all questions except the first
         document.addEventListener('DOMContentLoaded', function() {
@@ -1928,7 +1945,10 @@
             console.log(`Question element found:`, targetQuestion);
 
             if (targetQuestion) {
-                targetQuestion.classList.add('active');
+                // Safe classList access
+                if (targetQuestion.classList) {
+                    targetQuestion.classList.add('active');
+                }
                 targetQuestion.style.display = 'block';
                 console.log(`Question ${index} shown`);
 
@@ -1936,9 +1956,25 @@
                 const computedStyle = window.getComputedStyle(targetQuestion);
                 console.log(`Question ${index} computed display:`, computedStyle.display);
             } else {
-                console.error(`Question ${index} not found!`);
+                console.error(`❌ Question ${index} not found! This means questions were not rendered in HTML.`);
                 console.log('Available question IDs:',
                     Array.from(allQuestions).map(q => q.id));
+                console.log('Total questions in DOM:', allQuestions.length);
+
+                // Show a helpful error message to the user
+                const questionsContainer = document.getElementById('questions-container');
+                if (questionsContainer && allQuestions.length === 0) {
+                    questionsContainer.innerHTML = `
+                        <div class="alert alert-danger" style="margin: 20px; padding: 20px; text-align: center;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h4>Quiz Loading Error</h4>
+                            <p>No questions were found for this quiz. Please contact your teacher or try refreshing the page.</p>
+                            <button onclick="window.location.reload()" class="btn btn-primary">
+                                <i class="fas fa-refresh"></i> Refresh Page
+                            </button>
+                        </div>
+                    `;
+                }
             }
             
             // Update active indicator
@@ -2236,6 +2272,29 @@
                 console.error('❌ No question containers found! Quiz questions may not be rendered.');
                 console.log('Available elements with class containing "question":',
                     document.querySelectorAll('[class*="question"]').length);
+
+                // Show error message to user
+                const questionsContainer = document.getElementById('questions-container');
+                if (questionsContainer) {
+                    questionsContainer.innerHTML = `
+                        <div class="alert alert-danger" style="margin: 20px; padding: 20px; text-align: center;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h4>Quiz Loading Error</h4>
+                            <p>No questions were found for this quiz. This could be due to:</p>
+                            <ul style="text-align: left; margin: 15px 0;">
+                                <li>Quiz data not loading properly</li>
+                                <li>Server-side conversion issues</li>
+                                <li>Template rendering problems</li>
+                            </ul>
+                            <button onclick="window.location.reload()" class="btn btn-primary">
+                                <i class="fas fa-refresh"></i> Refresh Page
+                            </button>
+                            <a href="/student/dashboard" class="btn btn-secondary" style="margin-left: 10px;">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    `;
+                }
                 return;
             }
 
