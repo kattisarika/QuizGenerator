@@ -620,6 +620,17 @@
 
     <!-- Immediate script to hide questions for one-question-per-page -->
     <script>
+        // Debug: Check quiz data immediately
+        console.log('🔍 QUIZ DEBUG - Quiz data available:', {
+            quizId: '<%= quiz._id %>',
+            quizTitle: '<%= quiz.title %>',
+            isComplexQuiz: <%= quiz.isComplexQuiz ? 'true' : 'false' %>,
+            hasQuestions: <%= quiz.questions ? 'true' : 'false' %>,
+            questionsLength: <%= quiz.questions ? quiz.questions.length : 0 %>,
+            hasElements: <%= quiz.elements ? 'true' : 'false' %>,
+            elementsLength: <%= quiz.elements ? quiz.elements.length : 0 %>
+        });
+
         // This script runs immediately to hide all questions except the first
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔧 Immediate question hiding script running...');
@@ -693,7 +704,28 @@
 
 
                 <form id="quiz-form">
-                    <div id="questions-container">
+                    <div id="questions-container" style="border: 2px solid red; padding: 10px; margin: 10px;">
+                        <!-- DEBUG: Visual container indicator -->
+                        <!-- Debug: Template rendering check -->
+                        <script>
+                            console.log('🔍 TEMPLATE DEBUG - Questions container rendering...');
+                            console.log('Quiz isComplexQuiz:', <%= quiz.isComplexQuiz ? 'true' : 'false' %>);
+                            console.log('Quiz has complexQuizData:', <%= quiz.complexQuizData ? 'true' : 'false' %>);
+                            console.log('Quiz has questions:', <%= quiz.questions ? 'true' : 'false' %>);
+                            <% if (quiz.questions) { %>
+                                console.log('Questions array length:', <%= quiz.questions.length %>);
+                                <% quiz.questions.forEach((question, index) => { %>
+                                    console.log('Question <%= index %>:', {
+                                        hasQuestion: <%= question.question ? 'true' : 'false' %>,
+                                        questionText: '<%= question.question ? question.question.substring(0, 50).replace(/'/g, "\\'") : "No question text" %>...',
+                                        hasOptions: <%= question.options ? 'true' : 'false' %>,
+                                        optionsCount: <%= question.options ? question.options.length : 0 %>,
+                                        type: '<%= question.type || "unknown" %>'
+                                    });
+                                <% }); %>
+                            <% } %>
+                        </script>
+
                         <% if (quiz.isComplexQuiz && quiz.complexQuizData) { %>
                             <!-- Complex Quiz Canvas Rendering -->
                             <div class="complex-quiz-container" style="position: relative; width: 100%; min-height: 600px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px 0;">
@@ -1100,7 +1132,13 @@
                             </script>
                         <% } else { %>
                             <!-- Regular Quiz Questions -->
-                            <% quiz.questions.forEach((question, index) => { %>
+                            <script>
+                                console.log('🔍 REGULAR QUIZ SECTION - About to render questions...');
+                                console.log('Questions available:', <%= quiz.questions ? quiz.questions.length : 0 %>);
+                            </script>
+
+                            <% if (quiz.questions && quiz.questions.length > 0) { %>
+                                <% quiz.questions.forEach((question, index) => { %>
                                 <div class="question-container" id="question-<%= index %>" data-question-index="<%= index %>" style="<%= index === 0 ? 'display: block;' : 'display: none;' %>">
                                     <div class="question-header">
                                         <h3>Question <%= index + 1 %> of <%= quiz.questions.length %></h3>
@@ -1199,7 +1237,18 @@
                                         <% } %>
                                     </div>
                                 </div>
-                            <% }); %>
+                                <% }); %>
+                            <% } else { %>
+                                <!-- No questions available -->
+                                <script>
+                                    console.log('❌ NO QUESTIONS FOUND - Quiz has no questions to display');
+                                </script>
+                                <div class="alert alert-warning" style="margin: 20px; padding: 20px; text-align: center;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <h4>No Questions Available</h4>
+                                    <p>This quiz does not contain any questions to display.</p>
+                                </div>
+                            <% } %>
                         <% } %>
 
                         <!-- Question Progress Indicator with Achievement Badge -->
