@@ -240,6 +240,159 @@
             opacity: 0.8;
             margin-top: 15px;
         }
+
+        /* Detailed Question Results Styles */
+        .detailed-results-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .detailed-results-section h3 {
+            color: #1f2937;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .question-results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .question-result-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .question-result-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .question-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .question-number {
+            font-weight: 600;
+            color: #495057;
+            font-size: 16px;
+        }
+
+        .question-score-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+        }
+
+        .question-score-badge.excellent {
+            background: #28a745;
+        }
+
+        .question-score-badge.good {
+            background: #17a2b8;
+        }
+
+        .question-score-badge.average {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .question-score-badge.poor {
+            background: #dc3545;
+        }
+
+        .question-score-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .score-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .question-percentage {
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 15px;
+        }
+
+        .question-feedback {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .question-feedback i {
+            color: #856404;
+            margin-top: 2px;
+        }
+
+        .question-feedback span {
+            color: #856404;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        /* Teacher Comments Section */
+        .teacher-comments-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .teacher-comments-section h3 {
+            color: #1f2937;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .teacher-comments-content {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .comments-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #495057;
+            margin-bottom: 15px;
+        }
+
+        .comments-meta {
+            font-size: 14px;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
     </style>
 </head>
 <body>
@@ -267,9 +420,30 @@
                     <h2><%= result.quizTitle %></h2>
                 </div>
                 <div class="result-score">
-                    <div class="score-circle <%= result.percentage >= 80 ? 'excellent' : result.percentage >= 60 ? 'good' : result.percentage >= 40 ? 'average' : 'poor' %>">
-                        <span class="score-percentage"><%= result.percentage %>%</span>
-                        <span class="score-label">Score</span>
+                    <%
+                        // For complex quizzes, prioritize manual grading if available
+                        let displayPercentage = result.percentage;
+                        let displayScore = result.score;
+                        let displayTotalPoints = result.totalPoints;
+                        let isManuallyGraded = false;
+
+                        if (result.isComplexQuiz && result.gradingStatus === 'graded' && result.manualPercentage !== null) {
+                            displayPercentage = result.manualPercentage;
+                            displayScore = result.manualScore;
+                            isManuallyGraded = true;
+
+                            // For complex quizzes with detailed grading, calculate total from question scores
+                            if (result.detailedGrading && result.detailedGrading.maxScore) {
+                                displayTotalPoints = result.detailedGrading.maxScore;
+                                displayScore = result.detailedGrading.totalScore;
+                            }
+                        }
+                    %>
+                    <div class="score-circle <%= displayPercentage >= 80 ? 'excellent' : displayPercentage >= 60 ? 'good' : displayPercentage >= 40 ? 'average' : 'poor' %>">
+                        <span class="score-percentage"><%= displayPercentage.toFixed(1) %>%</span>
+                        <span class="score-label">
+                            <%= isManuallyGraded ? 'Teacher Grade' : 'Score' %>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -277,21 +451,51 @@
             <!-- Result Summary -->
             <div class="result-summary">
                 <div class="summary-grid">
-                    <div class="summary-item">
-                        <i class="fas fa-check-circle"></i>
-                        <div class="summary-content">
-                            <h4>Correct Answers</h4>
-                            <p><%= result.correctAnswers %> of <%= result.totalQuestions %></p>
+                    <% if (result.isComplexQuiz && result.gradingStatus === 'graded') { %>
+                        <!-- Complex Quiz - Show Teacher Grading -->
+                        <div class="summary-item">
+                            <i class="fas fa-user-graduate"></i>
+                            <div class="summary-content">
+                                <h4>Teacher Grade</h4>
+                                <p><%= displayScore.toFixed(1) %> of <%= displayTotalPoints.toFixed(1) %> points</p>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="summary-item">
-                        <i class="fas fa-star"></i>
-                        <div class="summary-content">
-                            <h4>Points Earned</h4>
-                            <p><%= result.score %> of <%= result.totalPoints %></p>
+
+                        <% if (result.questionScores && Object.keys(result.questionScores).length > 0) { %>
+                            <div class="summary-item">
+                                <i class="fas fa-list-ol"></i>
+                                <div class="summary-content">
+                                    <h4>Questions Graded</h4>
+                                    <p><%= Object.keys(result.questionScores).length %> questions</p>
+                                </div>
+                            </div>
+                        <% } %>
+
+                        <div class="summary-item">
+                            <i class="fas fa-calendar-check"></i>
+                            <div class="summary-content">
+                                <h4>Graded On</h4>
+                                <p><%= new Date(result.gradedAt).toLocaleDateString() %></p>
+                            </div>
                         </div>
-                    </div>
+                    <% } else { %>
+                        <!-- Regular Quiz - Show Automatic Grading -->
+                        <div class="summary-item">
+                            <i class="fas fa-check-circle"></i>
+                            <div class="summary-content">
+                                <h4>Correct Answers</h4>
+                                <p><%= result.correctAnswers %> of <%= result.totalQuestions %></p>
+                            </div>
+                        </div>
+
+                        <div class="summary-item">
+                            <i class="fas fa-star"></i>
+                            <div class="summary-content">
+                                <h4>Points Earned</h4>
+                                <p><%= displayScore %> of <%= displayTotalPoints %></p>
+                            </div>
+                        </div>
+                    <% } %>
                     
                     <div class="summary-item">
                         <i class="fas fa-clock"></i>
@@ -310,6 +514,62 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Detailed Question Results for Complex Quizzes -->
+            <% if (result.isComplexQuiz && result.gradingStatus === 'graded' && result.questionScores) { %>
+                <div class="detailed-results-section">
+                    <h3><i class="fas fa-list-alt me-2"></i>Detailed Question Results</h3>
+
+                    <div class="question-results-grid">
+                        <% Object.keys(result.questionScores).forEach((elementId, index) => {
+                            const questionScore = result.questionScores[elementId];
+                            const questionFeedback = result.questionFeedback ? result.questionFeedback[elementId] : '';
+                            const questionNumber = index + 1;
+                            const percentage = questionScore.maxPoints > 0 ? (questionScore.score / questionScore.maxPoints * 100) : 0;
+                        %>
+                            <div class="question-result-item">
+                                <div class="question-result-header">
+                                    <span class="question-number">Question <%= questionNumber %></span>
+                                    <span class="question-score-badge <%= percentage >= 80 ? 'excellent' : percentage >= 60 ? 'good' : percentage >= 40 ? 'average' : 'poor' %>">
+                                        <%= questionScore.score.toFixed(1) %>/<%= questionScore.maxPoints.toFixed(1) %>
+                                    </span>
+                                </div>
+
+                                <div class="question-score-bar">
+                                    <div class="score-bar-fill" style="width: <%= percentage %>%"></div>
+                                </div>
+
+                                <div class="question-percentage">
+                                    <%= percentage.toFixed(1) %>%
+                                </div>
+
+                                <% if (questionFeedback && questionFeedback.trim()) { %>
+                                    <div class="question-feedback">
+                                        <i class="fas fa-comment-alt"></i>
+                                        <span><%= questionFeedback %></span>
+                                    </div>
+                                <% } %>
+                            </div>
+                        <% }); %>
+                    </div>
+                </div>
+            <% } %>
+
+            <!-- Teacher Comments for Complex Quizzes -->
+            <% if (result.isComplexQuiz && result.gradingStatus === 'graded' && result.teacherComments && result.teacherComments.trim()) { %>
+                <div class="teacher-comments-section">
+                    <h3><i class="fas fa-user-tie me-2"></i>Teacher Comments</h3>
+                    <div class="teacher-comments-content">
+                        <div class="comments-text">
+                            <%= result.teacherComments %>
+                        </div>
+                        <div class="comments-meta">
+                            <i class="fas fa-calendar"></i>
+                            Graded on <%= new Date(result.gradedAt).toLocaleDateString() %>
+                        </div>
+                    </div>
+                </div>
+            <% } %>
 
             <!-- Badge Display -->
             <% if (result.badgeEarned && result.badge) { %>
@@ -424,14 +684,22 @@
                     <div class="insight-item">
                         <i class="fas fa-chart-line"></i>
                         <h4>Score Analysis</h4>
-                        <p>You scored <%= result.score %> out of <%= result.totalPoints %> points, achieving <%= result.percentage %>% accuracy.</p>
+                        <p>You scored <%= displayScore.toFixed(1) %> out of <%= displayTotalPoints.toFixed(1) %> points, achieving <%= displayPercentage.toFixed(1) %>% accuracy.</p>
                     </div>
-                    
-                    <div class="insight-item">
-                        <i class="fas fa-target"></i>
-                        <h4>Accuracy</h4>
-                        <p>You answered <%= result.correctAnswers %> out of <%= result.totalQuestions %> questions correctly.</p>
-                    </div>
+
+                    <% if (result.isComplexQuiz && result.gradingStatus === 'graded') { %>
+                        <div class="insight-item">
+                            <i class="fas fa-user-graduate"></i>
+                            <h4>Teacher Grading</h4>
+                            <p>Your quiz was manually graded by your teacher with detailed feedback.</p>
+                        </div>
+                    <% } else { %>
+                        <div class="insight-item">
+                            <i class="fas fa-target"></i>
+                            <h4>Accuracy</h4>
+                            <p>You answered <%= result.correctAnswers %> out of <%= result.totalQuestions %> questions correctly.</p>
+                        </div>
+                    <% } %>
                     
                     <div class="insight-item">
                         <i class="fas fa-clock"></i>
