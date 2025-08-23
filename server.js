@@ -4342,7 +4342,7 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
       const previousResult = isTaken ? studentResults.find(result => result.quiz.toString() === quizId) : null;
       
       const quizData = {
-        ...quiz.toObject(),
+        ...quiz, // quiz is already a plain object due to .lean()
         createdByName: quiz.createdBy ? quiz.createdBy.displayName : 'Teacher',
         organizationName: quiz.organizationId ? quiz.organizationId.name : 'Organization',
         isTaken: isTaken,
