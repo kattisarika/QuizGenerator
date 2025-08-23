@@ -1356,12 +1356,29 @@
                                         <% }); %>
                                     </div>
                                 <% } else { %>
-                                    <!-- No options available - show message -->
-                                    <div class="no-options-message">
-                                        <p class="text-muted">
-                                            <i class="fas fa-exclamation-triangle me-2"></i>
-                                            No answer options available for this question.
-                                        </p>
+                                    <!-- No options available - provide text input as fallback -->
+                                    <div class="fallback-text-answer">
+                                        <div class="alert alert-info" style="margin-bottom: 15px;">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            This question doesn't have predefined options. Please provide your answer in the text box below.
+                                        </div>
+                                        <div class="text-answer-section">
+                                            <label for="fallback-answer-<%= index %>" class="text-answer-label">
+                                                <i class="fas fa-keyboard me-2"></i>Your Answer:
+                                            </label>
+                                            <textarea
+                                                id="fallback-answer-<%= index %>"
+                                                name="fallback-answer-<%= index %>"
+                                                class="text-answer-input"
+                                                rows="4"
+                                                placeholder="Enter your answer here..."
+                                                data-question="<%= index %>"
+                                                oninput="handleFallbackAnswer(<%= index %>, this.value)"></textarea>
+                                            <small class="text-muted">
+                                                <i class="fas fa-lightbulb me-1"></i>
+                                                Provide a detailed answer to this question.
+                                            </small>
+                                        </div>
                                     </div>
                                 <% } %>
                             </div>
@@ -1637,6 +1654,31 @@
             // Debug log
             console.log(`Text answer for question ${questionIndex}:`, value);
             console.log('Current answers object:', answers);
+        }
+
+        // Function to handle fallback text answers for questions without options
+        function handleFallbackAnswer(questionIndex, value) {
+            questionIndex = parseInt(questionIndex);
+
+            // Store the fallback answer
+            answers[questionIndex] = {
+                selectedAnswer: value.trim(),
+                isFallbackAnswer: true
+            };
+
+            // Update the question indicator to show it's been answered
+            const indicator = document.getElementById(`indicator-${questionIndex}`);
+            if (indicator && value.trim()) {
+                indicator.classList.add('answered');
+            } else if (indicator) {
+                indicator.classList.remove('answered');
+            }
+
+            console.log(`📝 Fallback answer updated for question ${questionIndex + 1}:`, value.trim());
+
+            // Update progress and status
+            updateProgress();
+            updateAnswerStatus();
         }
 
         // Timer functions

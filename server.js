@@ -4441,38 +4441,128 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
       });
     }
     
-    // Debug: Log quiz data to check if images are present
+    // Convert advanced quiz builder format to standard quiz format
+    function convertAdvancedQuizToStandard(quiz) {
+      // If quiz already has standard format, return as is
+      if (quiz.questions && quiz.questions.length > 0 && quiz.questions[0].question) {
+        return quiz;
+      }
+
+      // If quiz has elements (advanced quiz builder format), convert it
+      if (quiz.elements && quiz.elements.length > 0) {
+        console.log('Converting advanced quiz builder format to standard format');
+
+        const convertedQuestions = [];
+        let questionCounter = 1;
+
+        // Group elements by page/question
+        const pageGroups = {};
+        quiz.elements.forEach(element => {
+          const pageNumber = element.pageNumber || element.questionNumber || 1;
+          if (!pageGroups[pageNumber]) {
+            pageGroups[pageNumber] = [];
+          }
+          pageGroups[pageNumber].push(element);
+        });
+
+        // Convert each page to a question
+        Object.keys(pageGroups).sort((a, b) => parseInt(a) - parseInt(b)).forEach(pageNumber => {
+          const pageElements = pageGroups[pageNumber];
+
+          // Find question elements
+          const questionElements = pageElements.filter(el =>
+            el.type === 'question' || el.type === 'sub-question'
+          );
+
+          questionElements.forEach(questionElement => {
+            const convertedQuestion = {
+              question: questionElement.content || questionElement.questionText || `Question ${questionCounter}`,
+              type: 'multiple-choice', // Default to multiple choice
+              options: ['A', 'B', 'C', 'D'], // Default options
+              correctAnswer: 0, // Default correct answer
+              points: questionElement.points || 1,
+              explanation: questionElement.explanation || ''
+            };
+
+            // If the question has specific options, use them
+            if (questionElement.options && Array.isArray(questionElement.options)) {
+              convertedQuestion.options = questionElement.options;
+            }
+
+            convertedQuestions.push(convertedQuestion);
+            questionCounter++;
+          });
+
+          // If no question elements found, create a question from text elements
+          if (questionElements.length === 0) {
+            const textElements = pageElements.filter(el => el.type === 'text' || el.type === 'textbox');
+            if (textElements.length > 0) {
+              const combinedText = textElements.map(el => el.content).join(' ');
+              convertedQuestions.push({
+                question: combinedText || `Question ${questionCounter}`,
+                type: 'multiple-choice',
+                options: ['A', 'B', 'C', 'D'],
+                correctAnswer: 0,
+                points: 1,
+                explanation: ''
+              });
+              questionCounter++;
+            }
+          }
+        });
+
+        // If no questions were created, create a default one
+        if (convertedQuestions.length === 0) {
+          convertedQuestions.push({
+            question: 'Sample Question',
+            type: 'multiple-choice',
+            options: ['Option A', 'Option B', 'Option C', 'Option D'],
+            correctAnswer: 0,
+            points: 1,
+            explanation: ''
+          });
+        }
+
+        // Create a new quiz object with converted questions
+        const convertedQuiz = {
+          ...quiz.toObject(),
+          questions: convertedQuestions
+        };
+
+        console.log(`Converted ${quiz.elements.length} elements to ${convertedQuestions.length} questions`);
+        return convertedQuiz;
+      }
+
+      // If no elements or questions, return original quiz
+      return quiz;
+    }
+
+    // Convert the quiz format if needed
+    const processedQuiz = convertAdvancedQuizToStandard(quiz);
+
+    // Debug: Log quiz data
     console.log('=== TAKE QUIZ DEBUG ===');
     console.log('Quiz ID:', quiz._id);
     console.log('Quiz title:', quiz.title);
-    console.log('Total questions:', quiz.questions.length);
-    console.log('Full quiz object keys:', Object.keys(quiz));
-    console.log('Quiz type:', typeof quiz);
-    console.log('Quiz is Mongoose document:', quiz.constructor.name);
-    
-    // Convert to plain object to see what will be sent to frontend
-    const quizPlain = quiz.toObject ? quiz.toObject() : quiz;
-    console.log('Quiz plain object keys:', Object.keys(quizPlain));
+    console.log('Original format - Elements:', quiz.elements ? quiz.elements.length : 0);
+    console.log('Processed format - Questions:', processedQuiz.questions ? processedQuiz.questions.length : 0);
 
-
-    
-    quiz.questions.forEach((q, index) => {
-      console.log(`Question ${index + 1}:`, {
-        hasImage: !!q.image,
-        imageUrl: q.image,
-        imageType: typeof q.image,
-        imageLength: q.image ? q.image.length : 0,
-        questionText: q.question.substring(0, 50) + '...',
-        questionKeys: Object.keys(q),
-        questionObject: JSON.stringify(q, null, 2)
+    if (processedQuiz.questions) {
+      processedQuiz.questions.forEach((q, index) => {
+        console.log(`Question ${index + 1}:`, {
+          questionText: q.question ? q.question.substring(0, 100) + '...' : 'No question text',
+          hasOptions: !!q.options,
+          optionsCount: q.options ? q.options.length : 0,
+          type: q.type
+        });
       });
-    });
+    }
     console.log('=== END TAKE QUIZ DEBUG ===');
     
-    res.render('take-quiz', { 
-      quiz, 
+    res.render('take-quiz', {
+      quiz: processedQuiz,
       user: req.user,
-      s3BucketName: process.env.AWS_BUCKET_NAME 
+      s3BucketName: process.env.AWS_BUCKET_NAME
     });
   } catch (error) {
     console.error('Error starting quiz:', error);
@@ -4943,12 +5033,109 @@ app.get('/view-quiz/:quizId', requireAuth, async (req, res) => {
     
     // Check if this is a competitive quiz and user is a student
     if (quiz.quizType === 'competitive' && req.user.role === 'student') {
-      return res.status(403).render('error', { 
-        message: 'Competitive quizzes can only be accessed through a session. Please join using the session code provided by your teacher.' 
+      return res.status(403).render('error', {
+        message: 'Competitive quizzes can only be accessed through a session. Please join using the session code provided by your teacher.'
       });
     }
-    
-    res.render('view-quiz', { quiz });
+
+    // Convert advanced quiz builder format to standard quiz format (same function as take-quiz)
+    function convertAdvancedQuizToStandard(quiz) {
+      // If quiz already has standard format, return as is
+      if (quiz.questions && quiz.questions.length > 0 && quiz.questions[0].question) {
+        return quiz;
+      }
+
+      // If quiz has elements (advanced quiz builder format), convert it
+      if (quiz.elements && quiz.elements.length > 0) {
+        console.log('Converting advanced quiz builder format for view-quiz');
+
+        const convertedQuestions = [];
+        let questionCounter = 1;
+
+        // Group elements by page/question
+        const pageGroups = {};
+        quiz.elements.forEach(element => {
+          const pageNumber = element.pageNumber || element.questionNumber || 1;
+          if (!pageGroups[pageNumber]) {
+            pageGroups[pageNumber] = [];
+          }
+          pageGroups[pageNumber].push(element);
+        });
+
+        // Convert each page to a question
+        Object.keys(pageGroups).sort((a, b) => parseInt(a) - parseInt(b)).forEach(pageNumber => {
+          const pageElements = pageGroups[pageNumber];
+
+          // Find question elements
+          const questionElements = pageElements.filter(el =>
+            el.type === 'question' || el.type === 'sub-question'
+          );
+
+          questionElements.forEach(questionElement => {
+            const convertedQuestion = {
+              question: questionElement.content || questionElement.questionText || `Question ${questionCounter}`,
+              type: 'multiple-choice',
+              options: ['A', 'B', 'C', 'D'],
+              correctAnswer: 0,
+              points: questionElement.points || 1,
+              explanation: questionElement.explanation || ''
+            };
+
+            if (questionElement.options && Array.isArray(questionElement.options)) {
+              convertedQuestion.options = questionElement.options;
+            }
+
+            convertedQuestions.push(convertedQuestion);
+            questionCounter++;
+          });
+
+          // If no question elements found, create a question from text elements
+          if (questionElements.length === 0) {
+            const textElements = pageElements.filter(el => el.type === 'text' || el.type === 'textbox');
+            if (textElements.length > 0) {
+              const combinedText = textElements.map(el => el.content).join(' ');
+              convertedQuestions.push({
+                question: combinedText || `Question ${questionCounter}`,
+                type: 'multiple-choice',
+                options: ['A', 'B', 'C', 'D'],
+                correctAnswer: 0,
+                points: 1,
+                explanation: ''
+              });
+              questionCounter++;
+            }
+          }
+        });
+
+        // If no questions were created, create a default one
+        if (convertedQuestions.length === 0) {
+          convertedQuestions.push({
+            question: 'Sample Question',
+            type: 'multiple-choice',
+            options: ['Option A', 'Option B', 'Option C', 'Option D'],
+            correctAnswer: 0,
+            points: 1,
+            explanation: ''
+          });
+        }
+
+        // Create a new quiz object with converted questions
+        const convertedQuiz = {
+          ...quiz.toObject(),
+          questions: convertedQuestions
+        };
+
+        console.log(`View-quiz: Converted ${quiz.elements.length} elements to ${convertedQuestions.length} questions`);
+        return convertedQuiz;
+      }
+
+      return quiz;
+    }
+
+    // Convert the quiz format if needed
+    const processedQuiz = convertAdvancedQuizToStandard(quiz);
+
+    res.render('view-quiz', { quiz: processedQuiz });
   } catch (error) {
     console.error('Error viewing quiz:', error);
     res.status(500).send('Error viewing quiz');
