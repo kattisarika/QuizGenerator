@@ -24,6 +24,192 @@
     </script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        /* Complex Quiz Preview Styles */
+        .complex-quiz-notice {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .complex-quiz-notice i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .complex-question-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .complex-question-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.1);
+        }
+
+        .complex-question-preview {
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 8px;
+            margin: 15px;
+        }
+
+        .complex-element-preview {
+            margin-bottom: 15px !important;
+            transition: all 0.2s ease;
+        }
+
+        .complex-element-preview:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .text-answer-notice {
+            background: #f0f9ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 12px 16px;
+            color: #1e40af;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .text-answer-notice i {
+            color: #3b82f6;
+        }
+
+        /* Enhanced question card styles */
+        .question-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .question-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .question-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .question-header h4 {
+            margin: 0;
+            color: #1f2937;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .question-points {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .question-content {
+            padding: 25px;
+        }
+
+        .question-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #374151;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .options-list {
+            margin-top: 20px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .option-item:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
+        .option-item.correct-answer {
+            background: #ecfdf5;
+            border-color: #10b981;
+            color: #065f46;
+        }
+
+        .option-label {
+            font-weight: 600;
+            margin-right: 12px;
+            color: #6b7280;
+            min-width: 20px;
+        }
+
+        .option-text {
+            flex: 1;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        .correct-icon {
+            color: #10b981;
+            margin-left: 10px;
+        }
+
+        .question-footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .question-type {
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .correct-answer-label {
+            color: #059669;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -112,53 +298,71 @@
                 <div class="questions-section">
                     <h3><i class="fas fa-list-ol me-2"></i>Questions</h3>
                     <div class="questions-list">
-                        <% quiz.questions.forEach((question, index) => { %>
-                            <div class="question-card">
-                                <div class="question-header">
-                                    <h4>Question <%= index + 1 %></h4>
-                                    <span class="question-points"><%= question.points %> point<%= question.points !== 1 ? 's' : '' %></span>
-                                </div>
-                                <div class="question-content">
-                                    <p class="question-text"><%= question.question %></p>
-                                    
-                                    <% if (question.image) { %>
-                                        <div class="question-image-container" data-s3-key="<%= question.image %>">
-                                            <div class="question-image-loading" style="text-align: center; padding: 20px;">
-                                                <i class="fas fa-spinner fa-spin"></i> Loading question image...
-                                            </div>
-                                            <img class="question-image" style="max-width: 100%; max-height: 300px; margin-top: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;" alt="Question Image">
-                                        </div>
-                                    <% } %>
-                                    
-
-                                    
-                                    <div class="options-list">
-                                        <% question.options.forEach((option, optIndex) => { %>
-                                            <div class="option-item <%= option === question.correctAnswer ? 'correct-answer' : '' %>">
-                                                <span class="option-label"><%= String.fromCharCode(65 + optIndex) %>.</span>
-                                                <span class="option-text"><%= option %></span>
-                                                <% if (option === question.correctAnswer) { %>
-                                                    <i class="fas fa-check-circle correct-icon"></i>
-                                                <% } %>
-                                            </div>
-                                        <% }); %>
-                                    </div>
-                                    
-                                    <div class="question-footer">
-                                        <span class="question-type">
-                                            <i class="fas fa-tag"></i>
-                                            <%= question.type.charAt(0).toUpperCase() + question.type.slice(1) %>
-                                        </span>
-                                        <% if (question.correctAnswer) { %>
-                                            <span class="correct-answer-label">
-                                                <i class="fas fa-check"></i>
-                                                Correct: <%= question.correctAnswer %>
-                                            </span>
-                                        <% } %>
-                                    </div>
-                                </div>
+                        <% if (quiz.elements && quiz.elements.length > 0) { %>
+                            <!-- Complex Quiz - Render from elements -->
+                            <div class="complex-quiz-notice">
+                                <i class="fas fa-palette"></i>
+                                <span>This quiz was created with the Advanced Quiz Builder</span>
                             </div>
-                        <% }); %>
+
+                            <div id="complex-quiz-preview">
+                                <!-- Complex quiz content will be rendered here by JavaScript -->
+                            </div>
+                        <% } else { %>
+                            <!-- Regular Quiz - Render from questions -->
+                            <% quiz.questions.forEach((question, index) => { %>
+                                <div class="question-card">
+                                    <div class="question-header">
+                                        <h4>Question <%= index + 1 %></h4>
+                                        <span class="question-points"><%= question.points %> point<%= question.points !== 1 ? 's' : '' %></span>
+                                    </div>
+                                    <div class="question-content">
+                                        <p class="question-text"><%- question.question %></p>
+
+                                        <% if (question.image) { %>
+                                            <div class="question-image-container" data-s3-key="<%= question.image %>">
+                                                <div class="question-image-loading" style="text-align: center; padding: 20px;">
+                                                    <i class="fas fa-spinner fa-spin"></i> Loading question image...
+                                                </div>
+                                                <img class="question-image" style="max-width: 100%; max-height: 300px; margin-top: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;" alt="Question Image">
+                                            </div>
+                                        <% } %>
+
+                                        <% if (question.options && question.options.length > 0) { %>
+                                            <div class="options-list">
+                                                <% question.options.forEach((option, optIndex) => { %>
+                                                    <div class="option-item <%= option === question.correctAnswer ? 'correct-answer' : '' %>">
+                                                        <span class="option-label"><%= String.fromCharCode(65 + optIndex) %>.</span>
+                                                        <span class="option-text"><%- option %></span>
+                                                        <% if (option === question.correctAnswer) { %>
+                                                            <i class="fas fa-check-circle correct-icon"></i>
+                                                        <% } %>
+                                                    </div>
+                                                <% }); %>
+                                            </div>
+                                        <% } else { %>
+                                            <div class="text-answer-notice">
+                                                <i class="fas fa-keyboard"></i>
+                                                <span>This question requires a text answer</span>
+                                            </div>
+                                        <% } %>
+
+                                        <div class="question-footer">
+                                            <span class="question-type">
+                                                <i class="fas fa-tag"></i>
+                                                <%= question.type ? question.type.charAt(0).toUpperCase() + question.type.slice(1) : 'Multiple Choice' %>
+                                            </span>
+                                            <% if (question.correctAnswer) { %>
+                                                <span class="correct-answer-label">
+                                                    <i class="fas fa-check"></i>
+                                                    Correct: <%- question.correctAnswer %>
+                                                </span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } %>
                     </div>
                 </div>
             </div>
@@ -260,7 +464,146 @@
         // Load question image URLs when page loads
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(loadQuestionImageUrls, 500);
+
+            // Render complex quiz if elements exist
+            <% if (quiz.elements && quiz.elements.length > 0) { %>
+                renderComplexQuizPreview();
+            <% } %>
         });
+
+        // Complex Quiz Rendering
+        <% if (quiz.elements && quiz.elements.length > 0) { %>
+            function renderComplexQuizPreview() {
+                const container = document.getElementById('complex-quiz-preview');
+                if (!container) return;
+
+                const elements = <%- JSON.stringify(quiz.elements) %>;
+                console.log('Rendering complex quiz with', elements.length, 'elements');
+
+                // Group elements by page/question
+                const pageGroups = {};
+                elements.forEach(element => {
+                    const pageNumber = element.pageNumber || element.questionNumber || 1;
+                    if (!pageGroups[pageNumber]) {
+                        pageGroups[pageNumber] = [];
+                    }
+                    pageGroups[pageNumber].push(element);
+                });
+
+                // Render each page as a question
+                Object.keys(pageGroups).sort((a, b) => parseInt(a) - parseInt(b)).forEach((pageNumber, index) => {
+                    const pageElements = pageGroups[pageNumber];
+                    const questionNumber = index + 1;
+
+                    const questionCard = document.createElement('div');
+                    questionCard.className = 'question-card complex-question-card';
+                    questionCard.innerHTML = `
+                        <div class="question-header">
+                            <h4>Question ${questionNumber}</h4>
+                            <span class="question-points">Page ${pageNumber}</span>
+                        </div>
+                        <div class="question-content">
+                            <div class="complex-question-preview" id="preview-page-${pageNumber}">
+                                <!-- Elements will be rendered here -->
+                            </div>
+                        </div>
+                    `;
+
+                    container.appendChild(questionCard);
+
+                    // Render elements for this page
+                    const previewContainer = document.getElementById(`preview-page-${pageNumber}`);
+                    pageElements.forEach(element => {
+                        renderComplexElement(element, previewContainer);
+                    });
+                });
+            }
+
+            function renderComplexElement(element, container) {
+                const elementDiv = document.createElement('div');
+                elementDiv.className = 'complex-element-preview';
+                elementDiv.style.marginBottom = '15px';
+                elementDiv.style.padding = '10px';
+                elementDiv.style.border = '1px solid #e9ecef';
+                elementDiv.style.borderRadius = '6px';
+                elementDiv.style.backgroundColor = '#f8f9fa';
+
+                let content = '';
+
+                switch (element.type) {
+                    case 'question':
+                        content = `
+                            <div style="padding: 15px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 4px;">
+                                <strong style="color: #0ea5e9;"><i class="fas fa-question-circle"></i> Question:</strong>
+                                <div style="margin-top: 8px; color: #1f2937; font-size: 16px; line-height: 1.5;">${element.content || 'Question content'}</div>
+                            </div>
+                        `;
+                        break;
+
+                    case 'sub-question':
+                        content = `
+                            <div style="padding: 12px; background: #fefce8; border-left: 4px solid #eab308; border-radius: 4px; margin-left: 20px;">
+                                <strong style="color: #eab308;"><i class="fas fa-arrow-right"></i> Sub-question:</strong>
+                                <div style="margin-top: 8px; color: #1f2937; font-size: 15px; line-height: 1.4;">${element.content || 'Sub-question content'}</div>
+                            </div>
+                        `;
+                        break;
+
+                    case 'text':
+                    case 'textbox':
+                        content = `
+                            <div style="padding: 12px; background: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px;">
+                                <strong style="color: #22c55e;"><i class="fas fa-align-left"></i> Text:</strong>
+                                <div style="margin-top: 8px; color: #1f2937; font-size: 14px; line-height: 1.4;">${element.content || 'Text content'}</div>
+                            </div>
+                        `;
+                        break;
+
+                    case 'image':
+                        content = `
+                            <div style="padding: 12px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+                                <strong style="color: #f59e0b;"><i class="fas fa-image"></i> Image:</strong>
+                                <div style="margin-top: 8px;">
+                                    ${element.src ? `<img src="${element.src}" style="max-width: 300px; max-height: 200px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Quiz Image">` : '<span style="color: #6b7280;">Image element</span>'}
+                                </div>
+                            </div>
+                        `;
+                        break;
+
+                    case 'table':
+                        content = `
+                            <div style="padding: 12px; background: #f3e8ff; border-left: 4px solid #a855f7; border-radius: 4px;">
+                                <strong style="color: #a855f7;"><i class="fas fa-table"></i> Table:</strong>
+                                <div style="margin-top: 8px;">
+                                    ${element.tableContent || '<span style="color: #6b7280;">Table element</span>'}
+                                </div>
+                            </div>
+                        `;
+                        break;
+
+                    case 'latex':
+                        content = `
+                            <div style="padding: 12px; background: #fce7f3; border-left: 4px solid #ec4899; border-radius: 4px;">
+                                <strong style="color: #ec4899;"><i class="fas fa-square-root-alt"></i> LaTeX:</strong>
+                                <div style="margin-top: 8px; color: #1f2937; font-family: 'Courier New', monospace;">${element.content || 'LaTeX content'}</div>
+                            </div>
+                        `;
+                        break;
+
+                    default:
+                        content = `
+                            <div style="padding: 12px; background: #f1f5f9; border-left: 4px solid #64748b; border-radius: 4px;">
+                                <strong style="color: #64748b;"><i class="fas fa-cube"></i> ${element.type}:</strong>
+                                <div style="margin-top: 8px; color: #1f2937;">${element.content || 'Element content'}</div>
+                            </div>
+                        `;
+                        break;
+                }
+
+                elementDiv.innerHTML = content;
+                container.appendChild(elementDiv);
+            }
+        <% } %>
     </script>
 </body>
 </html> 
