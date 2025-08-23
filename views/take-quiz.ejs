@@ -608,12 +608,21 @@
             display: block !important;
         }
 
-        /* Override any inline styles that might show questions */
-        .question-container[style*="display: block"] {
-            display: none !important;
+        /* Regular quiz question container visibility rules */
+        .question-container:not(.complex-question-group) {
+            display: none;
         }
 
-        .question-container.active[style*="display: none"] {
+        .question-container.active:not(.complex-question-group) {
+            display: block !important;
+        }
+
+        /* Complex quiz elements should not be affected by regular quiz rules */
+        .complex-question-group {
+            display: none;
+        }
+
+        .complex-question-group.active {
             display: block !important;
         }
     </style>
@@ -651,15 +660,41 @@
             setTimeout(() => {
                 const firstQuestion = document.getElementById('question-0');
                 if (firstQuestion) {
+                    const computedStyle = window.getComputedStyle(firstQuestion);
                     const isVisible = firstQuestion.style.display !== 'none' &&
-                                    window.getComputedStyle(firstQuestion).display !== 'none';
+                                    computedStyle.display !== 'none';
+
                     console.log('🔍 FIRST QUESTION VISIBILITY CHECK:', {
                         exists: true,
                         display: firstQuestion.style.display,
-                        computedDisplay: window.getComputedStyle(firstQuestion).display,
+                        computedDisplay: computedStyle.display,
+                        visibility: computedStyle.visibility,
+                        opacity: computedStyle.opacity,
+                        height: computedStyle.height,
+                        overflow: computedStyle.overflow,
                         isVisible: isVisible,
+                        classList: Array.from(firstQuestion.classList),
                         innerHTML: firstQuestion.innerHTML.substring(0, 200) + '...'
                     });
+
+                    // Try to force visibility
+                    console.log('🔧 Attempting to force question visibility...');
+                    firstQuestion.style.display = 'block !important';
+                    firstQuestion.style.visibility = 'visible';
+                    firstQuestion.style.opacity = '1';
+                    firstQuestion.style.height = 'auto';
+                    firstQuestion.style.overflow = 'visible';
+
+                    // Check again after forcing
+                    setTimeout(() => {
+                        const newComputedStyle = window.getComputedStyle(firstQuestion);
+                        console.log('🔍 AFTER FORCING VISIBILITY:', {
+                            display: firstQuestion.style.display,
+                            computedDisplay: newComputedStyle.display,
+                            visibility: newComputedStyle.visibility,
+                            opacity: newComputedStyle.opacity
+                        });
+                    }, 100);
                 } else {
                     console.log('❌ FIRST QUESTION NOT FOUND IN DOM');
                 }
@@ -694,11 +729,14 @@
 
                     // Show only the first question
                     if (questionContainers.length > 0) {
-                        if (questionContainers[0].classList) {
-                            questionContainers[0].classList.add('active');
+                        const firstQuestion = questionContainers[0];
+                        if (firstQuestion.classList) {
+                            firstQuestion.classList.add('active');
                         }
-                        questionContainers[0].style.display = 'block';
+                        firstQuestion.style.display = 'block';
                         console.log('Immediately showed first question');
+                        console.log('First question classes:', firstQuestion.className);
+                        console.log('First question style:', firstQuestion.style.cssText);
                     }
                 } else {
                     console.error(`❌ Question count mismatch! Found ${questionContainers.length}, expected ${expectedCount}`);
@@ -1807,6 +1845,8 @@
                 }
                 targetQuestion.style.display = 'block';
                 console.log(`Question ${index} shown`);
+                console.log(`Question ${index} classes:`, targetQuestion.className);
+                console.log(`Question ${index} style:`, targetQuestion.style.cssText);
 
                 // Double-check visibility
                 const computedStyle = window.getComputedStyle(targetQuestion);
