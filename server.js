@@ -4289,16 +4289,38 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     } else {
       console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all quizzes`);
     }
+
+    console.log('Student details:', {
+      id: req.user._id,
+      email: req.user.email,
+      gradeLevel: req.user.gradeLevel,
+      organizationId: req.user.organizationId,
+      organizationIds: organizationIds
+    });
     
     console.log('Quiz filter (all organizations, excluding competitive):', filter);
-    
+
+    // First, let's check how many quizzes exist without any filters
+    const totalQuizzesInDB = await Quiz.countDocuments({});
+    console.log('Total quizzes in database:', totalQuizzesInDB);
+
+    // Check how many match just the organization filter
+    const orgQuizzes = await Quiz.countDocuments({
+      organizationId: { $in: organizationIds }
+    });
+    console.log('Quizzes in student organizations:', orgQuizzes);
+
+    // Check how many match the full filter
+    const filteredCount = await Quiz.countDocuments(filter);
+    console.log('Quizzes matching full filter:', filteredCount);
+
     // Simplified approach to avoid memory issues - get limited results without sorting
     const allQuizzes = await Quiz.find(filter)
       .populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
       .limit(100) // Much smaller limit to prevent memory issues
       .lean(); // Use lean() for better performance
-    
+
     console.log('Found quizzes from all organizations:', allQuizzes.length);
     console.log('Quiz breakdown by organization:');
     const quizByOrg = {};
@@ -4310,11 +4332,13 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     console.log(quizByOrg);
     
     // Get the student's quiz results from all organizations
-    const studentResults = await QuizResult.find({ 
+    const studentResults = await QuizResult.find({
       student: req.user._id,
       organizationId: { $in: organizationIds }
     }).select('quiz score percentage timeTaken createdAt attemptNumber');
-    
+
+    console.log(`Found ${studentResults.length} quiz results for student ${req.user.email}`);
+
     // Create a map of quiz IDs and their attempt counts
     const quizAttempts = {};
     studentResults.forEach(result => {
@@ -4328,11 +4352,13 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
       quizAttempts[quizId].count++;
       quizAttempts[quizId].maxAttemptNumber = Math.max(quizAttempts[quizId].maxAttemptNumber, result.attemptNumber || 1);
     });
+
+    console.log('Quiz attempts map:', Object.keys(quizAttempts).length, 'quizzes with attempts');
     
     // Separate available and archived quizzes
     const availableQuizzes = [];
     const archivedQuizzes = [];
-    
+
     allQuizzes.forEach(quiz => {
       const quizId = quiz._id.toString();
       const attemptData = quizAttempts[quizId] || { count: 0, maxAttemptNumber: 0 };
@@ -4340,7 +4366,12 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
       const isTaken = attemptCount > 0;
       const canRetake = attemptCount < 3;
       const previousResult = isTaken ? studentResults.find(result => result.quiz.toString() === quizId) : null;
-      
+
+      // Debug logging for quiz categorization
+      if (attemptCount > 0) {
+        console.log(`Quiz "${quiz.title}" (${quizId}) - TAKEN ${attemptCount} times -> ARCHIVED`);
+      }
+
       const quizData = {
         ...quiz, // quiz is already a plain object due to .lean()
         createdByName: quiz.createdBy ? quiz.createdBy.displayName : 'Teacher',
@@ -4351,13 +4382,15 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
         previousScore: previousResult ? previousResult.percentage : null,
         previousTime: previousResult ? previousResult.timeTaken : null
       };
-      
+
       if (isTaken) {
         archivedQuizzes.push(quizData);
       } else {
         availableQuizzes.push(quizData);
       }
     });
+
+    console.log(`Quiz categorization: ${availableQuizzes.length} available, ${archivedQuizzes.length} archived`);
     
     // Get quizzes for the selected tab
     const quizzesToShow = tab === 'archived' ? archivedQuizzes : availableQuizzes;
