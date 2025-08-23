@@ -4295,7 +4295,8 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     const allQuizzes = await Quiz.find(filter)
       .populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(500); // Limit to prevent memory issues
     
     console.log('Found quizzes from all organizations:', allQuizzes.length);
     console.log('Quiz breakdown by organization:');
