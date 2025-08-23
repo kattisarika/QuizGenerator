@@ -2105,12 +2105,14 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
     });
   } catch (error) {
     console.error('Error fetching student dashboard data:', error);
-    res.render('student-dashboard', { 
-      user: req.user, 
+    res.render('student-dashboard', {
+      user: req.user,
       quizzes: [],
       completedCount: 0,
       averageScore: 0,
       organizations: [],
+      pendingComplexQuizzes: [],
+      gradedComplexQuizzes: [],
       needsMigration: false
     });
   }
