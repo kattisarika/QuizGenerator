@@ -4292,36 +4292,12 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     
     console.log('Quiz filter (all organizations, excluding competitive):', filter);
     
-    // Use aggregation pipeline to handle large datasets efficiently
-    const allQuizzes = await Quiz.aggregate([
-      { $match: filter },
-      { $sort: { createdAt: -1 } },
-      { $limit: 500 }, // Limit before population to prevent memory issues
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'createdBy',
-          foreignField: '_id',
-          as: 'createdBy',
-          pipeline: [{ $project: { displayName: 1 } }]
-        }
-      },
-      {
-        $lookup: {
-          from: 'organizations',
-          localField: 'organizationId',
-          foreignField: '_id',
-          as: 'organizationId',
-          pipeline: [{ $project: { name: 1 } }]
-        }
-      },
-      {
-        $addFields: {
-          createdBy: { $arrayElemAt: ['$createdBy', 0] },
-          organizationId: { $arrayElemAt: ['$organizationId', 0] }
-        }
-      }
-    ]).allowDiskUse(true);
+    // Simplified approach to avoid memory issues - get limited results without sorting
+    const allQuizzes = await Quiz.find(filter)
+      .populate('createdBy', 'displayName')
+      .populate('organizationId', 'name')
+      .limit(100) // Much smaller limit to prevent memory issues
+      .lean(); // Use lean() for better performance
     
     console.log('Found quizzes from all organizations:', allQuizzes.length);
     console.log('Quiz breakdown by organization:');
