@@ -721,8 +721,7 @@
 
 
                 <form id="quiz-form">
-                    <div id="questions-container" style="border: 2px solid red; padding: 10px; margin: 10px;">
-                        <!-- DEBUG: Visual container indicator -->
+                    <div id="questions-container">
                         <!-- Debug: Template rendering check -->
                         <script>
                             console.log('🔍 TEMPLATE DEBUG - Questions container rendering...');
@@ -1931,10 +1930,18 @@
             // Debug: Check total questions available
             const allQuestions = document.querySelectorAll('.question-container');
             console.log(`Total questions in DOM: ${allQuestions.length}`);
+            console.log(`Expected questions: ${totalQuestions}`);
+
+            // Debug: Show IDs of all question containers
+            allQuestions.forEach((q, i) => {
+                console.log(`Question container ${i}: ID = ${q.id}, classes = ${q.className}`);
+            });
 
             // Hide all questions
             allQuestions.forEach((q, i) => {
-                q.classList.remove('active');
+                if (q.classList) {
+                    q.classList.remove('active');
+                }
                 q.style.display = 'none';
                 console.log(`Question ${i} hidden`);
             });
@@ -1979,10 +1986,16 @@
             
             // Update active indicator
             document.querySelectorAll('.question-indicator').forEach(ind => ind.classList.remove('active'));
-            document.getElementById(`indicator-${index}`).classList.add('active');
+            const activeIndicator = document.getElementById(`indicator-${index}`);
+            if (activeIndicator) {
+                activeIndicator.classList.add('active');
+            }
             
             // Update navigation buttons
-            document.getElementById('prev-btn').disabled = index === 0;
+            const prevBtn = document.getElementById('prev-btn');
+            if (prevBtn) {
+                prevBtn.disabled = index === 0;
+            }
             
             // Handle single-question quiz or last question
             if (totalQuestions === 1 || index === totalQuestions - 1) {
@@ -2679,7 +2692,10 @@
                 };
                 
                 // Mark indicator as answered
-                document.getElementById(`indicator-${questionIndex}`).classList.add('answered');
+                const indicator = document.getElementById(`indicator-${questionIndex}`);
+                if (indicator) {
+                    indicator.classList.add('answered');
+                }
             }
         });
 

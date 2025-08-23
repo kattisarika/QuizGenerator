@@ -4585,15 +4585,19 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
     // Convert the quiz format if needed
     const processedQuiz = convertAdvancedQuizToStandard(quiz);
 
+    // Convert Mongoose document to plain JavaScript object
+    const quizObject = processedQuiz.toObject ? processedQuiz.toObject() : processedQuiz;
+
     // Debug: Log quiz data
     console.log('=== TAKE QUIZ DEBUG ===');
     console.log('Quiz ID:', quiz._id);
     console.log('Quiz title:', quiz.title);
     console.log('Original format - Elements:', quiz.elements ? quiz.elements.length : 0);
-    console.log('Processed format - Questions:', processedQuiz.questions ? processedQuiz.questions.length : 0);
+    console.log('Processed format - Questions:', quizObject.questions ? quizObject.questions.length : 0);
+    console.log('Quiz object keys:', Object.keys(quizObject));
 
-    if (processedQuiz.questions) {
-      processedQuiz.questions.forEach((q, index) => {
+    if (quizObject.questions) {
+      quizObject.questions.forEach((q, index) => {
         console.log(`Question ${index + 1}:`, {
           questionText: q.question ? q.question.substring(0, 100) + '...' : 'No question text',
           hasOptions: !!q.options,
@@ -4603,9 +4607,9 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
       });
     }
     console.log('=== END TAKE QUIZ DEBUG ===');
-    
+
     res.render('take-quiz', {
-      quiz: processedQuiz,
+      quiz: quizObject,
       user: req.user,
       s3BucketName: process.env.AWS_BUCKET_NAME
     });
