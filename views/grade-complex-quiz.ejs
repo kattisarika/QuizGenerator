@@ -221,6 +221,83 @@
             border: 1px solid #e2e8f0 !important;
             padding: 8px !important;
         }
+
+        /* Question Scoring Styles */
+        .question-score-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.2s ease;
+        }
+
+        .question-score-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .question-score-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .question-score-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 2fr;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .score-input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .score-input-group label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #6c757d;
+            margin-bottom: 4px;
+        }
+
+        .score-input-group input {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .score-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .question-feedback {
+            margin-top: 10px;
+        }
+
+        .question-feedback textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .question-feedback textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -287,23 +364,33 @@
                 </div>
 
                 <form class="grading-form" onsubmit="submitGrade(event)">
-                    <div class="form-group">
-                        <label>Grade & Feedback</label>
+                    <h4><i class="fas fa-calculator"></i> Question-by-Question Scoring</h4>
+
+                    <div id="question-scores-container">
+                        <!-- Question scores will be populated by JavaScript -->
+                    </div>
+
+                    <div class="form-group" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e9ecef;">
+                        <label><i class="fas fa-chart-line"></i> Total Score Summary</label>
                         <div class="score-inputs">
                             <div>
-                                <label style="font-size: 12px; margin-bottom: 4px;">Score (Points)</label>
-                                <input type="number" id="manualScore" min="0" max="100" step="0.5" placeholder="0" required>
+                                <label style="font-size: 12px; margin-bottom: 4px;">Total Points</label>
+                                <input type="number" id="totalScore" min="0" step="0.5" placeholder="0" readonly style="background: #f8f9fa;">
+                            </div>
+                            <div>
+                                <label style="font-size: 12px; margin-bottom: 4px;">Max Points</label>
+                                <input type="number" id="maxScore" min="0" step="0.5" placeholder="0" readonly style="background: #f8f9fa;">
                             </div>
                             <div>
                                 <label style="font-size: 12px; margin-bottom: 4px;">Percentage (%)</label>
-                                <input type="number" id="manualPercentage" min="0" max="100" step="0.1" placeholder="0" required>
+                                <input type="number" id="finalPercentage" min="0" max="100" step="0.1" placeholder="0" readonly style="background: #f8f9fa;">
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label>Teacher Comments</label>
-                        <textarea id="teacherComments" rows="4" placeholder="Provide feedback for the student..."></textarea>
+                        <label><i class="fas fa-comment"></i> Overall Teacher Comments</label>
+                        <textarea id="teacherComments" rows="4" placeholder="Provide overall feedback for the student..."></textarea>
                     </div>
 
                     <button type="submit" class="btn-submit-grade">
@@ -419,24 +506,76 @@
         // Submit grade function
         function submitGrade(event) {
             event.preventDefault();
-            
-            const manualScore = document.getElementById('manualScore').value;
-            const manualPercentage = document.getElementById('manualPercentage').value;
-            const teacherComments = document.getElementById('teacherComments').value;
-            
-            if (!manualScore || !manualPercentage) {
-                alert('Please provide both score and percentage');
+
+            // Collect individual question scores
+            const questionScores = {};
+            const questionFeedback = {};
+            let hasValidScores = false;
+
+            // Get all score inputs
+            const scoreInputs = document.querySelectorAll('[id^="score-"]');
+            const feedbackInputs = document.querySelectorAll('[id^="feedback-"]');
+
+            // Validate and collect scores
+            scoreInputs.forEach(input => {
+                const elementId = input.id.replace('score-', '');
+                const score = parseFloat(input.value);
+                const maxPoints = parseFloat(input.getAttribute('data-max-points')) || 10;
+
+                if (isNaN(score)) {
+                    alert(`Please provide a score for Question ${Array.from(scoreInputs).indexOf(input) + 1}`);
+                    input.focus();
+                    return;
+                }
+
+                if (score < 0 || score > maxPoints) {
+                    alert(`Score for Question ${Array.from(scoreInputs).indexOf(input) + 1} must be between 0 and ${maxPoints}`);
+                    input.focus();
+                    return;
+                }
+
+                questionScores[elementId] = {
+                    score: score,
+                    maxPoints: maxPoints
+                };
+                hasValidScores = true;
+            });
+
+            if (!hasValidScores) {
+                alert('Please provide scores for all questions');
                 return;
             }
-            
+
+            // Collect feedback
+            feedbackInputs.forEach(input => {
+                const elementId = input.id.replace('feedback-', '');
+                questionFeedback[elementId] = input.value.trim();
+            });
+
+            // Get totals
+            const totalScore = parseFloat(document.getElementById('totalScore').value) || 0;
+            const maxScore = parseFloat(document.getElementById('maxScore').value) || 0;
+            const finalPercentage = parseFloat(document.getElementById('finalPercentage').value) || 0;
+            const teacherComments = document.getElementById('teacherComments').value.trim();
+
             const gradeData = {
-                manualScore: parseFloat(manualScore),
-                manualPercentage: parseFloat(manualPercentage),
-                teacherComments: teacherComments
+                questionScores: questionScores,
+                questionFeedback: questionFeedback,
+                totalScore: totalScore,
+                maxScore: maxScore,
+                finalPercentage: finalPercentage,
+                teacherComments: teacherComments,
+                gradingType: 'question-by-question'
             };
-            
-            console.log('Submitting grade:', gradeData);
-            
+
+            console.log('Submitting detailed grade:', gradeData);
+
+            // Show loading state
+            const submitBtn = event.target.querySelector('button[type="submit"]') || event.target;
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            submitBtn.disabled = true;
+
             fetch('/teacher/grade-complex-quiz/<%= result._id %>', {
                 method: 'POST',
                 headers: {
@@ -447,22 +586,147 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Grade submitted successfully!\n\nThe student will now see their results.');
+                    alert('✅ Grade submitted successfully!\n\nDetailed scores and feedback have been saved.\nThe student will now see their results.');
                     window.location.href = '/teacher/complex-quiz-grading';
                 } else {
                     alert('Error submitting grade: ' + data.message);
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
                 }
             })
             .catch(error => {
                 console.error('Error submitting grade:', error);
                 alert('Error submitting grade. Please try again.');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             });
         }
         
         // Render complex quiz when page loads
+        // Create question scoring inputs
+        function createQuestionScoringInputs() {
+            const container = document.getElementById('question-scores-container');
+            if (!container) return;
+
+            // Find all questions/answer areas from student answers
+            const answerKeys = Object.keys(studentAnswers);
+
+            if (answerKeys.length === 0) {
+                container.innerHTML = `
+                    <div class="question-score-item">
+                        <div style="text-align: center; color: #6c757d; padding: 20px;">
+                            <i class="fas fa-info-circle"></i> No student answers found to grade.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let totalMaxScore = 0;
+
+            answerKeys.forEach((elementId, index) => {
+                const questionNumber = index + 1;
+                const maxPoints = 10; // Default max points per question
+                totalMaxScore += maxPoints;
+
+                const questionScoreHtml = `
+                    <div class="question-score-item" data-element-id="${elementId}">
+                        <div class="question-score-header">
+                            <span><i class="fas fa-question-circle"></i> Question ${questionNumber}</span>
+                            <span class="text-muted">Element ID: ${elementId}</span>
+                        </div>
+
+                        <div class="student-answer-preview" style="background: #fff; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 10px; font-size: 13px;">
+                            <strong>Student Answer:</strong><br>
+                            <div style="margin-top: 5px; color: #495057;">${studentAnswers[elementId] || 'No answer provided'}</div>
+                        </div>
+
+                        <div class="question-score-inputs">
+                            <div class="score-input-group">
+                                <label>Points Earned</label>
+                                <input type="number"
+                                       id="score-${elementId}"
+                                       name="score-${elementId}"
+                                       min="0"
+                                       max="${maxPoints}"
+                                       step="0.5"
+                                       placeholder="0"
+                                       data-max-points="${maxPoints}"
+                                       onchange="updateTotalScore()"
+                                       oninput="updateTotalScore()">
+                            </div>
+                            <div class="score-input-group">
+                                <label>Max Points</label>
+                                <input type="number"
+                                       id="max-${elementId}"
+                                       value="${maxPoints}"
+                                       min="1"
+                                       step="0.5"
+                                       onchange="updateMaxPoints('${elementId}', this.value)">
+                            </div>
+                            <div class="score-input-group">
+                                <label>Question Feedback (Optional)</label>
+                                <textarea id="feedback-${elementId}"
+                                          name="feedback-${elementId}"
+                                          placeholder="Specific feedback for this question..."
+                                          rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.innerHTML += questionScoreHtml;
+            });
+
+            // Set initial max score
+            document.getElementById('maxScore').value = totalMaxScore;
+            updateTotalScore();
+        }
+
+        // Update total score calculation
+        function updateTotalScore() {
+            let totalScore = 0;
+            let maxScore = 0;
+
+            const scoreInputs = document.querySelectorAll('[id^="score-"]');
+            const maxInputs = document.querySelectorAll('[id^="max-"]');
+
+            scoreInputs.forEach(input => {
+                const score = parseFloat(input.value) || 0;
+                totalScore += score;
+            });
+
+            maxInputs.forEach(input => {
+                const max = parseFloat(input.value) || 0;
+                maxScore += max;
+            });
+
+            const percentage = maxScore > 0 ? (totalScore / maxScore * 100) : 0;
+
+            document.getElementById('totalScore').value = totalScore.toFixed(1);
+            document.getElementById('maxScore').value = maxScore.toFixed(1);
+            document.getElementById('finalPercentage').value = percentage.toFixed(1);
+        }
+
+        // Update max points for a specific question
+        function updateMaxPoints(elementId, newMax) {
+            const scoreInput = document.getElementById(`score-${elementId}`);
+            if (scoreInput) {
+                scoreInput.setAttribute('max', newMax);
+                scoreInput.setAttribute('data-max-points', newMax);
+
+                // If current score exceeds new max, adjust it
+                if (parseFloat(scoreInput.value) > parseFloat(newMax)) {
+                    scoreInput.value = newMax;
+                }
+            }
+            updateTotalScore();
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             renderComplexQuizForGrading();
-            
+            createQuestionScoringInputs();
+
             // Process LaTeX if MathJax is available
             if (window.MathJax) {
                 setTimeout(() => {

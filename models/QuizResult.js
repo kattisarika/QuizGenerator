@@ -183,6 +183,19 @@ const quizResultSchema = new mongoose.Schema({
   complexAnswersData: {
     type: Object,
     default: null
+  },
+  // Question-by-question grading fields
+  questionScores: {
+    type: Object,
+    default: null
+  },
+  questionFeedback: {
+    type: Object,
+    default: null
+  },
+  detailedGrading: {
+    type: Object,
+    default: null
   }
 }, {
   timestamps: true

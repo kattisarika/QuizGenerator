@@ -2572,7 +2572,18 @@ app.get('/teacher/grade-complex-quiz/:resultId', requireAuth, requireRole(['teac
 // Route to submit complex quiz grading
 app.post('/teacher/grade-complex-quiz/:resultId', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
-    const { manualScore, manualPercentage, teacherComments } = req.body;
+    const {
+      questionScores,
+      questionFeedback,
+      totalScore,
+      maxScore,
+      finalPercentage,
+      teacherComments,
+      gradingType,
+      // Legacy support for old grading format
+      manualScore,
+      manualPercentage
+    } = req.body;
 
     const result = await QuizResult.findById(req.params.resultId);
     if (!result) {
@@ -2584,27 +2595,61 @@ app.post('/teacher/grade-complex-quiz/:resultId', requireAuth, requireRole(['tea
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    // Update the result with teacher's grading
-    result.manualScore = Number(manualScore) || 0;
-    result.manualPercentage = Number(manualPercentage) || 0;
+    // Handle new question-by-question grading format
+    if (gradingType === 'question-by-question' && questionScores) {
+      console.log('Processing question-by-question grading:', {
+        questionScores,
+        questionFeedback,
+        totalScore,
+        maxScore,
+        finalPercentage
+      });
+
+      // Store detailed question scores and feedback
+      result.questionScores = questionScores;
+      result.questionFeedback = questionFeedback;
+      result.detailedGrading = {
+        questionScores: questionScores,
+        questionFeedback: questionFeedback,
+        totalScore: totalScore,
+        maxScore: maxScore,
+        gradingType: 'question-by-question',
+        gradedAt: new Date()
+      };
+
+      // Update main score fields
+      result.manualScore = Number(totalScore) || 0;
+      result.manualPercentage = Number(finalPercentage) || 0;
+      result.score = result.manualScore;
+      result.percentage = result.manualPercentage;
+
+    } else {
+      // Legacy grading format support
+      result.manualScore = Number(manualScore) || 0;
+      result.manualPercentage = Number(manualPercentage) || 0;
+      result.score = result.manualScore;
+      result.percentage = result.manualPercentage;
+    }
+
+    // Common fields for both grading types
     result.teacherComments = teacherComments || '';
     result.gradingStatus = 'graded';
     result.gradedBy = req.user._id;
     result.gradedAt = new Date();
-    result.status = 'completed'; // Mark as completed
-    result.score = result.manualScore; // Update main score field
-    result.percentage = result.manualPercentage; // Update main percentage field
+    result.status = 'completed';
 
     // Assign badge based on teacher's grading for complex quizzes
     result.assignBadge();
 
     await result.save();
 
-    console.log('Complex quiz graded by teacher:', req.user.displayName, 'Result ID:', result._id);
+    console.log('Complex quiz graded by teacher:', req.user.displayName, 'Result ID:', result._id, 'Grading type:', gradingType || 'legacy');
 
     res.json({
       success: true,
-      message: 'Complex quiz graded successfully'
+      message: 'Complex quiz graded successfully',
+      gradingType: gradingType || 'legacy',
+      totalQuestions: questionScores ? Object.keys(questionScores).length : 0
     });
 
   } catch (error) {
