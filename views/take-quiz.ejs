@@ -1247,11 +1247,20 @@
                             <script>
                                 console.log('🔍 REGULAR QUIZ SECTION - About to render questions...');
                                 console.log('Questions available:', <%= quiz.questions ? quiz.questions.length : 0 %>);
+
+                                // Debug: Check questions after rendering
+                                setTimeout(() => {
+                                    const renderedQuestions = document.querySelectorAll('.question-container:not(.complex-question-group)');
+                                    console.log('🔍 QUESTIONS RENDERED:', renderedQuestions.length);
+                                    renderedQuestions.forEach((q, i) => {
+                                        console.log(`Rendered question ${i}: ID=${q.id}, classes=${q.className}, display=${window.getComputedStyle(q).display}`);
+                                    });
+                                }, 100);
                             </script>
 
                             <% if (quiz.questions && quiz.questions.length > 0) { %>
                                 <% quiz.questions.forEach((question, index) => { %>
-                                <div class="question-container" id="question-<%= index %>" data-question-index="<%= index %>" style="<%= index === 0 ? 'display: block;' : 'display: none;' %>">
+                                <div class="question-container <%= index === 0 ? 'active' : '' %>" id="question-<%= index %>" data-question-index="<%= index %>">
                                     <div class="question-header">
                                         <h3>Question <%= index + 1 %> of <%= quiz.questions.length %></h3>
                                         <span class="question-points"><%= question.points %> point<%= question.points !== 1 ? 's' : '' %></span>
@@ -1928,6 +1937,14 @@
 
         function nextQuestion() {
             console.log('⏭️ nextQuestion called, current:', regularCurrentQuestion);
+            console.log('Total questions available:', regularTotalQuestions);
+
+            // Debug: Check current state of questions in DOM
+            const allQuestions = document.querySelectorAll('.question-container:not(.complex-question-group)');
+            console.log('Questions in DOM when nextQuestion called:', allQuestions.length);
+            allQuestions.forEach((q, i) => {
+                console.log(`Question ${i}: ID=${q.id}, display=${q.style.display}, classes=${q.className}`);
+            });
 
             // Check if current question is answered
             if (!isCurrentQuestionAnswered()) {
@@ -1939,6 +1956,7 @@
 
             if (regularCurrentQuestion < regularTotalQuestions - 1) {
                 regularCurrentQuestion++;
+                console.log('Attempting to show question:', regularCurrentQuestion);
                 showQuestion(regularCurrentQuestion);
                 updateNavigationState();
                 updateProgress();
