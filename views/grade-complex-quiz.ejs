@@ -56,23 +56,42 @@
             opacity: 0.9;
         }
 
-        .grading-layout {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 30px;
-        }
-
-        .quiz-display {
+        /* Section-based layout (removed grid) */
+        .section-container {
             background: white;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
             overflow: hidden;
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 25px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .section-header h3 {
+            margin: 0 0 8px 0;
+            color: #2d3748;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .section-header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .questions-display {
+            padding: 0;
         }
 
         .quiz-canvas {
             position: relative;
             background: #fafafa;
-            background-image: 
+            background-image:
                 linear-gradient(rgba(0,0,0,.1) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0,0,0,.1) 1px, transparent 1px);
             background-size: 20px 20px;
@@ -80,24 +99,8 @@
             padding: 20px;
         }
 
-        .grading-panel {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            padding: 25px;
-            height: fit-content;
-            position: sticky;
-            top: 20px;
-        }
-
-        .grading-panel h3 {
-            margin: 0 0 20px 0;
-            color: #2d3748;
-            font-size: 18px;
-            font-weight: 600;
-        }
-
         .student-answers {
+            padding: 25px;
             margin-bottom: 25px;
         }
 
@@ -334,70 +337,81 @@
             </div>
         </div>
 
-        <div class="grading-layout">
-            <div class="quiz-display">
+        <!-- Questions Section -->
+        <div class="section-container">
+            <div class="section-header">
+                <h3><i class="fas fa-question-circle"></i> Questions</h3>
+                <p>Review the quiz questions and structure</p>
+            </div>
+
+            <div class="questions-display">
                 <div class="quiz-canvas" id="quiz-canvas">
                     <!-- Quiz content will be rendered here -->
                 </div>
             </div>
+        </div>
 
-            <div class="grading-panel">
+        <!-- Student Answers Section -->
+        <div class="section-container">
+            <div class="section-header">
                 <h3><i class="fas fa-edit"></i> Student Answers</h3>
-                
-                <div class="student-answers">
-                    <% if (result.complexAnswersData && Object.keys(result.complexAnswersData).length > 0) { %>
-                        <% Object.keys(result.complexAnswersData).forEach((elementId, index) => { %>
-                            <div class="answer-item">
-                                <div class="answer-label">Answer Area <%= index + 1 %> (Element: <%= elementId %>)</div>
-                                <div class="answer-content">
-                                    <%= result.complexAnswersData[elementId] || 'No answer provided' %>
-                                </div>
-                            </div>
-                        <% }); %>
-                    <% } else { %>
+                <p>Review student responses and provide grades</p>
+            </div>
+
+            <div class="student-answers">
+                <% if (result.complexAnswersData && Object.keys(result.complexAnswersData).length > 0) { %>
+                    <% Object.keys(result.complexAnswersData).forEach((elementId, index) => { %>
                         <div class="answer-item">
-                            <div class="answer-content" style="text-align: center; color: #6b7280;">
-                                No answers submitted
+                            <div class="answer-label">Answer Area <%= index + 1 %> (Element: <%= elementId %>)</div>
+                            <div class="answer-content">
+                                <%= result.complexAnswersData[elementId] || 'No answer provided' %>
                             </div>
                         </div>
-                    <% } %>
+                    <% }); %>
+                <% } else { %>
+                    <div class="answer-item">
+                        <div class="answer-content" style="text-align: center; color: #6b7280;">
+                            No answers submitted
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+
+
+            <form class="grading-form" onsubmit="submitGrade(event)">
+                <h4><i class="fas fa-calculator"></i> Question-by-Question Scoring</h4>
+
+                <div id="question-scores-container">
+                    <!-- Question scores will be populated by JavaScript -->
                 </div>
 
-                <form class="grading-form" onsubmit="submitGrade(event)">
-                    <h4><i class="fas fa-calculator"></i> Question-by-Question Scoring</h4>
-
-                    <div id="question-scores-container">
-                        <!-- Question scores will be populated by JavaScript -->
-                    </div>
-
-                    <div class="form-group" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e9ecef;">
-                        <label><i class="fas fa-chart-line"></i> Total Score Summary</label>
-                        <div class="score-inputs">
-                            <div>
-                                <label style="font-size: 12px; margin-bottom: 4px;">Total Points</label>
-                                <input type="number" id="totalScore" min="0" step="0.5" placeholder="0" readonly style="background: #f8f9fa;">
-                            </div>
-                            <div>
-                                <label style="font-size: 12px; margin-bottom: 4px;">Max Points</label>
-                                <input type="number" id="maxScore" min="0" step="0.5" placeholder="0" readonly style="background: #f8f9fa;">
-                            </div>
-                            <div>
-                                <label style="font-size: 12px; margin-bottom: 4px;">Percentage (%)</label>
-                                <input type="number" id="finalPercentage" min="0" max="100" step="0.1" placeholder="0" readonly style="background: #f8f9fa;">
-                            </div>
+                <div class="form-group" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e9ecef;">
+                    <label><i class="fas fa-chart-line"></i> Total Score Summary</label>
+                    <div class="score-inputs">
+                        <div>
+                            <label style="font-size: 12px; margin-bottom: 4px;">Total Points</label>
+                            <input type="number" id="totalScore" min="0" step="0.5" placeholder="0" readonly style="background: #f8f9fa;">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; margin-bottom: 4px;">Max Points</label>
+                            <input type="number" id="maxScore" min="0" step="0.5" placeholder="0" readonly style="background: #f8f9fa;">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; margin-bottom: 4px;">Percentage (%)</label>
+                            <input type="number" id="finalPercentage" min="0" max="100" step="0.1" placeholder="0" readonly style="background: #f8f9fa;">
                         </div>
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <label><i class="fas fa-comment"></i> Overall Teacher Comments</label>
-                        <textarea id="teacherComments" rows="4" placeholder="Provide overall feedback for the student..."></textarea>
-                    </div>
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> Overall Teacher Comments</label>
+                    <textarea id="teacherComments" rows="4" placeholder="Provide overall feedback for the student..."></textarea>
+                </div>
 
-                    <button type="submit" class="btn-submit-grade">
-                        <i class="fas fa-check"></i> Submit Grade
-                    </button>
-                </form>
-            </div>
+                <button type="submit" class="btn-submit-grade">
+                    <i class="fas fa-check"></i> Submit Grade
+                </button>
+            </form>
         </div>
     </div>
 
