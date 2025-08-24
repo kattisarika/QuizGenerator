@@ -2201,7 +2201,7 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             }
         }
 
-        // Export manual quiz to PDF
+        // Export manual quiz to PDF - Extract from preview instead of form data
         async function exportManualQuizToPDF() {
             try {
                 // Get quiz information
@@ -2211,21 +2211,21 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 const subject = document.getElementById('manualSubject').value || 'Not specified';
                 const quizType = document.querySelector('input[name="manualQuizType"]:checked')?.value || 'regular';
 
+                // Extract questions from the rendered preview
+                const questionsToExport = extractQuestionsFromPreview();
+
                 // Check if current question should be included
                 const questionText = getQuestionText().trim();
-                let questionsToExport = [...manualQuestions];
-
                 if (questionText) {
                     if (confirm('Do you want to include the current question in the PDF?')) {
                         if (validateCurrentQuestion()) {
-                            const currentQuestion = collectQuestionData();
+                            const currentQuestion = extractCurrentQuestionFromForm();
                             questionsToExport.push(currentQuestion);
                         }
                     }
                 }
 
-                console.log('Questions to export:', questionsToExport);
-                console.log('Manual questions array:', manualQuestions);
+                console.log('Questions extracted from preview:', questionsToExport);
 
                 if (questionsToExport.length === 0) {
                     alert('No questions to export. Please add at least one question.');
@@ -2237,11 +2237,11 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                     console.log('First question data:', questionsToExport[0]);
                     const firstQ = questionsToExport[0];
                     const debugInfo = `First Question Debug:
-- Text: ${firstQ.questionText || firstQ.question || 'MISSING'}
-- Format: ${firstQ.answerFormat || 'MISSING'}
+- Text: ${firstQ.text || 'MISSING'}
+- Format: ${firstQ.format || 'MISSING'}
 - Options: ${firstQ.options ? firstQ.options.length : 'NONE'}
 - Correct: ${firstQ.correctAnswers ? firstQ.correctAnswers.length : 'NONE'}
-- Image: ${firstQ.image ? 'YES' : 'NO'}`;
+- Image: ${firstQ.hasImage ? 'YES' : 'NO'}`;
                     console.log(debugInfo);
                 }
 
@@ -2307,6 +2307,8 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 // Add questions
                 for (let index = 0; index < questionsToExport.length; index++) {
                     const question = questionsToExport[index];
+                    console.log(`Processing question ${index + 1} for PDF:`, question);
+
                     // Add new page for each question (except first)
                     if (index > 0) {
                         pdf.addPage();
@@ -2324,28 +2326,16 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                     // Points
                     pdf.setFontSize(12);
                     pdf.setFont(undefined, 'normal');
-                    const points = question.points || 1; // Default to 1 point
+                    const points = question.points || 1;
                     pdf.text(`(${points} point${points !== 1 ? 's' : ''})`, pageWidth - margin - 30, currentY);
 
                     currentY += 15;
 
-                    // Question text - handle multiple property names and formats
+                    // Question text - use extracted text from preview
                     pdf.setFontSize(12);
                     pdf.setFont(undefined, 'normal');
 
-                    // Try multiple ways to get question text
-                    let questionText = question.questionText ||
-                                     question.question ||
-                                     question.text ||
-                                     question.content ||
-                                     `Question ${index + 1}`;
-
-                    // If still no text, create a placeholder
-                    if (!questionText || questionText.trim() === '') {
-                        questionText = `Question ${index + 1} - [No question text available]`;
-                        console.warn(`Question ${index + 1} has no text!`, question);
-                    }
-
+                    const questionText = question.text || `Question ${index + 1} - [No text available]`;
                     console.log(`Question ${index + 1} text:`, questionText);
 
                     const questionLines = pdf.splitTextToSize(questionText, contentWidth);
@@ -2468,17 +2458,17 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                         }
                     }
 
-                    // Answer format
-                    console.log(`Question ${index + 1} answer format:`, question.answerFormat);
+                    // Answer format - use extracted format
+                    console.log(`Question ${index + 1} format:`, question.format);
                     console.log(`Question ${index + 1} options:`, question.options);
                     console.log(`Question ${index + 1} correct answers:`, question.correctAnswers);
 
-                    if (question.answerFormat === 'multiple' && question.options && question.options.length > 0) {
+                    if (question.format === 'multiple' && question.options && question.options.length > 0) {
                         // Multiple choice options
                         pdf.setFontSize(11);
                         question.options.forEach((option, optIndex) => {
                             const optionLetter = String.fromCharCode(65 + optIndex);
-                            // Check if this option is correct (handle both string and number indices)
+                            // Check if this option is correct
                             const isCorrect = question.correctAnswers && (
                                 question.correctAnswers.includes(optIndex) ||
                                 question.correctAnswers.includes(optIndex.toString())
@@ -2555,8 +2545,12 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             console.log('Manual questions array:', manualQuestions);
             console.log('Number of questions:', manualQuestions.length);
 
+            // Test extraction from preview
+            const extractedQuestions = extractQuestionsFromPreview();
+            console.log('Extracted from preview:', extractedQuestions);
+
             manualQuestions.forEach((q, i) => {
-                console.log(`Question ${i + 1}:`, {
+                console.log(`Original Question ${i + 1}:`, {
                     questionText: q.questionText,
                     question: q.question,
                     answerFormat: q.answerFormat,
@@ -2568,19 +2562,149 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 });
             });
 
+            extractedQuestions.forEach((q, i) => {
+                console.log(`Extracted Question ${i + 1}:`, {
+                    text: q.text,
+                    format: q.format,
+                    options: q.options,
+                    correctAnswers: q.correctAnswers,
+                    expectedAnswer: q.expectedAnswer,
+                    hasImage: q.hasImage,
+                    image: q.image
+                });
+            });
+
             const currentQuestionText = getQuestionText().trim();
             console.log('Current question text:', currentQuestionText);
 
             if (currentQuestionText) {
-                console.log('Current question data would be:', collectQuestionData());
+                console.log('Current question data would be:', extractCurrentQuestionFromForm());
             }
 
-            alert(`Debug Info:\n- Saved questions: ${manualQuestions.length}\n- Current question: ${currentQuestionText ? 'Yes' : 'No'}\n\nCheck console for detailed data.`);
+            alert(`Debug Info:\n- Saved questions: ${manualQuestions.length}\n- Extracted questions: ${extractedQuestions.length}\n- Current question: ${currentQuestionText ? 'Yes' : 'No'}\n\nCheck console for detailed comparison.`);
+        }
+
+        // Extract questions from the rendered preview
+        function extractQuestionsFromPreview() {
+            const questionsContainer = document.getElementById('questionsContainer');
+            if (!questionsContainer) {
+                console.log('No questions container found');
+                return [];
+            }
+
+            const questionElements = questionsContainer.querySelectorAll('.list-group-item');
+            const extractedQuestions = [];
+
+            questionElements.forEach((questionElement, index) => {
+                try {
+                    // Extract question text from the preview
+                    const questionTextElement = questionElement.querySelector('p.mb-1');
+                    const questionText = questionTextElement ? questionTextElement.textContent.trim() : `Question ${index + 1}`;
+
+                    // Extract question type from the small text
+                    const typeElement = questionElement.querySelector('small.text-muted');
+                    const typeText = typeElement ? typeElement.textContent.trim() : '';
+
+                    // Determine format from type text
+                    let format = 'text';
+                    if (typeText.includes('Multiple choice')) {
+                        format = 'multiple';
+                    }
+
+                    // Check if has image
+                    const hasImageElement = questionElement.querySelector('small.text-info');
+                    const hasImage = hasImageElement && hasImageElement.textContent.includes('Has image');
+
+                    // Get the original question data from manualQuestions array
+                    const originalQuestion = manualQuestions[index];
+
+                    const extractedQuestion = {
+                        text: questionText,
+                        format: format,
+                        hasImage: hasImage,
+                        image: originalQuestion ? originalQuestion.image : null,
+                        options: originalQuestion ? originalQuestion.options : [],
+                        correctAnswers: originalQuestion ? originalQuestion.correctAnswers : [],
+                        expectedAnswer: originalQuestion ? originalQuestion.expectedAnswer : '',
+                        points: 1
+                    };
+
+                    extractedQuestions.push(extractedQuestion);
+                    console.log(`Extracted question ${index + 1}:`, extractedQuestion);
+
+                } catch (error) {
+                    console.error(`Error extracting question ${index + 1}:`, error);
+                    // Add a fallback question
+                    extractedQuestions.push({
+                        text: `Question ${index + 1} - [Could not extract]`,
+                        format: 'text',
+                        hasImage: false,
+                        image: null,
+                        options: [],
+                        correctAnswers: [],
+                        expectedAnswer: '',
+                        points: 1
+                    });
+                }
+            });
+
+            return extractedQuestions;
+        }
+
+        // Extract current question from form (for unsaved question)
+        function extractCurrentQuestionFromForm() {
+            try {
+                const questionText = getQuestionText().trim();
+                const answerFormat = document.querySelector('input[name="answerFormat"]:checked')?.value || 'text';
+
+                const question = {
+                    text: questionText,
+                    format: answerFormat,
+                    hasImage: !!currentQuestionImage,
+                    image: currentQuestionImage,
+                    points: 1
+                };
+
+                if (answerFormat === 'multiple') {
+                    const options = [];
+                    const correctAnswers = [];
+
+                    document.querySelectorAll('.option-input').forEach((input, index) => {
+                        if (input.value.trim()) {
+                            options.push(input.value.trim());
+                            const isCorrect = document.querySelectorAll('.correct-answer-radio')[index]?.checked;
+                            if (isCorrect) {
+                                correctAnswers.push(index);
+                            }
+                        }
+                    });
+
+                    question.options = options;
+                    question.correctAnswers = correctAnswers;
+                } else {
+                    question.expectedAnswer = document.getElementById('expectedAnswer')?.value.trim() || '';
+                }
+
+                return question;
+            } catch (error) {
+                console.error('Error extracting current question:', error);
+                return {
+                    text: 'Current question - [Could not extract]',
+                    format: 'text',
+                    hasImage: false,
+                    image: null,
+                    options: [],
+                    correctAnswers: [],
+                    expectedAnswer: '',
+                    points: 1
+                };
+            }
         }
 
         // Make functions globally available
         window.exportManualQuizToPDF = exportManualQuizToPDF;
         window.debugQuestions = debugQuestions;
+        window.extractQuestionsFromPreview = extractQuestionsFromPreview;
     </script>
 </body>
 </html>
