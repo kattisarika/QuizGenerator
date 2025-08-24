@@ -2201,7 +2201,7 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             }
         }
 
-        // Export manual quiz to PDF - Extract from preview instead of form data
+        // Export manual quiz to PDF - Capture actual visual preview content
         async function exportManualQuizToPDF() {
             try {
                 // Get quiz information
@@ -2211,40 +2211,29 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 const subject = document.getElementById('manualSubject').value || 'Not specified';
                 const quizType = document.querySelector('input[name="manualQuizType"]:checked')?.value || 'regular';
 
-                // ✅ EXTRACT QUESTIONS FROM PREVIEW DISPLAY - EXACT TEXT AS SHOWN
-                const questionsToExport = extractQuestionsFromPreview();
-                console.log('📺 Questions extracted from preview display:', questionsToExport);
+                // Check if there are questions in the preview
+                const questionsContainer = document.getElementById('questionsContainer');
+                const questionElements = questionsContainer.querySelectorAll('.list-group-item');
 
-                // Check if current question should be included
-                const questionText = getQuestionText().trim();
-                if (questionText) {
-                    if (confirm('📝 Do you want to include the current unsaved question in the PDF?\n\n(This will use the exact text as entered in the form)')) {
-                        if (validateCurrentQuestion()) {
-                            const currentQuestion = extractCurrentQuestionFromForm();
-                            questionsToExport.push(currentQuestion);
-                            console.log('📝 Added current question from form:', currentQuestion);
+                console.log('📺 Found question elements in preview:', questionElements.length);
+
+                if (questionElements.length === 0) {
+                    // Check if current question should be included
+                    const questionText = getQuestionText().trim();
+                    if (questionText) {
+                        if (confirm('📝 No saved questions found, but you have a current question.\n\nDo you want to include the current question in the PDF?')) {
+                            if (!validateCurrentQuestion()) {
+                                alert('Please complete the current question before exporting.');
+                                return;
+                            }
+                        } else {
+                            alert('No questions to export. Please add at least one question.');
+                            return;
                         }
+                    } else {
+                        alert('No questions to export. Please add at least one question.');
+                        return;
                     }
-                }
-
-                console.log('📄 Final questions for PDF (using preview text):', questionsToExport);
-
-                if (questionsToExport.length === 0) {
-                    alert('No questions to export. Please add at least one question.');
-                    return;
-                }
-
-                // Show first question data for debugging
-                if (questionsToExport.length > 0) {
-                    console.log('First question data:', questionsToExport[0]);
-                    const firstQ = questionsToExport[0];
-                    const debugInfo = `First Question Debug:
-- Text: ${firstQ.text || 'MISSING'}
-- Format: ${firstQ.format || 'MISSING'}
-- Options: ${firstQ.options ? firstQ.options.length : 'NONE'}
-- Correct: ${firstQ.correctAnswers ? firstQ.correctAnswers.length : 'NONE'}
-- Image: ${firstQ.hasImage ? 'YES' : 'NO'}`;
-                    console.log(debugInfo);
                 }
 
                 // Show loading indicator
@@ -2267,7 +2256,8 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 loadingDiv.innerHTML = `
                     <div style="text-align: center;">
                         <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-                        Generating PDF...
+                        📺 Capturing preview content...<br>
+                        <small>Converting visual display to PDF</small>
                     </div>
                 `;
                 document.body.appendChild(loadingDiv);
@@ -2302,231 +2292,102 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 yPos += 10;
                 pdf.text(`Quiz Type: ${quizType.charAt(0).toUpperCase() + quizType.slice(1)}`, margin, yPos);
                 yPos += 10;
-                pdf.text(`Total Questions: ${questionsToExport.length}`, margin, yPos);
+                pdf.text(`Total Questions: ${questionElements.length}`, margin, yPos);
                 yPos += 10;
                 pdf.text(`Created: ${new Date().toLocaleDateString()}`, margin, yPos);
+                yPos += 10;
+                pdf.text(`Source: Visual Preview Capture`, margin, yPos);
 
-                // Add questions
-                for (let index = 0; index < questionsToExport.length; index++) {
-                    const question = questionsToExport[index];
-                    console.log(`Processing question ${index + 1} for PDF:`, question);
+                // ✅ CAPTURE VISUAL PREVIEW OF EACH QUESTION
+                for (let index = 0; index < questionElements.length; index++) {
+                    const questionElement = questionElements[index];
+                    console.log(`📺 Capturing visual preview of question ${index + 1}`);
 
-                    // Add new page for each question (except first)
-                    if (index > 0) {
-                        pdf.addPage();
-                    } else {
-                        pdf.addPage();
-                    }
+                    // Add new page for each question
+                    pdf.addPage();
 
-                    let currentY = 25;
-
-                    // Question header
+                    // Add question header
                     pdf.setFontSize(16);
                     pdf.setFont(undefined, 'bold');
-                    pdf.text(`Question ${index + 1}`, margin, currentY);
+                    pdf.text(`Question ${index + 1}`, margin, 25);
 
-                    // Points
-                    pdf.setFontSize(12);
-                    pdf.setFont(undefined, 'normal');
-                    const points = question.points || 1;
-                    pdf.text(`(${points} point${points !== 1 ? 's' : ''})`, pageWidth - margin - 30, currentY);
-
-                    currentY += 15;
-
-                    // ✅ QUESTION TEXT - EXACT PREVIEW DISPLAY TEXT
-                    pdf.setFontSize(12);
-                    pdf.setFont(undefined, 'normal');
-
-                    const questionText = question.text || `Question ${index + 1} - [No preview text available]`;
-                    console.log(`📄 Adding to PDF - Question ${index + 1} text:`, questionText);
-
-                    const questionLines = pdf.splitTextToSize(questionText, contentWidth);
-                    pdf.text(questionLines, margin, currentY);
-                    currentY += questionLines.length * 6 + 10;
-
-                    // Question image if exists
-                    if (question.image) {
-                        console.log(`Question ${index + 1} has image:`, question.image);
-
-                        try {
-                            // Handle different image types
-                            let imageUrl = null;
-
-                            if (question.image instanceof File) {
-                                // File object - convert to data URL
-                                imageUrl = await new Promise((resolve) => {
-                                    const reader = new FileReader();
-                                    reader.onload = (e) => resolve(e.target.result);
-                                    reader.readAsDataURL(question.image);
-                                });
-                            } else if (typeof question.image === 'string') {
-                                // String URL - use directly
-                                if (question.image.startsWith('data:')) {
-                                    imageUrl = question.image;
-                                } else if (question.image.startsWith('http')) {
-                                    imageUrl = question.image;
-                                } else if (question.image.startsWith('/')) {
-                                    imageUrl = window.location.origin + question.image;
-                                } else {
-                                    // Assume it's a relative path or S3 key
-                                    imageUrl = question.image;
-                                }
-                            }
-
-                            if (imageUrl) {
-                                // Try to load and embed the actual image
-                                const img = new Image();
-                                img.crossOrigin = 'anonymous';
-
-                                await new Promise((resolve, reject) => {
-                                    img.onload = () => {
-                                        try {
-                                            // Create canvas to convert image to base64
-                                            const canvas = document.createElement('canvas');
-                                            const ctx = canvas.getContext('2d');
-                                            canvas.width = img.width;
-                                            canvas.height = img.height;
-                                            ctx.drawImage(img, 0, 0);
-
-                                            const imgData = canvas.toDataURL('image/jpeg', 0.8);
-
-                                            // Calculate image dimensions to fit in PDF
-                                            const maxWidth = contentWidth * 0.8;
-                                            const maxHeight = 80; // Max height in mm
-
-                                            let imgWidth = img.width * 0.264583; // Convert pixels to mm
-                                            let imgHeight = img.height * 0.264583;
-
-                                            // Scale down if too large
-                                            if (imgWidth > maxWidth) {
-                                                imgHeight = (imgHeight * maxWidth) / imgWidth;
-                                                imgWidth = maxWidth;
-                                            }
-                                            if (imgHeight > maxHeight) {
-                                                imgWidth = (imgWidth * maxHeight) / imgHeight;
-                                                imgHeight = maxHeight;
-                                            }
-
-                                            // Add image to PDF
-                                            pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, imgHeight);
-                                            currentY += imgHeight + 10;
-
-                                            console.log(`Successfully added image for question ${index + 1}`);
-                                            resolve();
-                                        } catch (error) {
-                                            console.log('Error processing image:', error);
-                                            // Fallback to placeholder text
-                                            pdf.setFontSize(10);
-                                            pdf.setTextColor(100, 100, 100);
-                                            pdf.text('[Question Image - Could not process]', margin, currentY);
-                                            pdf.setTextColor(0, 0, 0);
-                                            currentY += 15;
-                                            resolve();
-                                        }
-                                    };
-
-                                    img.onerror = () => {
-                                        console.log('Error loading image:', imageUrl);
-                                        // Fallback to placeholder text
-                                        pdf.setFontSize(10);
-                                        pdf.setTextColor(100, 100, 100);
-                                        pdf.text('[Question Image - Could not load]', margin, currentY);
-                                        pdf.setTextColor(0, 0, 0);
-                                        currentY += 15;
-                                        resolve();
-                                    };
-
-                                    // Set image source
-                                    img.src = imageUrl;
-                                });
-                            } else {
-                                console.log('No valid image URL found');
-                                // Fallback to placeholder text
-                                pdf.setFontSize(10);
-                                pdf.setTextColor(100, 100, 100);
-                                pdf.text('[Question Image - Invalid URL]', margin, currentY);
-                                pdf.setTextColor(0, 0, 0);
-                                currentY += 15;
-                            }
-
-                        } catch (error) {
-                            console.log('Could not add image to PDF:', error);
-                            // Fallback to placeholder text
-                            pdf.setFontSize(10);
-                            pdf.setTextColor(100, 100, 100);
-                            pdf.text('[Question Image - Error loading]', margin, currentY);
-                            pdf.setTextColor(0, 0, 0);
-                            currentY += 15;
-                        }
-                    }
-
-                    // Answer format - use extracted format
-                    console.log(`Question ${index + 1} format:`, question.format);
-                    console.log(`Question ${index + 1} options:`, question.options);
-                    console.log(`Question ${index + 1} correct answers:`, question.correctAnswers);
-
-                    if (question.format === 'multiple' && question.options && question.options.length > 0) {
-                        // Multiple choice options
-                        pdf.setFontSize(11);
-                        question.options.forEach((option, optIndex) => {
-                            const optionLetter = String.fromCharCode(65 + optIndex);
-                            // Check if this option is correct
-                            const isCorrect = question.correctAnswers && (
-                                question.correctAnswers.includes(optIndex) ||
-                                question.correctAnswers.includes(optIndex.toString())
-                            );
-
-                            if (isCorrect) {
-                                pdf.setFont(undefined, 'bold');
-                                pdf.text(`${optionLetter}. ${option} ✓`, margin + 5, currentY);
-                                pdf.setFont(undefined, 'normal');
-                            } else {
-                                pdf.text(`${optionLetter}. ${option}`, margin + 5, currentY);
-                            }
-                            currentY += 8;
+                    try {
+                        // ✅ CAPTURE THE ACTUAL VISUAL PREVIEW ELEMENT
+                        const canvas = await html2canvas(questionElement, {
+                            backgroundColor: '#ffffff',
+                            scale: 2,
+                            useCORS: true,
+                            allowTaint: true,
+                            width: questionElement.scrollWidth,
+                            height: questionElement.scrollHeight
                         });
-                    } else {
-                        // Text answer
-                        pdf.setFontSize(11);
-                        pdf.setFont(undefined, 'italic');
-                        pdf.text('Answer Type: Text Response', margin + 5, currentY);
-                        currentY += 8;
 
-                        if (question.expectedAnswer) {
-                            pdf.setFont(undefined, 'bold');
-                            pdf.text('Expected Answer:', margin + 5, currentY);
-                            currentY += 6;
-                            pdf.setFont(undefined, 'normal');
-                            const answerLines = pdf.splitTextToSize(question.expectedAnswer, contentWidth - 10);
-                            pdf.text(answerLines, margin + 5, currentY);
-                            currentY += answerLines.length * 6;
+                        const imgData = canvas.toDataURL('image/png');
+
+                        // Calculate dimensions to fit in PDF
+                        const imgWidth = contentWidth;
+                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                        // Add the captured preview image to PDF
+                        if (imgHeight <= pageHeight - 60) {
+                            pdf.addImage(imgData, 'PNG', margin, 40, imgWidth, imgHeight);
+                        } else {
+                            // Scale down if too large
+                            const scaledHeight = pageHeight - 60;
+                            const scaledWidth = (canvas.width * scaledHeight) / canvas.height;
+                            pdf.addImage(imgData, 'PNG', margin, 40, scaledWidth, scaledHeight);
                         }
-                    }
 
-                    // Add answer space
-                    currentY += 10;
-                    pdf.setFontSize(10);
-                    pdf.setTextColor(100, 100, 100);
-                    pdf.text('Student Answer:', margin, currentY);
-                    currentY += 8;
+                        console.log(`✅ Successfully captured question ${index + 1} preview`);
 
-                    // Draw answer lines
-                    for (let i = 0; i < 3; i++) {
-                        pdf.line(margin, currentY, pageWidth - margin, currentY);
-                        currentY += 8;
+                    } catch (error) {
+                        console.error(`❌ Error capturing question ${index + 1}:`, error);
+
+                        // Fallback: Extract text from preview element
+                        const questionTextElement = questionElement.querySelector('p.mb-1');
+                        const questionText = questionTextElement ? questionTextElement.textContent.trim() : `Question ${index + 1}`;
+
+                        pdf.setFontSize(12);
+                        pdf.setFont(undefined, 'normal');
+                        const questionLines = pdf.splitTextToSize(questionText, contentWidth);
+                        pdf.text(questionLines, margin, 50);
+
+                        // Add error note
+                        pdf.setFontSize(10);
+                        pdf.setTextColor(255, 0, 0);
+                        pdf.text('[Preview capture failed - showing text only]', margin, 70);
+                        pdf.setTextColor(0, 0, 0);
                     }
-                    pdf.setTextColor(0, 0, 0);
+                }
+
+                // Handle current unsaved question if needed
+                const currentQuestionText = getQuestionText().trim();
+                if (currentQuestionText && questionElements.length === 0) {
+                    // Only current question exists, add it
+                    pdf.addPage();
+
+                    pdf.setFontSize(16);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Question 1 (Current)', margin, 25);
+
+                    pdf.setFontSize(12);
+                    pdf.setFont(undefined, 'normal');
+                    const questionLines = pdf.splitTextToSize(currentQuestionText, contentWidth);
+                    pdf.text(questionLines, margin, 50);
+
+                    console.log('📝 Added current unsaved question to PDF');
                 }
 
                 // Save the PDF
-                const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_manual_quiz.pdf`;
+                const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_preview_capture.pdf`;
                 pdf.save(fileName);
 
                 // Remove loading indicator
                 document.body.removeChild(loadingDiv);
 
                 // Show success message
-                alert(`✅ PDF exported successfully as "${fileName}"\n\n📺 The PDF contains the exact question text as displayed in the preview!\n\n📄 Questions: ${questionsToExport.length}`);
+                const totalQuestions = questionElements.length + (currentQuestionText && questionElements.length === 0 ? 1 : 0);
+                alert(`✅ PDF exported successfully as "${fileName}"\n\n📺 VISUAL PREVIEW CAPTURED!\n\nThe PDF contains the exact visual content as displayed in the preview.\n\n📄 Questions captured: ${totalQuestions}`);
 
             } catch (error) {
                 console.error('Error exporting PDF:', error);
@@ -2541,198 +2402,47 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             }
         }
 
-        // Debug function to check questions data
+        // Debug function to check preview content
         function debugQuestions() {
-            console.log('=== QUESTIONS DEBUG ===');
-            console.log('Manual questions array:', manualQuestions);
-            console.log('Number of questions:', manualQuestions.length);
+            console.log('=== VISUAL PREVIEW DEBUG ===');
 
-            // Test extraction from preview
-            const extractedQuestions = extractQuestionsFromPreview();
-            console.log('Extracted from preview:', extractedQuestions);
+            const questionsContainer = document.getElementById('questionsContainer');
+            const questionElements = questionsContainer.querySelectorAll('.list-group-item');
 
-            manualQuestions.forEach((q, i) => {
-                console.log(`Original Question ${i + 1}:`, {
-                    questionText: q.questionText,
-                    question: q.question,
-                    answerFormat: q.answerFormat,
-                    options: q.options,
-                    correctAnswers: q.correctAnswers,
-                    expectedAnswer: q.expectedAnswer,
-                    image: q.image,
-                    hasImage: q.hasImage
-                });
-            });
+            console.log('📺 Questions in preview container:', questionElements.length);
+            console.log('📊 Manual questions array:', manualQuestions.length);
 
-            extractedQuestions.forEach((q, i) => {
-                console.log(`Extracted Question ${i + 1}:`, {
-                    text: q.text,
-                    format: q.format,
-                    options: q.options,
-                    correctAnswers: q.correctAnswers,
-                    expectedAnswer: q.expectedAnswer,
-                    hasImage: q.hasImage,
-                    image: q.image
+            questionElements.forEach((element, index) => {
+                const questionTextElement = element.querySelector('p.mb-1');
+                const questionText = questionTextElement ? questionTextElement.textContent.trim() : 'No text';
+                const typeElement = element.querySelector('small.text-muted');
+                const typeText = typeElement ? typeElement.textContent.trim() : 'No type';
+                const hasImageElement = element.querySelector('small.text-info');
+                const hasImage = hasImageElement && hasImageElement.textContent.includes('Has image');
+
+                console.log(`📺 Preview Question ${index + 1}:`, {
+                    text: questionText,
+                    type: typeText,
+                    hasImage: hasImage,
+                    element: element
                 });
             });
 
             const currentQuestionText = getQuestionText().trim();
-            console.log('Current question text:', currentQuestionText);
+            console.log('📝 Current unsaved question:', currentQuestionText);
 
-            if (currentQuestionText) {
-                console.log('Current question data would be:', extractCurrentQuestionFromForm());
-            }
-
-            alert(`📺 PREVIEW-BASED EXTRACTION DEBUG:\n\n✅ Saved questions: ${manualQuestions.length}\n📋 Extracted from preview: ${extractedQuestions.length}\n📝 Current question: ${currentQuestionText ? 'Yes' : 'No'}\n\n🔍 Check console for detailed comparison.\n\n📄 PDF will use PREVIEW TEXT exactly as displayed!`);
+            alert(`📺 VISUAL PREVIEW CAPTURE DEBUG:\n\n✅ Questions in preview: ${questionElements.length}\n📊 Saved questions: ${manualQuestions.length}\n📝 Current question: ${currentQuestionText ? 'Yes' : 'No'}\n\n🔍 Check console for preview element details.\n\n📄 PDF will capture the VISUAL PREVIEW exactly as shown!`);
         }
 
-        // Extract questions from the rendered preview - Use preview display as source of truth
-        function extractQuestionsFromPreview() {
-            const questionsContainer = document.getElementById('questionsContainer');
-            if (!questionsContainer) {
-                console.log('No questions container found');
-                return [];
-            }
-
-            const questionElements = questionsContainer.querySelectorAll('.list-group-item');
-            const extractedQuestions = [];
-
-            questionElements.forEach((questionElement, index) => {
-                try {
-                    // ✅ TAKE EXACT PREVIEW TEXT AS QUESTION
-                    const questionTextElement = questionElement.querySelector('p.mb-1');
-                    const previewQuestionText = questionTextElement ? questionTextElement.textContent.trim() : `Question ${index + 1}`;
-
-                    console.log(`📺 Preview text for Question ${index + 1}:`, previewQuestionText);
-
-                    // Extract question type from the preview display
-                    const typeElement = questionElement.querySelector('small.text-muted');
-                    const typeText = typeElement ? typeElement.textContent.trim() : '';
-
-                    // Determine format from preview type display
-                    let format = 'text';
-                    let selectionType = 'single';
-                    if (typeText.includes('Multiple choice')) {
-                        format = 'multiple';
-                        if (typeText.includes('Multiple answer')) {
-                            selectionType = 'multiple';
-                        }
-                    }
-
-                    // Check if has image from preview indicator
-                    const hasImageElement = questionElement.querySelector('small.text-info');
-                    const hasImage = hasImageElement && hasImageElement.textContent.includes('Has image');
-
-                    // Get the original question data for options and answers only
-                    const originalQuestion = manualQuestions[index];
-
-                    const extractedQuestion = {
-                        text: previewQuestionText,  // ✅ USE PREVIEW TEXT EXACTLY
-                        format: format,             // ✅ FROM PREVIEW DISPLAY
-                        selectionType: selectionType, // ✅ FROM PREVIEW DISPLAY
-                        hasImage: hasImage,         // ✅ FROM PREVIEW INDICATOR
-                        image: originalQuestion ? originalQuestion.image : null,
-                        options: originalQuestion ? originalQuestion.options : [],
-                        correctAnswers: originalQuestion ? originalQuestion.correctAnswers : [],
-                        expectedAnswer: originalQuestion ? originalQuestion.expectedAnswer : '',
-                        points: 1
-                    };
-
-                    extractedQuestions.push(extractedQuestion);
-                    console.log(`✅ Extracted question ${index + 1} from preview:`, {
-                        previewText: previewQuestionText,
-                        format: format,
-                        hasImage: hasImage,
-                        optionsCount: extractedQuestion.options.length
-                    });
-
-                } catch (error) {
-                    console.error(`❌ Error extracting question ${index + 1}:`, error);
-                    // Add a fallback question with preview-based text
-                    const fallbackText = `Question ${index + 1} - [Could not extract from preview]`;
-                    extractedQuestions.push({
-                        text: fallbackText,
-                        format: 'text',
-                        hasImage: false,
-                        image: null,
-                        options: [],
-                        correctAnswers: [],
-                        expectedAnswer: '',
-                        points: 1
-                    });
-                }
-            });
-
-            console.log(`📋 Total questions extracted from preview: ${extractedQuestions.length}`);
-            return extractedQuestions;
-        }
-
-        // Extract current question from form (for unsaved question) - Use form display values
-        function extractCurrentQuestionFromForm() {
-            try {
-                // ✅ GET QUESTION TEXT FROM FORM DISPLAY
-                const questionText = getQuestionText().trim();
-                console.log(`📝 Current question text from form:`, questionText);
-
-                const answerFormat = document.querySelector('input[name="answerFormat"]:checked')?.value || 'text';
-                const selectionType = document.querySelector('input[name="selectionType"]:checked')?.value || 'single';
-
-                const question = {
-                    text: questionText,  // ✅ EXACT TEXT FROM FORM
-                    format: answerFormat,
-                    selectionType: selectionType,
-                    hasImage: !!currentQuestionImage,
-                    image: currentQuestionImage,
-                    points: 1
-                };
-
-                if (answerFormat === 'multiple') {
-                    const options = [];
-                    const correctAnswers = [];
-
-                    // ✅ GET OPTIONS FROM FORM DISPLAY
-                    document.querySelectorAll('.option-input').forEach((input, index) => {
-                        if (input.value.trim()) {
-                            options.push(input.value.trim());
-                            const isCorrect = document.querySelectorAll('.correct-answer-radio')[index]?.checked;
-                            if (isCorrect) {
-                                correctAnswers.push(index);
-                            }
-                        }
-                    });
-
-                    question.options = options;
-                    question.correctAnswers = correctAnswers;
-
-                    console.log(`📊 Current question options:`, options);
-                    console.log(`✅ Current question correct answers:`, correctAnswers);
-                } else {
-                    // ✅ GET EXPECTED ANSWER FROM FORM DISPLAY
-                    question.expectedAnswer = document.getElementById('expectedAnswer')?.value.trim() || '';
-                    console.log(`📝 Current question expected answer:`, question.expectedAnswer);
-                }
-
-                console.log(`✅ Extracted current question from form:`, question);
-                return question;
-            } catch (error) {
-                console.error('❌ Error extracting current question:', error);
-                return {
-                    text: 'Current question - [Could not extract from form]',
-                    format: 'text',
-                    hasImage: false,
-                    image: null,
-                    options: [],
-                    correctAnswers: [],
-                    expectedAnswer: '',
-                    points: 1
-                };
-            }
+        // Simple helper to get current question text
+        function getCurrentQuestionText() {
+            return getQuestionText().trim();
         }
 
         // Make functions globally available
         window.exportManualQuizToPDF = exportManualQuizToPDF;
         window.debugQuestions = debugQuestions;
-        window.extractQuestionsFromPreview = extractQuestionsFromPreview;
+        window.getCurrentQuestionText = getCurrentQuestionText;
     </script>
 </body>
 </html>
