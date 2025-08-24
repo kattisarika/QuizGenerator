@@ -826,9 +826,8 @@
                             console.log('Quiz has questions:', <%= quiz.questions ? 'true' : 'false' %>);
                             <% if (quiz.questions) { %>
                                 console.log('Questions array length:', <%= quiz.questions.length %>);
-                                <% quiz.questions.forEach((question, index) => { %>
-                                    console.log('Question <%= index %>:', {
-                                        hasQuestion: <%= question.question ? 'true' : 'false' %>,
+                            <% } %>
+                        </script>
 
                         <% if (quiz.isComplexQuiz && quiz.complexQuizData) { %>
                             <!-- Complex Quiz Canvas Rendering -->
