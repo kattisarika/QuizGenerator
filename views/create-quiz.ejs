@@ -2211,21 +2211,23 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 const subject = document.getElementById('manualSubject').value || 'Not specified';
                 const quizType = document.querySelector('input[name="manualQuizType"]:checked')?.value || 'regular';
 
-                // Extract questions from the rendered preview
+                // ✅ EXTRACT QUESTIONS FROM PREVIEW DISPLAY - EXACT TEXT AS SHOWN
                 const questionsToExport = extractQuestionsFromPreview();
+                console.log('📺 Questions extracted from preview display:', questionsToExport);
 
                 // Check if current question should be included
                 const questionText = getQuestionText().trim();
                 if (questionText) {
-                    if (confirm('Do you want to include the current question in the PDF?')) {
+                    if (confirm('📝 Do you want to include the current unsaved question in the PDF?\n\n(This will use the exact text as entered in the form)')) {
                         if (validateCurrentQuestion()) {
                             const currentQuestion = extractCurrentQuestionFromForm();
                             questionsToExport.push(currentQuestion);
+                            console.log('📝 Added current question from form:', currentQuestion);
                         }
                     }
                 }
 
-                console.log('Questions extracted from preview:', questionsToExport);
+                console.log('📄 Final questions for PDF (using preview text):', questionsToExport);
 
                 if (questionsToExport.length === 0) {
                     alert('No questions to export. Please add at least one question.');
@@ -2331,12 +2333,12 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
 
                     currentY += 15;
 
-                    // Question text - use extracted text from preview
+                    // ✅ QUESTION TEXT - EXACT PREVIEW DISPLAY TEXT
                     pdf.setFontSize(12);
                     pdf.setFont(undefined, 'normal');
 
-                    const questionText = question.text || `Question ${index + 1} - [No text available]`;
-                    console.log(`Question ${index + 1} text:`, questionText);
+                    const questionText = question.text || `Question ${index + 1} - [No preview text available]`;
+                    console.log(`📄 Adding to PDF - Question ${index + 1} text:`, questionText);
 
                     const questionLines = pdf.splitTextToSize(questionText, contentWidth);
                     pdf.text(questionLines, margin, currentY);
@@ -2524,7 +2526,7 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 document.body.removeChild(loadingDiv);
 
                 // Show success message
-                alert(`PDF exported successfully as "${fileName}"`);
+                alert(`✅ PDF exported successfully as "${fileName}"\n\n📺 The PDF contains the exact question text as displayed in the preview!\n\n📄 Questions: ${questionsToExport.length}`);
 
             } catch (error) {
                 console.error('Error exporting PDF:', error);
@@ -2581,10 +2583,10 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 console.log('Current question data would be:', extractCurrentQuestionFromForm());
             }
 
-            alert(`Debug Info:\n- Saved questions: ${manualQuestions.length}\n- Extracted questions: ${extractedQuestions.length}\n- Current question: ${currentQuestionText ? 'Yes' : 'No'}\n\nCheck console for detailed comparison.`);
+            alert(`📺 PREVIEW-BASED EXTRACTION DEBUG:\n\n✅ Saved questions: ${manualQuestions.length}\n📋 Extracted from preview: ${extractedQuestions.length}\n📝 Current question: ${currentQuestionText ? 'Yes' : 'No'}\n\n🔍 Check console for detailed comparison.\n\n📄 PDF will use PREVIEW TEXT exactly as displayed!`);
         }
 
-        // Extract questions from the rendered preview
+        // Extract questions from the rendered preview - Use preview display as source of truth
         function extractQuestionsFromPreview() {
             const questionsContainer = document.getElementById('questionsContainer');
             if (!questionsContainer) {
@@ -2597,31 +2599,38 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
 
             questionElements.forEach((questionElement, index) => {
                 try {
-                    // Extract question text from the preview
+                    // ✅ TAKE EXACT PREVIEW TEXT AS QUESTION
                     const questionTextElement = questionElement.querySelector('p.mb-1');
-                    const questionText = questionTextElement ? questionTextElement.textContent.trim() : `Question ${index + 1}`;
+                    const previewQuestionText = questionTextElement ? questionTextElement.textContent.trim() : `Question ${index + 1}`;
 
-                    // Extract question type from the small text
+                    console.log(`📺 Preview text for Question ${index + 1}:`, previewQuestionText);
+
+                    // Extract question type from the preview display
                     const typeElement = questionElement.querySelector('small.text-muted');
                     const typeText = typeElement ? typeElement.textContent.trim() : '';
 
-                    // Determine format from type text
+                    // Determine format from preview type display
                     let format = 'text';
+                    let selectionType = 'single';
                     if (typeText.includes('Multiple choice')) {
                         format = 'multiple';
+                        if (typeText.includes('Multiple answer')) {
+                            selectionType = 'multiple';
+                        }
                     }
 
-                    // Check if has image
+                    // Check if has image from preview indicator
                     const hasImageElement = questionElement.querySelector('small.text-info');
                     const hasImage = hasImageElement && hasImageElement.textContent.includes('Has image');
 
-                    // Get the original question data from manualQuestions array
+                    // Get the original question data for options and answers only
                     const originalQuestion = manualQuestions[index];
 
                     const extractedQuestion = {
-                        text: questionText,
-                        format: format,
-                        hasImage: hasImage,
+                        text: previewQuestionText,  // ✅ USE PREVIEW TEXT EXACTLY
+                        format: format,             // ✅ FROM PREVIEW DISPLAY
+                        selectionType: selectionType, // ✅ FROM PREVIEW DISPLAY
+                        hasImage: hasImage,         // ✅ FROM PREVIEW INDICATOR
                         image: originalQuestion ? originalQuestion.image : null,
                         options: originalQuestion ? originalQuestion.options : [],
                         correctAnswers: originalQuestion ? originalQuestion.correctAnswers : [],
@@ -2630,13 +2639,19 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                     };
 
                     extractedQuestions.push(extractedQuestion);
-                    console.log(`Extracted question ${index + 1}:`, extractedQuestion);
+                    console.log(`✅ Extracted question ${index + 1} from preview:`, {
+                        previewText: previewQuestionText,
+                        format: format,
+                        hasImage: hasImage,
+                        optionsCount: extractedQuestion.options.length
+                    });
 
                 } catch (error) {
-                    console.error(`Error extracting question ${index + 1}:`, error);
-                    // Add a fallback question
+                    console.error(`❌ Error extracting question ${index + 1}:`, error);
+                    // Add a fallback question with preview-based text
+                    const fallbackText = `Question ${index + 1} - [Could not extract from preview]`;
                     extractedQuestions.push({
-                        text: `Question ${index + 1} - [Could not extract]`,
+                        text: fallbackText,
                         format: 'text',
                         hasImage: false,
                         image: null,
@@ -2648,18 +2663,24 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 }
             });
 
+            console.log(`📋 Total questions extracted from preview: ${extractedQuestions.length}`);
             return extractedQuestions;
         }
 
-        // Extract current question from form (for unsaved question)
+        // Extract current question from form (for unsaved question) - Use form display values
         function extractCurrentQuestionFromForm() {
             try {
+                // ✅ GET QUESTION TEXT FROM FORM DISPLAY
                 const questionText = getQuestionText().trim();
+                console.log(`📝 Current question text from form:`, questionText);
+
                 const answerFormat = document.querySelector('input[name="answerFormat"]:checked')?.value || 'text';
+                const selectionType = document.querySelector('input[name="selectionType"]:checked')?.value || 'single';
 
                 const question = {
-                    text: questionText,
+                    text: questionText,  // ✅ EXACT TEXT FROM FORM
                     format: answerFormat,
+                    selectionType: selectionType,
                     hasImage: !!currentQuestionImage,
                     image: currentQuestionImage,
                     points: 1
@@ -2669,6 +2690,7 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                     const options = [];
                     const correctAnswers = [];
 
+                    // ✅ GET OPTIONS FROM FORM DISPLAY
                     document.querySelectorAll('.option-input').forEach((input, index) => {
                         if (input.value.trim()) {
                             options.push(input.value.trim());
@@ -2681,15 +2703,21 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
 
                     question.options = options;
                     question.correctAnswers = correctAnswers;
+
+                    console.log(`📊 Current question options:`, options);
+                    console.log(`✅ Current question correct answers:`, correctAnswers);
                 } else {
+                    // ✅ GET EXPECTED ANSWER FROM FORM DISPLAY
                     question.expectedAnswer = document.getElementById('expectedAnswer')?.value.trim() || '';
+                    console.log(`📝 Current question expected answer:`, question.expectedAnswer);
                 }
 
+                console.log(`✅ Extracted current question from form:`, question);
                 return question;
             } catch (error) {
-                console.error('Error extracting current question:', error);
+                console.error('❌ Error extracting current question:', error);
                 return {
-                    text: 'Current question - [Could not extract]',
+                    text: 'Current question - [Could not extract from form]',
                     format: 'text',
                     hasImage: false,
                     image: null,
