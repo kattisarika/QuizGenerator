@@ -1088,9 +1088,14 @@
                                             <h5 class="text-primary mb-0">
                                                 <i class="fas fa-list me-2"></i>Questions Added
                                             </h5>
-                                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="exportManualQuizToPDF()" title="Export current questions as PDF">
-                                                <i class="fas fa-file-pdf me-1"></i>Export PDF
-                                            </button>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-outline-info btn-sm" onclick="debugQuestions()" title="Debug questions data">
+                                                    <i class="fas fa-bug me-1"></i>Debug
+                                                </button>
+                                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="exportManualQuizToPDF()" title="Export current questions as PDF">
+                                                    <i class="fas fa-file-pdf me-1"></i>Export PDF
+                                                </button>
+                                            </div>
                                         </div>
                                         <div id="questionsContainer" class="list-group">
                                             <!-- Questions will be added here dynamically -->
@@ -1577,8 +1582,10 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
 
             const question = {
                 questionText: questionText,
+                question: questionText, // Add both for compatibility
                 answerFormat: answerFormat,
-                image: currentQuestionImage
+                image: currentQuestionImage,
+                points: 1 // Default points value
             };
 
             if (answerFormat === 'multiple') {
@@ -2217,6 +2224,9 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                     }
                 }
 
+                console.log('Questions to export:', questionsToExport);
+                console.log('Manual questions array:', manualQuestions);
+
                 if (questionsToExport.length === 0) {
                     alert('No questions to export. Please add at least one question.');
                     return;
@@ -2282,7 +2292,8 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 pdf.text(`Created: ${new Date().toLocaleDateString()}`, margin, yPos);
 
                 // Add questions
-                questionsToExport.forEach((question, index) => {
+                for (let index = 0; index < questionsToExport.length; index++) {
+                    const question = questionsToExport[index];
                     // Add new page for each question (except first)
                     if (index > 0) {
                         pdf.addPage();
@@ -2300,28 +2311,101 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                     // Points
                     pdf.setFontSize(12);
                     pdf.setFont(undefined, 'normal');
-                    pdf.text(`(${question.points} point${question.points !== 1 ? 's' : ''})`, pageWidth - margin - 30, currentY);
+                    const points = question.points || 1; // Default to 1 point
+                    pdf.text(`(${points} point${points !== 1 ? 's' : ''})`, pageWidth - margin - 30, currentY);
 
                     currentY += 15;
 
                     // Question text
                     pdf.setFontSize(12);
                     pdf.setFont(undefined, 'normal');
-                    const questionLines = pdf.splitTextToSize(question.question, contentWidth);
+                    const questionText = question.questionText || question.question || 'No question text';
+                    const questionLines = pdf.splitTextToSize(questionText, contentWidth);
                     pdf.text(questionLines, margin, currentY);
                     currentY += questionLines.length * 6 + 10;
 
                     // Question image if exists
                     if (question.image) {
                         try {
-                            // Add image placeholder text
-                            pdf.setFontSize(10);
-                            pdf.setTextColor(100, 100, 100);
-                            pdf.text('[Question Image Attached]', margin, currentY);
-                            pdf.setTextColor(0, 0, 0);
-                            currentY += 15;
+                            // Try to load and embed the actual image
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+
+                            await new Promise((resolve, reject) => {
+                                img.onload = () => {
+                                    try {
+                                        // Create canvas to convert image to base64
+                                        const canvas = document.createElement('canvas');
+                                        const ctx = canvas.getContext('2d');
+                                        canvas.width = img.width;
+                                        canvas.height = img.height;
+                                        ctx.drawImage(img, 0, 0);
+
+                                        const imgData = canvas.toDataURL('image/jpeg', 0.8);
+
+                                        // Calculate image dimensions to fit in PDF
+                                        const maxWidth = contentWidth * 0.8;
+                                        const maxHeight = 80; // Max height in mm
+
+                                        let imgWidth = img.width * 0.264583; // Convert pixels to mm
+                                        let imgHeight = img.height * 0.264583;
+
+                                        // Scale down if too large
+                                        if (imgWidth > maxWidth) {
+                                            imgHeight = (imgHeight * maxWidth) / imgWidth;
+                                            imgWidth = maxWidth;
+                                        }
+                                        if (imgHeight > maxHeight) {
+                                            imgWidth = (imgWidth * maxHeight) / imgHeight;
+                                            imgHeight = maxHeight;
+                                        }
+
+                                        // Add image to PDF
+                                        pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, imgHeight);
+                                        currentY += imgHeight + 10;
+
+                                        resolve();
+                                    } catch (error) {
+                                        console.log('Error processing image:', error);
+                                        // Fallback to placeholder text
+                                        pdf.setFontSize(10);
+                                        pdf.setTextColor(100, 100, 100);
+                                        pdf.text('[Question Image - Could not load]', margin, currentY);
+                                        pdf.setTextColor(0, 0, 0);
+                                        currentY += 15;
+                                        resolve();
+                                    }
+                                };
+
+                                img.onerror = () => {
+                                    console.log('Error loading image:', question.image);
+                                    // Fallback to placeholder text
+                                    pdf.setFontSize(10);
+                                    pdf.setTextColor(100, 100, 100);
+                                    pdf.text('[Question Image - Could not load]', margin, currentY);
+                                    pdf.setTextColor(0, 0, 0);
+                                    currentY += 15;
+                                    resolve();
+                                };
+
+                                // Set image source
+                                if (question.image.startsWith('data:')) {
+                                    img.src = question.image;
+                                } else if (question.image.startsWith('/')) {
+                                    img.src = window.location.origin + question.image;
+                                } else {
+                                    img.src = question.image;
+                                }
+                            });
+
                         } catch (error) {
                             console.log('Could not add image to PDF:', error);
+                            // Fallback to placeholder text
+                            pdf.setFontSize(10);
+                            pdf.setTextColor(100, 100, 100);
+                            pdf.text('[Question Image - Error loading]', margin, currentY);
+                            pdf.setTextColor(0, 0, 0);
+                            currentY += 15;
                         }
                     }
 
@@ -2331,7 +2415,9 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                         pdf.setFontSize(11);
                         question.options.forEach((option, optIndex) => {
                             const optionLetter = String.fromCharCode(65 + optIndex);
-                            const isCorrect = question.correctAnswers.includes(optIndex.toString());
+                            // Check if this option is correct (handle both string and number indices)
+                            const isCorrect = question.correctAnswers.includes(optIndex) ||
+                                            question.correctAnswers.includes(optIndex.toString());
 
                             if (isCorrect) {
                                 pdf.setFont(undefined, 'bold');
@@ -2373,7 +2459,7 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                         currentY += 8;
                     }
                     pdf.setTextColor(0, 0, 0);
-                });
+                }
 
                 // Save the PDF
                 const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_manual_quiz.pdf`;
@@ -2398,8 +2484,25 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             }
         }
 
-        // Make function globally available
+        // Debug function to check questions data
+        function debugQuestions() {
+            console.log('=== QUESTIONS DEBUG ===');
+            console.log('Manual questions array:', manualQuestions);
+            console.log('Number of questions:', manualQuestions.length);
+
+            const currentQuestionText = getQuestionText().trim();
+            console.log('Current question text:', currentQuestionText);
+
+            if (currentQuestionText) {
+                console.log('Current question data would be:', collectQuestionData());
+            }
+
+            alert(`Debug Info:\n- Saved questions: ${manualQuestions.length}\n- Current question: ${currentQuestionText ? 'Yes' : 'No'}\n\nCheck console for detailed data.`);
+        }
+
+        // Make functions globally available
         window.exportManualQuizToPDF = exportManualQuizToPDF;
+        window.debugQuestions = debugQuestions;
     </script>
 </body>
 </html>
