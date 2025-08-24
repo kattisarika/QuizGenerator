@@ -25,11 +25,9 @@
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-    <!-- PDF Export Libraries (only load for complex quizzes) -->
-    <% if (quiz.isComplexQuiz && quiz.complexQuizData) { %>
+    <!-- PDF Export Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <% } %>
 
     <style>
         /* Complex Quiz Preview Styles */
@@ -276,6 +274,10 @@
                     </a>
                     <% if (quiz.isComplexQuiz && quiz.complexQuizData) { %>
                     <button class="btn btn-warning" onclick="exportComplexQuizToPDF()" title="Export complex quiz as PDF">
+                        <i class="fas fa-file-pdf"></i> Save as PDF
+                    </button>
+                    <% } else { %>
+                    <button class="btn btn-warning" onclick="exportManualQuizToPDF()" title="Export quiz as PDF">
                         <i class="fas fa-file-pdf"></i> Save as PDF
                     </button>
                     <% } %>
@@ -800,6 +802,191 @@
 
         // Make function globally available
         window.exportComplexQuizToPDF = exportComplexQuizToPDF;
+        <% } %>
+
+        // PDF Export function for manual quizzes
+        <% if (!quiz.isComplexQuiz) { %>
+        async function exportManualQuizToPDF() {
+            try {
+                // Show loading indicator
+                const loadingDiv = document.createElement('div');
+                loadingDiv.id = 'pdf-loading';
+                loadingDiv.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                    color: white;
+                    font-size: 18px;
+                `;
+                loadingDiv.innerHTML = `
+                    <div style="text-align: center;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>
+                        Generating PDF...
+                    </div>
+                `;
+                document.body.appendChild(loadingDiv);
+
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+
+                // PDF dimensions
+                const pageWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const margin = 20;
+                const contentWidth = pageWidth - (margin * 2);
+
+                // Add title page
+                pdf.setFontSize(24);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('<%= quiz.title %>', pageWidth / 2, 40, { align: 'center' });
+
+                pdf.setFontSize(14);
+                pdf.setFont(undefined, 'normal');
+                const description = `<%= quiz.description.replace(/'/g, "\\'") %>`;
+                if (description) {
+                    const splitDescription = pdf.splitTextToSize(description, contentWidth);
+                    pdf.text(splitDescription, margin, 60);
+                }
+
+                // Add quiz metadata
+                let yPos = 100;
+                pdf.text('Grade Level: <%= quiz.gradeLevel %>', margin, yPos);
+                yPos += 10;
+                <% if (quiz.subjects && quiz.subjects.length > 0) { %>
+                pdf.text('Subjects: <%= quiz.subjects.join(", ") %>', margin, yPos);
+                yPos += 10;
+                <% } %>
+                pdf.text('Language: <%= quiz.language %>', margin, yPos);
+                yPos += 10;
+                pdf.text('Total Questions: <%= quiz.questions.length %>', margin, yPos);
+                yPos += 10;
+                pdf.text('Created: <%= new Date(quiz.createdAt).toLocaleDateString() %>', margin, yPos);
+                yPos += 10;
+                pdf.text('Created by: <%= quiz.createdByName %>', margin, yPos);
+
+                // Add questions
+                const questions = <%- JSON.stringify(quiz.questions) %>;
+                questions.forEach((question, index) => {
+                    // Add new page for each question (except first)
+                    if (index > 0) {
+                        pdf.addPage();
+                    } else {
+                        pdf.addPage();
+                    }
+
+                    let currentY = 25;
+
+                    // Question header
+                    pdf.setFontSize(16);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text(`Question ${index + 1}`, margin, currentY);
+
+                    // Points
+                    pdf.setFontSize(12);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.text(`(${question.points} point${question.points !== 1 ? 's' : ''})`, pageWidth - margin - 30, currentY);
+
+                    currentY += 15;
+
+                    // Question text
+                    pdf.setFontSize(12);
+                    pdf.setFont(undefined, 'normal');
+                    const questionLines = pdf.splitTextToSize(question.question, contentWidth);
+                    pdf.text(questionLines, margin, currentY);
+                    currentY += questionLines.length * 6 + 10;
+
+                    // Question image if exists
+                    if (question.image) {
+                        pdf.setFontSize(10);
+                        pdf.setTextColor(100, 100, 100);
+                        pdf.text('[Question Image Attached]', margin, currentY);
+                        pdf.setTextColor(0, 0, 0);
+                        currentY += 15;
+                    }
+
+                    // Answer format
+                    if (question.answerFormat === 'multiple') {
+                        // Multiple choice options
+                        pdf.setFontSize(11);
+                        question.options.forEach((option, optIndex) => {
+                            const optionLetter = String.fromCharCode(65 + optIndex);
+                            const isCorrect = question.correctAnswers.includes(optIndex.toString());
+
+                            if (isCorrect) {
+                                pdf.setFont(undefined, 'bold');
+                                pdf.text(`${optionLetter}. ${option} ✓`, margin + 5, currentY);
+                                pdf.setFont(undefined, 'normal');
+                            } else {
+                                pdf.text(`${optionLetter}. ${option}`, margin + 5, currentY);
+                            }
+                            currentY += 8;
+                        });
+                    } else {
+                        // Text answer
+                        pdf.setFontSize(11);
+                        pdf.setFont(undefined, 'italic');
+                        pdf.text('Answer Type: Text Response', margin + 5, currentY);
+                        currentY += 8;
+
+                        if (question.expectedAnswer) {
+                            pdf.setFont(undefined, 'bold');
+                            pdf.text('Expected Answer:', margin + 5, currentY);
+                            currentY += 6;
+                            pdf.setFont(undefined, 'normal');
+                            const answerLines = pdf.splitTextToSize(question.expectedAnswer, contentWidth - 10);
+                            pdf.text(answerLines, margin + 5, currentY);
+                            currentY += answerLines.length * 6;
+                        }
+                    }
+
+                    // Add answer space
+                    currentY += 10;
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(100, 100, 100);
+                    pdf.text('Student Answer:', margin, currentY);
+                    currentY += 8;
+
+                    // Draw answer lines
+                    for (let i = 0; i < 3; i++) {
+                        pdf.line(margin, currentY, pageWidth - margin, currentY);
+                        currentY += 8;
+                    }
+                    pdf.setTextColor(0, 0, 0);
+                });
+
+                // Save the PDF
+                const fileName = `<%= quiz.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() %>_quiz.pdf`;
+                pdf.save(fileName);
+
+                // Remove loading indicator
+                document.body.removeChild(loadingDiv);
+
+                // Show success message
+                alert(`PDF exported successfully as "${fileName}"`);
+
+            } catch (error) {
+                console.error('Error exporting PDF:', error);
+
+                // Remove loading indicator if it exists
+                const loadingDiv = document.getElementById('pdf-loading');
+                if (loadingDiv) {
+                    document.body.removeChild(loadingDiv);
+                }
+
+                alert('Error exporting PDF: ' + error.message);
+            }
+        }
+
+        // Make function globally available
+        window.exportManualQuizToPDF = exportManualQuizToPDF;
         <% } %>
     </script>
 </body>
