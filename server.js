@@ -2129,6 +2129,7 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
     const availableQuizzes = await Quiz.find(quizQuery)
       .populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
+      .sort({ createdAt: -1 }) // Sort by newest first (most recent)
       .limit(100) // Limit to prevent memory issues
       .lean(); // Use lean() for better performance
     
@@ -4406,6 +4407,7 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     const allQuizzes = await Quiz.find(filter)
       .populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
+      .sort({ createdAt: -1 }) // Sort by newest first (most recent)
       .skip(skip)
       .limit(limit * 2) // Get enough for both tabs, but still limited
       .lean(); // Use lean() for better performance
@@ -4480,6 +4482,10 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     });
 
     console.log(`Quiz categorization: ${availableQuizzes.length} available, ${archivedQuizzes.length} archived`);
+
+    // Ensure both arrays are sorted by creation date (newest first) to maintain chronological order
+    availableQuizzes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    archivedQuizzes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     // For better pagination, we need to estimate totals based on the current sample
     // This is an approximation since we're categorizing after fetching
