@@ -205,15 +205,17 @@
             background-color: #e9ecef;
             color: #495057;
             margin: 0 5px;
-            cursor: pointer;
+            cursor: default; /* Changed from pointer to default */
             transition: all 0.3s ease;
             font-weight: 600;
+            pointer-events: none; /* Disable all pointer events */
         }
-        
-        .question-indicator:hover {
+
+        /* Removed hover effect to indicate non-clickable */
+        /* .question-indicator:hover {
             background-color: #dee2e6;
             transform: scale(1.1);
-        }
+        } */
         
         .question-indicator.answered {
             background-color: #28a745;
@@ -529,14 +531,16 @@
             border-radius: 50%;
             background: #e9ecef;
             border: 2px solid #dee2e6;
-            cursor: pointer;
+            cursor: default; /* Changed from pointer to default */
             transition: all 0.2s ease;
             position: relative;
+            pointer-events: none; /* Disable all pointer events */
         }
 
-        .question-indicator:hover {
+        /* Removed hover effect to indicate non-clickable */
+        /* .question-indicator:hover {
             transform: scale(1.2);
-        }
+        } */
 
         .question-indicator.current {
             background: #007bff;
@@ -1578,14 +1582,18 @@
                 console.warn('Previous button not found');
             }
 
-            // Add event listeners for question indicators
+            // Add event listeners for question indicators - DISABLED to prevent errors
             const indicators = document.querySelectorAll('.question-indicator');
             if (indicators.length > 0) {
                 indicators.forEach((indicator, index) => {
                     if (indicator) {
-                        indicator.addEventListener('click', () => goToQuestion(index));
+                        // Disable click functionality to prevent errors
+                        // indicator.addEventListener('click', () => goToQuestion(index));
+                        indicator.style.cursor = 'default'; // Remove pointer cursor
+                        indicator.style.pointerEvents = 'none'; // Disable all pointer events
                     }
                 });
+                console.log('Question indicators found but click functionality disabled');
             } else {
                 console.warn('No question indicators found');
             }
