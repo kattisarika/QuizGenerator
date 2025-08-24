@@ -3208,8 +3208,100 @@ app.post('/request-recorrection', requireAuth, requireRole(['student']), async (
   }
 });
 
-// API endpoint to get recorrection requests for teachers
+// Legacy API endpoint to get recorrection requests for teachers (kept for backward compatibility)
 app.get('/api/recorrection-requests', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const QuizResult = require('./models/QuizResult');
+
+    // Get grade filter and pagination parameters
+    const selectedGrade = req.query.grade || 'all';
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Build base query for regular recorrection requests only
+    let baseQuery = {
+      teacherId: req.user._id,
+      organizationId: req.user.organizationId,
+      status: 'pending-recorrection',
+      recorrectionRequested: true
+    };
+
+    // Get total count for pagination
+    let totalRequests;
+    if (selectedGrade === 'all') {
+      totalRequests = await QuizResult.countDocuments(baseQuery);
+    } else {
+      // For grade-specific filtering, we need to join with Quiz collection
+      totalRequests = await QuizResult.aggregate([
+        { $match: baseQuery },
+        { $lookup: { from: 'quizzes', localField: 'quiz', foreignField: '_id', as: 'quizData' } },
+        { $unwind: '$quizData' },
+        { $match: { 'quizData.gradeLevel': selectedGrade } },
+        { $count: 'total' }
+      ]);
+      totalRequests = totalRequests.length > 0 ? totalRequests[0].total : 0;
+    }
+
+    // Get paginated recorrection requests
+    let requests;
+    if (selectedGrade === 'all') {
+      requests = await QuizResult.find(baseQuery)
+        .populate('student', 'displayName email')
+        .populate('quiz', 'title gradeLevel')
+        .sort({ recorrectionRequestedAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    } else {
+      // For grade-specific filtering, use aggregation
+      requests = await QuizResult.aggregate([
+        { $match: baseQuery },
+        { $lookup: { from: 'quizzes', localField: 'quiz', foreignField: '_id', as: 'quizData' } },
+        { $unwind: '$quizData' },
+        { $match: { 'quizData.gradeLevel': selectedGrade } },
+        { $sort: { recorrectionRequestedAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        { $lookup: { from: 'users', localField: 'student', foreignField: '_id', as: 'studentData' } },
+        { $unwind: '$studentData' },
+        { $project: {
+          _id: 1,
+          score: 1,
+          percentage: 1,
+          recorrectionRequestedAt: 1,
+          student: '$studentData',
+          quiz: '$quizData'
+        }}
+      ]);
+    }
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalRequests / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    res.json({
+      requests,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalRequests,
+        limit,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching recorrection requests:', error);
+    res.status(500).json({ error: 'Error fetching recorrection requests' });
+  }
+});
+
+// Unified API endpoint to get both recorrection requests and complex quiz grading for teachers
+app.get('/api/grading-requests', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const QuizResult = require('./models/QuizResult');
     
@@ -3219,12 +3311,26 @@ app.get('/api/recorrection-requests', requireAuth, requireRole(['teacher']), req
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     
-    // Build base query
+    // Build base query for both recorrection requests and complex quiz grading
     let baseQuery = {
       teacherId: req.user._id,
       organizationId: req.user.organizationId,
-      status: 'pending-recorrection',
-      recorrectionRequested: true
+      $or: [
+        // Regular quiz recorrection requests
+        {
+          status: 'pending-recorrection',
+          recorrectionRequested: true
+        },
+        // Complex quiz grading (including recorrection)
+        {
+          isComplexQuiz: true,
+          needsManualGrading: true,
+          $or: [
+            { gradingStatus: 'pending' },
+            { status: 'pending-recorrection' }
+          ]
+        }
+      ]
     };
     
     // Get total count for pagination
