@@ -821,14 +821,18 @@
                         <!-- Debug: Template rendering check -->
                         <script>
                             console.log('🔍 TEMPLATE DEBUG - Questions container rendering...');
+                            console.log('Quiz object keys:', <%= JSON.stringify(Object.keys(quiz)) %>);
                             console.log('Quiz isComplexQuiz:', <%= quiz.isComplexQuiz ? 'true' : 'false' %>);
                             console.log('Quiz has complexQuizData:', <%= quiz.complexQuizData ? 'true' : 'false' %>);
                             console.log('Quiz has questions:', <%= quiz.questions ? 'true' : 'false' %>);
+                            console.log('Quiz has elements:', <%= quiz.elements ? 'true' : 'false' %>);
                             <% if (quiz.questions) { %>
                                 console.log('Questions array length:', <%= quiz.questions.length %>);
-                                <% quiz.questions.forEach((question, index) => { %>
-                                    console.log('Question <%= index %>:', {
-                                        hasQuestion: <%= question.question ? 'true' : 'false' %>,
+                                console.log('Questions array type:', typeof <%= JSON.stringify(quiz.questions) %>);
+                                <% if (quiz.questions.length > 0) { %>
+                                    <% quiz.questions.forEach((question, index) => { %>
+                                        console.log('Question <%= index %>:', {
+                                            hasQuestion: <%= question.question ? 'true' : 'false' %>,
                                         questionText: '<%= question.question ? question.question.substring(0, 50).replace(/'/g, "\\'") : "No question text" %>...',
                                         hasOptions: <%= question.options ? 'true' : 'false' %>,
                                         optionsCount: <%= question.options ? question.options.length : 0 %>,
@@ -1256,6 +1260,18 @@
                                         console.log(`Rendered question ${i}: ID=${q.id}, classes=${q.className}, display=${window.getComputedStyle(q).display}`);
                                     });
                                 }, 100);
+                            </script>
+
+                            <!-- Debug: Check questions before rendering -->
+                            <script>
+                                console.log('🔍 QUESTIONS RENDERING CHECK:');
+                                console.log('quiz.questions exists:', <%= quiz.questions ? 'true' : 'false' %>);
+                                <% if (quiz.questions) { %>
+                                    console.log('quiz.questions.length:', <%= quiz.questions.length %>);
+                                    console.log('quiz.questions is array:', <%= Array.isArray(quiz.questions) %>);
+                                <% } else { %>
+                                    console.log('❌ quiz.questions is null/undefined');
+                                <% } %>
                             </script>
 
                             <% if (quiz.questions && quiz.questions.length > 0) { %>
