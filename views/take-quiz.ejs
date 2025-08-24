@@ -1644,6 +1644,15 @@
 
                 // Set up beforeunload protection after initialization
                 setupBeforeUnloadProtection();
+
+                // Process MathJax for the initial question display
+                if (window.MathJax) {
+                    setTimeout(() => {
+                        MathJax.typesetPromise().catch(function (err) {
+                            console.log('MathJax typeset error on initial load:', err.message);
+                        });
+                    }, 200);
+                }
             }, 500);
         });
 
@@ -1929,6 +1938,15 @@
             }
             
             updateProgress();
+
+            // Process MathJax for the newly displayed question
+            if (window.MathJax) {
+                setTimeout(() => {
+                    MathJax.typesetPromise().catch(function (err) {
+                        console.log('MathJax typeset error:', err.message);
+                    });
+                }, 100);
+            }
         }
 
         // One Question Per Page Navigation System
@@ -1961,6 +1979,15 @@
                 showQuestion(regularCurrentQuestion);
                 updateNavigationState();
                 updateProgress();
+
+                // Process MathJax for the newly displayed question
+                if (window.MathJax) {
+                    setTimeout(() => {
+                        MathJax.typesetPromise().catch(function (err) {
+                            console.log('MathJax typeset error:', err.message);
+                        });
+                    }, 100);
+                }
             }
         }
 
@@ -1972,6 +1999,15 @@
                 showQuestion(regularCurrentQuestion);
                 updateNavigationState();
                 updateProgress();
+
+                // Process MathJax for the newly displayed question
+                if (window.MathJax) {
+                    setTimeout(() => {
+                        MathJax.typesetPromise().catch(function (err) {
+                            console.log('MathJax typeset error:', err.message);
+                        });
+                    }, 100);
+                }
             }
         }
 
@@ -1983,6 +2019,15 @@
                 showQuestion(regularCurrentQuestion);
                 updateNavigationState();
                 updateProgress();
+
+                // Process MathJax for the newly displayed question
+                if (window.MathJax) {
+                    setTimeout(() => {
+                        MathJax.typesetPromise().catch(function (err) {
+                            console.log('MathJax typeset error:', err.message);
+                        });
+                    }, 100);
+                }
             }
         }
 
