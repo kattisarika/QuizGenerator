@@ -24,9 +24,7 @@
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-    <!-- PDF Export Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 
     <style>
         body {
@@ -1084,19 +1082,9 @@
 
                                     <!-- Questions List -->
                                     <div id="questionsList" class="mb-4" style="display: none;">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h5 class="text-primary mb-0">
-                                                <i class="fas fa-list me-2"></i>Questions Added
-                                            </h5>
-                                            <div class="btn-group">
-                                                <button type="button" class="btn btn-outline-info btn-sm" onclick="debugQuestions()" title="Debug questions data">
-                                                    <i class="fas fa-bug me-1"></i>Debug
-                                                </button>
-                                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="exportManualQuizToPDF()" title="Export current questions as PDF">
-                                                    <i class="fas fa-file-pdf me-1"></i>Export PDF
-                                                </button>
-                                            </div>
-                                        </div>
+                                        <h5 class="text-primary mb-3">
+                                            <i class="fas fa-list me-2"></i>Questions Added
+                                        </h5>
                                         <div id="questionsContainer" class="list-group">
                                             <!-- Questions will be added here dynamically -->
                                         </div>
@@ -1107,14 +1095,9 @@
                                         <button type="button" class="btn btn-primary btn-lg" onclick="saveAndNext()">
                                             <i class="fas fa-arrow-right me-2"></i>Next Question
                                         </button>
-                                        <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-warning btn-lg" onclick="exportManualQuizToPDF()" title="Export quiz as PDF">
-                                                <i class="fas fa-file-pdf me-2"></i>Save as PDF
-                                            </button>
-                                            <button type="button" class="btn btn-success btn-lg" onclick="finishQuiz()">
-                                                <i class="fas fa-check-circle me-2"></i>Finish Quiz
-                                            </button>
-                                        </div>
+                                        <button type="button" class="btn btn-success btn-lg" onclick="finishQuiz()">
+                                            <i class="fas fa-check-circle me-2"></i>Finish Quiz
+                                        </button>
                                     </div>
                                 </form>
                             </div>
@@ -2201,248 +2184,9 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             }
         }
 
-        // Export manual quiz to PDF - Capture actual visual preview content
-        async function exportManualQuizToPDF() {
-            try {
-                // Get quiz information
-                const title = document.getElementById('manualTitle').value.trim() || 'Manual Quiz';
-                const description = document.getElementById('manualDescription').value.trim() || 'No description provided';
-                const grade = document.getElementById('manualGrade').value || 'Not specified';
-                const subject = document.getElementById('manualSubject').value || 'Not specified';
-                const quizType = document.querySelector('input[name="manualQuizType"]:checked')?.value || 'regular';
 
-                // Check if there are questions in the preview
-                const questionsContainer = document.getElementById('questionsContainer');
-                const questionElements = questionsContainer.querySelectorAll('.list-group-item');
 
-                console.log('📺 Found question elements in preview:', questionElements.length);
 
-                if (questionElements.length === 0) {
-                    // Check if current question should be included
-                    const questionText = getQuestionText().trim();
-                    if (questionText) {
-                        if (confirm('📝 No saved questions found, but you have a current question.\n\nDo you want to include the current question in the PDF?')) {
-                            if (!validateCurrentQuestion()) {
-                                alert('Please complete the current question before exporting.');
-                                return;
-                            }
-                        } else {
-                            alert('No questions to export. Please add at least one question.');
-                            return;
-                        }
-                    } else {
-                        alert('No questions to export. Please add at least one question.');
-                        return;
-                    }
-                }
-
-                // Show loading indicator
-                const loadingDiv = document.createElement('div');
-                loadingDiv.id = 'pdf-loading';
-                loadingDiv.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0, 0, 0, 0.8);
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 10000;
-                    color: white;
-                    font-size: 18px;
-                `;
-                loadingDiv.innerHTML = `
-                    <div style="text-align: center;">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-                        📺 Capturing preview content...<br>
-                        <small>Converting visual display to PDF</small>
-                    </div>
-                `;
-                document.body.appendChild(loadingDiv);
-
-                // Initialize jsPDF
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-
-                // PDF dimensions
-                const pageWidth = 210; // A4 width in mm
-                const pageHeight = 297; // A4 height in mm
-                const margin = 20;
-                const contentWidth = pageWidth - (margin * 2);
-
-                // Add title page
-                pdf.setFontSize(24);
-                pdf.setFont(undefined, 'bold');
-                pdf.text(title, pageWidth / 2, 40, { align: 'center' });
-
-                pdf.setFontSize(14);
-                pdf.setFont(undefined, 'normal');
-                if (description) {
-                    const splitDescription = pdf.splitTextToSize(description, contentWidth);
-                    pdf.text(splitDescription, margin, 60);
-                }
-
-                // Add quiz metadata
-                let yPos = 100;
-                pdf.text(`Grade Level: ${grade}`, margin, yPos);
-                yPos += 10;
-                pdf.text(`Subject: ${subject}`, margin, yPos);
-                yPos += 10;
-                pdf.text(`Quiz Type: ${quizType.charAt(0).toUpperCase() + quizType.slice(1)}`, margin, yPos);
-                yPos += 10;
-                pdf.text(`Total Questions: ${questionElements.length}`, margin, yPos);
-                yPos += 10;
-                pdf.text(`Created: ${new Date().toLocaleDateString()}`, margin, yPos);
-                yPos += 10;
-                pdf.text(`Source: Visual Preview Capture`, margin, yPos);
-
-                // ✅ CAPTURE VISUAL PREVIEW OF EACH QUESTION
-                for (let index = 0; index < questionElements.length; index++) {
-                    const questionElement = questionElements[index];
-                    console.log(`📺 Capturing visual preview of question ${index + 1}`);
-
-                    // Add new page for each question
-                    pdf.addPage();
-
-                    // Add question header
-                    pdf.setFontSize(16);
-                    pdf.setFont(undefined, 'bold');
-                    pdf.text(`Question ${index + 1}`, margin, 25);
-
-                    try {
-                        // ✅ CAPTURE THE ACTUAL VISUAL PREVIEW ELEMENT
-                        const canvas = await html2canvas(questionElement, {
-                            backgroundColor: '#ffffff',
-                            scale: 2,
-                            useCORS: true,
-                            allowTaint: true,
-                            width: questionElement.scrollWidth,
-                            height: questionElement.scrollHeight
-                        });
-
-                        const imgData = canvas.toDataURL('image/png');
-
-                        // Calculate dimensions to fit in PDF
-                        const imgWidth = contentWidth;
-                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-                        // Add the captured preview image to PDF
-                        if (imgHeight <= pageHeight - 60) {
-                            pdf.addImage(imgData, 'PNG', margin, 40, imgWidth, imgHeight);
-                        } else {
-                            // Scale down if too large
-                            const scaledHeight = pageHeight - 60;
-                            const scaledWidth = (canvas.width * scaledHeight) / canvas.height;
-                            pdf.addImage(imgData, 'PNG', margin, 40, scaledWidth, scaledHeight);
-                        }
-
-                        console.log(`✅ Successfully captured question ${index + 1} preview`);
-
-                    } catch (error) {
-                        console.error(`❌ Error capturing question ${index + 1}:`, error);
-
-                        // Fallback: Extract text from preview element
-                        const questionTextElement = questionElement.querySelector('p.mb-1');
-                        const questionText = questionTextElement ? questionTextElement.textContent.trim() : `Question ${index + 1}`;
-
-                        pdf.setFontSize(12);
-                        pdf.setFont(undefined, 'normal');
-                        const questionLines = pdf.splitTextToSize(questionText, contentWidth);
-                        pdf.text(questionLines, margin, 50);
-
-                        // Add error note
-                        pdf.setFontSize(10);
-                        pdf.setTextColor(255, 0, 0);
-                        pdf.text('[Preview capture failed - showing text only]', margin, 70);
-                        pdf.setTextColor(0, 0, 0);
-                    }
-                }
-
-                // Handle current unsaved question if needed
-                const currentQuestionText = getQuestionText().trim();
-                if (currentQuestionText && questionElements.length === 0) {
-                    // Only current question exists, add it
-                    pdf.addPage();
-
-                    pdf.setFontSize(16);
-                    pdf.setFont(undefined, 'bold');
-                    pdf.text('Question 1 (Current)', margin, 25);
-
-                    pdf.setFontSize(12);
-                    pdf.setFont(undefined, 'normal');
-                    const questionLines = pdf.splitTextToSize(currentQuestionText, contentWidth);
-                    pdf.text(questionLines, margin, 50);
-
-                    console.log('📝 Added current unsaved question to PDF');
-                }
-
-                // Save the PDF
-                const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_preview_capture.pdf`;
-                pdf.save(fileName);
-
-                // Remove loading indicator
-                document.body.removeChild(loadingDiv);
-
-                // Show success message
-                const totalQuestions = questionElements.length + (currentQuestionText && questionElements.length === 0 ? 1 : 0);
-                alert(`✅ PDF exported successfully as "${fileName}"\n\n📺 VISUAL PREVIEW CAPTURED!\n\nThe PDF contains the exact visual content as displayed in the preview.\n\n📄 Questions captured: ${totalQuestions}`);
-
-            } catch (error) {
-                console.error('Error exporting PDF:', error);
-
-                // Remove loading indicator if it exists
-                const loadingDiv = document.getElementById('pdf-loading');
-                if (loadingDiv) {
-                    document.body.removeChild(loadingDiv);
-                }
-
-                alert('Error exporting PDF: ' + error.message);
-            }
-        }
-
-        // Debug function to check preview content
-        function debugQuestions() {
-            console.log('=== VISUAL PREVIEW DEBUG ===');
-
-            const questionsContainer = document.getElementById('questionsContainer');
-            const questionElements = questionsContainer.querySelectorAll('.list-group-item');
-
-            console.log('📺 Questions in preview container:', questionElements.length);
-            console.log('📊 Manual questions array:', manualQuestions.length);
-
-            questionElements.forEach((element, index) => {
-                const questionTextElement = element.querySelector('p.mb-1');
-                const questionText = questionTextElement ? questionTextElement.textContent.trim() : 'No text';
-                const typeElement = element.querySelector('small.text-muted');
-                const typeText = typeElement ? typeElement.textContent.trim() : 'No type';
-                const hasImageElement = element.querySelector('small.text-info');
-                const hasImage = hasImageElement && hasImageElement.textContent.includes('Has image');
-
-                console.log(`📺 Preview Question ${index + 1}:`, {
-                    text: questionText,
-                    type: typeText,
-                    hasImage: hasImage,
-                    element: element
-                });
-            });
-
-            const currentQuestionText = getQuestionText().trim();
-            console.log('📝 Current unsaved question:', currentQuestionText);
-
-            alert(`📺 VISUAL PREVIEW CAPTURE DEBUG:\n\n✅ Questions in preview: ${questionElements.length}\n📊 Saved questions: ${manualQuestions.length}\n📝 Current question: ${currentQuestionText ? 'Yes' : 'No'}\n\n🔍 Check console for preview element details.\n\n📄 PDF will capture the VISUAL PREVIEW exactly as shown!`);
-        }
-
-        // Simple helper to get current question text
-        function getCurrentQuestionText() {
-            return getQuestionText().trim();
-        }
-
-        // Make functions globally available
-        window.exportManualQuizToPDF = exportManualQuizToPDF;
-        window.debugQuestions = debugQuestions;
-        window.getCurrentQuestionText = getCurrentQuestionText;
     </script>
 </body>
 </html>
