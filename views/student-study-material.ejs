@@ -39,22 +39,37 @@
                 <div class="material-filters">
                     <div class="filter-group">
                         <label for="categoryFilter">Filter by Category:</label>
-                        <select id="categoryFilter" class="form-control" onchange="filterMaterial()">
-                            <option value="">All Categories</option>
-                            <option value="Lecture Notes">Lecture Notes</option>
-                            <option value="Study Material">Study Material</option>
-                            <option value="Assignment">Assignment</option>
-                            <option value="Reference">Reference</option>
-                            <option value="Other">Other</option>
+                        <select id="categoryFilter" class="form-control" onchange="applyFilters()">
+                            <option value="all" <%= filters && filters.category === 'all' ? 'selected' : '' %>>All Categories</option>
+                            <% if (categories && categories.length > 0) { %>
+                                <% categories.forEach(cat => { %>
+                                    <option value="<%= cat %>" <%= filters && filters.category === cat ? 'selected' : '' %>><%= cat %></option>
+                                <% }); %>
+                            <% } else { %>
+                                <option value="Lecture Notes">Lecture Notes</option>
+                                <option value="Study Material">Study Material</option>
+                                <option value="Assignment">Assignment</option>
+                                <option value="Reference">Reference</option>
+                                <option value="Other">Other</option>
+                            <% } %>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label for="sortBy">Sort by:</label>
-                        <select id="sortBy" class="form-control" onchange="sortMaterial()">
-                            <option value="newest">Newest First</option>
-                            <option value="oldest">Oldest First</option>
-                            <option value="downloads">Most Downloads</option>
-                            <option value="title">Title A-Z</option>
+                        <select id="sortBy" class="form-control" onchange="applyFilters()">
+                            <option value="newest" <%= filters && filters.sortBy === 'newest' ? 'selected' : '' %>>Newest First</option>
+                            <option value="oldest" <%= filters && filters.sortBy === 'oldest' ? 'selected' : '' %>>Oldest First</option>
+                            <option value="downloads" <%= filters && filters.sortBy === 'downloads' ? 'selected' : '' %>>Most Downloads</option>
+                            <option value="title" <%= filters && filters.sortBy === 'title' ? 'selected' : '' %>>Title A-Z</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="pageSize">Items per page:</label>
+                        <select id="pageSize" class="form-control" onchange="applyFilters()">
+                            <option value="6" <%= pagination && pagination.limit == 6 ? 'selected' : '' %>>6</option>
+                            <option value="12" <%= pagination && pagination.limit == 12 ? 'selected' : '' %>>12</option>
+                            <option value="24" <%= pagination && pagination.limit == 24 ? 'selected' : '' %>>24</option>
+                            <option value="48" <%= pagination && pagination.limit == 48 ? 'selected' : '' %>>48</option>
                         </select>
                     </div>
                 </div>
@@ -127,6 +142,59 @@
                         </div>
                     <% } %>
                 </div>
+
+                <!-- Pagination Controls -->
+                <% if (pagination && (pagination.totalPages > 1 || pagination.totalMaterials > pagination.limit)) { %>
+                    <div class="pagination-container" style="margin-top: 40px; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); text-align: center;">
+                        <div class="pagination-info" style="margin-bottom: 20px; color: #6b7280; font-size: 14px;">
+                            <span>Showing <%= ((pagination.currentPage - 1) * pagination.limit) + 1 %>-<%= Math.min(pagination.currentPage * pagination.limit, pagination.totalMaterials) %> of <%= pagination.totalMaterials %> study materials</span>
+                        </div>
+
+                        <div class="pagination-controls" style="display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap;">
+                            <a href="?page=<%= pagination.prevPage %>&limit=<%= pagination.limit %>&category=<%= filters.category %>&sort=<%= filters.sortBy %>"
+                               class="btn btn-sm btn-outline-primary <%= !pagination.hasPrevPage ? 'disabled' : '' %>"
+                               <%= !pagination.hasPrevPage ? 'onclick="return false;"' : '' %>>
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </a>
+                            <span class="page-indicator" style="color: #374151; font-weight: 500;">
+                                Page <span><%= pagination.currentPage %></span> of <span><%= pagination.totalPages %></span>
+                            </span>
+                            <a href="?page=<%= pagination.nextPage %>&limit=<%= pagination.limit %>&category=<%= filters.category %>&sort=<%= filters.sortBy %>"
+                               class="btn btn-sm btn-outline-primary <%= !pagination.hasNextPage ? 'disabled' : '' %>"
+                               <%= !pagination.hasNextPage ? 'onclick="return false;"' : '' %>>
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+
+                        <!-- Quick Page Navigation -->
+                        <% if (pagination.totalPages > 2) { %>
+                            <div class="quick-nav" style="margin-top: 15px;">
+                                <span style="color: #6b7280; font-size: 14px; margin-right: 10px;">Go to page:</span>
+                                <%
+                                const startPage = Math.max(1, pagination.currentPage - 2);
+                                const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+                                %>
+                                <% if (startPage > 1) { %>
+                                    <a href="?page=1&limit=<%= pagination.limit %>&category=<%= filters.category %>&sort=<%= filters.sortBy %>" class="btn btn-sm btn-outline-secondary" style="margin: 0 2px;">1</a>
+                                    <% if (startPage > 2) { %>
+                                        <span style="margin: 0 5px;">...</span>
+                                    <% } %>
+                                <% } %>
+                                <% for (let i = startPage; i <= endPage; i++) { %>
+                                    <a href="?page=<%= i %>&limit=<%= pagination.limit %>&category=<%= filters.category %>&sort=<%= filters.sortBy %>"
+                                       class="btn btn-sm <%= i === pagination.currentPage ? 'btn-primary' : 'btn-outline-secondary' %>"
+                                       style="margin: 0 2px;"><%= i %></a>
+                                <% } %>
+                                <% if (endPage < pagination.totalPages) { %>
+                                    <% if (endPage < pagination.totalPages - 1) { %>
+                                        <span style="margin: 0 5px;">...</span>
+                                    <% } %>
+                                    <a href="?page=<%= pagination.totalPages %>&limit=<%= pagination.limit %>&category=<%= filters.category %>&sort=<%= filters.sortBy %>" class="btn btn-sm btn-outline-secondary" style="margin: 0 2px;"><%= pagination.totalPages %></a>
+                                <% } %>
+                            </div>
+                        <% } %>
+                    </div>
+                <% } %>
             </div>
         </div>
     </main>
@@ -188,8 +256,25 @@
                         return 0;
                 }
             });
-            
+
             materialCards.forEach(card => materialGrid.appendChild(card));
+        }
+
+        // Apply filters and pagination (server-side)
+        function applyFilters() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+            const pageSize = document.getElementById('pageSize').value;
+
+            // Build URL with current filters
+            const urlParams = new URLSearchParams();
+            urlParams.set('page', '1'); // Reset to first page when changing filters
+            urlParams.set('limit', pageSize);
+            urlParams.set('category', categoryFilter);
+            urlParams.set('sort', sortBy);
+
+            // Redirect with new parameters
+            window.location.search = urlParams.toString();
         }
 
 

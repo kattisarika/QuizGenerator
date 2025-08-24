@@ -1667,9 +1667,18 @@ app.get('/teacher/dashboard', requireAuth, requireRole(['teacher']), requireAppr
 // Route for student study material page
 app.get('/student/study-material', requireAuth, requireRole(['student']), async (req, res) => {
   try {
+    console.log(`\n=== STUDY MATERIAL DEBUG for ${req.user.email} ===`);
+
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const skip = (page - 1) * limit;
+    const category = req.query.category || 'all';
+    const sortBy = req.query.sort || 'newest';
+
     // Get all organization IDs the student belongs to
     let organizationIds = [];
-    
+
     if (req.user.organizationMemberships && req.user.organizationMemberships.length > 0) {
       // Multi-organization student - get content from all organizations
       organizationIds = req.user.organizationMemberships.map(membership => membership.organizationId);
@@ -1696,11 +1705,43 @@ app.get('/student/study-material', requireAuth, requireRole(['student']), async 
       console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all content from ${organizationIds.length} organization(s)`);
       messageForStudent = "Your grade level is not set. Please ask your teacher to assign you to the correct grade, or update your profile.";
     }
-    
+
+    // Add category filter if specified
+    if (category && category !== 'all') {
+      query.category = category;
+      console.log(`📂 Filtering by category: ${category}`);
+    }
+
+    // Get total count for pagination
+    const totalMaterials = await Content.countDocuments(query);
+    console.log(`📊 Total study materials matching filter: ${totalMaterials}`);
+
+    // Build sort object
+    let sortObject = {};
+    switch (sortBy) {
+      case 'oldest':
+        sortObject = { createdAt: 1 };
+        break;
+      case 'downloads':
+        sortObject = { downloads: -1 };
+        break;
+      case 'title':
+        sortObject = { title: 1 };
+        break;
+      case 'newest':
+      default:
+        sortObject = { createdAt: -1 };
+        break;
+    }
+
+    // Fetch paginated study materials
     const studyMaterial = await Content.find(query)
       .populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
-      .sort({ createdAt: -1 });
+      .sort(sortObject)
+      .skip(skip)
+      .limit(limit)
+      .lean(); // Use lean for better performance
     
     console.log(`📚 Found ${studyMaterial.length} study materials for grade ${req.user.gradeLevel || 'any'}`);
     
@@ -1717,22 +1758,61 @@ app.get('/student/study-material', requireAuth, requireRole(['student']), async 
     console.log(contentByGrade);
     
     // Get organization details for display
-    const organizations = await Organization.find({ 
-      _id: { $in: organizationIds } 
+    const organizations = await Organization.find({
+      _id: { $in: organizationIds }
     }).select('name subdomain');
-    
+
+    // Calculate pagination data
+    const totalPages = Math.ceil(totalMaterials / limit);
+
+    // Get unique categories for filter dropdown
+    const allCategories = await Content.distinct('category', {
+      isApproved: true,
+      organizationId: { $in: organizationIds }
+    });
+
     res.render('student-study-material', {
       user: req.user,
       studyMaterial,
       gradeMessage: messageForStudent,
-      organizations: organizations
+      organizations: organizations,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalMaterials,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+        nextPage: page < totalPages ? page + 1 : null,
+        prevPage: page > 1 ? page - 1 : null
+      },
+      filters: {
+        category: category,
+        sortBy: sortBy
+      },
+      categories: allCategories
     });
   } catch (error) {
     console.error('Error fetching study material:', error);
     res.render('student-study-material', {
       user: req.user,
       studyMaterial: [],
-      organizations: []
+      organizations: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        totalMaterials: 0,
+        limit: 12,
+        hasNextPage: false,
+        hasPrevPage: false,
+        nextPage: null,
+        prevPage: null
+      },
+      filters: {
+        category: 'all',
+        sortBy: 'newest'
+      },
+      categories: []
     });
   }
 });
