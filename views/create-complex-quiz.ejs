@@ -502,6 +502,43 @@
             border-bottom: 1px solid #e5e7eb;
         }
 
+        /* Math Category Styles */
+        .math-category-header:hover {
+            background: #f3f4f6;
+            border-radius: 6px;
+            padding: 8px !important;
+        }
+
+        .math-subcategory {
+            margin-bottom: 16px;
+            padding-left: 8px;
+            border-left: 2px solid #e5e7eb;
+        }
+
+        .math-subcategory-title {
+            color: #6b7280;
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .math-subcategory .tool-item {
+            margin-bottom: 6px;
+            font-size: 13px;
+            padding: 8px 12px;
+        }
+
+        .math-subcategory .tool-item i {
+            width: 16px;
+            font-size: 12px;
+        }
+
+        #math-chevron.rotated {
+            transform: rotate(180deg);
+        }
+
         /* Responsive design */
         @media (max-width: 1200px) {
             .tools-sidebar {
@@ -658,6 +695,139 @@
                 <div class="tool-item" draggable="true" data-type="answer-area">
                     <i class="fas fa-edit"></i>
                     <span>Answer Area</span>
+                </div>
+            </div>
+
+            <!-- Math Elements -->
+            <div class="tool-category">
+                <div class="math-category-header" onclick="toggleMathCategory()" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 8px 0;">
+                    <h6 style="margin: 0; color: #4f46e5;">
+                        <i class="fas fa-calculator me-2"></i>Math
+                    </h6>
+                    <i class="fas fa-chevron-down" id="math-chevron" style="transition: transform 0.3s ease; color: #6b7280;"></i>
+                </div>
+
+                <div id="math-elements" style="display: none; margin-top: 8px;">
+                    <!-- Basic Elements -->
+                    <div class="math-subcategory">
+                        <h6 class="math-subcategory-title">Basic Elements</h6>
+                        <div class="tool-item" draggable="true" data-type="math-number">
+                            <i class="fas fa-hashtag"></i>
+                            <span>Number</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-fraction">
+                            <i class="fas fa-divide"></i>
+                            <span>Fraction</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-equation">
+                            <i class="fas fa-equals"></i>
+                            <span>Equation</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-expression">
+                            <i class="fas fa-function"></i>
+                            <span>Expression</span>
+                        </div>
+                    </div>
+
+                    <!-- Geometric Shapes -->
+                    <div class="math-subcategory">
+                        <h6 class="math-subcategory-title">Geometric Shapes</h6>
+                        <div class="tool-item" draggable="true" data-type="math-triangle">
+                            <i class="fas fa-play" style="transform: rotate(90deg);"></i>
+                            <span>Triangle</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-square">
+                            <i class="fas fa-square"></i>
+                            <span>Square</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-circle">
+                            <i class="fas fa-circle"></i>
+                            <span>Circle</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-rectangle">
+                            <i class="fas fa-rectangle-landscape"></i>
+                            <span>Rectangle</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-polygon">
+                            <i class="fas fa-draw-polygon"></i>
+                            <span>Polygon</span>
+                        </div>
+                    </div>
+
+                    <!-- 3D Shapes -->
+                    <div class="math-subcategory">
+                        <h6 class="math-subcategory-title">3D Shapes</h6>
+                        <div class="tool-item" draggable="true" data-type="math-cube">
+                            <i class="fas fa-cube"></i>
+                            <span>Cube</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-sphere">
+                            <i class="fas fa-globe"></i>
+                            <span>Sphere</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-cylinder">
+                            <i class="fas fa-database"></i>
+                            <span>Cylinder</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-cone">
+                            <i class="fas fa-triangle"></i>
+                            <span>Cone</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-pyramid">
+                            <i class="fas fa-mountain"></i>
+                            <span>Pyramid</span>
+                        </div>
+                    </div>
+
+                    <!-- Charts and Graphs -->
+                    <div class="math-subcategory">
+                        <h6 class="math-subcategory-title">Charts and Graphs</h6>
+                        <div class="tool-item" draggable="true" data-type="math-bar-chart">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Bar Chart</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-line-graph">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Line Graph</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-pie-chart">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Pie Chart</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-coordinate-grid">
+                            <i class="fas fa-border-all"></i>
+                            <span>Coordinate Grid</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-scatter-plot">
+                            <i class="fas fa-braille"></i>
+                            <span>Scatter Plot</span>
+                        </div>
+                    </div>
+
+                    <!-- Math Science -->
+                    <div class="math-subcategory">
+                        <h6 class="math-subcategory-title">Math Science</h6>
+                        <div class="tool-item" draggable="true" data-type="math-formula">
+                            <i class="fas fa-square-root-alt"></i>
+                            <span>Formula</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-measurement">
+                            <i class="fas fa-ruler"></i>
+                            <span>Measurement</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-angle">
+                            <i class="fas fa-angle-right"></i>
+                            <span>Angle</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-vector">
+                            <i class="fas fa-arrow-right"></i>
+                            <span>Vector</span>
+                        </div>
+                        <div class="tool-item" draggable="true" data-type="math-matrix">
+                            <i class="fas fa-th"></i>
+                            <span>Matrix</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1202,6 +1372,50 @@
                     width = 300;
                     height = 200;
                     break;
+                // Math Elements - Basic
+                case 'math-number':
+                case 'math-fraction':
+                case 'math-equation':
+                case 'math-expression':
+                case 'math-formula':
+                    width = 200;
+                    height = 80;
+                    break;
+                // Math Elements - Geometric Shapes
+                case 'math-triangle':
+                case 'math-square':
+                case 'math-circle':
+                case 'math-rectangle':
+                case 'math-polygon':
+                    width = 120;
+                    height = 120;
+                    break;
+                // Math Elements - 3D Shapes
+                case 'math-cube':
+                case 'math-sphere':
+                case 'math-cylinder':
+                case 'math-cone':
+                case 'math-pyramid':
+                    width = 140;
+                    height = 140;
+                    break;
+                // Math Elements - Charts and Graphs
+                case 'math-bar-chart':
+                case 'math-line-graph':
+                case 'math-pie-chart':
+                case 'math-coordinate-grid':
+                case 'math-scatter-plot':
+                    width = 300;
+                    height = 200;
+                    break;
+                // Math Elements - Math Science
+                case 'math-measurement':
+                case 'math-angle':
+                case 'math-vector':
+                case 'math-matrix':
+                    width = 180;
+                    height = 120;
+                    break;
             }
 
             const element = {
@@ -1659,6 +1873,289 @@
                                 stroke-width="${element.strokeWidth || 2}" />
                         <text x="${(cuboidWidth + cuboidDepth + 20) / 2}" y="${cuboidHeight + cuboidDepth + 25}" text-anchor="middle" font-size="10" fill="#64748b">Cuboid (${cuboidWidth}×${cuboidHeight}×${cuboidDepth}px)</text>
                     </svg>`;
+
+                // Math Elements - Basic
+                case 'math-number':
+                    return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
+                        <div contenteditable="true" style="outline: none; font-size: 24px; font-weight: bold; color: #1e40af;">${element.content || '42'}</div>
+                        <small style="color: #64748b;">Number</small>
+                    </div>`;
+                case 'math-fraction':
+                    return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
+                        <div style="display: inline-block; text-align: center;">
+                            <div contenteditable="true" style="outline: none; border-bottom: 2px solid #1e40af; padding: 5px; font-size: 18px; font-weight: bold;">${element.numerator || '3'}</div>
+                            <div contenteditable="true" style="outline: none; padding: 5px; font-size: 18px; font-weight: bold;">${element.denominator || '4'}</div>
+                        </div>
+                        <br><small style="color: #64748b;">Fraction</small>
+                    </div>`;
+                case 'math-equation':
+                    return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
+                        <div contenteditable="true" style="outline: none; font-size: 18px; font-weight: bold; color: #1e40af;">${element.content || 'x + 5 = 12'}</div>
+                        <small style="color: #64748b;">Equation</small>
+                    </div>`;
+                case 'math-expression':
+                    return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
+                        <div contenteditable="true" style="outline: none; font-size: 18px; font-weight: bold; color: #1e40af;">${element.content || '2x + 3y'}</div>
+                        <small style="color: #64748b;">Expression</small>
+                    </div>`;
+                case 'math-formula':
+                    return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
+                        <div contenteditable="true" style="outline: none; font-size: 16px; font-weight: bold; color: #1e40af;">${element.content || 'A = πr²'}</div>
+                        <small style="color: #64748b;">Formula</small>
+                    </div>`;
+
+                // Math Elements - Geometric Shapes
+                case 'math-triangle':
+                    const mathTriSize = element.shapeSize || 80;
+                    return `<svg width="100%" height="100%" viewBox="0 0 ${mathTriSize + 20} ${mathTriSize + 30}" style="border: 2px solid #10b981; background: #f0fdf4; border-radius: 8px;">
+                        <polygon points="${(mathTriSize + 20) / 2},10 10,${mathTriSize} ${mathTriSize + 10},${mathTriSize}"
+                                fill="${element.fillColor || '#dcfce7'}"
+                                stroke="${element.strokeColor || '#10b981'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <text x="${(mathTriSize + 20) / 2}" y="${mathTriSize + 25}" text-anchor="middle" font-size="10" fill="#064e3b">Math Triangle</text>
+                    </svg>`;
+                case 'math-square':
+                    const mathSquareSize = element.shapeSize || 80;
+                    return `<svg width="100%" height="100%" viewBox="0 0 ${mathSquareSize + 20} ${mathSquareSize + 30}" style="border: 2px solid #10b981; background: #f0fdf4; border-radius: 8px;">
+                        <rect x="10" y="10" width="${mathSquareSize}" height="${mathSquareSize}"
+                              fill="${element.fillColor || '#dcfce7'}"
+                              stroke="${element.strokeColor || '#10b981'}"
+                              stroke-width="${element.strokeWidth || 2}" />
+                        <text x="${(mathSquareSize + 20) / 2}" y="${mathSquareSize + 25}" text-anchor="middle" font-size="10" fill="#064e3b">Math Square</text>
+                    </svg>`;
+                case 'math-circle':
+                    const mathCircleRadius = (element.shapeSize || 80) / 2;
+                    const mathCircleDiameter = mathCircleRadius * 2;
+                    return `<svg width="100%" height="100%" viewBox="0 0 ${mathCircleDiameter + 20} ${mathCircleDiameter + 30}" style="border: 2px solid #10b981; background: #f0fdf4; border-radius: 8px;">
+                        <circle cx="${(mathCircleDiameter + 20) / 2}" cy="${mathCircleRadius + 10}" r="${mathCircleRadius}"
+                               fill="${element.fillColor || '#dcfce7'}"
+                               stroke="${element.strokeColor || '#10b981'}"
+                               stroke-width="${element.strokeWidth || 2}" />
+                        <text x="${(mathCircleDiameter + 20) / 2}" y="${mathCircleDiameter + 25}" text-anchor="middle" font-size="10" fill="#064e3b">Math Circle</text>
+                    </svg>`;
+                case 'math-rectangle':
+                    const mathRectWidth = element.shapeWidth || 100;
+                    const mathRectHeight = element.shapeHeight || 60;
+                    return `<svg width="100%" height="100%" viewBox="0 0 ${mathRectWidth + 20} ${mathRectHeight + 30}" style="border: 2px solid #10b981; background: #f0fdf4; border-radius: 8px;">
+                        <rect x="10" y="10" width="${mathRectWidth}" height="${mathRectHeight}"
+                              fill="${element.fillColor || '#dcfce7'}"
+                              stroke="${element.strokeColor || '#10b981'}"
+                              stroke-width="${element.strokeWidth || 2}" />
+                        <text x="${(mathRectWidth + 20) / 2}" y="${mathRectHeight + 25}" text-anchor="middle" font-size="10" fill="#064e3b">Math Rectangle</text>
+                    </svg>`;
+                case 'math-polygon':
+                    const mathPolySize = element.shapeSize || 80;
+                    const mathPolySides = element.sides || 6;
+                    const mathPolyViewBox = `0 0 ${mathPolySize + 20} ${mathPolySize + 30}`;
+                    const mathPolyCenterX = (mathPolySize + 20) / 2;
+                    const mathPolyCenterY = (mathPolySize + 20) / 2;
+                    const mathPolyRadius = mathPolySize / 2;
+                    const mathPolyPoints = [];
+                    for (let i = 0; i < mathPolySides; i++) {
+                        const angle = (i * 2 * Math.PI / mathPolySides) - (Math.PI / 2);
+                        const x = mathPolyCenterX + mathPolyRadius * Math.cos(angle);
+                        const y = mathPolyCenterY + mathPolyRadius * Math.sin(angle);
+                        mathPolyPoints.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+                    }
+                    return `<svg width="100%" height="100%" viewBox="${mathPolyViewBox}" style="border: 2px solid #10b981; background: #f0fdf4; border-radius: 8px;">
+                        <polygon points="${mathPolyPoints.join(' ')}"
+                                fill="${element.fillColor || '#dcfce7'}"
+                                stroke="${element.strokeColor || '#10b981'}"
+                                stroke-width="${element.strokeWidth || 2}" />
+                        <text x="${mathPolyCenterX}" y="${mathPolySize + 25}" text-anchor="middle" font-size="10" fill="#064e3b">Math Polygon (${mathPolySides} sides)</text>
+                    </svg>`;
+
+                // Math Elements - 3D Shapes
+                case 'math-cube':
+                    const mathCubeSize = element.shapeSize || 80;
+                    return `<svg width="100%" height="100%" viewBox="0 0 ${mathCubeSize + 40} ${mathCubeSize + 50}" style="border: 2px solid #f59e0b; background: #fffbeb; border-radius: 8px;">
+                        <g transform="translate(10, 10)">
+                            <!-- Front face -->
+                            <rect x="0" y="20" width="${mathCubeSize}" height="${mathCubeSize}" fill="${element.fillColor || '#fef3c7'}" stroke="${element.strokeColor || '#f59e0b'}" stroke-width="2"/>
+                            <!-- Top face -->
+                            <polygon points="0,20 20,0 ${mathCubeSize + 20},0 ${mathCubeSize},20" fill="${element.fillColor || '#fde68a'}" stroke="${element.strokeColor || '#f59e0b'}" stroke-width="2"/>
+                            <!-- Right face -->
+                            <polygon points="${mathCubeSize},20 ${mathCubeSize + 20},0 ${mathCubeSize + 20},${mathCubeSize} ${mathCubeSize},${mathCubeSize + 20}" fill="${element.fillColor || '#fcd34d'}" stroke="${element.strokeColor || '#f59e0b'}" stroke-width="2"/>
+                        </g>
+                        <text x="${(mathCubeSize + 40) / 2}" y="${mathCubeSize + 35}" text-anchor="middle" font-size="10" fill="#92400e">Math Cube</text>
+                    </svg>`;
+                case 'math-sphere':
+                    const mathSphereRadius = (element.shapeSize || 80) / 2;
+                    const mathSphereDiameter = mathSphereRadius * 2;
+                    return `<svg width="100%" height="100%" viewBox="0 0 ${mathSphereDiameter + 20} ${mathSphereDiameter + 30}" style="border: 2px solid #f59e0b; background: #fffbeb; border-radius: 8px;">
+                        <defs>
+                            <radialGradient id="sphereGradient" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#fef3c7;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+                            </radialGradient>
+                        </defs>
+                        <circle cx="${(mathSphereDiameter + 20) / 2}" cy="${mathSphereRadius + 10}" r="${mathSphereRadius}"
+                               fill="url(#sphereGradient)"
+                               stroke="${element.strokeColor || '#f59e0b'}"
+                               stroke-width="${element.strokeWidth || 2}" />
+                        <text x="${(mathSphereDiameter + 20) / 2}" y="${mathSphereDiameter + 25}" text-anchor="middle" font-size="10" fill="#92400e">Math Sphere</text>
+                    </svg>`;
+                case 'math-cylinder':
+                    const mathCylWidth = element.shapeWidth || 80;
+                    const mathCylHeight = element.shapeHeight || 100;
+                    return `<svg width="100%" height="100%" viewBox="0 0 ${mathCylWidth + 20} ${mathCylHeight + 30}" style="border: 2px solid #f59e0b; background: #fffbeb; border-radius: 8px;">
+                        <defs>
+                            <ellipse id="cylTop" cx="${(mathCylWidth + 20) / 2}" cy="15" rx="${mathCylWidth / 2}" ry="10"/>
+                        </defs>
+                        <!-- Cylinder body -->
+                        <rect x="${10 + (mathCylWidth / 4)}" y="15" width="${mathCylWidth / 2}" height="${mathCylHeight}" fill="${element.fillColor || '#fef3c7'}" stroke="${element.strokeColor || '#f59e0b'}" stroke-width="2"/>
+                        <!-- Top ellipse -->
+                        <use href="#cylTop" fill="${element.fillColor || '#fde68a'}" stroke="${element.strokeColor || '#f59e0b'}" stroke-width="2"/>
+                        <!-- Bottom ellipse -->
+                        <ellipse cx="${(mathCylWidth + 20) / 2}" cy="${mathCylHeight + 15}" rx="${mathCylWidth / 2}" ry="10" fill="${element.fillColor || '#fcd34d'}" stroke="${element.strokeColor || '#f59e0b'}" stroke-width="2"/>
+                        <text x="${(mathCylWidth + 20) / 2}" y="${mathCylHeight + 35}" text-anchor="middle" font-size="10" fill="#92400e">Math Cylinder</text>
+                    </svg>`;
+                case 'math-cone':
+                    const mathConeBase = element.shapeWidth || 80;
+                    const mathConeHeight = element.shapeHeight || 100;
+                    return `<svg width="100%" height="100%" viewBox="0 0 ${mathConeBase + 20} ${mathConeHeight + 30}" style="border: 2px solid #f59e0b; background: #fffbeb; border-radius: 8px;">
+                        <!-- Cone body -->
+                        <polygon points="${(mathConeBase + 20) / 2},10 10,${mathConeHeight} ${mathConeBase + 10},${mathConeHeight}" fill="${element.fillColor || '#fef3c7'}" stroke="${element.strokeColor || '#f59e0b'}" stroke-width="2"/>
+                        <!-- Base ellipse -->
+                        <ellipse cx="${(mathConeBase + 20) / 2}" cy="${mathConeHeight}" rx="${mathConeBase / 2}" ry="8" fill="${element.fillColor || '#fcd34d'}" stroke="${element.strokeColor || '#f59e0b'}" stroke-width="2"/>
+                        <text x="${(mathConeBase + 20) / 2}" y="${mathConeHeight + 25}" text-anchor="middle" font-size="10" fill="#92400e">Math Cone</text>
+                    </svg>`;
+                case 'math-pyramid':
+                    const mathPyramidBase = element.shapeWidth || 80;
+                    const mathPyramidHeight = element.shapeHeight || 80;
+                    return `<svg width="100%" height="100%" viewBox="0 0 ${mathPyramidBase + 40} ${mathPyramidHeight + 30}" style="border: 2px solid #f59e0b; background: #fffbeb; border-radius: 8px;">
+                        <!-- Pyramid faces -->
+                        <polygon points="${(mathPyramidBase + 40) / 2},10 10,${mathPyramidHeight + 10} ${mathPyramidBase + 10},${mathPyramidHeight + 10}" fill="${element.fillColor || '#fef3c7'}" stroke="${element.strokeColor || '#f59e0b'}" stroke-width="2"/>
+                        <polygon points="${(mathPyramidBase + 40) / 2},10 ${mathPyramidBase + 10},${mathPyramidHeight + 10} ${mathPyramidBase + 30},${mathPyramidHeight + 10}" fill="${element.fillColor || '#fde68a'}" stroke="${element.strokeColor || '#f59e0b'}" stroke-width="2"/>
+                        <text x="${(mathPyramidBase + 40) / 2}" y="${mathPyramidHeight + 25}" text-anchor="middle" font-size="10" fill="#92400e">Math Pyramid</text>
+                    </svg>`;
+
+                // Math Elements - Charts and Graphs
+                case 'math-bar-chart':
+                    return `<div style="padding: 15px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px;">
+                        <div style="display: flex; align-items: end; height: 120px; gap: 10px; margin-bottom: 10px;">
+                            <div style="width: 30px; height: 80%; background: #fca5a5; border-radius: 4px 4px 0 0;"></div>
+                            <div style="width: 30px; height: 60%; background: #f87171; border-radius: 4px 4px 0 0;"></div>
+                            <div style="width: 30px; height: 100%; background: #ef4444; border-radius: 4px 4px 0 0;"></div>
+                            <div style="width: 30px; height: 40%; background: #dc2626; border-radius: 4px 4px 0 0;"></div>
+                        </div>
+                        <small style="color: #7f1d1d; text-align: center; display: block;">Math Bar Chart</small>
+                    </div>`;
+                case 'math-line-graph':
+                    return `<div style="padding: 15px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px;">
+                        <svg width="100%" height="120" viewBox="0 0 200 120" style="background: white; border-radius: 4px;">
+                            <polyline points="20,100 60,60 100,40 140,70 180,30" stroke="#ef4444" stroke-width="3" fill="none"/>
+                            <circle cx="20" cy="100" r="4" fill="#dc2626"/>
+                            <circle cx="60" cy="60" r="4" fill="#dc2626"/>
+                            <circle cx="100" cy="40" r="4" fill="#dc2626"/>
+                            <circle cx="140" cy="70" r="4" fill="#dc2626"/>
+                            <circle cx="180" cy="30" r="4" fill="#dc2626"/>
+                        </svg>
+                        <small style="color: #7f1d1d; text-align: center; display: block;">Math Line Graph</small>
+                    </div>`;
+                case 'math-pie-chart':
+                    return `<div style="padding: 15px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; text-align: center;">
+                        <svg width="120" height="120" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="50" fill="#fca5a5"/>
+                            <path d="M 60,60 L 60,10 A 50,50 0 0,1 95,35 z" fill="#f87171"/>
+                            <path d="M 60,60 L 95,35 A 50,50 0 0,1 95,85 z" fill="#ef4444"/>
+                            <path d="M 60,60 L 95,85 A 50,50 0 0,1 60,110 z" fill="#dc2626"/>
+                        </svg>
+                        <br><small style="color: #7f1d1d;">Math Pie Chart</small>
+                    </div>`;
+
+                case 'math-coordinate-grid':
+                    return `<div style="padding: 15px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px;">
+                        <svg width="100%" height="160" viewBox="0 0 200 160" style="background: white; border-radius: 4px;">
+                            <!-- Grid lines -->
+                            <defs>
+                                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+                                </pattern>
+                            </defs>
+                            <rect width="200" height="160" fill="url(#grid)"/>
+                            <!-- Axes -->
+                            <line x1="100" y1="0" x2="100" y2="160" stroke="#374151" stroke-width="2"/>
+                            <line x1="0" y1="80" x2="200" y2="80" stroke="#374151" stroke-width="2"/>
+                            <!-- Axis labels -->
+                            <text x="190" y="75" font-size="12" fill="#374151">x</text>
+                            <text x="105" y="15" font-size="12" fill="#374151">y</text>
+                        </svg>
+                        <small style="color: #7f1d1d; text-align: center; display: block;">Math Coordinate Grid</small>
+                    </div>`;
+                case 'math-scatter-plot':
+                    return `<div style="padding: 15px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px;">
+                        <svg width="100%" height="120" viewBox="0 0 200 120" style="background: white; border-radius: 4px;">
+                            <!-- Scatter points -->
+                            <circle cx="30" cy="90" r="3" fill="#ef4444"/>
+                            <circle cx="50" cy="70" r="3" fill="#ef4444"/>
+                            <circle cx="70" cy="85" r="3" fill="#ef4444"/>
+                            <circle cx="90" cy="50" r="3" fill="#ef4444"/>
+                            <circle cx="110" cy="60" r="3" fill="#ef4444"/>
+                            <circle cx="130" cy="40" r="3" fill="#ef4444"/>
+                            <circle cx="150" cy="55" r="3" fill="#ef4444"/>
+                            <circle cx="170" cy="35" r="3" fill="#ef4444"/>
+                        </svg>
+                        <small style="color: #7f1d1d; text-align: center; display: block;">Math Scatter Plot</small>
+                    </div>`;
+
+                // Math Elements - Math Science
+                case 'math-measurement':
+                    return `<div style="padding: 15px; background: #f3e8ff; border: 2px solid #8b5cf6; border-radius: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: center; height: 80px;">
+                            <div style="position: relative; width: 120px; height: 20px; background: #e9d5ff; border: 2px solid #8b5cf6; border-radius: 4px;">
+                                <div style="position: absolute; top: -15px; left: 0; font-size: 10px; color: #581c87;">0</div>
+                                <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #581c87;">5</div>
+                                <div style="position: absolute; top: -15px; right: 0; font-size: 10px; color: #581c87;">10</div>
+                                <div style="position: absolute; top: 25px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #581c87;">cm</div>
+                            </div>
+                        </div>
+                        <small style="color: #581c87; text-align: center; display: block;">Math Measurement</small>
+                    </div>`;
+                case 'math-angle':
+                    return `<div style="padding: 15px; background: #f3e8ff; border: 2px solid #8b5cf6; border-radius: 8px; text-align: center;">
+                        <svg width="120" height="100" viewBox="0 0 120 100">
+                            <!-- Angle lines -->
+                            <line x1="20" y1="80" x2="100" y2="80" stroke="#8b5cf6" stroke-width="3"/>
+                            <line x1="20" y1="80" x2="80" y2="20" stroke="#8b5cf6" stroke-width="3"/>
+                            <!-- Angle arc -->
+                            <path d="M 40,80 A 20,20 0 0,0 35,65" stroke="#a855f7" stroke-width="2" fill="none"/>
+                            <!-- Angle label -->
+                            <text x="45" y="75" font-size="12" fill="#581c87">45°</text>
+                        </svg>
+                        <small style="color: #581c87;">Math Angle</small>
+                    </div>`;
+                case 'math-vector':
+                    return `<div style="padding: 15px; background: #f3e8ff; border: 2px solid #8b5cf6; border-radius: 8px; text-align: center;">
+                        <svg width="120" height="100" viewBox="0 0 120 100">
+                            <!-- Vector arrow -->
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6"/>
+                                </marker>
+                            </defs>
+                            <line x1="20" y1="80" x2="90" y2="30" stroke="#8b5cf6" stroke-width="3" marker-end="url(#arrowhead)"/>
+                            <!-- Vector label -->
+                            <text x="60" y="60" font-size="12" fill="#581c87" font-weight="bold">v</text>
+                        </svg>
+                        <small style="color: #581c87;">Math Vector</small>
+                    </div>`;
+                case 'math-matrix':
+                    return `<div style="padding: 15px; background: #f3e8ff; border: 2px solid #8b5cf6; border-radius: 8px; text-align: center;">
+                        <div style="display: inline-block; border-left: 3px solid #8b5cf6; border-right: 3px solid #8b5cf6; padding: 10px 15px;">
+                            <table style="border-collapse: collapse;">
+                                <tr>
+                                    <td contenteditable="true" style="padding: 5px 10px; text-align: center; font-weight: bold; color: #581c87;">1</td>
+                                    <td contenteditable="true" style="padding: 5px 10px; text-align: center; font-weight: bold; color: #581c87;">2</td>
+                                </tr>
+                                <tr>
+                                    <td contenteditable="true" style="padding: 5px 10px; text-align: center; font-weight: bold; color: #581c87;">3</td>
+                                    <td contenteditable="true" style="padding: 5px 10px; text-align: center; font-weight: bold; color: #581c87;">4</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <br><small style="color: #581c87;">Math Matrix</small>
+                    </div>`;
 
                 default:
                     return `<div style="padding: 15px; text-align: center; color: #64748b;">
@@ -3771,8 +4268,23 @@
             }
         }
 
+        // Toggle Math category dropdown
+        function toggleMathCategory() {
+            const mathElements = document.getElementById('math-elements');
+            const chevron = document.getElementById('math-chevron');
+
+            if (mathElements.style.display === 'none' || mathElements.style.display === '') {
+                mathElements.style.display = 'block';
+                chevron.classList.add('rotated');
+            } else {
+                mathElements.style.display = 'none';
+                chevron.classList.remove('rotated');
+            }
+        }
+
         // Make functions globally available for onclick handlers
         window.addElementToCanvas = addElementToCanvas;
+        window.toggleMathCategory = toggleMathCategory;
         window.testDragDrop = testDragDrop;
         window.clearCanvas = clearCanvas;
         window.previewQuiz = previewQuiz;
