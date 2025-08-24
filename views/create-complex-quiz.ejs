@@ -16,6 +16,10 @@
     <!-- Quill.js for rich text editing -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
+    <!-- PDF Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <style>
         :root {
@@ -181,6 +185,16 @@
 
         .btn-info-canvas:hover {
             background: #138496;
+            transform: translateY(-1px);
+        }
+
+        .btn-warning-canvas {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning-canvas:hover {
+            background: #d97706;
             transform: translateY(-1px);
         }
 
@@ -673,6 +687,9 @@
 
                     <button class="btn-canvas btn-secondary-canvas" onclick="previewQuiz()">
                         <i class="fas fa-eye me-1"></i>Preview
+                    </button>
+                    <button class="btn-canvas btn-warning-canvas" onclick="exportToPDF()" title="Export quiz as PDF">
+                        <i class="fas fa-file-pdf me-1"></i>Save as PDF
                     </button>
                     <button class="btn-canvas btn-info-canvas" onclick="openQuizSettings()">
                         <i class="fas fa-cog me-1"></i>Quiz Settings
@@ -3506,12 +3523,261 @@
             }
         }
 
+        // Export quiz to PDF
+        async function exportToPDF() {
+            try {
+                // Save current page elements before export
+                saveCurrentPageElements();
+
+                // Check if there are any elements to export
+                if (questionPages.length === 0 || questionPages.every(page => page.elements.length === 0)) {
+                    alert('Please add some elements to the quiz before exporting to PDF');
+                    return;
+                }
+
+                // Show loading indicator
+                const loadingDiv = document.createElement('div');
+                loadingDiv.id = 'pdf-loading';
+                loadingDiv.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                    color: white;
+                    font-size: 18px;
+                `;
+                loadingDiv.innerHTML = `
+                    <div style="text-align: center;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>
+                        Generating PDF...
+                    </div>
+                `;
+                document.body.appendChild(loadingDiv);
+
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+
+                // PDF dimensions
+                const pageWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const margin = 20;
+                const contentWidth = pageWidth - (margin * 2);
+                const contentHeight = pageHeight - (margin * 2);
+
+                // Add title page
+                pdf.setFontSize(24);
+                pdf.setFont(undefined, 'bold');
+                const title = quizSettings.title || 'Complex Quiz';
+                pdf.text(title, pageWidth / 2, 40, { align: 'center' });
+
+                pdf.setFontSize(14);
+                pdf.setFont(undefined, 'normal');
+                if (quizSettings.description) {
+                    const splitDescription = pdf.splitTextToSize(quizSettings.description, contentWidth);
+                    pdf.text(splitDescription, margin, 60);
+                }
+
+                // Add quiz metadata
+                let yPos = 100;
+                if (quizSettings.gradeLevel) {
+                    pdf.text(`Grade Level: ${quizSettings.gradeLevel}`, margin, yPos);
+                    yPos += 10;
+                }
+                if (quizSettings.subjects && quizSettings.subjects.length > 0) {
+                    pdf.text(`Subjects: ${quizSettings.subjects.join(', ')}`, margin, yPos);
+                    yPos += 10;
+                }
+                if (quizSettings.language) {
+                    pdf.text(`Language: ${quizSettings.language}`, margin, yPos);
+                    yPos += 10;
+                }
+
+                pdf.text(`Total Questions: ${questionPages.length}`, margin, yPos);
+                yPos += 10;
+                pdf.text(`Created: ${new Date().toLocaleDateString()}`, margin, yPos);
+
+                // Process each question page
+                for (let pageIndex = 0; pageIndex < questionPages.length; pageIndex++) {
+                    const page = questionPages[pageIndex];
+
+                    if (page.elements.length === 0) continue;
+
+                    // Add new page for each question
+                    pdf.addPage();
+
+                    // Add page header
+                    pdf.setFontSize(16);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text(`Question ${pageIndex + 1}`, margin, 25);
+
+                    // Create a temporary canvas for this page
+                    const tempCanvas = document.createElement('div');
+                    tempCanvas.style.cssText = `
+                        position: absolute;
+                        top: -10000px;
+                        left: -10000px;
+                        width: 800px;
+                        height: 600px;
+                        background: white;
+                        border: 1px solid #e2e8f0;
+                    `;
+                    document.body.appendChild(tempCanvas);
+
+                    // Render elements on temporary canvas
+                    page.elements.forEach(element => {
+                        const elementDiv = document.createElement('div');
+                        elementDiv.style.cssText = `
+                            position: absolute;
+                            left: ${element.x}px;
+                            top: ${element.y}px;
+                            width: ${element.width}px;
+                            height: ${element.height}px;
+                            font-family: Inter, sans-serif;
+                        `;
+
+                        // Apply element styles
+                        if (element.style) {
+                            Object.assign(elementDiv.style, element.style);
+                        }
+
+                        // Add content based on element type
+                        elementDiv.innerHTML = getElementContentForPDF(element);
+                        tempCanvas.appendChild(elementDiv);
+                    });
+
+                    // Convert canvas to image using html2canvas
+                    try {
+                        const canvas = await html2canvas(tempCanvas, {
+                            backgroundColor: '#ffffff',
+                            scale: 2,
+                            useCORS: true,
+                            allowTaint: true
+                        });
+
+                        const imgData = canvas.toDataURL('image/png');
+
+                        // Calculate dimensions to fit in PDF
+                        const imgWidth = contentWidth;
+                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                        // Add image to PDF
+                        if (imgHeight <= contentHeight - 20) {
+                            pdf.addImage(imgData, 'PNG', margin, 35, imgWidth, imgHeight);
+                        } else {
+                            // Scale down if too large
+                            const scaledHeight = contentHeight - 20;
+                            const scaledWidth = (canvas.width * scaledHeight) / canvas.height;
+                            pdf.addImage(imgData, 'PNG', margin, 35, scaledWidth, scaledHeight);
+                        }
+                    } catch (error) {
+                        console.error('Error capturing page:', error);
+                        // Add error message to PDF
+                        pdf.setFontSize(12);
+                        pdf.setTextColor(255, 0, 0);
+                        pdf.text('Error rendering this question page', margin, 50);
+                        pdf.setTextColor(0, 0, 0);
+                    }
+
+                    // Clean up temporary canvas
+                    document.body.removeChild(tempCanvas);
+                }
+
+                // Save the PDF
+                const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_quiz.pdf`;
+                pdf.save(fileName);
+
+                // Remove loading indicator
+                document.body.removeChild(loadingDiv);
+
+                // Show success message
+                alert(`PDF exported successfully as "${fileName}"`);
+
+            } catch (error) {
+                console.error('Error exporting PDF:', error);
+
+                // Remove loading indicator if it exists
+                const loadingDiv = document.getElementById('pdf-loading');
+                if (loadingDiv) {
+                    document.body.removeChild(loadingDiv);
+                }
+
+                alert('Error exporting PDF: ' + error.message);
+            }
+        }
+
+        // Get element content formatted for PDF export
+        function getElementContentForPDF(element) {
+            switch (element.type) {
+                case 'textbox':
+                case 'text':
+                    return `<div style="padding: 10px; word-wrap: break-word; overflow-wrap: break-word;">${element.content || 'Text content'}</div>`;
+                case 'question':
+                    return `<div style="padding: 15px; background: #f0f9ff; border-left: 4px solid #0ea5e9; word-wrap: break-word;">
+                        <strong>Question:</strong><br>
+                        <div style="margin-top: 8px;">${element.content || 'Question content'}</div>
+                    </div>`;
+                case 'sub-question':
+                    return `<div style="padding: 12px; background: #f0fdf4; border-left: 3px solid #22c55e; word-wrap: break-word;">
+                        <strong>Sub-question:</strong><br>
+                        <div style="margin-top: 6px;">${element.content || 'Sub-question content'}</div>
+                    </div>`;
+                case 'answer-area':
+                    return `<div style="padding: 15px; background: #f0fdf4; border: 2px dashed #22c55e; border-radius: 8px;">
+                        <strong>Answer Area</strong><br>
+                        <div style="margin-top: 10px; min-height: 40px; background: white; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px;">
+                            ${element.content || 'Student answer area'}
+                        </div>
+                    </div>`;
+                case 'image':
+                    if (element.src) {
+                        return `<img src="${element.src}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Quiz image">`;
+                    }
+                    return `<div style="padding: 20px; background: #f3f4f6; border: 2px dashed #9ca3af; text-align: center; color: #6b7280;">
+                        <i class="fas fa-image" style="font-size: 24px; margin-bottom: 8px;"></i><br>
+                        Image placeholder
+                    </div>`;
+                case 'table':
+                    return `<div style="padding: 10px; border: 1px solid #e5e7eb;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Table</td><td style="border: 1px solid #d1d5db; padding: 8px;">Content</td></tr>
+                            <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Row 1</td><td style="border: 1px solid #d1d5db; padding: 8px;">Data</td></tr>
+                        </table>
+                    </div>`;
+                case 'latex':
+                    return `<div style="padding: 15px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; text-align: center;">
+                        <strong>LaTeX Formula:</strong><br>
+                        <code style="background: white; padding: 4px 8px; border-radius: 4px; margin-top: 8px; display: inline-block;">${element.content || '\\sum_{i=1}^{n} x_i'}</code>
+                    </div>`;
+                case 'circle':
+                    return `<div style="width: 100%; height: 100%; border-radius: 50%; background: ${element.style?.backgroundColor || '#e5e7eb'}; border: 2px solid ${element.style?.borderColor || '#9ca3af'};"></div>`;
+                case 'square':
+                case 'rectangle':
+                    return `<div style="width: 100%; height: 100%; background: ${element.style?.backgroundColor || '#e5e7eb'}; border: 2px solid ${element.style?.borderColor || '#9ca3af'};"></div>`;
+                case 'triangle':
+                    return `<div style="width: 0; height: 0; border-left: ${element.width/2}px solid transparent; border-right: ${element.width/2}px solid transparent; border-bottom: ${element.height}px solid ${element.style?.backgroundColor || '#e5e7eb'};"></div>`;
+                case 'line':
+                    return `<div style="width: 100%; height: 2px; background: ${element.style?.backgroundColor || '#9ca3af'}; margin-top: ${element.height/2}px;"></div>`;
+                default:
+                    return `<div style="padding: 10px; background: #f3f4f6; border: 1px solid #d1d5db; word-wrap: break-word;">
+                        ${element.content || element.type}
+                    </div>`;
+            }
+        }
+
         // Make functions globally available for onclick handlers
         window.addElementToCanvas = addElementToCanvas;
         window.testDragDrop = testDragDrop;
         window.clearCanvas = clearCanvas;
         window.previewQuiz = previewQuiz;
         window.saveQuiz = saveQuiz;
+        window.exportToPDF = exportToPDF;
         window.saveQuizSettings = saveQuizSettings;
         window.openQuizSettings = openQuizSettings;
         window.nextQuestion = nextQuestion;
