@@ -2232,6 +2232,19 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                     return;
                 }
 
+                // Show first question data for debugging
+                if (questionsToExport.length > 0) {
+                    console.log('First question data:', questionsToExport[0]);
+                    const firstQ = questionsToExport[0];
+                    const debugInfo = `First Question Debug:
+- Text: ${firstQ.questionText || firstQ.question || 'MISSING'}
+- Format: ${firstQ.answerFormat || 'MISSING'}
+- Options: ${firstQ.options ? firstQ.options.length : 'NONE'}
+- Correct: ${firstQ.correctAnswers ? firstQ.correctAnswers.length : 'NONE'}
+- Image: ${firstQ.image ? 'YES' : 'NO'}`;
+                    console.log(debugInfo);
+                }
+
                 // Show loading indicator
                 const loadingDiv = document.createElement('div');
                 loadingDiv.id = 'pdf-loading';
@@ -2316,57 +2329,112 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
 
                     currentY += 15;
 
-                    // Question text
+                    // Question text - handle multiple property names and formats
                     pdf.setFontSize(12);
                     pdf.setFont(undefined, 'normal');
-                    const questionText = question.questionText || question.question || 'No question text';
+
+                    // Try multiple ways to get question text
+                    let questionText = question.questionText ||
+                                     question.question ||
+                                     question.text ||
+                                     question.content ||
+                                     `Question ${index + 1}`;
+
+                    // If still no text, create a placeholder
+                    if (!questionText || questionText.trim() === '') {
+                        questionText = `Question ${index + 1} - [No question text available]`;
+                        console.warn(`Question ${index + 1} has no text!`, question);
+                    }
+
+                    console.log(`Question ${index + 1} text:`, questionText);
+
                     const questionLines = pdf.splitTextToSize(questionText, contentWidth);
                     pdf.text(questionLines, margin, currentY);
                     currentY += questionLines.length * 6 + 10;
 
                     // Question image if exists
                     if (question.image) {
+                        console.log(`Question ${index + 1} has image:`, question.image);
+
                         try {
-                            // Try to load and embed the actual image
-                            const img = new Image();
-                            img.crossOrigin = 'anonymous';
+                            // Handle different image types
+                            let imageUrl = null;
 
-                            await new Promise((resolve, reject) => {
-                                img.onload = () => {
-                                    try {
-                                        // Create canvas to convert image to base64
-                                        const canvas = document.createElement('canvas');
-                                        const ctx = canvas.getContext('2d');
-                                        canvas.width = img.width;
-                                        canvas.height = img.height;
-                                        ctx.drawImage(img, 0, 0);
+                            if (question.image instanceof File) {
+                                // File object - convert to data URL
+                                imageUrl = await new Promise((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onload = (e) => resolve(e.target.result);
+                                    reader.readAsDataURL(question.image);
+                                });
+                            } else if (typeof question.image === 'string') {
+                                // String URL - use directly
+                                if (question.image.startsWith('data:')) {
+                                    imageUrl = question.image;
+                                } else if (question.image.startsWith('http')) {
+                                    imageUrl = question.image;
+                                } else if (question.image.startsWith('/')) {
+                                    imageUrl = window.location.origin + question.image;
+                                } else {
+                                    // Assume it's a relative path or S3 key
+                                    imageUrl = question.image;
+                                }
+                            }
 
-                                        const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                            if (imageUrl) {
+                                // Try to load and embed the actual image
+                                const img = new Image();
+                                img.crossOrigin = 'anonymous';
 
-                                        // Calculate image dimensions to fit in PDF
-                                        const maxWidth = contentWidth * 0.8;
-                                        const maxHeight = 80; // Max height in mm
+                                await new Promise((resolve, reject) => {
+                                    img.onload = () => {
+                                        try {
+                                            // Create canvas to convert image to base64
+                                            const canvas = document.createElement('canvas');
+                                            const ctx = canvas.getContext('2d');
+                                            canvas.width = img.width;
+                                            canvas.height = img.height;
+                                            ctx.drawImage(img, 0, 0);
 
-                                        let imgWidth = img.width * 0.264583; // Convert pixels to mm
-                                        let imgHeight = img.height * 0.264583;
+                                            const imgData = canvas.toDataURL('image/jpeg', 0.8);
 
-                                        // Scale down if too large
-                                        if (imgWidth > maxWidth) {
-                                            imgHeight = (imgHeight * maxWidth) / imgWidth;
-                                            imgWidth = maxWidth;
+                                            // Calculate image dimensions to fit in PDF
+                                            const maxWidth = contentWidth * 0.8;
+                                            const maxHeight = 80; // Max height in mm
+
+                                            let imgWidth = img.width * 0.264583; // Convert pixels to mm
+                                            let imgHeight = img.height * 0.264583;
+
+                                            // Scale down if too large
+                                            if (imgWidth > maxWidth) {
+                                                imgHeight = (imgHeight * maxWidth) / imgWidth;
+                                                imgWidth = maxWidth;
+                                            }
+                                            if (imgHeight > maxHeight) {
+                                                imgWidth = (imgWidth * maxHeight) / imgHeight;
+                                                imgHeight = maxHeight;
+                                            }
+
+                                            // Add image to PDF
+                                            pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, imgHeight);
+                                            currentY += imgHeight + 10;
+
+                                            console.log(`Successfully added image for question ${index + 1}`);
+                                            resolve();
+                                        } catch (error) {
+                                            console.log('Error processing image:', error);
+                                            // Fallback to placeholder text
+                                            pdf.setFontSize(10);
+                                            pdf.setTextColor(100, 100, 100);
+                                            pdf.text('[Question Image - Could not process]', margin, currentY);
+                                            pdf.setTextColor(0, 0, 0);
+                                            currentY += 15;
+                                            resolve();
                                         }
-                                        if (imgHeight > maxHeight) {
-                                            imgWidth = (imgWidth * maxHeight) / imgHeight;
-                                            imgHeight = maxHeight;
-                                        }
+                                    };
 
-                                        // Add image to PDF
-                                        pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, imgHeight);
-                                        currentY += imgHeight + 10;
-
-                                        resolve();
-                                    } catch (error) {
-                                        console.log('Error processing image:', error);
+                                    img.onerror = () => {
+                                        console.log('Error loading image:', imageUrl);
                                         // Fallback to placeholder text
                                         pdf.setFontSize(10);
                                         pdf.setTextColor(100, 100, 100);
@@ -2374,29 +2442,20 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                                         pdf.setTextColor(0, 0, 0);
                                         currentY += 15;
                                         resolve();
-                                    }
-                                };
+                                    };
 
-                                img.onerror = () => {
-                                    console.log('Error loading image:', question.image);
-                                    // Fallback to placeholder text
-                                    pdf.setFontSize(10);
-                                    pdf.setTextColor(100, 100, 100);
-                                    pdf.text('[Question Image - Could not load]', margin, currentY);
-                                    pdf.setTextColor(0, 0, 0);
-                                    currentY += 15;
-                                    resolve();
-                                };
-
-                                // Set image source
-                                if (question.image.startsWith('data:')) {
-                                    img.src = question.image;
-                                } else if (question.image.startsWith('/')) {
-                                    img.src = window.location.origin + question.image;
-                                } else {
-                                    img.src = question.image;
-                                }
-                            });
+                                    // Set image source
+                                    img.src = imageUrl;
+                                });
+                            } else {
+                                console.log('No valid image URL found');
+                                // Fallback to placeholder text
+                                pdf.setFontSize(10);
+                                pdf.setTextColor(100, 100, 100);
+                                pdf.text('[Question Image - Invalid URL]', margin, currentY);
+                                pdf.setTextColor(0, 0, 0);
+                                currentY += 15;
+                            }
 
                         } catch (error) {
                             console.log('Could not add image to PDF:', error);
@@ -2410,14 +2469,20 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                     }
 
                     // Answer format
-                    if (question.answerFormat === 'multiple') {
+                    console.log(`Question ${index + 1} answer format:`, question.answerFormat);
+                    console.log(`Question ${index + 1} options:`, question.options);
+                    console.log(`Question ${index + 1} correct answers:`, question.correctAnswers);
+
+                    if (question.answerFormat === 'multiple' && question.options && question.options.length > 0) {
                         // Multiple choice options
                         pdf.setFontSize(11);
                         question.options.forEach((option, optIndex) => {
                             const optionLetter = String.fromCharCode(65 + optIndex);
                             // Check if this option is correct (handle both string and number indices)
-                            const isCorrect = question.correctAnswers.includes(optIndex) ||
-                                            question.correctAnswers.includes(optIndex.toString());
+                            const isCorrect = question.correctAnswers && (
+                                question.correctAnswers.includes(optIndex) ||
+                                question.correctAnswers.includes(optIndex.toString())
+                            );
 
                             if (isCorrect) {
                                 pdf.setFont(undefined, 'bold');
@@ -2489,6 +2554,19 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             console.log('=== QUESTIONS DEBUG ===');
             console.log('Manual questions array:', manualQuestions);
             console.log('Number of questions:', manualQuestions.length);
+
+            manualQuestions.forEach((q, i) => {
+                console.log(`Question ${i + 1}:`, {
+                    questionText: q.questionText,
+                    question: q.question,
+                    answerFormat: q.answerFormat,
+                    options: q.options,
+                    correctAnswers: q.correctAnswers,
+                    expectedAnswer: q.expectedAnswer,
+                    image: q.image,
+                    hasImage: q.hasImage
+                });
+            });
 
             const currentQuestionText = getQuestionText().trim();
             console.log('Current question text:', currentQuestionText);

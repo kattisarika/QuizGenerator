@@ -989,13 +989,24 @@
                         }
                     }
 
-                    // Answer format
-                    if (question.answerFormat === 'multiple') {
+                    // Answer format - handle both database and frontend formats
+                    const answerFormat = question.answerFormat || (question.options && question.options.length > 0 ? 'multiple' : 'text');
+
+                    if (answerFormat === 'multiple' && question.options && question.options.length > 0) {
                         // Multiple choice options
                         pdf.setFontSize(11);
                         question.options.forEach((option, optIndex) => {
                             const optionLetter = String.fromCharCode(65 + optIndex);
-                            const isCorrect = question.correctAnswers.includes(optIndex.toString());
+                            // Handle different correct answer formats
+                            let isCorrect = false;
+                            if (question.correctAnswers) {
+                                isCorrect = question.correctAnswers.includes(optIndex) ||
+                                          question.correctAnswers.includes(optIndex.toString());
+                            } else if (question.correctAnswer) {
+                                // Handle single correct answer format
+                                isCorrect = question.correctAnswer === optIndex.toString() ||
+                                          question.correctAnswer === option;
+                            }
 
                             if (isCorrect) {
                                 pdf.setFont(undefined, 'bold');
@@ -1013,12 +1024,13 @@
                         pdf.text('Answer Type: Text Response', margin + 5, currentY);
                         currentY += 8;
 
-                        if (question.expectedAnswer) {
+                        const expectedAnswer = question.expectedAnswer || question.correctAnswer;
+                        if (expectedAnswer) {
                             pdf.setFont(undefined, 'bold');
                             pdf.text('Expected Answer:', margin + 5, currentY);
                             currentY += 6;
                             pdf.setFont(undefined, 'normal');
-                            const answerLines = pdf.splitTextToSize(question.expectedAnswer, contentWidth - 10);
+                            const answerLines = pdf.splitTextToSize(expectedAnswer, contentWidth - 10);
                             pdf.text(answerLines, margin + 5, currentY);
                             currentY += answerLines.length * 6;
                         }
