@@ -2626,7 +2626,7 @@
             }
         }
 
-        // Function to load recorrection grade tabs
+        // Function to load unified grading grade tabs (both recorrection and complex quiz grading)
         async function loadRecorrectionGradeTabs() {
             try {
                 const container = document.getElementById('recorrectionGradeTabs');
@@ -2637,7 +2637,7 @@
                     </div>
                 `;
 
-                const response = await fetch('/api/recorrection-grade-counts');
+                const response = await fetch('/api/grading-grade-counts');
                 if (response.ok) {
                     const data = await response.json();
                     displayRecorrectionGradeTabs(data.gradeTabs);
@@ -2646,7 +2646,7 @@
                         '<div class="error-state"><p>Error loading grade tabs</p></div>';
                 }
             } catch (error) {
-                console.error('Error loading recorrection grade tabs:', error);
+                console.error('Error loading grading grade tabs:', error);
                 const container = document.getElementById('recorrectionGradeTabs');
                 container.innerHTML =
                     '<div class="error-state"><p>Error loading grade tabs</p></div>';

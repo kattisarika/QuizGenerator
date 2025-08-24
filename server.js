@@ -3406,12 +3406,12 @@ app.get('/api/grading-requests', requireAuth, requireRole(['teacher']), requireA
   }
 });
 
-// API endpoint to get recorrection request counts by grade
+// Legacy API endpoint to get recorrection request counts by grade (kept for backward compatibility)
 app.get('/api/recorrection-grade-counts', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const QuizResult = require('./models/QuizResult');
-    
-    // Get recorrection request counts by grade
+
+    // Get recorrection request counts by grade (regular quizzes only)
     const gradeCounts = await QuizResult.aggregate([
       { $match: {
         teacherId: req.user._id,
@@ -3458,6 +3458,76 @@ app.get('/api/recorrection-grade-counts', requireAuth, requireRole(['teacher']),
     
   } catch (error) {
     console.error('Error fetching recorrection grade counts:', error);
+    res.status(500).json({ error: 'Error fetching grade counts' });
+  }
+});
+
+// Unified API endpoint to get grading request counts by grade (both recorrection and complex quiz grading)
+app.get('/api/grading-grade-counts', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const QuizResult = require('./models/QuizResult');
+
+    // Get unified grading request counts by grade (both recorrection and complex quiz grading)
+    const gradeCounts = await QuizResult.aggregate([
+      { $match: {
+        teacherId: req.user._id,
+        organizationId: req.user.organizationId,
+        $or: [
+          // Regular quiz recorrection requests
+          {
+            status: 'pending-recorrection',
+            recorrectionRequested: true
+          },
+          // Complex quiz grading (including recorrection)
+          {
+            isComplexQuiz: true,
+            needsManualGrading: true,
+            $or: [
+              { gradingStatus: 'pending' },
+              { status: 'pending-recorrection' }
+            ]
+          }
+        ]
+      }},
+      { $lookup: { from: 'quizzes', localField: 'quiz', foreignField: '_id', as: 'quizData' } },
+      { $unwind: '$quizData' },
+      { $group: { _id: '$quizData.gradeLevel', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Create grade tabs data with counts
+    const gradeTabs = [
+      { grade: 'all', label: 'All Grades', count: 0 },
+      { grade: '1st grade', label: '1st Grade', count: 0 },
+      { grade: '2nd grade', label: '2nd Grade', count: 0 },
+      { grade: '3rd grade', label: '3rd Grade', count: 0 },
+      { grade: '4th grade', label: '4th Grade', count: 0 },
+      { grade: '5th grade', label: '5th Grade', count: 0 },
+      { grade: '6th grade', label: '6th Grade', count: 0 },
+      { grade: '7th grade', label: '7th Grade', count: 0 },
+      { grade: '8th grade', label: '8th Grade', count: 0 },
+      { grade: '9th grade', label: '9th Grade', count: 0 },
+      { grade: '10th grade', label: '10th Grade', count: 0 },
+      { grade: '11th grade', label: '11th Grade', count: 0 },
+      { grade: '12th grade', label: '12th Grade', count: 0 }
+    ];
+
+    // Update counts from aggregation results
+    gradeCounts.forEach(gradeCount => {
+      const tab = gradeTabs.find(tab => tab.grade === gradeCount._id);
+      if (tab) {
+        tab.count = gradeCount.count;
+      }
+    });
+
+    // Calculate total count for "All Grades" tab
+    const totalCount = gradeCounts.reduce((sum, gradeCount) => sum + gradeCount.count, 0);
+    gradeTabs[0].count = totalCount;
+
+    res.json({ gradeTabs });
+
+  } catch (error) {
+    console.error('Error fetching unified grading grade counts:', error);
     res.status(500).json({ error: 'Error fetching grade counts' });
   }
 });
