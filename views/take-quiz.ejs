@@ -833,12 +833,12 @@
                                     <% quiz.questions.forEach((question, index) => { %>
                                         console.log('Question <%= index %>:', {
                                             hasQuestion: <%= question.question ? 'true' : 'false' %>,
-                                        questionText: '<%= question.question ? question.question.substring(0, 50).replace(/'/g, "\\'") : "No question text" %>...',
-                                        hasOptions: <%= question.options ? 'true' : 'false' %>,
-                                        optionsCount: <%= question.options ? question.options.length : 0 %>,
-                                        type: '<%= question.type || "unknown" %>'
-                                    });
-                                <% }); %>
+                                            questionText: '<%= question.question ? question.question.substring(0, 50) : "No question text" %>...',
+                                            hasOptions: <%= question.options ? 'true' : 'false' %>,
+                                            optionsCount: <%= question.options ? question.options.length : 0 %>,
+                                            type: '<%= question.type || "unknown" %>'
+                                        });
+                                    <% }); %>
                             <% } %>
                         </script>
 
