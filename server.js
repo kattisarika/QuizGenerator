@@ -4318,11 +4318,16 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     const filteredCount = await Quiz.countDocuments(filter);
     console.log('Quizzes matching full filter:', filteredCount);
 
-    // Simplified approach to avoid memory issues - get limited results without sorting
+    // Get total count for pagination (without fetching all data)
+    const totalQuizzesCount = await Quiz.countDocuments(filter);
+    console.log('Total quizzes matching filter:', totalQuizzesCount);
+
+    // Fetch quizzes with database-level pagination for better performance
     const allQuizzes = await Quiz.find(filter)
       .populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
-      .limit(100) // Much smaller limit to prevent memory issues
+      .skip(skip)
+      .limit(limit * 2) // Get enough for both tabs, but still limited
       .lean(); // Use lean() for better performance
 
     console.log('Found quizzes from all organizations:', allQuizzes.length);
@@ -4395,14 +4400,24 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     });
 
     console.log(`Quiz categorization: ${availableQuizzes.length} available, ${archivedQuizzes.length} archived`);
-    
+
+    // For better pagination, we need to estimate totals based on the current sample
+    // This is an approximation since we're categorizing after fetching
+    const sampleSize = allQuizzes.length;
+    const availableRatio = sampleSize > 0 ? availableQuizzes.length / sampleSize : 0.5;
+    const archivedRatio = sampleSize > 0 ? archivedQuizzes.length / sampleSize : 0.5;
+
+    // Estimate total counts for each tab
+    const estimatedAvailableTotal = Math.round(totalQuizzesCount * availableRatio);
+    const estimatedArchivedTotal = Math.round(totalQuizzesCount * archivedRatio);
+
     // Get quizzes for the selected tab
     const quizzesToShow = tab === 'archived' ? archivedQuizzes : availableQuizzes;
-    const totalQuizzes = quizzesToShow.length;
-    const totalPages = Math.ceil(totalQuizzes / limit);
-    
-    // Apply pagination
-    const paginatedQuizzes = quizzesToShow.slice(skip, skip + limit);
+    const estimatedTotal = tab === 'archived' ? estimatedArchivedTotal : estimatedAvailableTotal;
+    const totalPages = Math.ceil(estimatedTotal / limit);
+
+    // Use the fetched quizzes directly (already limited by database query)
+    const paginatedQuizzes = quizzesToShow.slice(0, limit);
     
     res.render('available-quizzes', { 
       quizzes: paginatedQuizzes,
@@ -4411,7 +4426,7 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
       pagination: {
         currentPage: page,
         totalPages,
-        totalQuizzes,
+        totalQuizzes: estimatedTotal,
         limit,
         hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
@@ -4419,8 +4434,8 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
         prevPage: page > 1 ? page - 1 : null
       },
       counts: {
-        available: availableQuizzes.length,
-        archived: archivedQuizzes.length
+        available: estimatedAvailableTotal,
+        archived: estimatedArchivedTotal
       }
     });
     
