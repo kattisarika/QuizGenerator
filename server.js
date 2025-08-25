@@ -248,23 +248,35 @@ const audioUpload = multer({
   }
 });
 
-// Helper function to upload file to S3 and return S3 key
+// Helper function to upload file to S3 and return full S3 URL
 async function uploadToS3(file, folder = 'uploads') {
   const s3Key = `${folder}/${Date.now()}-${file.originalname}`;
+  const bucketName = process.env.AWS_BUCKET_NAME || 'skillon-test';
+  const region = process.env.AWS_REGION || 'us-east-1';
+
   const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
+    Bucket: bucketName,
     Key: s3Key,
     Body: file.buffer,
     ContentType: file.mimetype,
-    ACL: 'public-read' // Make images public for direct access
+    ACL: 'public-read' // Make files public for direct access
   };
 
   try {
     const result = await s3.upload(params).promise();
+
+    // Generate the full public URL
+    const fullUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
+
     console.log(`✅ File uploaded to S3: ${s3Key}`);
-    return s3Key; // Return S3 key instead of full URL
+    console.log(`✅ Public URL: ${fullUrl}`);
+
+    return fullUrl; // Return full S3 URL for direct access
   } catch (error) {
-    console.error('Error uploading to S3:', error);
+    console.error('❌ Error uploading to S3:', error);
+    console.error('❌ Bucket:', bucketName);
+    console.error('❌ Region:', region);
+    console.error('❌ Key:', s3Key);
     throw error;
   }
 }
@@ -1386,15 +1398,55 @@ app.get('/api/content-url/:contentId', requireAuth, requireRole(['student']), as
       return res.status(404).json({ success: false, message: 'Content not found' });
     }
 
-    // Return the file URL for external viewers
-    res.json({
-      success: true,
-      fileUrl: content.fileUrl,
-      fileName: content.fileName,
-      fileType: content.fileType
-    });
+    console.log(`🔗 API request for content URL: ${content.title}`);
+    console.log(`📁 Stored file URL: ${content.fileUrl}`);
+
+    // If fileUrl is already a full URL, return it directly
+    if (content.fileUrl.startsWith('https://')) {
+      console.log(`✅ Returning direct S3 URL`);
+      return res.json({
+        success: true,
+        fileUrl: content.fileUrl,
+        fileName: content.fileName,
+        fileType: content.fileType
+      });
+    }
+
+    // For S3 keys, generate a signed URL
+    try {
+      const AWS = require('aws-sdk');
+      const s3 = new AWS.S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION || 'us-east-1'
+      });
+
+      const key = extractS3Key(content.fileUrl);
+      const signedUrl = s3.getSignedUrl('getObject', {
+        Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
+        Key: key,
+        Expires: 3600 // 1 hour
+      });
+
+      console.log(`✅ Generated signed URL for API`);
+      res.json({
+        success: true,
+        fileUrl: signedUrl,
+        fileName: content.fileName,
+        fileType: content.fileType
+      });
+    } catch (s3Error) {
+      console.error('❌ Error generating signed URL for API:', s3Error);
+      // Fallback to original URL
+      res.json({
+        success: true,
+        fileUrl: content.fileUrl,
+        fileName: content.fileName,
+        fileType: content.fileType
+      });
+    }
   } catch (error) {
-    console.error('Error getting content URL:', error);
+    console.error('❌ Error getting content URL:', error);
     res.status(500).json({ success: false, message: 'Error getting content URL' });
   }
 });
@@ -1880,7 +1932,18 @@ app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']
       });
     }
 
-    // For other files (PDF, DOC, etc.), fetch from S3 and serve
+    console.log(`📖 Student viewing content: ${content.title}`);
+    console.log(`📁 File URL: ${content.fileUrl}`);
+    console.log(`📄 File Type: ${content.fileType}`);
+
+    // Check if fileUrl is already a full S3 URL (starts with https://)
+    if (content.fileUrl.startsWith('https://')) {
+      console.log(`🔗 Using direct S3 URL: ${content.fileUrl}`);
+      // For direct S3 URLs, redirect to the public URL
+      return res.redirect(content.fileUrl);
+    }
+
+    // For S3 keys or other formats, fetch from S3 and serve
     try {
       const AWS = require('aws-sdk');
       const s3 = new AWS.S3({
@@ -1891,6 +1954,7 @@ app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']
 
       // Extract the key from the URL using improved function
       const key = extractS3Key(content.fileUrl);
+      console.log(`🔑 Extracted S3 key: ${key}`);
 
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
@@ -1908,12 +1972,32 @@ app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']
       res.send(fileObject.Body);
 
     } catch (s3Error) {
-      console.error('S3 error in view-content:', s3Error);
-      console.error('File URL:', content.fileUrl);
-      console.error('Content ID:', contentId);
-      console.error('Extracted key:', extractS3Key(content.fileUrl));
-      // Fallback to redirect if S3 access fails
-      res.redirect(content.fileUrl);
+      console.error('❌ S3 error in view-content:', s3Error);
+      console.error('❌ File URL:', content.fileUrl);
+      console.error('❌ Content ID:', contentId);
+      console.error('❌ Extracted key:', extractS3Key(content.fileUrl));
+
+      // Try to generate a signed URL as fallback
+      try {
+        const AWS = require('aws-sdk');
+        const s3 = new AWS.S3({
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+          region: process.env.AWS_REGION || 'us-east-1'
+        });
+
+        const key = extractS3Key(content.fileUrl);
+        const signedUrl = s3.getSignedUrl('getObject', {
+          Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
+          Key: key,
+          Expires: 3600 // 1 hour
+        });
+        console.log(`🔗 Generated signed URL as fallback: ${signedUrl}`);
+        return res.redirect(signedUrl);
+      } catch (signedUrlError) {
+        console.error('❌ Failed to generate signed URL:', signedUrlError);
+        return res.status(500).send('Error accessing file. Please contact support.');
+      }
     }
   } catch (error) {
     console.error('Error viewing content:', error);
@@ -1935,12 +2019,17 @@ app.get('/student/download-content/:contentId', requireAuth, requireRole(['stude
     content.downloads += 1;
     await content.save();
 
-    // Check if it's a PowerPoint file and user wants to view in browser
-    const isPowerPoint = content.fileType.includes('powerpoint') ||
-                        content.fileName.toLowerCase().includes('.ppt') ||
-                        content.fileName.toLowerCase().includes('.pptx');
+    console.log(`📥 Student downloading content: ${content.title}`);
+    console.log(`📁 File URL: ${content.fileUrl}`);
 
-    // Instead of redirecting, fetch the file and serve it
+    // Check if fileUrl is already a full S3 URL (starts with https://)
+    if (content.fileUrl.startsWith('https://')) {
+      console.log(`🔗 Using direct S3 URL for download: ${content.fileUrl}`);
+      // For direct S3 URLs, redirect to the public URL
+      return res.redirect(content.fileUrl);
+    }
+
+    // For S3 keys, fetch the file and serve it
     try {
       const AWS = require('aws-sdk');
       const s3 = new AWS.S3({
