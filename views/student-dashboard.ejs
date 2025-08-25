@@ -1092,27 +1092,6 @@
             font-size: 16px;
         }
 
-        .badge-subsection {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: var(--border-radius);
-            border-left: 4px solid var(--primary-color);
-        }
-
-        .badge-subsection h3 {
-            color: var(--dark-color);
-            margin-bottom: 20px;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .badge-subsection:last-child {
-            margin-bottom: 0;
-        }
-
         .total-badges {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
@@ -1385,25 +1364,10 @@
                         <p>Track your achievements and progress across subjects</p>
                     </div>
 
-                    <!-- Regular Quiz Badges -->
-                    <div class="badge-subsection">
-                        <h3><i class="fas fa-book"></i> Regular Quiz Badges</h3>
-                        <div class="badge-summary" id="badgeSummary">
-                            <div class="loading-state">
-                                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                                <p>Loading badges...</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Competitive Quiz Badges -->
-                    <div class="badge-subsection">
-                        <h3><i class="fas fa-trophy"></i> Competitive Quiz Badges</h3>
-                        <div class="badge-summary" id="competitiveBadgeSummary">
-                            <div class="loading-state">
-                                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                                <p>Loading competitive badges...</p>
-                            </div>
+                    <div class="badge-summary" id="badgeSummary">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                            <p>Loading badges...</p>
                         </div>
                     </div>
                 </section>
@@ -2353,105 +2317,11 @@
             return badgeInfo[badgeType] || { name: 'Unknown Badge', icon: '❓' };
         }
 
-        // Competitive Badge System Functions
-        async function loadCompetitiveBadges() {
-            try {
-                const response = await fetch('/api/student-competitive-badges');
-                if (response.ok) {
-                    const data = await response.json();
-                    displayCompetitiveBadges(data.competitiveBadges);
-                } else {
-                    console.error('Error loading competitive badges:', response.status);
-                    document.getElementById('competitiveBadgeSummary').innerHTML =
-                        '<div class="error-state"><p>Error loading competitive badges</p></div>';
-                }
-            } catch (error) {
-                console.error('Error loading competitive badges:', error);
-                document.getElementById('competitiveBadgeSummary').innerHTML =
-                    '<div class="error-state"><p>Error loading competitive badges: ' + error.message + '</p></div>';
-            }
-        }
 
-        function displayCompetitiveBadges(competitiveBadges) {
-            const container = document.getElementById('competitiveBadgeSummary');
-
-            if (!competitiveBadges || competitiveBadges.length === 0) {
-                container.innerHTML = `
-                    <div class="no-badges">
-                        <i class="fas fa-trophy" aria-hidden="true"></i>
-                        <h4>No Competitive Badges Yet</h4>
-                        <p>Join competitive quizzes and score 80% or higher to earn your first competitive badge!</p>
-                        <div class="badge-criteria">
-                            <p><strong>Competitive Badge Criteria:</strong></p>
-                            <ul style="text-align: left; display: inline-block;">
-                                <li>🟣 Purple Badge: 100% score (Perfect!)</li>
-                                <li>🔴 Red Badge: 90-99% score (Excellent!)</li>
-                                <li>🟢 Green Badge: 80-89% score (Great!)</li>
-                            </ul>
-                            <p><small><i class="fas fa-info-circle"></i> Badges are only awarded for first attempts in competitive quizzes.</small></p>
-                        </div>
-                    </div>
-                `;
-                announceToScreenReader('No competitive badges earned yet. Join competitive quizzes to earn your first badge.');
-                return;
-            }
-
-            let totalCompetitiveBadges = 0;
-            let html = '';
-
-            // Calculate total badges
-            competitiveBadges.forEach(subject => {
-                subject.badges.forEach(badge => {
-                    totalCompetitiveBadges += badge.count;
-                });
-            });
-
-            // Add total badges summary
-            html += `
-                <div class="total-badges">
-                    <h3>🏆 ${totalCompetitiveBadges} Competitive Badge${totalCompetitiveBadges !== 1 ? 's' : ''} Earned!</h3>
-                    <p>Outstanding performance in competitive quizzes!</p>
-                </div>
-            `;
-
-            // Add subject-wise competitive badges
-            competitiveBadges.forEach(subject => {
-                html += `
-                    <div class="subject-badges">
-                        <h3>
-                            <i class="fas fa-trophy" aria-hidden="true"></i>
-                            ${subject._id} (Competitive)
-                        </h3>
-                        <div class="badge-counts">
-                `;
-
-                subject.badges.forEach(badge => {
-                    const badgeInfo = getBadgeInfo(badge.badge);
-                    html += `
-                        <div class="badge-item badge-${badge.badge}" title="View details">
-                            <span class="badge-icon">${badgeInfo.icon}</span>
-                            ${badgeInfo.name}: ${badge.count}
-                        </div>
-                    `;
-                });
-
-                html += `
-                        </div>
-                        <p><strong>Total Competitive:</strong> ${subject.totalBadges} badge${subject.totalBadges !== 1 ? 's' : ''}</p>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-
-            // Announce results to screen readers
-            announceToScreenReader(`Loaded ${totalCompetitiveBadges} competitive badge${totalCompetitiveBadges === 1 ? '' : 's'} across ${competitiveBadges.length} subject${competitiveBadges.length === 1 ? '' : 's'}.`);
-        }
 
         // Load badges when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadStudentBadges();
-            loadCompetitiveBadges();
         });
     </script>
 </body>

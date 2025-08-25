@@ -5617,72 +5617,7 @@ app.get('/api/student-badges', requireAuth, requireRole(['student']), async (req
   }
 });
 
-// Route to get student competitive quiz badge summary
-app.get('/api/student-competitive-badges', requireAuth, requireRole(['student']), async (req, res) => {
-  try {
-    const QuizResult = require('./models/QuizResult');
 
-    // Get competitive quiz badges
-    const competitiveBadges = await QuizResult.aggregate([
-      {
-        $match: {
-          student: req.user._id,
-          organizationId: req.user.organizationId,
-          badgeEarned: true,
-          attemptNumber: 1,
-          isCompetitiveQuiz: true
-        }
-      },
-      { $lookup: { from: 'quizzes', localField: 'quiz', foreignField: '_id', as: 'quizInfo' } },
-      { $unwind: '$quizInfo' },
-      { $unwind: '$quizInfo.subjects' },
-      {
-        $group: {
-          _id: {
-            subject: '$quizInfo.subjects',
-            badge: '$badge'
-          },
-          count: { $sum: 1 },
-          quizzes: {
-            $push: {
-              quizTitle: '$quizInfo.title',
-              percentage: '$percentage',
-              rank: '$competitiveRank',
-              completedAt: '$completedAt'
-            }
-          }
-        }
-      },
-      {
-        $group: {
-          _id: '$_id.subject',
-          badges: {
-            $push: {
-              badge: '$_id.badge',
-              count: '$count',
-              quizzes: '$quizzes'
-            }
-          },
-          totalBadges: { $sum: '$count' }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    console.log(`✅ Found ${competitiveBadges.length} competitive badge subjects for student ${req.user.email}`);
-
-    res.json({
-      success: true,
-      competitiveBadges
-    });
-  } catch (error) {
-    console.error('Error getting student competitive badge summary:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error getting competitive badge summary'
-    });
-  }
-});
 
 // Debug route to check competitive quiz results for current student
 app.get('/api/debug-competitive-results', requireAuth, requireRole(['student']), async (req, res) => {
