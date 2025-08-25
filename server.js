@@ -33,7 +33,7 @@ const AWS = require('aws-sdk');
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: 'us-east-1' // or your preferred region
+  region: process.env.AWS_REGION || 'us-west-1' // Fixed: bucket is in us-west-1
 });
 
 const app = express();
@@ -252,7 +252,7 @@ const audioUpload = multer({
 async function uploadToS3(file, folder = 'uploads') {
   const s3Key = `${folder}/${Date.now()}-${file.originalname}`;
   const bucketName = process.env.AWS_BUCKET_NAME || 'skillon-test';
-  const region = process.env.AWS_REGION || 'us-east-1';
+  const region = process.env.AWS_REGION || 'us-west-1'; // Fixed: bucket is in us-west-1
 
   const params = {
     Bucket: bucketName,
@@ -265,11 +265,12 @@ async function uploadToS3(file, folder = 'uploads') {
   try {
     const result = await s3.upload(params).promise();
 
-    // Generate the full public URL
+    // Generate the full public URL with correct region
     const fullUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
 
     console.log(`✅ File uploaded to S3: ${s3Key}`);
     console.log(`✅ Public URL: ${fullUrl}`);
+    console.log(`✅ Region: ${region}`);
 
     return fullUrl; // Return full S3 URL for direct access
   } catch (error) {
@@ -560,6 +561,13 @@ function extractS3Key(fileUrl) {
     const key = urlParts.slice(-2).join('/');
     return decodeURIComponent(key);
   }
+}
+
+// Helper function to generate correct S3 URL with proper region
+function generateS3Url(key) {
+  const bucketName = process.env.AWS_BUCKET_NAME || 'skillon-test';
+  const region = process.env.AWS_REGION || 'us-west-1';
+  return `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
 }
 
 // Helper function to delete file from S3
@@ -1418,7 +1426,7 @@ app.get('/api/content-url/:contentId', requireAuth, requireRole(['student']), as
       const s3 = new AWS.S3({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: process.env.AWS_REGION || 'us-east-1'
+        region: process.env.AWS_REGION || 'us-west-1' // Fixed: bucket is in us-west-1
       });
 
       const key = extractS3Key(content.fileUrl);
@@ -1467,7 +1475,7 @@ app.get('/api/signed-url/:contentId', requireAuth, requireRole(['student']), asy
       const s3 = new AWS.S3({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: process.env.AWS_REGION || 'us-east-1'
+        region: process.env.AWS_REGION || 'us-west-1' // Fixed: bucket is in us-west-1
       });
 
       const key = extractS3Key(content.fileUrl);
@@ -1949,7 +1957,7 @@ app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']
       const s3 = new AWS.S3({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: process.env.AWS_REGION || 'us-east-1'
+        region: process.env.AWS_REGION || 'us-west-1' // Fixed: bucket is in us-west-1
       });
 
       // Extract the key from the URL using improved function
@@ -1983,7 +1991,7 @@ app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']
         const s3 = new AWS.S3({
           accessKeyId: process.env.AWS_ACCESS_KEY_ID,
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-          region: process.env.AWS_REGION || 'us-east-1'
+          region: process.env.AWS_REGION || 'us-west-1' // Fixed: bucket is in us-west-1
         });
 
         const key = extractS3Key(content.fileUrl);
@@ -2035,7 +2043,7 @@ app.get('/student/download-content/:contentId', requireAuth, requireRole(['stude
       const s3 = new AWS.S3({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: process.env.AWS_REGION || 'us-east-1'
+        region: process.env.AWS_REGION || 'us-west-1' // Fixed: bucket is in us-west-1
       });
 
       // Extract the key from the URL using improved function
