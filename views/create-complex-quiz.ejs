@@ -8,7 +8,20 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- MathJax will be loaded dynamically when needed -->
+    <!-- MathJax for complex mathematical expressions -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
     <!-- Chart.js for charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1889,10 +1902,24 @@
                         <br><small style="color: #64748b;">Fraction</small>
                     </div>`;
                 case 'math-equation':
-                    return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
-                        <div contenteditable="true" style="outline: none; font-size: 18px; font-weight: bold; color: #1e40af;">${element.content || 'x + 5 = 12'}</div>
-                        <small style="color: #64748b;">Equation</small>
-                    </div>`;
+                    const equationType = element.equationType || 'simple';
+                    let equationContent = element.content || 'x + 5 = 12';
+
+                    if (equationType === 'complex') {
+                        // Support for complex equations with LaTeX-like syntax
+                        equationContent = element.content || '\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}';
+                        return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
+                            <div id="equation-${element.id}" style="font-size: 18px; color: #1e40af; min-height: 40px; display: flex; align-items: center; justify-content: center;">
+                                $$${equationContent}$$
+                            </div>
+                            <small style="color: #64748b;">Complex Equation</small>
+                        </div>`;
+                    } else {
+                        return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
+                            <div contenteditable="true" style="outline: none; font-size: 18px; font-weight: bold; color: #1e40af;">${equationContent}</div>
+                            <small style="color: #64748b;">Simple Equation</small>
+                        </div>`;
+                    }
                 case 'math-expression':
                     return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
                         <div contenteditable="true" style="outline: none; font-size: 18px; font-weight: bold; color: #1e40af;">${element.content || '2x + 3y'}</div>
@@ -2032,26 +2059,76 @@
 
                 // Math Elements - Charts and Graphs
                 case 'math-bar-chart':
+                    const barChartData = element.chartData || 'A:10, B:20, C:15, D:25';
+                    const barChartTitle = element.chartTitle || 'Math Bar Chart';
+                    const barChartColor = element.chartColor || '#ef4444';
+
+                    // Parse chart data
+                    const barData = barChartData.split(',').map(item => {
+                        const [label, value] = item.split(':').map(s => s.trim());
+                        return { label, value: parseFloat(value) || 0 };
+                    });
+
+                    const maxValue = Math.max(...barData.map(d => d.value));
+                    const barWidth = Math.min(40, 200 / barData.length);
+
+                    const barsHTML = barData.map((data, index) => {
+                        const height = (data.value / maxValue) * 80;
+                        const x = index * (barWidth + 5) + 10;
+                        return `
+                            <rect x="${x}" y="${100 - height}" width="${barWidth}" height="${height}"
+                                  fill="${barChartColor}" opacity="${0.7 + (index * 0.1)}" rx="2"/>
+                            <text x="${x + barWidth/2}" y="115" text-anchor="middle" font-size="8" fill="#374151">${data.label}</text>
+                            <text x="${x + barWidth/2}" y="${95 - height}" text-anchor="middle" font-size="8" fill="#374151">${data.value}</text>
+                        `;
+                    }).join('');
+
                     return `<div style="padding: 15px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px;">
-                        <div style="display: flex; align-items: end; height: 120px; gap: 10px; margin-bottom: 10px;">
-                            <div style="width: 30px; height: 80%; background: #fca5a5; border-radius: 4px 4px 0 0;"></div>
-                            <div style="width: 30px; height: 60%; background: #f87171; border-radius: 4px 4px 0 0;"></div>
-                            <div style="width: 30px; height: 100%; background: #ef4444; border-radius: 4px 4px 0 0;"></div>
-                            <div style="width: 30px; height: 40%; background: #dc2626; border-radius: 4px 4px 0 0;"></div>
-                        </div>
-                        <small style="color: #7f1d1d; text-align: center; display: block;">Math Bar Chart</small>
+                        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; color: #7f1d1d;">${barChartTitle}</div>
+                        <svg width="100%" height="130" viewBox="0 0 ${Math.max(200, barData.length * (barWidth + 5) + 20)} 130" style="background: white; border-radius: 4px;">
+                            ${barsHTML}
+                        </svg>
+                        <small style="color: #7f1d1d; text-align: center; display: block;">Math Bar Chart (${barData.length} bars)</small>
                     </div>`;
                 case 'math-line-graph':
+                    const lineChartData = element.chartData || 'Jan:10, Feb:20, Mar:15, Apr:25, May:30';
+                    const lineChartTitle = element.chartTitle || 'Math Line Graph';
+                    const lineChartColor = element.chartColor || '#ef4444';
+
+                    // Parse chart data
+                    const lineData = lineChartData.split(',').map(item => {
+                        const [label, value] = item.split(':').map(s => s.trim());
+                        return { label, value: parseFloat(value) || 0 };
+                    });
+
+                    const maxLineValue = Math.max(...lineData.map(d => d.value));
+                    const stepX = 160 / (lineData.length - 1);
+
+                    const points = lineData.map((data, index) => {
+                        const x = 20 + (index * stepX);
+                        const y = 90 - ((data.value / maxLineValue) * 60);
+                        return `${x},${y}`;
+                    }).join(' ');
+
+                    const circles = lineData.map((data, index) => {
+                        const x = 20 + (index * stepX);
+                        const y = 90 - ((data.value / maxLineValue) * 60);
+                        return `<circle cx="${x}" cy="${y}" r="3" fill="${lineChartColor}"/>`;
+                    }).join('');
+
+                    const labels = lineData.map((data, index) => {
+                        const x = 20 + (index * stepX);
+                        return `<text x="${x}" y="110" text-anchor="middle" font-size="8" fill="#374151">${data.label}</text>`;
+                    }).join('');
+
                     return `<div style="padding: 15px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px;">
+                        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; color: #7f1d1d;">${lineChartTitle}</div>
                         <svg width="100%" height="120" viewBox="0 0 200 120" style="background: white; border-radius: 4px;">
-                            <polyline points="20,100 60,60 100,40 140,70 180,30" stroke="#ef4444" stroke-width="3" fill="none"/>
-                            <circle cx="20" cy="100" r="4" fill="#dc2626"/>
-                            <circle cx="60" cy="60" r="4" fill="#dc2626"/>
-                            <circle cx="100" cy="40" r="4" fill="#dc2626"/>
-                            <circle cx="140" cy="70" r="4" fill="#dc2626"/>
-                            <circle cx="180" cy="30" r="4" fill="#dc2626"/>
+                            <polyline points="${points}" stroke="${lineChartColor}" stroke-width="2" fill="none"/>
+                            ${circles}
+                            ${labels}
                         </svg>
-                        <small style="color: #7f1d1d; text-align: center; display: block;">Math Line Graph</small>
+                        <small style="color: #7f1d1d; text-align: center; display: block;">Math Line Graph (${lineData.length} points)</small>
                     </div>`;
                 case 'math-pie-chart':
                     return `<div style="padding: 15px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; text-align: center;">
@@ -2084,19 +2161,41 @@
                         <small style="color: #7f1d1d; text-align: center; display: block;">Math Coordinate Grid</small>
                     </div>`;
                 case 'math-scatter-plot':
+                    // Parse scatter plot data
+                    const scatterData = element.scatterData || [
+                        {x: 1, y: 4}, {x: 2, y: 3}, {x: 3, y: 4.5}, {x: 4, y: 2},
+                        {x: 5, y: 3.5}, {x: 6, y: 1.5}, {x: 7, y: 2.5}, {x: 8, y: 1}
+                    ];
+                    const maxX = Math.max(...scatterData.map(d => d.x));
+                    const maxY = Math.max(...scatterData.map(d => d.y));
+                    const scaleX = 160 / maxX;
+                    const scaleY = 80 / maxY;
+
+                    const scatterPoints = scatterData.map(point => {
+                        const x = 20 + (point.x * scaleX);
+                        const y = 100 - (point.y * scaleY);
+                        return `<circle cx="${x}" cy="${y}" r="3" fill="#ef4444"/>`;
+                    }).join('');
+
                     return `<div style="padding: 15px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px;">
                         <svg width="100%" height="120" viewBox="0 0 200 120" style="background: white; border-radius: 4px;">
+                            <!-- Grid lines -->
+                            <defs>
+                                <pattern id="scatterGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f3f4f6" stroke-width="1"/>
+                                </pattern>
+                            </defs>
+                            <rect width="200" height="120" fill="url(#scatterGrid)"/>
+                            <!-- Axes -->
+                            <line x1="20" y1="100" x2="180" y2="100" stroke="#374151" stroke-width="1"/>
+                            <line x1="20" y1="20" x2="20" y2="100" stroke="#374151" stroke-width="1"/>
                             <!-- Scatter points -->
-                            <circle cx="30" cy="90" r="3" fill="#ef4444"/>
-                            <circle cx="50" cy="70" r="3" fill="#ef4444"/>
-                            <circle cx="70" cy="85" r="3" fill="#ef4444"/>
-                            <circle cx="90" cy="50" r="3" fill="#ef4444"/>
-                            <circle cx="110" cy="60" r="3" fill="#ef4444"/>
-                            <circle cx="130" cy="40" r="3" fill="#ef4444"/>
-                            <circle cx="150" cy="55" r="3" fill="#ef4444"/>
-                            <circle cx="170" cy="35" r="3" fill="#ef4444"/>
+                            ${scatterPoints}
+                            <!-- Axis labels -->
+                            <text x="190" y="105" font-size="10" fill="#374151">x</text>
+                            <text x="15" y="15" font-size="10" fill="#374151">y</text>
                         </svg>
-                        <small style="color: #7f1d1d; text-align: center; display: block;">Math Scatter Plot</small>
+                        <small style="color: #7f1d1d; text-align: center; display: block;">Math Scatter Plot (${scatterData.length} points)</small>
                     </div>`;
 
                 // Math Elements - Math Science
@@ -2141,20 +2240,30 @@
                         <small style="color: #581c87;">Math Vector</small>
                     </div>`;
                 case 'math-matrix':
+                    const matrixRows = element.matrixRows || 2;
+                    const matrixCols = element.matrixCols || 2;
+                    const matrixValues = element.matrixValues || '1,2;3,4';
+
+                    // Parse matrix values
+                    const rows = matrixValues.split(';');
+                    let matrixHTML = '<table style="border-collapse: collapse;">';
+
+                    for (let i = 0; i < matrixRows; i++) {
+                        matrixHTML += '<tr>';
+                        const rowValues = rows[i] ? rows[i].split(',') : [];
+                        for (let j = 0; j < matrixCols; j++) {
+                            const value = rowValues[j] || (i * matrixCols + j + 1);
+                            matrixHTML += `<td contenteditable="true" style="padding: 5px 10px; text-align: center; font-weight: bold; color: #581c87; min-width: 30px;">${value}</td>`;
+                        }
+                        matrixHTML += '</tr>';
+                    }
+                    matrixHTML += '</table>';
+
                     return `<div style="padding: 15px; background: #f3e8ff; border: 2px solid #8b5cf6; border-radius: 8px; text-align: center;">
                         <div style="display: inline-block; border-left: 3px solid #8b5cf6; border-right: 3px solid #8b5cf6; padding: 10px 15px;">
-                            <table style="border-collapse: collapse;">
-                                <tr>
-                                    <td contenteditable="true" style="padding: 5px 10px; text-align: center; font-weight: bold; color: #581c87;">1</td>
-                                    <td contenteditable="true" style="padding: 5px 10px; text-align: center; font-weight: bold; color: #581c87;">2</td>
-                                </tr>
-                                <tr>
-                                    <td contenteditable="true" style="padding: 5px 10px; text-align: center; font-weight: bold; color: #581c87;">3</td>
-                                    <td contenteditable="true" style="padding: 5px 10px; text-align: center; font-weight: bold; color: #581c87;">4</td>
-                                </tr>
-                            </table>
+                            ${matrixHTML}
                         </div>
-                        <br><small style="color: #581c87;">Math Matrix</small>
+                        <br><small style="color: #581c87;">Math Matrix (${matrixRows}×${matrixCols})</small>
                     </div>`;
 
                 default:
@@ -2658,6 +2767,130 @@
                         </div>
                     `;
 
+                // Math Elements Properties
+                case 'math-equation':
+                    return `
+                        <div class="property-group">
+                            <label>Equation Type</label>
+                            <select onchange="updateMathProperty('${elementData.id}', 'equationType', this.value)" class="form-control">
+                                <option value="simple" ${(elementData.equationType || 'simple') === 'simple' ? 'selected' : ''}>Simple Equation</option>
+                                <option value="complex" ${elementData.equationType === 'complex' ? 'selected' : ''}>Complex Equation (LaTeX)</option>
+                            </select>
+                            <small class="text-muted">Choose equation complexity level</small>
+                        </div>
+                        <div class="property-group">
+                            <label>${elementData.equationType === 'complex' ? 'LaTeX Expression' : 'Equation Content'}</label>
+                            <textarea rows="3" onchange="updateMathProperty('${elementData.id}', 'content', this.value)" class="form-control" placeholder="${elementData.equationType === 'complex' ? 'Enter LaTeX: \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}' : 'Enter equation: x + 5 = 12'}">${elementData.content || (elementData.equationType === 'complex' ? '\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}' : 'x + 5 = 12')}</textarea>
+                            <small class="text-muted">${elementData.equationType === 'complex' ? 'Use LaTeX syntax for complex math expressions' : 'Enter simple mathematical equations'}</small>
+                        </div>
+                    `;
+
+                case 'math-scatter-plot':
+                    const currentData = elementData.scatterData || [{x: 1, y: 4}, {x: 2, y: 3}, {x: 3, y: 4.5}, {x: 4, y: 2}, {x: 5, y: 3.5}, {x: 6, y: 1.5}, {x: 7, y: 2.5}, {x: 8, y: 1}];
+                    const dataString = currentData.map(point => `${point.x},${point.y}`).join(';');
+                    return `
+                        <div class="property-group">
+                            <label>Scatter Plot Data</label>
+                            <textarea rows="4" onchange="updateScatterPlotData('${elementData.id}', this.value)" class="form-control" placeholder="Enter data as: x1,y1;x2,y2;x3,y3...">${dataString}</textarea>
+                            <small class="text-muted">Format: x1,y1;x2,y2;x3,y3 (e.g., 1,4;2,3;3,4.5)</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Point Color</label>
+                            <input type="color" value="${elementData.pointColor || '#ef4444'}" onchange="updateMathProperty('${elementData.id}', 'pointColor', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Point Size</label>
+                            <input type="range" min="2" max="8" value="${elementData.pointSize || 3}" onchange="updateMathProperty('${elementData.id}', 'pointSize', this.value)" class="form-range">
+                            <small class="text-muted">Current: ${elementData.pointSize || 3}px</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Show Grid</label>
+                            <select onchange="updateMathProperty('${elementData.id}', 'showGrid', this.value)" class="form-control">
+                                <option value="true" ${(elementData.showGrid !== false) ? 'selected' : ''}>Yes</option>
+                                <option value="false" ${elementData.showGrid === false ? 'selected' : ''}>No</option>
+                            </select>
+                        </div>
+                        <div class="property-group">
+                            <label>X-Axis Label</label>
+                            <input type="text" value="${elementData.xAxisLabel || 'x'}" onchange="updateMathProperty('${elementData.id}', 'xAxisLabel', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Y-Axis Label</label>
+                            <input type="text" value="${elementData.yAxisLabel || 'y'}" onchange="updateMathProperty('${elementData.id}', 'yAxisLabel', this.value)" class="form-control">
+                        </div>
+                    `;
+
+                case 'math-bar-chart':
+                case 'math-line-graph':
+                case 'math-pie-chart':
+                    return `
+                        <div class="property-group">
+                            <label>Chart Title</label>
+                            <input type="text" value="${elementData.chartTitle || 'Math Chart'}" onchange="updateMathProperty('${elementData.id}', 'chartTitle', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Chart Data</label>
+                            <textarea rows="4" onchange="updateMathChartData('${elementData.id}', this.value)" class="form-control" placeholder="Enter data as: Label1:Value1, Label2:Value2">${elementData.chartData || 'A:10, B:20, C:15, D:25'}</textarea>
+                            <small class="text-muted">Format: Label1:Value1, Label2:Value2, ...</small>
+                        </div>
+                        <div class="property-group">
+                            <label>Chart Color</label>
+                            <input type="color" value="${elementData.chartColor || '#ef4444'}" onchange="updateMathProperty('${elementData.id}', 'chartColor', this.value)" class="form-control">
+                        </div>
+                        ${elementData.type !== 'math-pie-chart' ? `
+                        <div class="property-group">
+                            <label>X-Axis Label</label>
+                            <input type="text" value="${elementData.xAxisLabel || 'Categories'}" onchange="updateMathProperty('${elementData.id}', 'xAxisLabel', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Y-Axis Label</label>
+                            <input type="text" value="${elementData.yAxisLabel || 'Values'}" onchange="updateMathProperty('${elementData.id}', 'yAxisLabel', this.value)" class="form-control">
+                        </div>
+                        ` : ''}
+                    `;
+
+                case 'math-fraction':
+                    return `
+                        <div class="property-group">
+                            <label>Numerator</label>
+                            <input type="text" value="${elementData.numerator || '3'}" onchange="updateMathProperty('${elementData.id}', 'numerator', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Denominator</label>
+                            <input type="text" value="${elementData.denominator || '4'}" onchange="updateMathProperty('${elementData.id}', 'denominator', this.value)" class="form-control">
+                        </div>
+                        <div class="property-group">
+                            <label>Fraction Size</label>
+                            <select onchange="updateMathProperty('${elementData.id}', 'fractionSize', this.value)" class="form-control">
+                                <option value="small" ${(elementData.fractionSize || 'medium') === 'small' ? 'selected' : ''}>Small</option>
+                                <option value="medium" ${(elementData.fractionSize || 'medium') === 'medium' ? 'selected' : ''}>Medium</option>
+                                <option value="large" ${elementData.fractionSize === 'large' ? 'selected' : ''}>Large</option>
+                            </select>
+                        </div>
+                    `;
+
+                case 'math-matrix':
+                    return `
+                        <div class="property-group">
+                            <label>Matrix Size</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="form-label">Rows</label>
+                                    <input type="number" min="1" max="5" value="${elementData.matrixRows || 2}" onchange="updateMatrixSize('${elementData.id}', this.value, document.getElementById('matrix-cols-${elementData.id}').value)" class="form-control">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Columns</label>
+                                    <input type="number" min="1" max="5" value="${elementData.matrixCols || 2}" id="matrix-cols-${elementData.id}" onchange="updateMatrixSize('${elementData.id}', document.querySelector('input[onchange*=\"updateMatrixSize\"]').value, this.value)" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="property-group">
+                            <label>Matrix Values</label>
+                            <textarea rows="3" onchange="updateMathProperty('${elementData.id}', 'matrixValues', this.value)" class="form-control" placeholder="Enter values row by row: 1,2;3,4">${elementData.matrixValues || '1,2;3,4'}</textarea>
+                            <small class="text-muted">Format: row1val1,row1val2;row2val1,row2val2</small>
+                        </div>
+                    `;
+
                 default:
                     return '';
             }
@@ -3006,6 +3239,107 @@
             }
         }
         window.updateChartProperty = updateChartProperty;
+
+        // Update Math element properties
+        function updateMathProperty(elementId, property, value) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (elementData) {
+                elementData[property] = value;
+
+                // Re-render the element
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.innerHTML = getElementContent(elementData);
+
+                    // If it's a complex equation, re-render MathJax
+                    if (elementData.type === 'math-equation' && elementData.equationType === 'complex') {
+                        if (window.MathJax) {
+                            MathJax.typesetPromise([element]).catch((err) => console.log(err.message));
+                        }
+                    }
+                }
+            }
+        }
+        window.updateMathProperty = updateMathProperty;
+
+        // Update scatter plot data
+        function updateScatterPlotData(elementId, dataString) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (elementData) {
+                try {
+                    // Parse the data string: "x1,y1;x2,y2;x3,y3"
+                    const points = dataString.split(';').map(point => {
+                        const [x, y] = point.split(',').map(val => parseFloat(val.trim()));
+                        return { x: isNaN(x) ? 0 : x, y: isNaN(y) ? 0 : y };
+                    }).filter(point => point.x !== 0 || point.y !== 0);
+
+                    elementData.scatterData = points;
+
+                    // Re-render the element
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.innerHTML = getElementContent(elementData);
+                    }
+                } catch (error) {
+                    console.error('Error parsing scatter plot data:', error);
+                    alert('Invalid data format. Please use: x1,y1;x2,y2;x3,y3');
+                }
+            }
+        }
+        window.updateScatterPlotData = updateScatterPlotData;
+
+        // Update math chart data
+        function updateMathChartData(elementId, dataString) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (elementData) {
+                try {
+                    // Parse the data string: "Label1:Value1, Label2:Value2"
+                    elementData.chartData = dataString;
+
+                    // Re-render the element
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.innerHTML = getElementContent(elementData);
+                    }
+                } catch (error) {
+                    console.error('Error parsing chart data:', error);
+                    alert('Invalid data format. Please use: Label1:Value1, Label2:Value2');
+                }
+            }
+        }
+        window.updateMathChartData = updateMathChartData;
+
+        // Update matrix size
+        function updateMatrixSize(elementId, rows, cols) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (elementData) {
+                elementData.matrixRows = parseInt(rows);
+                elementData.matrixCols = parseInt(cols);
+
+                // Generate default matrix values if needed
+                if (!elementData.matrixValues) {
+                    const defaultValues = [];
+                    for (let i = 0; i < rows; i++) {
+                        const row = [];
+                        for (let j = 0; j < cols; j++) {
+                            row.push((i * parseInt(cols) + j + 1).toString());
+                        }
+                        defaultValues.push(row.join(','));
+                    }
+                    elementData.matrixValues = defaultValues.join(';');
+                }
+
+                // Re-render the element
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.innerHTML = getElementContent(elementData);
+                }
+
+                // Update the properties panel
+                showElementProperties(elementId);
+            }
+        }
+        window.updateMatrixSize = updateMatrixSize;
 
         // Trigger image upload dialog
         function triggerImageUpload(elementId) {
