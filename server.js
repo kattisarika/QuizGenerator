@@ -6511,6 +6511,105 @@ app.post('/api/extend-session', requireAuth, (req, res) => {
   res.json({ success: true, message: 'Session extended' });
 });
 
+// Simple quiz collection test route
+app.get('/debug/quiz-collection', requireAuth, async (req, res) => {
+  try {
+    console.log('🔍 Testing Quiz Collection Access...');
+
+    const results = {
+      timestamp: new Date().toISOString(),
+      user: {
+        id: req.user._id,
+        email: req.user.email,
+        role: req.user.role,
+        organizationId: req.user.organizationId
+      },
+      tests: []
+    };
+
+    // Test 1: Basic count
+    try {
+      const totalCount = await Quiz.countDocuments();
+      results.tests.push({
+        test: 'Basic Count',
+        success: true,
+        result: totalCount
+      });
+    } catch (error) {
+      results.tests.push({
+        test: 'Basic Count',
+        success: false,
+        error: error.message
+      });
+    }
+
+    // Test 2: Find one quiz
+    try {
+      const oneQuiz = await Quiz.findOne().lean();
+      results.tests.push({
+        test: 'Find One Quiz',
+        success: true,
+        hasResult: !!oneQuiz,
+        quizId: oneQuiz?._id,
+        title: oneQuiz?.title
+      });
+    } catch (error) {
+      results.tests.push({
+        test: 'Find One Quiz',
+        success: false,
+        error: error.message
+      });
+    }
+
+    // Test 3: User-specific query
+    try {
+      const userQuizzes = await Quiz.find({ createdBy: req.user._id }).lean();
+      results.tests.push({
+        test: 'User Quizzes',
+        success: true,
+        count: userQuizzes.length,
+        quizTitles: userQuizzes.map(q => q.title)
+      });
+    } catch (error) {
+      results.tests.push({
+        test: 'User Quizzes',
+        success: false,
+        error: error.message
+      });
+    }
+
+    // Test 4: Organization-specific query
+    if (req.user.organizationId) {
+      try {
+        const orgQuizzes = await Quiz.find({ organizationId: req.user.organizationId }).lean();
+        results.tests.push({
+          test: 'Organization Quizzes',
+          success: true,
+          count: orgQuizzes.length,
+          organizationId: req.user.organizationId
+        });
+      } catch (error) {
+        results.tests.push({
+          test: 'Organization Quizzes',
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    console.log('✅ Quiz Collection Test Complete');
+    res.json(results);
+
+  } catch (error) {
+    console.error('❌ Quiz Collection Test Failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Debug endpoint to check user authentication status
 app.get('/api/debug-auth', (req, res) => {
   console.log('🔍 Debug auth endpoint called');
