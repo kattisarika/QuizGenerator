@@ -59,6 +59,19 @@
             margin-left: 8px;
         }
 
+        /* Competitive Quiz Styles */
+        .competitive-quiz-indicator {
+            background: linear-gradient(135deg, #F59E0B, #D97706);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 8px;
+        }
+
         /* Performance Badge Styles */
         .performance-badge {
             display: inline-flex;
@@ -202,6 +215,14 @@
                                                 <i class="fas fa-palette"></i> Complex Quiz
                                             </span>
                                         <% } %>
+                                        <% if (result.isCompetitiveQuiz) { %>
+                                            <span class="competitive-quiz-indicator">
+                                                <i class="fas fa-trophy"></i> Competitive Quiz
+                                                <% if (result.competitiveRank) { %>
+                                                    (Rank #<%= result.competitiveRank %>)
+                                                <% } %>
+                                            </span>
+                                        <% } %>
                                     </h4>
                                     <p class="result-date">
                                         <i class="fas fa-calendar"></i>
@@ -220,7 +241,34 @@
                                         </div>
 
                                         <!-- Performance Badge -->
-                                        <% if (result.percentage >= 80 && result.gradingStatus === 'graded') { %>
+                                        <% if (result.badgeEarned && result.badge) { %>
+                                            <% if (result.badge === 'purple') { %>
+                                                <span class="performance-badge badge-purple">
+                                                    <% if (result.isCompetitiveQuiz) { %>
+                                                        <i class="fas fa-trophy"></i> Purple Badge (Competitive)
+                                                    <% } else { %>
+                                                        <i class="fas fa-crown"></i> Purple Badge
+                                                    <% } %>
+                                                </span>
+                                            <% } else if (result.badge === 'red') { %>
+                                                <span class="performance-badge badge-red">
+                                                    <% if (result.isCompetitiveQuiz) { %>
+                                                        <i class="fas fa-trophy"></i> Red Badge (Competitive)
+                                                    <% } else { %>
+                                                        <i class="fas fa-medal"></i> Red Badge
+                                                    <% } %>
+                                                </span>
+                                            <% } else if (result.badge === 'green') { %>
+                                                <span class="performance-badge badge-green">
+                                                    <% if (result.isCompetitiveQuiz) { %>
+                                                        <i class="fas fa-trophy"></i> Green Badge (Competitive)
+                                                    <% } else { %>
+                                                        <i class="fas fa-star"></i> Green Badge
+                                                    <% } %>
+                                                </span>
+                                            <% } %>
+                                        <% } else if (result.percentage >= 80 && result.gradingStatus === 'graded') { %>
+                                            <!-- Fallback for old results without badge field -->
                                             <% if (result.percentage === 100) { %>
                                                 <span class="performance-badge badge-purple">
                                                     <i class="fas fa-crown"></i> Purple Badge
