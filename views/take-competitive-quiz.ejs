@@ -315,7 +315,7 @@
                                         <input type="radio"
                                                id="q<%= index %>-opt<%= optionIndex %>"
                                                name="question-<%= index %>"
-                                               value="<%= option %>"
+                                               value="<%- JSON.stringify(option).slice(1, -1) %>"
                                                data-question="<%= index %>"
                                                data-option="<%= optionIndex %>">
                                         <label for="q<%= index %>-opt<%= optionIndex %>" class="option-label">
@@ -355,7 +355,7 @@
                                         <input type="radio"
                                                id="q<%= index %>-opt<%= optionIndex %>"
                                                name="question-<%= index %>"
-                                               value="<%= option %>"
+                                               value="<%- JSON.stringify(option).slice(1, -1) %>"
                                                data-question="<%= index %>"
                                                data-option="<%= optionIndex %>">
                                         <label for="q<%= index %>-opt<%= optionIndex %>" class="option-label">
@@ -446,7 +446,7 @@
         }
 
         // Select answer (no server submission until quiz completion)
-        function selectCompetitiveOption(questionIndex, optionIndex) {
+        window.selectCompetitiveOption = function selectCompetitiveOption(questionIndex, optionIndex) {
             questionIndex = parseInt(questionIndex);
             optionIndex = parseInt(optionIndex);
 
@@ -529,15 +529,18 @@
 
             // Collect answers for each question
             for (let i = 0; i < <%= quiz.questions.length %>; i++) {
-                const question = <%= JSON.stringify(quiz.questions) %>[i];
+                // Check if question has options (multiple choice) or is text answer
+                const questionContainer = document.getElementById(`question-${i}`);
+                const hasOptions = questionContainer.querySelector('.options-container');
+                const hasTextAnswer = questionContainer.querySelector('.text-answer-section');
 
-                if (question.type === 'multiple-choice' || (question.options && question.options.length > 0)) {
+                if (hasOptions) {
                     // Multiple choice question
                     const selectedRadio = document.querySelector(`input[name="question-${i}"]:checked`);
                     if (selectedRadio) {
                         collectedAnswers[i] = { selectedAnswer: selectedRadio.value };
                     }
-                } else {
+                } else if (hasTextAnswer) {
                     // Text answer question
                     const textInput = document.getElementById(`text-answer-${i}`);
                     if (textInput && textInput.value.trim()) {
@@ -549,7 +552,7 @@
             return collectedAnswers;
         }
 
-        function jumpToQuestion(index) {
+        window.jumpToQuestion = function jumpToQuestion(index) {
             // Hide current question
             document.getElementById(`question-${currentQuestion}`).style.display = 'none';
             document.getElementById(`progress-${currentQuestion}`).classList.remove('current');
@@ -569,13 +572,13 @@
             }
         }
 
-        function nextQuestion() {
+        window.nextQuestion = function nextQuestion() {
             if (currentQuestion < totalQuestions - 1) {
                 jumpToQuestion(currentQuestion + 1);
             }
         }
 
-        function previousQuestion() {
+        window.previousQuestion = function previousQuestion() {
             if (currentQuestion > 0) {
                 jumpToQuestion(currentQuestion - 1);
             }
@@ -855,6 +858,15 @@
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Competitive quiz initializing...');
+
+            // Check if selectCompetitiveOption function exists
+            if (typeof selectCompetitiveOption === 'function') {
+                console.log('✅ selectCompetitiveOption function is available');
+            } else {
+                console.error('❌ selectCompetitiveOption function is NOT available');
+            }
+
             startTimer();
             updateLeaderboard();
             loadQuestionImages(); // Load question images
@@ -862,7 +874,12 @@
             // Initialize text answer handlers for all questions
             <% quiz.questions.forEach((question, index) => { %>
                 <% if (question.type === 'short-answer' || question.isTextAnswer || (!question.options || question.options.length === 0)) { %>
-                    handleTextAnswer(<%= index %>);
+                    try {
+                        handleTextAnswer(<%= index %>);
+                        console.log('✅ Initialized text answer handler for question <%= index %>');
+                    } catch (error) {
+                        console.error('❌ Error initializing text answer handler for question <%= index %>:', error);
+                    }
                 <% } %>
             <% }); %>
 
@@ -877,6 +894,8 @@
 
             // Update leaderboard every 5 seconds
             leaderboardInterval = setInterval(updateLeaderboard, 5000);
+
+            console.log('✅ Competitive quiz initialization complete');
         });
     </script>
 </body>
