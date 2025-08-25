@@ -196,6 +196,20 @@ const quizResultSchema = new mongoose.Schema({
   detailedGrading: {
     type: Object,
     default: null
+  },
+  // Competitive quiz fields
+  isCompetitiveQuiz: {
+    type: Boolean,
+    default: false
+  },
+  competitiveRank: {
+    type: Number,
+    default: null
+  },
+  sessionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'QuizSession',
+    default: null
   }
 }, {
   timestamps: true

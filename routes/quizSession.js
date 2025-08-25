@@ -374,19 +374,35 @@ router.post('/submit-complete/:sessionId', isAuthenticated, requireRole(['studen
     const answersArray = Array.isArray(answers) ? answers : Object.values(answers);
     
     answersArray.forEach((answer, index) => {
-      if (answer && answer.selectedAnswer) {
+      if (answer && (answer.selectedAnswer || answer.textAnswer)) {
         totalAnswers++;
         const question = session.quiz.questions[index];
-        const isCorrect = answer.selectedAnswer === question.correctAnswer;
-        
+        let isCorrect = false;
+        let studentAnswer = '';
+
+        if (answer.selectedAnswer) {
+          // Multiple choice answer
+          studentAnswer = answer.selectedAnswer;
+          isCorrect = answer.selectedAnswer === question.correctAnswer;
+        } else if (answer.textAnswer) {
+          // Text answer
+          studentAnswer = answer.textAnswer;
+          // For text answers, we'll need manual grading or simple string comparison
+          // For now, do a simple case-insensitive comparison
+          const correctAnswer = question.correctAnswer || question.expectedAnswer || '';
+          isCorrect = studentAnswer.toLowerCase().trim() === correctAnswer.toLowerCase().trim();
+        }
+
         if (isCorrect) {
           correctAnswers++;
           score += question.points || 1;
         }
-        
+
         processedAnswers.push({
           questionIndex: index,
-          selectedAnswer: answer.selectedAnswer,
+          selectedAnswer: answer.selectedAnswer || null,
+          textAnswer: answer.textAnswer || null,
+          studentAnswer: studentAnswer,
           isCorrect,
           answeredAt: new Date()
         });
@@ -438,19 +454,87 @@ router.post('/submit-complete/:sessionId', isAuthenticated, requireRole(['studen
     const rank = completedParticipants.findIndex(
       p => p.studentId.toString() === req.user._id.toString()
     ) + 1;
-    
-    res.json({
-      success: true,
-      results: {
+
+    const percentage = Math.round((correctAnswers / session.quiz.questions.length) * 100);
+
+    // Create QuizResult record for badge assignment and tracking
+    try {
+      const QuizResult = require('../models/QuizResult');
+
+      // Check if this student already has a result for this quiz (to determine attempt number)
+      const existingResults = await QuizResult.find({
+        student: req.user._id,
+        quiz: session.quiz._id
+      }).sort({ attemptNumber: -1 });
+
+      const attemptNumber = existingResults.length > 0 ? existingResults[0].attemptNumber + 1 : 1;
+
+      // Create new quiz result
+      const quizResult = new QuizResult({
+        student: req.user._id,
+        quiz: session.quiz._id,
         score: score,
-        correctAnswers: correctAnswers,
         totalQuestions: session.quiz.questions.length,
-        accuracy: accuracy,
+        correctAnswers: correctAnswers,
+        percentage: percentage,
         timeTaken: timeTaken,
-        rank: rank,
-        percentage: Math.round((correctAnswers / session.quiz.questions.length) * 100)
-      }
-    });
+        completedAt: completedAt,
+        answers: processedAnswers,
+        attemptNumber: attemptNumber,
+        organizationId: req.user.organizationId,
+        teacherId: session.quiz.createdBy,
+        isCompetitiveQuiz: true, // Mark as competitive quiz
+        competitiveRank: rank,
+        sessionId: session._id
+      });
+
+      // Assign badge based on percentage (only for first attempts)
+      quizResult.assignBadge();
+
+      // Save the quiz result
+      await quizResult.save();
+
+      console.log(`✅ Created QuizResult for competitive quiz - Student: ${req.user.email}, Score: ${percentage}%, Badge: ${quizResult.badge || 'none'}`);
+
+      // Include badge information in response
+      res.json({
+        success: true,
+        results: {
+          score: score,
+          correctAnswers: correctAnswers,
+          totalQuestions: session.quiz.questions.length,
+          accuracy: accuracy,
+          timeTaken: timeTaken,
+          rank: rank,
+          percentage: percentage,
+          // Badge information
+          badge: quizResult.badge,
+          badgeEarned: quizResult.badgeEarned,
+          badgeEarnedAt: quizResult.badgeEarnedAt,
+          attemptNumber: attemptNumber,
+          quizResultId: quizResult._id
+        }
+      });
+
+    } catch (badgeError) {
+      console.error('❌ Error creating QuizResult for competitive quiz:', badgeError);
+
+      // Still return success but without badge info
+      res.json({
+        success: true,
+        results: {
+          score: score,
+          correctAnswers: correctAnswers,
+          totalQuestions: session.quiz.questions.length,
+          accuracy: accuracy,
+          timeTaken: timeTaken,
+          rank: rank,
+          percentage: percentage,
+          badge: null,
+          badgeEarned: false
+        }
+      });
+    }
   } catch (error) {
     console.error('Error submitting competitive quiz:', error);
     res.status(500).json({ success: false, message: 'Error submitting quiz' });

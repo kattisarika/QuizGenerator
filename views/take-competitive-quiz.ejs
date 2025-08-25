@@ -512,19 +512,61 @@
 
         // Update answered count
         function updateAnsweredCount() {
-            totalAnswered = Object.keys(answers).length;
+            // Count all questions that have either selectedAnswer or textAnswer
+            let count = 0;
+            for (let i = 0; i < <%= quiz.questions.length %>; i++) {
+                if (answers[i] && (answers[i].selectedAnswer || (answers[i].textAnswer && answers[i].textAnswer.trim()))) {
+                    count++;
+                }
+            }
+            totalAnswered = count;
             document.getElementById('answered-count').textContent = totalAnswered;
+        }
+
+        // Collect all answers before submission
+        function collectAllAnswers() {
+            const collectedAnswers = {};
+
+            // Collect answers for each question
+            for (let i = 0; i < <%= quiz.questions.length %>; i++) {
+                const question = <%= JSON.stringify(quiz.questions) %>[i];
+
+                if (question.type === 'multiple-choice' || (question.options && question.options.length > 0)) {
+                    // Multiple choice question
+                    const selectedRadio = document.querySelector(`input[name="question-${i}"]:checked`);
+                    if (selectedRadio) {
+                        collectedAnswers[i] = { selectedAnswer: selectedRadio.value };
+                    }
+                } else {
+                    // Text answer question
+                    const textInput = document.getElementById(`text-answer-${i}`);
+                    if (textInput && textInput.value.trim()) {
+                        collectedAnswers[i] = { textAnswer: textInput.value.trim() };
+                    }
+                }
+            }
+
+            return collectedAnswers;
         }
 
         function jumpToQuestion(index) {
             // Hide current question
             document.getElementById(`question-${currentQuestion}`).style.display = 'none';
             document.getElementById(`progress-${currentQuestion}`).classList.remove('current');
-            
+
             // Show selected question
             currentQuestion = index;
             document.getElementById(`question-${index}`).style.display = 'block';
             document.getElementById(`progress-${index}`).classList.add('current');
+
+            // Process MathJax for the newly displayed question
+            if (window.MathJax) {
+                setTimeout(() => {
+                    MathJax.typesetPromise([document.getElementById(`question-${index}`)]).catch(function (err) {
+                        console.log('MathJax typeset error:', err.message);
+                    });
+                }, 100);
+            }
         }
 
         function nextQuestion() {
@@ -541,30 +583,35 @@
 
         async function submitCompetitiveQuiz() {
             if (!confirm('Are you sure you want to submit your quiz? You can only submit once.')) return;
-            
+
+            // Collect all current answers from the form
+            const finalAnswers = collectAllAnswers();
+
             // Check if all questions are answered (optional)
             const totalQuestions = <%= quiz.questions.length %>;
-            const answeredCount = Object.keys(answers).length;
-            
+            const answeredCount = Object.keys(finalAnswers).length;
+
             if (answeredCount < totalQuestions) {
                 if (!confirm(`You have only answered ${answeredCount} out of ${totalQuestions} questions. Submit anyway?`)) {
                     return;
                 }
             }
-            
+
+            console.log('🚀 Submitting competitive quiz with answers:', finalAnswers);
+
             clearInterval(timerInterval);
             clearInterval(leaderboardInterval);
-            
+
             // Disable submit button to prevent double submission
             const submitBtn = document.querySelector('.submit-btn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
-            
+
             try {
                 const response = await fetch(`/api/quiz-session/submit-complete/${sessionId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answers: answers })
+                    body: JSON.stringify({ answers: finalAnswers })
                 });
                 
                 const data = await response.json();
@@ -600,15 +647,79 @@
         }
 
         function showCompletionScreen(results) {
+            // Generate badge display HTML
+            let badgeHtml = '';
+            if (results.badgeEarned && results.badge) {
+                let badgeIcon = '';
+                let badgeName = '';
+                let badgeDescription = '';
+                let badgeColor = '';
+
+                if (results.badge === 'purple') {
+                    badgeIcon = '🟣';
+                    badgeName = 'Purple Badge - Perfect Score!';
+                    badgeDescription = 'Outstanding! You achieved a perfect score of 100%. This is exceptional work!';
+                    badgeColor = '#8b5cf6';
+                } else if (results.badge === 'red') {
+                    badgeIcon = '🔴';
+                    badgeName = 'Red Badge - Excellent Performance!';
+                    badgeDescription = 'Fantastic! You scored between 90-99%. You\'re mastering this subject!';
+                    badgeColor = '#ef4444';
+                } else if (results.badge === 'green') {
+                    badgeIcon = '🟢';
+                    badgeName = 'Green Badge - Great Job!';
+                    badgeDescription = 'Well done! You scored between 80-89%. Keep up the great work!';
+                    badgeColor = '#22c55e';
+                }
+
+                badgeHtml = `
+                    <div style="background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid #f59e0b; border-radius: 15px; padding: 25px; margin: 25px 0; animation: badgeBounce 1s ease-out;">
+                        <div style="display: flex; align-items: center; gap: 20px; justify-content: center;">
+                            <div style="font-size: 60px; animation: badgeGlow 2s infinite alternate;">${badgeIcon}</div>
+                            <div style="text-align: left;">
+                                <h3 style="color: #92400e; margin: 0 0 10px 0; font-size: 20px;">🎉 Badge Earned!</h3>
+                                <p style="color: #92400e; font-weight: bold; margin: 0 0 8px 0; font-size: 16px;">${badgeName}</p>
+                                <p style="color: #92400e; margin: 0; font-size: 14px; line-height: 1.4;">${badgeDescription}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (results.attemptNumber === 1) {
+                // Show badge criteria for first attempts that didn't earn a badge
+                badgeHtml = `
+                    <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 20px; margin: 25px 0;">
+                        <h4 style="color: #495057; margin: 0 0 15px 0; font-size: 18px;"><i class="fas fa-medal"></i> Badge Information</h4>
+                        <p style="color: #6c757d; margin: 0 0 15px 0; font-size: 14px;">Complete quizzes with higher scores to earn badges:</p>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 20px;">🟣</span>
+                                <span style="color: #495057; font-size: 14px;"><strong>Purple Badge:</strong> 100% score</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 20px;">🔴</span>
+                                <span style="color: #495057; font-size: 14px;"><strong>Red Badge:</strong> 90-99% score</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 20px;">🟢</span>
+                                <span style="color: #495057; font-size: 14px;"><strong>Green Badge:</strong> 80-89% score</span>
+                            </div>
+                        </div>
+                        <p style="color: #6c757d; margin: 15px 0 0 0; font-size: 12px;"><i class="fas fa-info-circle"></i> Badges are only awarded for first attempts.</p>
+                    </div>
+                `;
+            }
+
             document.querySelector('.main-content').innerHTML = `
                 <div class="quiz-completion-container" style="max-width: 600px; margin: 0 auto; text-align: center; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
-                    <i class="fas fa-trophy" style="font-size: 80px; color: gold; margin-bottom: 20px;"></i>
-                    <h2 style="color: #28a745; margin-bottom: 20px;">Quiz Completed!</h2>
-                    
+                    <i class="fas fa-trophy" style="font-size: 80px; color: gold; margin-bottom: 20px; animation: trophyBounce 2s infinite;"></i>
+                    <h2 style="color: #28a745; margin-bottom: 20px;">Competitive Quiz Completed!</h2>
+
+                    ${badgeHtml}
+
                     <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); padding: 30px; border-radius: 15px; margin: 20px 0;">
                         <h3 style="color: #667eea; margin-bottom: 20px;">Your Rank: #${results.rank}</h3>
                         <div style="font-size: 48px; font-weight: bold; color: #667eea;">
-                            ${results.accuracy.toFixed(0)}%
+                            ${results.percentage}%
                         </div>
                         <div style="margin-top: 15px; font-size: 20px;">
                             ${results.correctAnswers} out of ${results.totalQuestions} correct
@@ -616,14 +727,40 @@
                         <div style="margin-top: 10px; color: #666;">
                             Time: ${Math.floor(results.timeTaken / 60)}:${(results.timeTaken % 60).toString().padStart(2, '0')}
                         </div>
+                        <div style="margin-top: 10px; color: #666; font-size: 14px;">
+                            Accuracy: ${results.accuracy.toFixed(1)}%
+                        </div>
                     </div>
-                    
+
                     <div style="margin-top: 30px;">
                         <a href="/student/dashboard" class="btn btn-primary btn-lg">
                             <i class="fas fa-home"></i> Return to Dashboard
                         </a>
+                        ${results.quizResultId ? `
+                            <a href="/quiz-result/${results.quizResultId}" class="btn btn-outline-primary btn-lg" style="margin-left: 15px;">
+                                <i class="fas fa-chart-bar"></i> View Detailed Results
+                            </a>
+                        ` : ''}
                     </div>
                 </div>
+
+                <style>
+                    @keyframes badgeBounce {
+                        0% { transform: scale(0.8); opacity: 0; }
+                        50% { transform: scale(1.05); }
+                        100% { transform: scale(1); opacity: 1; }
+                    }
+
+                    @keyframes badgeGlow {
+                        0% { transform: scale(1); }
+                        100% { transform: scale(1.1); }
+                    }
+
+                    @keyframes trophyBounce {
+                        0%, 100% { transform: translateY(0px); }
+                        50% { transform: translateY(-10px); }
+                    }
+                </style>
             `;
         }
 
