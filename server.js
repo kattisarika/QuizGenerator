@@ -570,6 +570,22 @@ function generateS3Url(key) {
   return `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
 }
 
+// Helper function to fix S3 URLs with wrong region
+function fixS3UrlRegion(url) {
+  if (!url || !url.includes('amazonaws.com')) {
+    return url;
+  }
+
+  // Replace us-east-1 with us-west-1 in existing URLs
+  if (url.includes('s3.us-east-1.amazonaws.com')) {
+    const fixedUrl = url.replace('s3.us-east-1.amazonaws.com', 's3.us-west-1.amazonaws.com');
+    console.log(`🔧 Fixed S3 URL region: ${url} -> ${fixedUrl}`);
+    return fixedUrl;
+  }
+
+  return url;
+}
+
 // Helper function to delete file from S3
 async function deleteFromS3(fileUrl) {
   try {
@@ -1411,10 +1427,12 @@ app.get('/api/content-url/:contentId', requireAuth, requireRole(['student']), as
 
     // If fileUrl is already a full URL, return it directly
     if (content.fileUrl.startsWith('https://')) {
-      console.log(`✅ Returning direct S3 URL`);
+      // Fix the region if it's wrong
+      const fixedUrl = fixS3UrlRegion(content.fileUrl);
+      console.log(`✅ Returning direct S3 URL: ${fixedUrl}`);
       return res.json({
         success: true,
-        fileUrl: content.fileUrl,
+        fileUrl: fixedUrl,
         fileName: content.fileName,
         fileType: content.fileType
       });
@@ -1946,9 +1964,11 @@ app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']
 
     // Check if fileUrl is already a full S3 URL (starts with https://)
     if (content.fileUrl.startsWith('https://')) {
-      console.log(`🔗 Using direct S3 URL: ${content.fileUrl}`);
+      // Fix the region if it's wrong
+      const fixedUrl = fixS3UrlRegion(content.fileUrl);
+      console.log(`🔗 Using direct S3 URL: ${fixedUrl}`);
       // For direct S3 URLs, redirect to the public URL
-      return res.redirect(content.fileUrl);
+      return res.redirect(fixedUrl);
     }
 
     // For S3 keys or other formats, fetch from S3 and serve
@@ -2032,9 +2052,11 @@ app.get('/student/download-content/:contentId', requireAuth, requireRole(['stude
 
     // Check if fileUrl is already a full S3 URL (starts with https://)
     if (content.fileUrl.startsWith('https://')) {
-      console.log(`🔗 Using direct S3 URL for download: ${content.fileUrl}`);
+      // Fix the region if it's wrong
+      const fixedUrl = fixS3UrlRegion(content.fileUrl);
+      console.log(`🔗 Using direct S3 URL for download: ${fixedUrl}`);
       // For direct S3 URLs, redirect to the public URL
-      return res.redirect(content.fileUrl);
+      return res.redirect(fixedUrl);
     }
 
     // For S3 keys, fetch the file and serve it
@@ -3912,6 +3934,48 @@ app.post('/teacher/post-content', requireAuth, requireRole(['teacher']), require
   } catch (error) {
     console.error('Error posting content:', error);
     res.status(500).send('Error posting content');
+  }
+});
+
+// Route to fix S3 URLs with wrong region (migration)
+app.post('/admin/fix-s3-urls', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    console.log('🔧 Starting S3 URL region fix migration...');
+
+    // Find all content with us-east-1 URLs
+    const contentWithWrongRegion = await Content.find({
+      fileUrl: { $regex: 's3.us-east-1.amazonaws.com' }
+    });
+
+    console.log(`Found ${contentWithWrongRegion.length} content items with wrong region URLs`);
+
+    let fixedCount = 0;
+    for (const content of contentWithWrongRegion) {
+      const originalUrl = content.fileUrl;
+      const fixedUrl = fixS3UrlRegion(originalUrl);
+
+      if (fixedUrl !== originalUrl) {
+        content.fileUrl = fixedUrl;
+        await content.save();
+        fixedCount++;
+        console.log(`Fixed: ${content.title} - ${originalUrl} -> ${fixedUrl}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Fixed ${fixedCount} S3 URLs`,
+      totalFound: contentWithWrongRegion.length,
+      totalFixed: fixedCount
+    });
+
+  } catch (error) {
+    console.error('❌ Error fixing S3 URLs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fixing S3 URLs',
+      error: error.message
+    });
   }
 });
 
