@@ -4944,6 +4944,193 @@ app.get('/debug-quiz-student/:quizId', requireAuth, requireRole(['student']), as
   }
 });
 
+// MongoDB Collection Diagnostic Route
+app.get('/debug/mongodb-collections', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    console.log('🔍 MongoDB Collection Diagnostic Starting...');
+
+    const diagnostics = {
+      timestamp: new Date().toISOString(),
+      database: {
+        name: mongoose.connection.db.databaseName,
+        readyState: mongoose.connection.readyState,
+        readyStateText: {
+          0: 'disconnected',
+          1: 'connected',
+          2: 'connecting',
+          3: 'disconnecting'
+        }[mongoose.connection.readyState]
+      },
+      collections: {},
+      errors: []
+    };
+
+    // Test Quiz collection
+    try {
+      const quizCount = await Quiz.countDocuments();
+      const sampleQuiz = await Quiz.findOne().lean();
+
+      diagnostics.collections.quizzes = {
+        totalCount: quizCount,
+        hasData: quizCount > 0,
+        sampleDocument: sampleQuiz ? {
+          id: sampleQuiz._id,
+          title: sampleQuiz.title,
+          questionsCount: sampleQuiz.questions?.length || 0,
+          hasComplexData: !!sampleQuiz.complexQuizData,
+          createdAt: sampleQuiz.createdAt,
+          fields: Object.keys(sampleQuiz)
+        } : null
+      };
+    } catch (error) {
+      diagnostics.errors.push({
+        collection: 'quizzes',
+        error: error.message,
+        stack: error.stack
+      });
+    }
+
+    // Test QuizResult collection
+    try {
+      const QuizResult = require('./models/QuizResult');
+      const resultCount = await QuizResult.countDocuments();
+      const sampleResult = await QuizResult.findOne().lean();
+
+      diagnostics.collections.quizResults = {
+        totalCount: resultCount,
+        hasData: resultCount > 0,
+        sampleDocument: sampleResult ? {
+          id: sampleResult._id,
+          student: sampleResult.student,
+          quiz: sampleResult.quiz,
+          score: sampleResult.score,
+          createdAt: sampleResult.createdAt,
+          fields: Object.keys(sampleResult)
+        } : null
+      };
+    } catch (error) {
+      diagnostics.errors.push({
+        collection: 'quizResults',
+        error: error.message,
+        stack: error.stack
+      });
+    }
+
+    // Test Content collection
+    try {
+      const Content = require('./models/Content');
+      const contentCount = await Content.countDocuments();
+      const sampleContent = await Content.findOne().lean();
+
+      diagnostics.collections.content = {
+        totalCount: contentCount,
+        hasData: contentCount > 0,
+        sampleDocument: sampleContent ? {
+          id: sampleContent._id,
+          title: sampleContent.title,
+          category: sampleContent.category,
+          createdAt: sampleContent.createdAt,
+          fields: Object.keys(sampleContent)
+        } : null
+      };
+    } catch (error) {
+      diagnostics.errors.push({
+        collection: 'content',
+        error: error.message,
+        stack: error.stack
+      });
+    }
+
+    // Test User collection
+    try {
+      const User = require('./models/User');
+      const userCount = await User.countDocuments();
+      const sampleUser = await User.findOne().lean();
+
+      diagnostics.collections.users = {
+        totalCount: userCount,
+        hasData: userCount > 0,
+        sampleDocument: sampleUser ? {
+          id: sampleUser._id,
+          email: sampleUser.email,
+          role: sampleUser.role,
+          createdAt: sampleUser.createdAt,
+          fields: Object.keys(sampleUser)
+        } : null
+      };
+    } catch (error) {
+      diagnostics.errors.push({
+        collection: 'users',
+        error: error.message,
+        stack: error.stack
+      });
+    }
+
+    // Test specific problematic queries
+    try {
+      const problematicQueries = [];
+
+      // Test aggregation pipeline
+      try {
+        const aggregationResult = await Quiz.aggregate([
+          { $match: {} },
+          { $group: { _id: '$gradeLevel', count: { $sum: 1 } } },
+          { $sort: { _id: 1 } }
+        ]);
+        problematicQueries.push({
+          type: 'aggregation',
+          success: true,
+          result: aggregationResult
+        });
+      } catch (aggError) {
+        problematicQueries.push({
+          type: 'aggregation',
+          success: false,
+          error: aggError.message
+        });
+      }
+
+      // Test complex query with populate
+      try {
+        const populateResult = await Quiz.findOne()
+          .populate('createdBy', 'displayName')
+          .populate('organizationId', 'name')
+          .lean();
+        problematicQueries.push({
+          type: 'populate',
+          success: true,
+          hasResult: !!populateResult
+        });
+      } catch (popError) {
+        problematicQueries.push({
+          type: 'populate',
+          success: false,
+          error: popError.message
+        });
+      }
+
+      diagnostics.problematicQueries = problematicQueries;
+    } catch (error) {
+      diagnostics.errors.push({
+        collection: 'problematicQueries',
+        error: error.message,
+        stack: error.stack
+      });
+    }
+
+    console.log('✅ MongoDB Collection Diagnostic Complete');
+    res.json(diagnostics);
+
+  } catch (error) {
+    console.error('❌ MongoDB Collection Diagnostic Failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Route to create podcast page
 app.get('/create-podcast', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
   res.render('create-podcast', { user: req.user });
