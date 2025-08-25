@@ -3943,6 +3943,52 @@ app.post('/teacher/post-content', requireAuth, requireRole(['teacher']), require
   }
 });
 
+// Route to fix competitive quiz results missing quizTitle (migration)
+app.post('/admin/fix-competitive-quiz-titles', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    console.log('🔧 Starting competitive quiz title fix migration...');
+
+    // Find competitive quiz results without quizTitle
+    const competitiveResultsWithoutTitle = await QuizResult.find({
+      isCompetitiveQuiz: true,
+      $or: [
+        { quizTitle: { $exists: false } },
+        { quizTitle: null },
+        { quizTitle: '' }
+      ]
+    }).populate('quiz');
+
+    console.log(`Found ${competitiveResultsWithoutTitle.length} competitive quiz results without titles`);
+
+    let fixedCount = 0;
+    for (const result of competitiveResultsWithoutTitle) {
+      if (result.quiz && result.quiz.title) {
+        result.quizTitle = result.quiz.title;
+        await result.save();
+        fixedCount++;
+        console.log(`Fixed: ${result._id} - Added title: ${result.quiz.title}`);
+      } else {
+        console.log(`⚠️ Skipped: ${result._id} - Quiz not found or no title`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Fixed ${fixedCount} competitive quiz result titles`,
+      totalFound: competitiveResultsWithoutTitle.length,
+      totalFixed: fixedCount
+    });
+
+  } catch (error) {
+    console.error('❌ Error fixing competitive quiz titles:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fixing competitive quiz titles',
+      error: error.message
+    });
+  }
+});
+
 // Route to fix S3 URLs with wrong region (migration)
 app.post('/admin/fix-s3-urls', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
@@ -5638,6 +5684,58 @@ app.get('/api/student-competitive-badges', requireAuth, requireRole(['student'])
   }
 });
 
+// Debug route to check competitive quiz results for current student
+app.get('/api/debug-competitive-results', requireAuth, requireRole(['student']), async (req, res) => {
+  try {
+    console.log(`🔍 Debug competitive results for student: ${req.user.email}`);
+
+    // Get all QuizResult records for this student
+    const allResults = await QuizResult.find({ student: req.user._id })
+      .populate('quiz')
+      .sort({ createdAt: -1 });
+
+    // Filter competitive results
+    const competitiveResults = allResults.filter(r => r.isCompetitiveQuiz);
+
+    const debugInfo = {
+      studentId: req.user._id,
+      studentEmail: req.user.email,
+      totalResults: allResults.length,
+      competitiveResults: competitiveResults.length,
+      allResultsSummary: allResults.map(r => ({
+        id: r._id,
+        quizTitle: r.quizTitle,
+        isCompetitiveQuiz: r.isCompetitiveQuiz,
+        percentage: r.percentage,
+        hasQuiz: !!r.quiz,
+        createdAt: r.createdAt
+      })),
+      competitiveResultsDetails: competitiveResults.map(r => ({
+        id: r._id,
+        quizTitle: r.quizTitle,
+        percentage: r.percentage,
+        badge: r.badge,
+        rank: r.competitiveRank,
+        sessionId: r.sessionId,
+        hasQuiz: !!r.quiz,
+        quizId: r.quiz?._id,
+        createdAt: r.createdAt
+      }))
+    };
+
+    console.log('🔍 Debug info:', debugInfo);
+    res.json(debugInfo);
+
+  } catch (error) {
+    console.error('❌ Error in debug competitive results:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Debug route to check if a quiz result exists
 app.get('/api/debug-quiz-result/:resultId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
@@ -5807,9 +5905,41 @@ app.get('/debug-quiz/:quizId', requireAuth, async (req, res) => {
 // Route to view student's quiz history
 app.get('/my-results', requireAuth, requireRole(['student']), async (req, res) => {
   try {
+    console.log(`🔍 Fetching results for student: ${req.user.email} (ID: ${req.user._id})`);
+
     const results = await QuizResult.find({ student: req.user._id })
       .populate('quiz')
       .sort({ createdAt: -1 });
+
+    console.log(`📊 Found ${results.length} total results for student ${req.user.email}`);
+
+    // Log competitive quiz results specifically
+    const competitiveResults = results.filter(r => r.isCompetitiveQuiz);
+    console.log(`🏆 Found ${competitiveResults.length} competitive quiz results`);
+
+    if (competitiveResults.length > 0) {
+      competitiveResults.forEach((result, index) => {
+        console.log(`🏆 Competitive Result ${index + 1}:`, {
+          id: result._id,
+          quizTitle: result.quizTitle,
+          percentage: result.percentage,
+          badge: result.badge,
+          rank: result.competitiveRank,
+          isCompetitiveQuiz: result.isCompetitiveQuiz,
+          hasQuiz: !!result.quiz,
+          quizId: result.quiz?._id,
+          createdAt: result.createdAt
+        });
+      });
+    }
+
+    // Check for results without quiz (orphaned results)
+    const orphanedResults = results.filter(r => !r.quiz);
+    if (orphanedResults.length > 0) {
+      console.log(`⚠️ Found ${orphanedResults.length} orphaned results (quiz deleted):`,
+        orphanedResults.map(r => ({ id: r._id, quizTitle: r.quizTitle, isCompetitive: r.isCompetitiveQuiz }))
+      );
+    }
 
     // Add isArchived property to each result
     const resultsWithArchiveStatus = results.map(result => {
@@ -5819,6 +5949,7 @@ app.get('/my-results', requireAuth, requireRole(['student']), async (req, res) =
       return resultObj;
     });
 
+    console.log(`✅ Rendering my-results page with ${resultsWithArchiveStatus.length} results`);
     res.render('my-results', { results: resultsWithArchiveStatus, user: req.user });
   } catch (error) {
     console.error('Error fetching results:', error);

@@ -473,6 +473,7 @@ router.post('/submit-complete/:sessionId', isAuthenticated, requireRole(['studen
       const quizResult = new QuizResult({
         student: req.user._id,
         quiz: session.quiz._id,
+        quizTitle: session.quiz.title, // Add quiz title for display
         score: score,
         totalQuestions: session.quiz.questions.length,
         correctAnswers: correctAnswers,
