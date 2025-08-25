@@ -534,6 +534,12 @@ function extractS3Key(fileUrl) {
     // Handle different S3 URL formats
     console.log('Extracting key from URL:', fileUrl);
 
+    // If it's already just a key (no protocol), return as-is
+    if (!fileUrl.includes('://')) {
+      console.log('Already a key (no protocol):', fileUrl);
+      return decodeURIComponent(fileUrl);
+    }
+
     if (fileUrl.includes('amazonaws.com')) {
       // Standard S3 URL format: https://bucket.s3.region.amazonaws.com/key
       const url = new URL(fileUrl);

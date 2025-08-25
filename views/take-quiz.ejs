@@ -3146,8 +3146,15 @@
                     return;
                 }
 
-                // Use direct S3 URL
-                const s3Url = `https://skillon-test.s3.amazonaws.com/${s3Key}`;
+                // Handle both S3 keys and full URLs
+                let s3Url;
+                if (s3Key.startsWith('https://')) {
+                    // Already a full URL - fix region if needed
+                    s3Url = s3Key.replace('s3.us-east-1.amazonaws.com', 's3.us-west-1.amazonaws.com');
+                } else {
+                    // S3 key only - construct full URL
+                    s3Url = `https://skillon-test.s3.us-west-1.amazonaws.com/${s3Key}`;
+                }
                 console.log(`🔗 Loading image for question ${questionIndex}: ${s3Url}`);
 
                 // Load the image
