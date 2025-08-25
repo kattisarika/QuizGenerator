@@ -1766,11 +1766,24 @@ app.get('/student/study-material', requireAuth, requireRole(['student']), async 
     // Calculate pagination data
     const totalPages = Math.ceil(totalMaterials / limit);
 
-    // Get unique categories for filter dropdown
-    const allCategories = await Content.distinct('category', {
-      isApproved: true,
-      organizationId: { $in: organizationIds }
-    });
+    // Get unique categories for filter dropdown using aggregation (API v1 compatible)
+    const categoryAggregation = await Content.aggregate([
+      {
+        $match: {
+          isApproved: true,
+          organizationId: { $in: organizationIds }
+        }
+      },
+      {
+        $group: {
+          _id: '$category'
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      }
+    ]);
+    const allCategories = categoryAggregation.map(item => item._id).filter(Boolean);
 
     res.render('student-study-material', {
       user: req.user,
@@ -1798,6 +1811,7 @@ app.get('/student/study-material', requireAuth, requireRole(['student']), async 
     res.render('student-study-material', {
       user: req.user,
       studyMaterial: [],
+      gradeMessage: 'Error loading study materials. Please refresh the page.',
       organizations: [],
       pagination: {
         currentPage: 1,
