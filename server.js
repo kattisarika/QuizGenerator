@@ -13,10 +13,10 @@ require('dotenv').config();
 
 
 // SaaS Multi-tenancy imports
-const { 
-  detectOrganization, 
-  requireOrganization, 
-  requireOrganizationMember, 
+const {
+  detectOrganization,
+  requireOrganization,
+  requireOrganizationMember,
   requireOrganizationPermission,
   requireActiveSubscription,
   checkOrganizationLimits,
@@ -62,7 +62,7 @@ const connectDB = async () => {
     console.log('MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'Not Set');
     console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
     console.log('NODE_ENV:', process.env.NODE_ENV);
-    
+
     // Check if environment variables are set
     const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
     if (!mongoUri) {
@@ -71,10 +71,10 @@ const connectDB = async () => {
       console.error('Available env vars:', Object.keys(process.env).filter(key => key.includes('MONGO')));
       return;
     }
-    
+
     console.log('Connecting to MongoDB Atlas...');
     console.log('URI (masked):', mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@'));
-    
+
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
@@ -146,12 +146,12 @@ const requireAuth = (req, res, next) => {
   console.log('req.user:', req.user);
   console.log('req.isAuthenticated type:', typeof req.isAuthenticated);
   console.log('req.isAuthenticated:', req.isAuthenticated);
-  
+
   if (req.isAuthenticated && req.isAuthenticated()) {
     console.log('User is authenticated, proceeding');
     return next();
   }
-  
+
   console.log('User not authenticated, redirecting to login');
   res.redirect('/login');
 };
@@ -160,20 +160,20 @@ const requireAuth = (req, res, next) => {
 const requireRole = (roles) => {
   return (req, res, next) => {
     console.log('requireRole middleware - Required roles:', roles);
-    
+
     // Add null check for req.user
     if (!req.user) {
       console.error('User not found in requireRole middleware');
       return res.redirect('/login?error=Authentication failed');
     }
-    
+
     console.log('requireRole middleware - User role:', req.user.role, 'User ID:', req.user._id);
-    
+
     if (roles.includes(req.user.role)) {
       console.log('Role check passed, proceeding to next middleware');
       return next();
     }
-    
+
     console.error('Role check failed - User role:', req.user.role, 'Required roles:', roles);
     res.status(403).render('error', { error: 'Access denied. You do not have permission to view this page.' });
   };
@@ -182,12 +182,12 @@ const requireRole = (roles) => {
 // Middleware to check if teacher is approved
 const requireApprovedTeacher = (req, res, next) => {
   console.log('requireApprovedTeacher middleware - User role:', req.user.role, 'Approved:', req.user.isApproved);
-  
+
   if (req.user.role === 'teacher' && !req.user.isApproved) {
     console.log('Teacher not approved, showing pending approval page');
     return res.render('pending-approval', { user: req.user });
   }
-  
+
   console.log('Teacher approval check passed, proceeding to route handler');
   next();
 };
@@ -430,21 +430,21 @@ app.get('/api/audio/:s3Key(*)', requireAuth, async (req, res) => {
 app.post('/api/make-image-public/:s3Key', requireAuth, requireRole(['teacher', 'admin']), async (req, res) => {
   try {
     const { s3Key } = req.params;
-    
+
     console.log(`🔓 Making S3 image public: ${s3Key}`);
-    
+
     const success = await makeS3ObjectPublic(s3Key);
-    
+
     if (success) {
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: `Image ${s3Key} is now public`,
-        s3Key 
+        s3Key
       });
     } else {
-      res.status(500).json({ 
-        success: false, 
-        error: 'Failed to make image public' 
+      res.status(500).json({
+        success: false,
+        error: 'Failed to make image public'
       });
     }
 
@@ -495,7 +495,7 @@ app.get('/api/quiz/:quizId/question-images', requireAuth, async (req, res) => {
 
     // Generate pre-signed URLs for all question images
     const imagesWithUrls = await generatePresignedUrls(
-      questionImages.map(img => img.s3Key), 
+      questionImages.map(img => img.s3Key),
       parseInt(expiresIn)
     );
 
@@ -520,7 +520,7 @@ function extractS3Key(fileUrl) {
   try {
     // Handle different S3 URL formats
     console.log('Extracting key from URL:', fileUrl);
-    
+
     if (fileUrl.includes('amazonaws.com')) {
       // Standard S3 URL format: https://bucket.s3.region.amazonaws.com/key
       const url = new URL(fileUrl);
@@ -554,7 +554,7 @@ function extractS3Key(fileUrl) {
 async function deleteFromS3(fileUrl) {
   try {
     const key = extractS3Key(fileUrl);
-    
+
     const params = {
       Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
       Key: key
@@ -598,7 +598,7 @@ app.use((req, res, next) => {
     const now = Date.now();
     const timeDiff = now - req.session.lastActivity;
     const timeout = 30 * 60 * 1000; // 30 minutes timeout
-    
+
     if (timeDiff > timeout) {
       // Session expired, destroy it
       req.session.destroy((err) => {
@@ -606,24 +606,24 @@ app.use((req, res, next) => {
           console.error('Error destroying session:', err);
         }
       });
-      
+
       // Redirect to login with timeout message
       if (req.xhr || req.headers.accept.indexOf('json') > -1) {
-        return res.status(401).json({ 
-          error: 'Session expired', 
-          message: 'Your session has expired due to inactivity. Please log in again.' 
+        return res.status(401).json({
+          error: 'Session expired',
+          message: 'Your session has expired due to inactivity. Please log in again.'
         });
       } else {
         return res.redirect('/login?timeout=true');
       }
     }
   }
-  
+
   // Update last activity time
   if (req.session) {
     req.session.lastActivity = Date.now();
   }
-  
+
   next();
 });
 
@@ -634,10 +634,10 @@ app.use(passport.session());
 // Passport configuration
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   // Determine callback URL based on environment
-  const callbackURL = process.env.NODE_ENV === 'production' 
+  const callbackURL = process.env.NODE_ENV === 'production'
     ? `${process.env.BASE_URL || 'https://your-app-name.herokuapp.com'}/auth/google/callback`
     : "http://localhost:3000/auth/google/callback";
-    
+
   passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -646,13 +646,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         async function(accessToken, refreshToken, profile, cb) {
       try {
         console.log('Google OAuth authentication successful for:', profile.emails ? profile.emails[0].value : 'No email');
-        
+
         // Check if MongoDB is connected
         if (mongoose.connection.readyState !== 1) {
           console.error('MongoDB not connected during authentication');
           return cb(new Error('Database not connected'), null);
         }
-        
+
         // Check if user exists in database
         let user;
         try {
@@ -661,19 +661,19 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           console.error('Database error during user lookup:', dbError);
           return cb(new Error('Database connection failed during authentication'), null);
         }
-        
+
         if (!user) {
           const userEmail = profile.emails ? profile.emails[0].value : '';
-          
+
           // Check if there are temporary users created during organization signup
-          const tempUsers = await User.find({ 
-            email: userEmail, 
-            googleId: { $regex: /^temp_/ } 
+          const tempUsers = await User.find({
+            email: userEmail,
+            googleId: { $regex: /^temp_/ }
           });
-          
+
           if (tempUsers.length > 0) {
             console.log(`Found ${tempUsers.length} temporary user(s) for ${userEmail}`);
-            
+
             // Update the first temp user as the primary account
             const primaryUser = tempUsers[0];
 
@@ -750,7 +750,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               console.log('New user without organization context, redirecting to signup');
               return cb(new Error('New users must be invited by a teacher or create an organization'), null);
           }
-          
+
           try {
             await user.save();
             console.log('New user created successfully');
@@ -779,7 +779,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             }
           }
         }
-        
+
         return cb(null, user);
       } catch (error) {
         console.error('Error in Google OAuth strategy:', error);
@@ -826,7 +826,7 @@ app.use('/api/quiz-session', quizSessionRoutes);
 // Helper functions for file processing
 async function extractTextFromFile(fileBuffer, originalName) {
   const ext = path.extname(originalName).toLowerCase();
-  
+
   if (ext === '.pdf') {
     const data = await pdfParse(fileBuffer);
     return data.text;
@@ -871,39 +871,39 @@ function getLanguagePatterns(language) {
       numberLetters: ['1', '2', '3', '4'] // Number fallback
     }
   };
-  
+
   return patterns[language] || patterns.English;
 }
 
 function parseQuestionsFromText(text, language = 'English') {
   const questions = [];
   const lines = text.split('\n').filter(line => line.trim());
-  
+
   console.log(`🌍 Parsing questions with language: ${language}`);
   console.log(`📄 Total lines to parse: ${lines.length}`);
   console.log(`📝 First few lines:`, lines.slice(0, 3));
-  
+
   // Define language-specific patterns
   const patterns = getLanguagePatterns(language);
-  
+
   for (const line of lines) {
     const trimmedLine = line.trim();
-    
+
     // Check if line starts with a number (question) - universal pattern
     const questionMatch = trimmedLine.match(/^(\d+)[\.\)]\s*(.+)/);
     if (questionMatch) {
       const questionNumber = parseInt(questionMatch[1]);
       const fullLine = questionMatch[2].trim();
-      
+
       // Check if this line contains all 4 options using language-specific patterns
       const optionMatches = fullLine.match(patterns.options) || [];
       console.log(`🔍 Found ${optionMatches.length} option markers in line: "${fullLine.substring(0, 100)}..."`);
-      
+
       if (optionMatches.length >= 4) {
         // Question with all 4 options on the same line
         // Use language-specific pattern to split by option markers
         const parts = fullLine.split(patterns.optionSplit);
-        
+
         if (parts.length >= 9) {
           // We have: [question, a, opt1, b, opt2, c, opt3, d, opt4]
           const question = {
@@ -918,14 +918,14 @@ function parseQuestionsFromText(text, language = 'English') {
             correctAnswer: '',
             points: 1
           };
-          
+
           console.log(`✅ Parsed question: "${question.question}"`);
           console.log(`📝 Options: [${question.options.join(', ')}]`);
-          
+
           questions.push(question);
         } else {
           console.log(`⚠️  Could not parse options from single line, trying alternative approach`);
-          
+
           // Try a different approach - find each option individually
           const question = {
             question: '',
@@ -934,7 +934,7 @@ function parseQuestionsFromText(text, language = 'English') {
             correctAnswer: '',
             points: 1
           };
-          
+
           // Find the question part (everything before the first option)
           const firstOptionMatch = fullLine.match(/\s+([a-d])[\.\)]\s*/i);
           if (firstOptionMatch) {
@@ -943,14 +943,14 @@ function parseQuestionsFromText(text, language = 'English') {
           } else {
             question.question = fullLine;
           }
-          
+
           // Extract each option using regex - FIXED VERSION
           const optionRegex = /([a-d])[\.\)]\s*([^a-d)]+?)(?=\s+[a-d][\.\)]|$)/gi;
           let match;
           while ((match = optionRegex.exec(fullLine)) !== null) {
             question.options.push(match[2].trim());
           }
-          
+
           // Ensure exactly 4 options
           while (question.options.length < 4) {
             question.options.push(`Option ${String.fromCharCode(65 + question.options.length)}`);
@@ -958,10 +958,10 @@ function parseQuestionsFromText(text, language = 'English') {
           if (question.options.length > 4) {
             question.options = question.options.slice(0, 4);
           }
-          
+
           console.log(`Parsed question (fallback): "${question.question}"`);
           console.log(`Options: [${question.options.join(', ')}]`);
-          
+
           questions.push(question);
         }
       } else {
@@ -973,17 +973,17 @@ function parseQuestionsFromText(text, language = 'English') {
           correctAnswer: '',
           points: 1
         };
-        
+
         // Look for options on subsequent lines
         let currentLineIndex = lines.indexOf(line);
         for (let i = currentLineIndex + 1; i < lines.length; i++) {
           const nextLine = lines[i].trim();
-          
+
           // If we hit another question, stop
           if (nextLine.match(/^(\d+)[\.\)]\s*(.+)/)) {
             break;
           }
-          
+
           // Check for individual option
           const optionMatch = nextLine.match(/^([a-d])[\.\)]\s*(.+)/i);
           if (optionMatch) {
@@ -998,7 +998,7 @@ function parseQuestionsFromText(text, language = 'English') {
             }
           }
         }
-        
+
         // Ensure exactly 4 options
         while (question.options.length < 4) {
           question.options.push(`Option ${String.fromCharCode(65 + question.options.length)}`);
@@ -1006,21 +1006,21 @@ function parseQuestionsFromText(text, language = 'English') {
         if (question.options.length > 4) {
           question.options = question.options.slice(0, 4);
         }
-        
+
         console.log(`Parsed question (separate): "${question.question}"`);
         console.log(`Options: [${question.options.join(', ')}]`);
-        
+
         questions.push(question);
       }
     }
   }
-  
+
   // If no questions found with strict parsing, try flexible parsing
   if (questions.length === 0) {
     console.log(`⚡ No questions found with strict parsing, trying flexible approach for ${language}`);
     return parseQuestionsFlexible(text, language);
   }
-  
+
   console.log(`✅ Total questions found: ${questions.length}`);
   return questions;
 }
@@ -1029,21 +1029,21 @@ function parseQuestionsFromText(text, language = 'English') {
 function parseQuestionsFlexible(text, language) {
   const questions = [];
   const lines = text.split('\n').filter(line => line.trim());
-  
+
   console.log(`🔄 Flexible parsing: Processing ${lines.length} lines for ${language}`);
-  
+
   let currentQuestion = null;
   let optionCount = 0;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     console.log(`🔍 Line ${i}: "${line}"`);
-    
+
     // Look for numbered lines (potential questions)
     const numberMatch = line.match(/^(\d+)[\.\)]\s*(.*)$/);
     if (numberMatch) {
       console.log(`📝 Found question number ${numberMatch[1]}: "${numberMatch[2]}"`);
-      
+
       // Save previous question if it has options
       if (currentQuestion && currentQuestion.options.length >= 2) {
         // Ensure we have 4 options, pad with empty if needed
@@ -1053,10 +1053,10 @@ function parseQuestionsFlexible(text, language) {
         questions.push(currentQuestion);
         console.log(`✅ Added question: "${currentQuestion.question.substring(0, 50)}..." with ${currentQuestion.options.length} options`);
       }
-      
+
       // Start new question
       let questionText = numberMatch[2].trim();
-      
+
       // If no text after the number, check the next line
       if (!questionText && i + 1 < lines.length) {
         const nextLine = lines[i + 1].trim();
@@ -1067,7 +1067,7 @@ function parseQuestionsFlexible(text, language) {
           console.log(`📝 Question text from next line: "${questionText}"`);
         }
       }
-      
+
       currentQuestion = {
         question: questionText || `Question ${numberMatch[1]}`,
         type: 'multiple-choice',
@@ -1078,11 +1078,11 @@ function parseQuestionsFlexible(text, language) {
       optionCount = 0;
       continue;
     }
-    
+
     // Look for option patterns if we have a current question
     if (currentQuestion && optionCount < 4) {
       let optionMatch = null;
-      
+
       // Try different option patterns based on language
       if (language === 'Kannada') {
         // Try Kannada vowels, English letters, or numbers
@@ -1091,7 +1091,7 @@ function parseQuestionsFlexible(text, language) {
         // Default to English letters or numbers
         optionMatch = line.match(/^([a-d]|[1-4])[\.\)]\s*(.+)/i);
       }
-      
+
       if (optionMatch) {
         const optionText = optionMatch[2].trim();
         currentQuestion.options.push(optionText);
@@ -1106,7 +1106,7 @@ function parseQuestionsFlexible(text, language) {
       }
     }
   }
-  
+
   // Save the last question
   if (currentQuestion && currentQuestion.options.length >= 2) {
     while (currentQuestion.options.length < 4) {
@@ -1115,7 +1115,7 @@ function parseQuestionsFlexible(text, language) {
     questions.push(currentQuestion);
     console.log(`✅ Added final question: "${currentQuestion.question.substring(0, 50)}..." with ${currentQuestion.options.length} options`);
   }
-  
+
   console.log(`🎉 Flexible parsing completed: ${questions.length} questions found`);
   return questions;
 }
@@ -1129,14 +1129,14 @@ function splitOptionsFromText(optionText) {
 // Helper function to ensure exactly 4 options
 function ensureFourOptions(question) {
   console.log(`ensureFourOptions called for question with ${question.options.length} options:`, question.options);
-  
+
   // If no options found, create default options
   if (question.options.length === 0) {
     question.options = ['Option A', 'Option B', 'Option C', 'Option D'];
     console.log('No options found, created default options');
     return;
   }
-  
+
   // If options contain one long string, try to split
   if (
     question.options.length === 1 &&
@@ -1145,7 +1145,7 @@ function ensureFourOptions(question) {
     question.options = splitOptionsFromText(question.options[0]);
     console.log('Split combined option string into:', question.options);
   }
-  
+
   // Loop through options to catch any that are still combined
   for (let i = 0; i < question.options.length; i++) {
     const option = question.options[i];
@@ -1155,35 +1155,35 @@ function ensureFourOptions(question) {
       console.log(`Split embedded options in option ${i}:`, split);
     }
   }
-  
+
   // Clean up options
   question.options = question.options.filter(option => option.trim().length > 0);
-  
+
   // Always force exactly 4 options
   while (question.options.length < 4) {
     const newOption = `Option ${String.fromCharCode(65 + question.options.length)}`;
     question.options.push(newOption);
     console.log(`Added option: ${newOption}`);
   }
-  
+
   if (question.options.length > 4) {
     question.options = question.options.slice(0, 4);
     console.log('Trimmed options to 4:', question.options);
   }
-  
+
   console.log(`Final options count: ${question.options.length}, options:`, question.options);
 }
 
 function parseAnswersFromText(text) {
   const answers = [];
   const lines = text.split('\n').filter(line => line.trim());
-  
+
   console.log('Parsing answer text:', text.substring(0, 200) + '...');
-  
+
   for (const line of lines) {
     const trimmedLine = line.trim();
     console.log('Processing answer line:', trimmedLine);
-    
+
     // Handle quoted format like "1. B", "2. A", etc.
     const quotedMatches = trimmedLine.match(/"(\d+)\.\s*([a-d])"/gi);
     if (quotedMatches) {
@@ -1201,7 +1201,7 @@ function parseAnswersFromText(text) {
       });
       continue;
     }
-    
+
     // Try multiple formats for answer parsing
     let answerMatch = trimmedLine.match(/^(\d+)[\.\)]\s*([a-d])/i);
     if (!answerMatch) {
@@ -1234,7 +1234,7 @@ function parseAnswersFromText(text) {
         });
       }
     }
-    
+
     if (answerMatch && !Array.isArray(answerMatch)) {
       const questionNumber = parseInt(answerMatch[1]);
       const answer = answerMatch[2].toUpperCase();
@@ -1245,26 +1245,26 @@ function parseAnswersFromText(text) {
       });
     }
   }
-  
+
   console.log('Total answers found:', answers.length);
   return answers;
 }
 
 function mergeQuestionsWithAnswers(questions, answers) {
   console.log('Merging questions with answers:', { questionsCount: questions.length, answersCount: answers.length });
-  
+
   return questions.map((question, index) => {
     const answer = answers.find(a => a.questionNumber === index + 1);
-    console.log(`Question ${index + 1}:`, { 
+    console.log(`Question ${index + 1}:`, {
       questionText: question.question.substring(0, 50) + '...',
       optionsCount: question.options.length,
       foundAnswer: answer ? answer.answer : 'none'
     });
-    
+
     if (answer && question.options.length > 0) {
       const answerIndex = answer.answer.charCodeAt(0) - 65; // Convert A=0, B=1, etc.
       console.log(`Answer index for ${answer.answer}: ${answerIndex}`);
-      
+
       if (answerIndex >= 0 && answerIndex < question.options.length) {
         question.correctAnswer = question.options[answerIndex];
         console.log(`Set correct answer: ${question.correctAnswer}`);
@@ -1272,13 +1272,13 @@ function mergeQuestionsWithAnswers(questions, answers) {
         console.log(`Invalid answer index: ${answerIndex} for options length: ${question.options.length}`);
       }
     }
-    
+
     // If no answer key provided, set a default or leave empty
     if (!question.correctAnswer) {
       question.correctAnswer = question.options.length > 0 ? question.options[0] : '';
       console.log(`No answer found, using default: ${question.correctAnswer}`);
     }
-    
+
     return question;
   });
 }
@@ -1289,8 +1289,8 @@ function mergeQuestionsWithAnswers(questions, answers) {
 app.get('/', async (req, res) => {
   try {
     // Fetch all teachers with their organization information
-    const teachers = await User.find({ 
-      role: 'teacher', 
+    const teachers = await User.find({
+      role: 'teacher',
       isApproved: true,
       organizationId: { $exists: true, $ne: null }
     })
@@ -1298,13 +1298,13 @@ app.get('/', async (req, res) => {
     .select('displayName organizationId organizationRole')
     .sort({ displayName: 1 });
 
-    res.render('index', { 
+    res.render('index', {
       user: req.user,
       teachers: teachers || []
     });
   } catch (error) {
     console.error('Error fetching teachers for homepage:', error);
-    res.render('index', { 
+    res.render('index', {
       user: req.user,
       teachers: []
     });
@@ -1319,14 +1319,14 @@ app.get('/signup', async (req, res) => {
     const organizations = await Organization.find({})
       .select('name subdomain')
       .sort({ name: 1 });
-    
-    res.render('user-signup', { 
+
+    res.render('user-signup', {
       title: 'Join SkillOns - Choose Your Role',
       organizations: organizations || []
     });
   } catch (error) {
     console.error('Error fetching organizations for signup:', error);
-    res.render('user-signup', { 
+    res.render('user-signup', {
       title: 'Join SkillOns - Choose Your Role',
       organizations: []
     });
@@ -1353,12 +1353,12 @@ app.get('/dashboard', requireAuth, (req, res) => {
     console.error('User not found in dashboard route');
     return res.redirect('/login?error=Authentication failed');
   }
-  
+
   // If user doesn't have a role, redirect to login with error
   if (!req.user.role) {
     return res.redirect('/login?error=User role not set. Please contact administrator.');
   }
-  
+
   // Auto-redirect based on role
   if (req.user.role === 'student') {
     return res.redirect('/student/dashboard');
@@ -1371,7 +1371,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
   } else if (req.user.role === 'admin' || req.user.role === 'super_admin') {
     return res.redirect('/admin/dashboard');
   }
-  
+
   // Fallback to dashboard template
   res.render('dashboard', { user: req.user });
 });
@@ -1380,15 +1380,15 @@ app.get('/dashboard', requireAuth, (req, res) => {
 app.get('/api/content-url/:contentId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const { contentId } = req.params;
-    
+
     const content = await Content.findById(contentId);
     if (!content) {
       return res.status(404).json({ success: false, message: 'Content not found' });
     }
-    
+
     // Return the file URL for external viewers
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       fileUrl: content.fileUrl,
       fileName: content.fileName,
       fileType: content.fileType
@@ -1403,12 +1403,12 @@ app.get('/api/content-url/:contentId', requireAuth, requireRole(['student']), as
 app.get('/api/signed-url/:contentId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const { contentId } = req.params;
-    
+
     const content = await Content.findById(contentId);
     if (!content) {
       return res.status(404).json({ success: false, message: 'Content not found' });
     }
-    
+
     // Generate a signed URL for external viewers (valid for 1 hour)
     try {
       const AWS = require('aws-sdk');
@@ -1417,19 +1417,19 @@ app.get('/api/signed-url/:contentId', requireAuth, requireRole(['student']), asy
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
         region: process.env.AWS_REGION || 'us-east-1'
       });
-      
+
       const key = extractS3Key(content.fileUrl);
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
         Key: key,
         Expires: 3600 // 1 hour
       };
-      
+
       const signedUrl = s3.getSignedUrl('getObject', params);
       console.log('Generated signed URL for external viewers:', signedUrl);
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         signedUrl: signedUrl,
         originalUrl: content.fileUrl,
         fileName: content.fileName,
@@ -1438,8 +1438,8 @@ app.get('/api/signed-url/:contentId', requireAuth, requireRole(['student']), asy
     } catch (s3Error) {
       console.error('Error generating signed URL:', s3Error);
       // Fallback to original URL
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         signedUrl: content.fileUrl,
         originalUrl: content.fileUrl,
         fileName: content.fileName,
@@ -1456,11 +1456,11 @@ app.get('/api/signed-url/:contentId', requireAuth, requireRole(['student']), asy
 // Teacher API routes for competitive quizzes
 app.get('/api/teacher/competitive-quizzes', requireAuth, requireRole(['teacher']), async (req, res) => {
   try {
-    const quizzes = await Quiz.find({ 
+    const quizzes = await Quiz.find({
       createdBy: req.user._id,
       quizType: 'competitive'
     }).select('title questions createdAt');
-    
+
     res.json({ success: true, quizzes });
   } catch (error) {
     console.error('Error fetching competitive quizzes:', error);
@@ -1475,7 +1475,7 @@ app.get('/api/teacher/active-sessions', requireAuth, requireRole(['teacher']), a
       teacher: req.user._id,
       status: { $in: ['scheduled', 'waiting', 'in-progress'] }
     }).populate('quiz', 'title');
-    
+
     const sessionData = sessions.map(s => ({
       id: s._id,
       sessionCode: s.sessionCode,
@@ -1486,7 +1486,7 @@ app.get('/api/teacher/active-sessions', requireAuth, requireRole(['teacher']), a
       maxParticipants: s.maxParticipants,
       canStart: s.canStart()
     }));
-    
+
     res.json({ success: true, sessions: sessionData });
   } catch (error) {
     console.error('Error fetching active sessions:', error);
@@ -1499,7 +1499,7 @@ app.get('/competitive-quiz', requireAuth, requireRole(['teacher']), requireAppro
   res.render('competitive-quiz', { user: req.user });
 });
 
-// Join competitive quiz page (Student)  
+// Join competitive quiz page (Student)
 app.get('/join-competitive', requireAuth, requireRole(['student']), (req, res) => {
   res.render('join-competitive-quiz', { user: req.user });
 });
@@ -1509,39 +1509,39 @@ app.get('/competitive-quiz/:sessionId', requireAuth, requireRole(['student']), a
   try {
     const QuizSession = require('./models/QuizSession');
     const session = await QuizSession.findById(req.params.sessionId).populate('quiz');
-    
+
     if (!session) {
       return res.status(404).render('error', { message: 'Session not found' });
     }
-    
+
     // Check if student is part of the session
     const participant = session.participants.find(
       p => p.student.toString() === req.user._id.toString()
     );
-    
+
     if (!participant) {
       return res.status(403).render('error', { message: 'You are not part of this session' });
     }
-    
+
     // Check if student has already completed this session
     if (participant.status === 'completed') {
-      return res.status(403).render('error', { 
-        message: 'You have already completed this quiz session. Each session can only be taken once.' 
+      return res.status(403).render('error', {
+        message: 'You have already completed this quiz session. Each session can only be taken once.'
       });
     }
-    
+
     if (session.status !== 'in-progress') {
       return res.status(400).render('error', { message: 'Session is not active' });
     }
-    
+
     // Mark participant as started if not already
     if (participant.status === 'waiting') {
       participant.status = 'in-progress';
       participant.startedAt = new Date();
       await session.save();
     }
-    
-    res.render('take-competitive-quiz', { 
+
+    res.render('take-competitive-quiz', {
       quiz: session.quiz,
       session: session,
       sessionId: session._id,
@@ -1562,34 +1562,34 @@ app.get('/teacher/dashboard', requireAuth, requireRole(['teacher']), requireAppr
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    
+
     // Build query based on selected grade
     let query = { createdBy: req.user._id };
     if (selectedGrade !== 'all') {
       query.gradeLevel = selectedGrade;
     }
-    
+
     // Get total count for pagination
     const totalQuizzes = await Quiz.countDocuments(query);
-    
+
     // Get paginated quizzes
     const teacherQuizzes = await Quiz.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-    
+
     // Calculate pagination info
     const totalPages = Math.ceil(totalQuizzes / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
-    
+
     // Get quiz counts by grade for tabs
     const gradeCounts = await Quiz.aggregate([
       { $match: { createdBy: req.user._id } },
       { $group: { _id: '$gradeLevel', count: { $sum: 1 } } },
       { $sort: { _id: 1 } }
     ]);
-    
+
     // Create grade tabs data with counts
     const gradeTabs = [
       { grade: 'all', label: 'All Grades', count: totalQuizzes },
@@ -1606,7 +1606,7 @@ app.get('/teacher/dashboard', requireAuth, requireRole(['teacher']), requireAppr
       { grade: '11th grade', label: '11th Grade', count: 0 },
       { grade: '12th grade', label: '12th Grade', count: 0 }
     ];
-    
+
     // Update counts from aggregation results
     gradeCounts.forEach(gradeCount => {
       const tab = gradeTabs.find(tab => tab.grade === gradeCount._id);
@@ -1614,15 +1614,15 @@ app.get('/teacher/dashboard', requireAuth, requireRole(['teacher']), requireAppr
         tab.count = gradeCount.count;
       }
     });
-    
+
     // Get organization information for the teacher
     let organization = null;
     if (req.user.organizationId) {
       organization = await Organization.findById(req.user.organizationId);
     }
-    
-    res.render('teacher-dashboard', { 
-      user: req.user, 
+
+    res.render('teacher-dashboard', {
+      user: req.user,
       quizzes: teacherQuizzes,
       organization: organization,
       selectedGrade: selectedGrade,
@@ -1640,8 +1640,8 @@ app.get('/teacher/dashboard', requireAuth, requireRole(['teacher']), requireAppr
     });
   } catch (error) {
     console.error('Error fetching teacher dashboard data:', error);
-    res.render('teacher-dashboard', { 
-      user: req.user, 
+    res.render('teacher-dashboard', {
+      user: req.user,
       quizzes: [],
       organization: null,
       selectedGrade: 'all',
@@ -1667,6 +1667,7 @@ app.get('/teacher/dashboard', requireAuth, requireRole(['teacher']), requireAppr
 // Route for student study material page
 app.get('/student/study-material', requireAuth, requireRole(['student']), async (req, res) => {
   try {
+    console.log(`\n=== AM I BEiNG CALLED`);
     console.log(`\n=== STUDY MATERIAL DEBUG for ${req.user.email} ===`);
 
     // Pagination parameters
@@ -1688,14 +1689,14 @@ app.get('/student/study-material', requireAuth, requireRole(['student']), async 
       organizationIds = [req.user.organizationId];
       console.log(`Single-org student: ${req.user.email} accessing study material from 1 organization`);
     }
-    
+
     // Get approved content filtered by student's grade level and organizations
-    let query = { 
+    let query = {
       isApproved: true,
       organizationId: { $in: organizationIds }
     };
     let messageForStudent = null;
-    
+
     // Filter by student's grade level if it exists
     if (req.user.gradeLevel) {
       query.gradeLevel = req.user.gradeLevel;
@@ -1742,9 +1743,9 @@ app.get('/student/study-material', requireAuth, requireRole(['student']), async 
       .skip(skip)
       .limit(limit)
       .lean(); // Use lean for better performance
-    
+
     console.log(`📚 Found ${studyMaterial.length} study materials for grade ${req.user.gradeLevel || 'any'}`);
-    
+
     // Get all content for debugging
     const allContent = await Content.find({ isApproved: true }).select('title gradeLevel createdByName');
     console.log(`📊 All available content by grade:`);
@@ -1756,7 +1757,7 @@ app.get('/student/study-material', requireAuth, requireRole(['student']), async 
       contentByGrade[content.gradeLevel].push(content.title);
     });
     console.log(contentByGrade);
-    
+
     // Get organization details for display
     const organizations = await Organization.find({
       _id: { $in: organizationIds }
@@ -1821,24 +1822,24 @@ app.get('/student/study-material', requireAuth, requireRole(['student']), async 
 app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const { contentId } = req.params;
-    
+
     const content = await Content.findById(contentId);
     if (!content) {
       return res.status(404).send('Content not found');
     }
-    
+
     // Increment view count
     content.views += 1;
     await content.save();
-    
+
     // Check if it's a PowerPoint file
-    const isPowerPoint = content.fileType.includes('powerpoint') || 
+    const isPowerPoint = content.fileType.includes('powerpoint') ||
                         content.fileName.toLowerCase().includes('.ppt') ||
                         content.fileName.toLowerCase().includes('.pptx');
-    
+
     // Check if this is a request for embedded viewing (from modal)
     const isEmbedded = req.query.embed === 'true';
-    
+
     if (isPowerPoint && !isEmbedded) {
       // For PowerPoint files accessed directly, show the full viewer page
       return res.render('powerpoint-viewer', {
@@ -1852,19 +1853,19 @@ app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']
         content: content
       });
     }
-    
+
     // For DOC/DOCX files, also use the viewer
-    const isWordDoc = content.fileType.includes('word') || 
+    const isWordDoc = content.fileType.includes('word') ||
                       content.fileName.toLowerCase().includes('.doc') ||
                       content.fileName.toLowerCase().includes('.docx');
-    
+
     if (isWordDoc) {
       return res.render('powerpoint-viewer', {
         user: req.user,
         content: content
       });
     }
-    
+
     // For other files (PDF, DOC, etc.), fetch from S3 and serve
     try {
       const AWS = require('aws-sdk');
@@ -1873,25 +1874,25 @@ app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
         region: process.env.AWS_REGION || 'us-east-1'
       });
-      
+
       // Extract the key from the URL using improved function
       const key = extractS3Key(content.fileUrl);
-      
+
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
         Key: key
       };
-      
+
       const fileObject = await s3.getObject(params).promise();
-      
+
       // Set appropriate headers for viewing (not downloading)
       res.setHeader('Content-Type', content.fileType);
       res.setHeader('Content-Disposition', 'inline'); // 'inline' for viewing, not 'attachment'
       res.setHeader('Content-Length', fileObject.ContentLength);
-      
+
       // Send the file for viewing
       res.send(fileObject.Body);
-      
+
     } catch (s3Error) {
       console.error('S3 error in view-content:', s3Error);
       console.error('File URL:', content.fileUrl);
@@ -1910,21 +1911,21 @@ app.get('/student/view-content/:contentId', requireAuth, requireRole(['student']
 app.get('/student/download-content/:contentId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const { contentId } = req.params;
-    
+
     const content = await Content.findById(contentId);
     if (!content) {
       return res.status(404).send('Content not found');
     }
-    
+
     // Increment download count
     content.downloads += 1;
     await content.save();
-    
+
     // Check if it's a PowerPoint file and user wants to view in browser
-    const isPowerPoint = content.fileType.includes('powerpoint') || 
+    const isPowerPoint = content.fileType.includes('powerpoint') ||
                         content.fileName.toLowerCase().includes('.ppt') ||
                         content.fileName.toLowerCase().includes('.pptx');
-    
+
     // Instead of redirecting, fetch the file and serve it
     try {
       const AWS = require('aws-sdk');
@@ -1933,17 +1934,17 @@ app.get('/student/download-content/:contentId', requireAuth, requireRole(['stude
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
         region: process.env.AWS_REGION || 'us-east-1'
       });
-      
+
       // Extract the key from the URL using improved function
       const key = extractS3Key(content.fileUrl);
-      
+
       const params = {
         Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
         Key: key
       };
-      
+
       const fileObject = await s3.getObject(params).promise();
-      
+
       // For PowerPoint files, try to serve with inline disposition for browser viewing
       if (isPowerPoint) {
         res.setHeader('Content-Type', content.fileType);
@@ -1955,10 +1956,10 @@ app.get('/student/download-content/:contentId', requireAuth, requireRole(['stude
         res.setHeader('Content-Disposition', `attachment; filename="${content.fileName}"`);
         res.setHeader('Content-Length', fileObject.ContentLength);
       }
-      
+
       // Send the file
       res.send(fileObject.Body);
-      
+
     } catch (s3Error) {
       console.error('S3 error in download-content:', s3Error);
       console.error('File URL:', content.fileUrl);
@@ -2071,17 +2072,17 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
     console.log(`\n=== STUDENT DASHBOARD DEBUG for ${req.user.email} ===`);
     console.log('User organizationId:', req.user.organizationId);
     console.log('User organizationMemberships:', req.user.organizationMemberships);
-    
+
     // Check if there are multiple accounts for this email
     const allUserAccounts = await User.find({ email: req.user.email });
     console.log(`Found ${allUserAccounts.length} user accounts with email ${req.user.email}`);
     allUserAccounts.forEach((account, index) => {
       console.log(`Account ${index + 1}: googleId=${account.googleId}, orgId=${account.organizationId}, role=${account.role}`);
     });
-    
+
     // Get all organization IDs the student belongs to
     let organizationIds = [];
-    
+
     if (req.user.organizationMemberships && req.user.organizationMemberships.length > 0) {
       // Multi-organization student - get quizzes from all organizations
       organizationIds = req.user.organizationMemberships.map(membership => membership.organizationId);
@@ -2090,7 +2091,7 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
       // Single organization student - legacy support
       organizationIds = [req.user.organizationId];
       console.log(`Single-org student: ${req.user.email} has access to 1 organization`);
-      
+
       // Check if there are other accounts for this user that should be merged
       if (allUserAccounts.length > 1) {
         console.log(`WARNING: Found ${allUserAccounts.length} accounts but user has no organizationMemberships array!`);
@@ -2098,7 +2099,7 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
           .filter(account => account._id.toString() !== req.user._id.toString())
           .map(account => account.organizationId)
           .filter(orgId => orgId);
-        
+
         if (otherOrgIds.length > 0) {
           console.log(`Adding ${otherOrgIds.length} additional organization IDs from other accounts`);
           organizationIds = organizationIds.concat(otherOrgIds);
@@ -2107,9 +2108,9 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
     } else {
       console.log(`Student ${req.user.email} has no organization access!`);
     }
-    
+
     // Get quizzes from all student's organizations (excluding competitive quizzes)
-    let quizQuery = { 
+    let quizQuery = {
       isApproved: true,
       organizationId: { $in: organizationIds },
       $or: [
@@ -2117,7 +2118,7 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
         { quizType: { $exists: false } }       // Include old quizzes without quizType field
       ]
     };
-    
+
     // Filter by student's grade level if it exists
     if (req.user.gradeLevel) {
       quizQuery.gradeLevel = req.user.gradeLevel;
@@ -2125,14 +2126,14 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
     } else {
       console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all quizzes`);
     }
-    
+
     const availableQuizzes = await Quiz.find(quizQuery)
       .populate('createdBy', 'displayName')
       .populate('organizationId', 'name')
       .sort({ createdAt: -1 }) // Sort by newest first (most recent)
       .limit(100) // Limit to prevent memory issues
       .lean(); // Use lean() for better performance
-    
+
     // Fetch student's quiz results from all their organizations
     const quizResults = await QuizResult.find({
       student: req.user._id,
@@ -2168,16 +2169,16 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
       const totalScore = nonArchivedResults.reduce((sum, result) => sum + result.percentage, 0);
       averageScore = Math.round(totalScore / completedCount);
     }
-    
+
     // Get organization details for display
-    const organizations = await Organization.find({ 
-      _id: { $in: organizationIds } 
+    const organizations = await Organization.find({
+      _id: { $in: organizationIds }
     }).select('name subdomain');
-    
+
     console.log(`Student dashboard: Found ${availableQuizzes.length} quizzes from ${organizations.length} organizations`);
     console.log(`Organization IDs used: ${organizationIds.join(', ')}`);
     console.log(`=== END STUDENT DASHBOARD DEBUG ===\n`);
-    
+
     res.render('student-dashboard', {
       user: req.user,
       quizzes: availableQuizzes,
@@ -2207,29 +2208,29 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
 app.post('/api/migrate-multi-org-account', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     console.log(`\n=== MIGRATION REQUEST for ${req.user.email} ===`);
-    
+
     // Find all user accounts with the same email
     const allUserAccounts = await User.find({ email: req.user.email });
     console.log(`Found ${allUserAccounts.length} accounts for ${req.user.email}`);
-    
+
     if (allUserAccounts.length <= 1) {
-      return res.json({ 
-        success: false, 
-        message: 'No multiple accounts found to migrate' 
+      return res.json({
+        success: false,
+        message: 'No multiple accounts found to migrate'
       });
     }
-    
+
     // Use the current authenticated user as the primary account
     const primaryUser = req.user;
-    const otherAccounts = allUserAccounts.filter(account => 
+    const otherAccounts = allUserAccounts.filter(account =>
       account._id.toString() !== primaryUser._id.toString()
     );
-    
+
     console.log(`Primary account: ${primaryUser._id}, Other accounts: ${otherAccounts.length}`);
-    
+
     // Create organizationMemberships array from all accounts
     const organizationMemberships = [];
-    
+
     // Add primary user's organization
     if (primaryUser.organizationId) {
       organizationMemberships.push({
@@ -2241,7 +2242,7 @@ app.post('/api/migrate-multi-org-account', requireAuth, requireRole(['student'])
         isActive: true
       });
     }
-    
+
     // Add other accounts' organizations
     otherAccounts.forEach(account => {
       if (account.organizationId) {
@@ -2255,23 +2256,23 @@ app.post('/api/migrate-multi-org-account', requireAuth, requireRole(['student'])
         });
       }
     });
-    
+
     // Update primary user with organization memberships
     primaryUser.organizationMemberships = organizationMemberships;
     await primaryUser.save();
-    
+
     // Delete the duplicate accounts
     const duplicateIds = otherAccounts.map(account => account._id);
     await User.deleteMany({ _id: { $in: duplicateIds } });
-    
+
     console.log(`Migration completed: ${organizationMemberships.length} organizations merged, ${duplicateIds.length} duplicate accounts removed`);
-    
+
     res.json({
       success: true,
       message: `Successfully merged ${organizationMemberships.length} organization memberships`,
       organizationCount: organizationMemberships.length
     });
-    
+
   } catch (error) {
     console.error('Error during account migration:', error);
     res.status(500).json({
@@ -2815,17 +2816,17 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
     // Debug: Log all form data
     console.log('Received form data:', req.body);
     console.log('Files received:', req.files);
-    
+
     // Validate grade level and subjects
     if (!gradeLevel) {
       console.log('Validation error: Grade level is missing');
       return res.status(400).send('Grade level is required');
     }
-    
+
     console.log('Grade level received:', gradeLevel);
     console.log('Subject received:', subjects);
     console.log('Subject type:', typeof subjects);
-    
+
     if (!subjects) {
       console.log('Validation error: No subject selected');
       console.log('Subject value:', subjects);
@@ -2853,27 +2854,27 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
       console.log('Processing question file:', questionFile.originalname);
       console.log('File size:', questionFile.size, 'bytes');
       console.log('File mimetype:', questionFile.mimetype);
-      
+
       try {
         // Upload to S3 first
         questionFileUrl = await uploadToS3(questionFile, 'question-papers');
         console.log('Question paper uploaded to S3:', questionFileUrl);
-        
+
         const questionText = await extractTextFromFile(questionFile.buffer, questionFile.originalname);
         console.log('Extracted text length:', questionText.length);
-        
+
         if (!questionText || questionText.trim().length === 0) {
           console.log('Error: No text extracted from question file');
           return res.status(400).send('Could not extract text from the uploaded question paper. Please ensure the file is not corrupted and contains readable text.');
         }
-        
+
         extractedQuestions = parseQuestionsFromText(questionText, language);
         console.log('Parsed questions count:', extractedQuestions.length);
-        
+
         // Note: Image extraction has been removed
 
 
-        
+
         if (extractedQuestions.length === 0) {
           console.log('Error: No questions parsed from text');
           return res.status(400).send('No questions could be parsed from the uploaded file. Please ensure the question paper follows the required format with numbered questions and multiple choice options.');
@@ -2882,17 +2883,17 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
         console.error('Error processing question file:', error);
         return res.status(400).send('Error processing the question paper. Please ensure the file is in a supported format (PDF, DOC, DOCX) and contains readable text.');
       }
-      
+
       // Debug: Log the first question's options
       if (extractedQuestions.length > 0) {
         console.log('First question options count:', extractedQuestions[0].options.length);
         console.log('First question options:', extractedQuestions[0].options);
-        
+
               // Force ensure 4 options for all questions
       extractedQuestions.forEach((question, index) => {
         console.log(`Question ${index + 1} before fix:`, question.options.length, 'options');
         console.log(`Question ${index + 1} original options:`, question.options);
-        
+
         // AGGRESSIVE FIX: Force exactly 4 options
         if (question.options.length < 4) {
           while (question.options.length < 4) {
@@ -2904,7 +2905,7 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
           question.options = question.options.slice(0, 4);
           console.log(`Question ${index + 1} trimmed to 4 options`);
         }
-        
+
         ensureFourOptions(question);
         console.log(`Question ${index + 1} after fix:`, question.options.length, 'options');
         console.log(`Question ${index + 1} final options:`, question.options);
@@ -2919,15 +2920,15 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
     if (req.files.answerPaper && req.files.answerPaper[0]) {
       const answerFile = req.files.answerPaper[0];
       console.log('Processing answer file:', answerFile.originalname);
-      
+
       // Upload to S3 first
       answerFileUrl = await uploadToS3(answerFile, 'answer-papers');
       console.log('Answer paper uploaded to S3:', answerFileUrl);
-      
+
       const answerText = await extractTextFromFile(answerFile.buffer, answerFile.originalname);
       const answers = parseAnswersFromText(answerText);
       console.log('Parsed answers count:', answers.length);
-      
+
       // Merge answers with questions
       extractedQuestions = mergeQuestionsWithAnswers(extractedQuestions, answers);
     }
@@ -2980,7 +2981,7 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
   try {
     const { title, description, gradeLevel, subjects, language, quizType, isManuallyCreated } = req.body;
     const questions = JSON.parse(req.body.questions);
-    
+
     // Append current date and time to the title
     const now = new Date();
     const dateTimeString = now.toLocaleString('en-US', {
@@ -2991,9 +2992,9 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
       minute: '2-digit',
       hour12: true
     }).replace(/,/g, ''); // Remove commas for cleaner format
-    
+
     const finalTitle = `${title} - ${dateTimeString}`;
-    
+
     console.log('Manual quiz creation:', { originalTitle: title, finalTitle, quizType, questionsCount: questions.length });
     console.log('Uploaded files:', req.files ? req.files.length : 0);
     console.log('Question image indexes:', req.body.questionImageIndexes);
@@ -3004,32 +3005,32 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
         console.log(`File ${index}:`, file.originalname);
       });
     }
-    
+
     // Validate required fields
     if (!title || !gradeLevel || !subjects) {
       return res.status(400).send('Missing required fields');
     }
-    
+
     if (!questions || questions.length === 0) {
       return res.status(400).send('At least one question is required');
     }
-    
+
     // Process questions and upload images to S3
     console.log('Processing questions and uploading images...');
     const extractedQuestions = [];
-    
+
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       console.log(`Processing question ${i + 1}:`, q.questionText.substring(0, 50) + '...');
       console.log(`Question ${i + 1} hasImage:`, q.hasImage);
       console.log(`Question ${i + 1} full data:`, JSON.stringify(q, null, 2));
-      
+
       const baseQuestion = {
         question: q.questionText,
         questionNumber: i + 1,
         points: 1
       };
-      
+
       // Handle image upload for this question
       let imageS3Key = null;
       if (q.hasImage && req.files && req.files.length > 0) {
@@ -3037,7 +3038,7 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
           // Find the image file for this specific question using the index mapping
           let questionImageIndexes = req.body.questionImageIndexes;
           let imageFile = null;
-          
+
           // Parse questionImageIndexes if it's a JSON string
           if (typeof questionImageIndexes === 'string') {
             try {
@@ -3047,7 +3048,7 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
               questionImageIndexes = [];
             }
           }
-          
+
           if (Array.isArray(questionImageIndexes)) {
             // Find the file that corresponds to this question index
             const fileIndex = questionImageIndexes.findIndex(index => parseInt(index) === i);
@@ -3058,14 +3059,14 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
             // Fallback to old method for backward compatibility
             imageFile = req.files[i];
           }
-          
+
           // Debug logging
           console.log(`Question ${i + 1} - hasImage: ${q.hasImage}, questionImageIndexes:`, questionImageIndexes);
           if (Array.isArray(questionImageIndexes)) {
             const fileIndex = questionImageIndexes.findIndex(index => parseInt(index) === i);
             console.log(`Question ${i + 1} - fileIndex found: ${fileIndex}, imageFile:`, imageFile ? imageFile.originalname : 'null');
           }
-          
+
           if (imageFile) {
             console.log(`Uploading image for question ${i + 1}:`, imageFile.originalname);
             imageS3Key = await uploadToS3(imageFile, 'question-images');
@@ -3078,13 +3079,13 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
           imageS3Key = null;
         }
       }
-      
+
       if (q.answerFormat === 'multiple') {
         // Multiple choice question
         extractedQuestions.push({
           ...baseQuestion,
           options: q.options,
-          correctAnswer: q.selectionType === 'single' 
+          correctAnswer: q.selectionType === 'single'
             ? q.options[q.correctAnswers[0]]
             : q.correctAnswers.map(i => q.options[i]).join(','),
           multipleCorrect: q.selectionType === 'multiple',
@@ -3103,7 +3104,7 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
         });
       }
     }
-    
+
     // Create the quiz
     const quiz = new Quiz({
       title: finalTitle,  // Use title with appended date/time
@@ -3121,7 +3122,7 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
       questionPaperUrl: null,
       answerPaperUrl: null
     });
-    
+
     await quiz.save();
     console.log('Manual quiz saved successfully with ID:', quiz._id);
     console.log('Quiz saved with title:', finalTitle);
@@ -3132,23 +3133,23 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
         console.log(`Question ${index + 1} has image:`, q.image);
       }
     });
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       quizId: quiz._id,
       finalTitle: finalTitle,  // Send back the final title with date/time
       message: `Quiz created successfully as: ${finalTitle}`
     });
   } catch (error) {
     console.error('Error creating manual quiz:', error);
-    
+
     // Provide more detailed error messages for validation errors
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(e => e.message);
       console.error('Validation errors:', errors);
       return res.status(400).send(`Validation error: ${errors.join(', ')}`);
     }
-    
+
     res.status(500).send('Error creating quiz: ' + error.message);
   }
 });
@@ -3159,49 +3160,49 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
 app.post('/request-recorrection', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     const { resultId } = req.body;
-    
+
     // Find the quiz result
     const QuizResult = require('./models/QuizResult');
     const result = await QuizResult.findById(resultId);
-    
+
     if (!result) {
       return res.status(404).json({ error: 'Quiz result not found' });
     }
-    
+
     // Check if student owns this result
     if (result.student.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'You can only request recorrection for your own results' });
     }
-    
+
     // Check if already requested
     if (result.recorrectionRequested) {
       return res.status(400).json({ error: 'Recorrection already requested for this result' });
     }
-    
+
     // Check if result is completed
     if (result.status !== 'completed') {
       return res.status(400).json({ error: 'Only completed results can be sent for recorrection' });
     }
-    
+
     // Check if this is an archived quiz (attemptNumber > 1)
     if (result.attemptNumber > 1) {
       return res.status(400).json({ error: 'Archived quizzes cannot be sent for recorrection' });
     }
-    
+
     // Update the result
     result.recorrectionRequested = true;
     result.recorrectionRequestedAt = new Date();
     result.originalScore = result.score;
     result.originalPercentage = result.percentage;
     result.status = 'pending-recorrection';
-    
+
     await result.save();
-    
-    res.json({ 
-      success: true, 
-      message: 'Recorrection request sent successfully' 
+
+    res.json({
+      success: true,
+      message: 'Recorrection request sent successfully'
     });
-    
+
   } catch (error) {
     console.error('Error requesting recorrection:', error);
     res.status(500).json({ error: 'Error requesting recorrection' });
@@ -3304,13 +3305,13 @@ app.get('/api/recorrection-requests', requireAuth, requireRole(['teacher']), req
 app.get('/api/grading-requests', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const QuizResult = require('./models/QuizResult');
-    
+
     // Get grade filter and pagination parameters
     const selectedGrade = req.query.grade || 'all';
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    
+
     // Build base query for both recorrection requests and complex quiz grading
     let baseQuery = {
       teacherId: req.user._id,
@@ -3332,7 +3333,7 @@ app.get('/api/grading-requests', requireAuth, requireRole(['teacher']), requireA
         }
       ]
     };
-    
+
     // Get total count for pagination
     let totalRequests;
     if (selectedGrade === 'all') {
@@ -3348,7 +3349,7 @@ app.get('/api/grading-requests', requireAuth, requireRole(['teacher']), requireA
       ]);
       totalRequests = totalRequests.length > 0 ? totalRequests[0].total : 0;
     }
-    
+
     // Get paginated recorrection requests
     let requests;
     if (selectedGrade === 'all') {
@@ -3380,12 +3381,12 @@ app.get('/api/grading-requests', requireAuth, requireRole(['teacher']), requireA
         }}
       ]);
     }
-    
+
     // Calculate pagination info
     const totalPages = Math.ceil(totalRequests / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
-    
+
     res.json({
       requests,
       pagination: {
@@ -3399,7 +3400,7 @@ app.get('/api/grading-requests', requireAuth, requireRole(['teacher']), requireA
         prevPage: hasPrevPage ? page - 1 : null
       }
     });
-    
+
   } catch (error) {
     console.error('Error fetching recorrection requests:', error);
     res.status(500).json({ error: 'Error fetching recorrection requests' });
@@ -3424,7 +3425,7 @@ app.get('/api/recorrection-grade-counts', requireAuth, requireRole(['teacher']),
       { $group: { _id: '$quizData.gradeLevel', count: { $sum: 1 } } },
       { $sort: { _id: 1 } }
     ]);
-    
+
     // Create grade tabs data with counts
     const gradeTabs = [
       { grade: 'all', label: 'All Grades', count: 0 },
@@ -3441,7 +3442,7 @@ app.get('/api/recorrection-grade-counts', requireAuth, requireRole(['teacher']),
       { grade: '11th grade', label: '11th Grade', count: 0 },
       { grade: '12th grade', label: '12th Grade', count: 0 }
     ];
-    
+
     // Update counts from aggregation results
     gradeCounts.forEach(gradeCount => {
       const tab = gradeTabs.find(tab => tab.grade === gradeCount._id);
@@ -3449,13 +3450,13 @@ app.get('/api/recorrection-grade-counts', requireAuth, requireRole(['teacher']),
         tab.count = gradeCount.count;
       }
     });
-    
+
     // Calculate total count for "All Grades" tab
     const totalCount = gradeCounts.reduce((sum, gradeCount) => sum + gradeCount.count, 0);
     gradeTabs[0].count = totalCount;
-    
+
     res.json({ gradeTabs });
-    
+
   } catch (error) {
     console.error('Error fetching recorrection grade counts:', error);
     res.status(500).json({ error: 'Error fetching grade counts' });
@@ -3539,18 +3540,18 @@ app.get('/recorrection-details/:resultId', requireAuth, requireRole(['teacher'])
     const result = await QuizResult.findById(req.params.resultId)
       .populate('student', 'displayName email')
       .populate('quiz', 'title questions');
-    
+
     if (!result) {
       return res.status(404).render('error', { message: 'Result not found' });
     }
-    
+
     // Check if teacher owns this quiz
     if (result.teacherId.toString() !== req.user._id.toString()) {
       return res.status(403).render('error', { message: 'You can only view results for your own quizzes' });
     }
-    
+
     res.render('recorrection-details', { result });
-    
+
   } catch (error) {
     console.error('Error viewing recorrection details:', error);
     res.status(500).render('error', { message: 'Error viewing recorrection details' });
@@ -3564,18 +3565,18 @@ app.get('/process-recorrection/:resultId', requireAuth, requireRole(['teacher'])
     const result = await QuizResult.findById(req.params.resultId)
       .populate('student', 'displayName email')
       .populate('quiz', 'title questions');
-    
+
     if (!result) {
       return res.status(404).render('error', { message: 'Result not found' });
     }
-    
+
     // Check if teacher owns this quiz
     if (result.teacherId.toString() !== req.user._id.toString()) {
       return res.status(403).render('error', { message: 'You can only process results for your own quizzes' });
     }
-    
+
     res.render('process-recorrection', { result });
-    
+
   } catch (error) {
     console.error('Error processing recorrection:', error);
     res.status(500).render('error', { message: 'Error processing recorrection' });
@@ -3586,19 +3587,19 @@ app.get('/process-recorrection/:resultId', requireAuth, requireRole(['teacher'])
 app.post('/save-recorrection', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { resultId, newScore, feedback } = req.body;
-    
+
     const QuizResult = require('./models/QuizResult');
     const result = await QuizResult.findById(resultId);
-    
+
     if (!result) {
       return res.status(404).json({ error: 'Result not found' });
     }
-    
+
     // Check if teacher owns this quiz
     if (result.teacherId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'You can only process results for your own quizzes' });
     }
-    
+
     // Update the result
     result.score = parseInt(newScore);
     result.percentage = Math.round((result.score / result.totalPoints) * 100);
@@ -3606,20 +3607,20 @@ app.post('/save-recorrection', requireAuth, requireRole(['teacher']), requireApp
     result.status = 'rechecked';
     result.recorrectionCompletedAt = new Date();
     result.recorrectionCompletedBy = req.user._id;
-    
+
     // Recalculate correct answers based on new score
     // This is a simplified approach - in a real system you might want to re-evaluate individual answers
     result.correctAnswers = Math.round((result.score / result.totalPoints) * result.totalQuestions);
-    
+
     await result.save();
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'Recorrection completed successfully',
       newScore: result.score,
       newPercentage: result.percentage
     });
-    
+
   } catch (error) {
     console.error('Error saving recorrection:', error);
     res.status(500).json({ error: 'Error saving recorrection' });
@@ -3704,22 +3705,22 @@ app.get('/test-actual-answer', (req, res) => {
 app.get('/quiz-results/:quizId', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { quizId } = req.params;
-    
+
     // Verify the quiz belongs to this teacher
     const quiz = await Quiz.findOne({ _id: quizId, createdBy: req.user._id });
     if (!quiz) {
       return res.status(404).send('Quiz not found or access denied');
     }
-    
+
     // Fetch all results for this quiz
     const results = await QuizResult.find({ quiz: quizId })
       .populate('student', 'displayName email')
       .sort({ completedAt: -1 });
-    
-    res.render('quiz-results', { 
-      user: req.user, 
-      quiz, 
-      results 
+
+    res.render('quiz-results', {
+      user: req.user,
+      quiz,
+      results
     });
   } catch (error) {
     console.error('Error fetching quiz results:', error);
@@ -3732,15 +3733,15 @@ app.get('/teacher/post-content', requireAuth, requireRole(['teacher']), requireA
   try {
     // Get all content posted by this teacher
     const teacherContent = await Content.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
-    
-    res.render('teacher-post-content', { 
-      user: req.user, 
+
+    res.render('teacher-post-content', {
+      user: req.user,
       content: teacherContent
     });
   } catch (error) {
     console.error('Error fetching teacher content:', error);
-    res.render('teacher-post-content', { 
-      user: req.user, 
+    res.render('teacher-post-content', {
+      user: req.user,
       content: []
     });
   }
@@ -3750,26 +3751,26 @@ app.get('/teacher/post-content', requireAuth, requireRole(['teacher']), requireA
 app.post('/teacher/post-content', requireAuth, requireRole(['teacher']), requireApprovedTeacher, upload.single('contentFile'), async (req, res) => {
   try {
     const { title, description, category, gradeLevel } = req.body;
-    
+
     if (!req.file) {
       return res.status(400).send('Please upload a file');
     }
-    
+
     if (!gradeLevel) {
       return res.status(400).send('Please select a grade level');
     }
-    
+
     // Validate grade level
-    const validGrades = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', 
+    const validGrades = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade',
                         '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
-    
+
     if (!validGrades.includes(gradeLevel)) {
       return res.status(400).send('Invalid grade level selected');
     }
-    
+
     // Upload file to S3
     const fileUrl = await uploadToS3(req.file, 'content');
-    
+
     // Create new content
     const content = new Content({
       title,
@@ -3785,9 +3786,9 @@ app.post('/teacher/post-content', requireAuth, requireRole(['teacher']), require
       organizationId: req.user.organizationId, // Add organization context for SaaS
       isApproved: true  // Auto-approve content from approved teachers
     });
-    
+
     await content.save();
-    
+
     console.log(`✅ Content created successfully:`, {
       title: content.title,
       gradeLevel: content.gradeLevel,
@@ -3795,7 +3796,7 @@ app.post('/teacher/post-content', requireAuth, requireRole(['teacher']), require
       createdBy: content.createdByName,
       contentId: content._id
     });
-    
+
     res.redirect('/teacher/post-content');
   } catch (error) {
     console.error('Error posting content:', error);
@@ -3810,9 +3811,9 @@ app.post('/admin/approve-all-content', requireAuth, requireRole(['admin', 'super
       { isApproved: false },
       { isApproved: true }
     );
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: `Approved ${result.modifiedCount} content items`,
       modifiedCount: result.modifiedCount
     });
@@ -3834,26 +3835,26 @@ app.get('/teacher/assign-students', requireAuth, requireRole(['teacher']), requi
   try {
     console.log('Accessing /teacher/assign-students route');
     console.log('User:', req.user.displayName, 'Role:', req.user.role, 'Approved:', req.user.isApproved);
-    
+
     // Get all students
     const students = await User.find({ role: 'student' }).sort({ displayName: 1 });
     console.log('Found', students.length, 'students');
-    
+
     // Count statistics
-    const assignedToMe = await User.countDocuments({ 
-      role: 'student', 
-      assignedTeacher: req.user._id 
+    const assignedToMe = await User.countDocuments({
+      role: 'student',
+      assignedTeacher: req.user._id
     });
-    
-    const unassigned = await User.countDocuments({ 
-      role: 'student', 
-      assignedTeacher: null 
+
+    const unassigned = await User.countDocuments({
+      role: 'student',
+      assignedTeacher: null
     });
-    
+
     console.log('Statistics:', { assignedToMe, unassigned });
-    
-    res.render('teacher-assign-students', { 
-      user: req.user, 
+
+    res.render('teacher-assign-students', {
+      user: req.user,
       students: students,
       assignedToMe: assignedToMe,
       unassigned: unassigned
@@ -3862,7 +3863,7 @@ app.get('/teacher/assign-students', requireAuth, requireRole(['teacher']), requi
     console.error('Error in assign-students route:', error);
     console.error('Error details:', error.message);
     console.error('Stack trace:', error.stack);
-    
+
     // Fallback response for debugging
     res.status(500).send(`
       <h1>Error in Assign Students Route</h1>
@@ -3879,40 +3880,40 @@ app.get('/teacher/assign-students', requireAuth, requireRole(['teacher']), requi
 app.post('/teacher/assign-students', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { assignments } = req.body;
-    
+
     if (!assignments || !Array.isArray(assignments)) {
       return res.status(400).json({ success: false, message: 'Invalid assignments data' });
     }
-    
+
     // Validate grade levels
-    const validGrades = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', 
+    const validGrades = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade',
                         '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
-    
+
     for (const assignment of assignments) {
       if (!validGrades.includes(assignment.gradeLevel)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Invalid grade level: ${assignment.gradeLevel}` 
+        return res.status(400).json({
+          success: false,
+          message: `Invalid grade level: ${assignment.gradeLevel}`
         });
       }
     }
-    
+
     // Update students
-    const updatePromises = assignments.map(assignment => 
+    const updatePromises = assignments.map(assignment =>
       User.findByIdAndUpdate(
         assignment.studentId,
-        { 
+        {
           assignedTeacher: req.user._id,
           gradeLevel: assignment.gradeLevel
         },
         { new: true }
       )
     );
-    
+
     await Promise.all(updatePromises);
-    
+
     console.log(`Teacher ${req.user.displayName} assigned ${assignments.length} students`);
-    
+
     res.json({ success: true, message: `Successfully assigned ${assignments.length} students` });
   } catch (error) {
     console.error('Error assigning students:', error);
@@ -3924,27 +3925,27 @@ app.post('/teacher/assign-students', requireAuth, requireRole(['teacher']), requ
 app.post('/teacher/unassign-students', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { studentIds } = req.body;
-    
+
     if (!studentIds || !Array.isArray(studentIds)) {
       return res.status(400).json({ success: false, message: 'Invalid student IDs' });
     }
-    
+
     // Only allow unassigning students that are currently assigned to this teacher
     const result = await User.updateMany(
-      { 
+      {
         _id: { $in: studentIds },
-        assignedTeacher: req.user._id 
+        assignedTeacher: req.user._id
       },
-      { 
+      {
         assignedTeacher: null
       }
     );
-    
+
     console.log(`Teacher ${req.user.displayName} unassigned ${result.modifiedCount} students`);
-    
-    res.json({ 
-      success: true, 
-      message: `Successfully unassigned ${result.modifiedCount} students` 
+
+    res.json({
+      success: true,
+      message: `Successfully unassigned ${result.modifiedCount} students`
     });
   } catch (error) {
     console.error('Error unassigning students:', error);
@@ -3960,21 +3961,21 @@ app.post('/admin/approve-all-teacher-content', requireAuth, requireRole(['admin'
     // Find all unapproved content created by approved teachers
     const approvedTeachers = await User.find({ role: 'teacher', isApproved: true }).select('_id');
     const teacherIds = approvedTeachers.map(teacher => teacher._id);
-    
+
     const result = await Content.updateMany(
-      { 
+      {
         isApproved: false,
         createdBy: { $in: teacherIds }
       },
-      { 
-        isApproved: true 
+      {
+        isApproved: true
       }
     );
-    
+
     console.log(`Auto-approved ${result.modifiedCount} content items from approved teachers`);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: `Approved ${result.modifiedCount} content items from teachers`,
       modifiedCount: result.modifiedCount
     });
@@ -3990,10 +3991,10 @@ app.get('/admin/content-by-grade', requireAuth, requireRole(['admin', 'teacher']
     const allContent = await Content.find({})  // Show ALL content, approved and unapproved
       .populate('createdBy', 'displayName')
       .sort({ gradeLevel: 1, createdAt: -1 });
-    
+
     const approvedContent = allContent.filter(content => content.isApproved);
     const unapprovedContent = allContent.filter(content => !content.isApproved);
-    
+
     const contentByGrade = {};
     approvedContent.forEach(content => {
       if (!contentByGrade[content.gradeLevel]) {
@@ -4001,7 +4002,7 @@ app.get('/admin/content-by-grade', requireAuth, requireRole(['admin', 'teacher']
       }
       contentByGrade[content.gradeLevel].push(content);
     });
-    
+
     const unapprovedByGrade = {};
     unapprovedContent.forEach(content => {
       if (!unapprovedByGrade[content.gradeLevel]) {
@@ -4009,7 +4010,7 @@ app.get('/admin/content-by-grade', requireAuth, requireRole(['admin', 'teacher']
       }
       unapprovedByGrade[content.gradeLevel].push(content);
     });
-    
+
     // Get student counts by grade
     const studentsByGrade = {};
     const allStudents = await User.find({ role: 'student' });
@@ -4020,7 +4021,7 @@ app.get('/admin/content-by-grade', requireAuth, requireRole(['admin', 'teacher']
       }
       studentsByGrade[grade]++;
     });
-    
+
     res.json({
       success: true,
       approvedContentByGrade: contentByGrade,
@@ -4041,16 +4042,16 @@ app.get('/admin/content-by-grade', requireAuth, requireRole(['admin', 'teacher']
 app.delete('/admin/delete-content/:contentId', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { contentId } = req.params;
-    
+
     console.log('Admin delete request for content:', contentId);
-    
+
     const content = await Content.findById(contentId);
     if (!content) {
       return res.status(404).json({ success: false, message: 'Content not found' });
     }
-    
+
     console.log('Found content to delete:', content.title);
-    
+
     // Delete from S3
     if (content.fileUrl) {
       try {
@@ -4060,11 +4061,11 @@ app.delete('/admin/delete-content/:contentId', requireAuth, requireRole(['admin'
         // Continue with database deletion even if S3 fails
       }
     }
-    
+
     // Delete from database
     await Content.findByIdAndDelete(contentId);
     console.log('Content deleted from database:', contentId);
-    
+
     res.json({ success: true, message: 'Content deleted successfully' });
   } catch (error) {
     console.error('Error deleting content:', error);
@@ -4076,15 +4077,15 @@ app.delete('/admin/delete-content/:contentId', requireAuth, requireRole(['admin'
 app.post('/admin/approve-content/:contentId', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { contentId } = req.params;
-    
+
     const content = await Content.findById(contentId);
     if (!content) {
       return res.status(404).json({ success: false, message: 'Content not found' });
     }
-    
+
     content.isApproved = true;
     await content.save();
-    
+
     res.json({ success: true, message: 'Content approved successfully' });
   } catch (error) {
     console.error('Error approving content:', error);
@@ -4096,18 +4097,18 @@ app.post('/admin/approve-content/:contentId', requireAuth, requireRole(['admin',
 app.delete('/teacher/delete-content/:contentId', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { contentId } = req.params;
-    
+
     console.log('Delete request for content:', contentId, 'by user:', req.user.email);
-    
+
     // Verify the content belongs to this teacher
     const content = await Content.findOne({ _id: contentId, createdBy: req.user._id });
     if (!content) {
       console.log('Content not found or access denied for user:', req.user.email);
       return res.status(404).json({ success: false, message: 'Content not found or access denied' });
     }
-    
+
     console.log('Found content to delete:', content.title);
-    
+
     // Delete from S3
     if (content.fileUrl) {
       try {
@@ -4117,11 +4118,11 @@ app.delete('/teacher/delete-content/:contentId', requireAuth, requireRole(['teac
         // Continue with database deletion even if S3 fails
       }
     }
-    
+
     // Delete from database
     await Content.findByIdAndDelete(contentId);
     console.log('Content deleted from database:', contentId);
-    
+
     res.json({ success: true, message: 'Content deleted successfully' });
   } catch (error) {
     console.error('Error deleting content:', error);
@@ -4135,7 +4136,7 @@ app.get('/admin/content-management', requireAuth, requireRole(['admin', 'super_a
     const allContent = await Content.find({})
       .populate('createdBy', 'displayName email')
       .sort({ createdAt: -1 });
-    
+
     res.render('admin-content-management', {
       user: req.user,
       content: allContent
@@ -4155,16 +4156,16 @@ app.get('/teacher/student-results', requireAuth, requireRole(['teacher']), requi
     // Get all quizzes created by this teacher
     const teacherQuizzes = await Quiz.find({ createdBy: req.user._id });
     const quizIds = teacherQuizzes.map(quiz => quiz._id);
-    
+
     // Fetch all student results for teacher's quizzes in their organization
-    const allResults = await QuizResult.find({ 
+    const allResults = await QuizResult.find({
       quiz: { $in: quizIds },
       organizationId: req.user.organizationId // Filter by organization for SaaS
     })
       .populate('student', 'displayName email')
       .populate('quiz', 'title')
       .sort({ completedAt: -1 });
-    
+
     // Group results by quiz
     const resultsByQuiz = {};
     teacherQuizzes.forEach(quiz => {
@@ -4173,16 +4174,16 @@ app.get('/teacher/student-results', requireAuth, requireRole(['teacher']), requi
         results: allResults.filter(result => result.quiz._id.toString() === quiz._id.toString())
       };
     });
-    
+
     // Calculate overall statistics
     const totalAttempts = allResults.length;
     const uniqueStudents = new Set(allResults.map(result => result.student._id.toString())).size;
-    const averageScore = totalAttempts > 0 
+    const averageScore = totalAttempts > 0
       ? Math.round(allResults.reduce((sum, result) => sum + result.percentage, 0) / totalAttempts)
       : 0;
-    
-    res.render('teacher-student-results', { 
-      user: req.user, 
+
+    res.render('teacher-student-results', {
+      user: req.user,
       resultsByQuiz,
       totalAttempts,
       uniqueStudents,
@@ -4199,16 +4200,16 @@ app.get('/teacher/student-results', requireAuth, requireRole(['teacher']), requi
 app.get('/debug-student-results/:email', async (req, res) => {
   try {
     const { email } = req.params;
-    
+
     // Find the student by email
     const student = await User.findOne({ email: email });
     if (!student) {
       return res.json({ error: 'Student not found', email });
     }
-    
+
     // Find all quiz results for this student
     const quizResults = await QuizResult.find({ student: student._id });
-    
+
     res.json({
       student: {
         id: student._id,
@@ -4235,7 +4236,7 @@ app.get('/health', async (req, res) => {
   try {
     const dbState = mongoose.connection.readyState;
     const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
-    
+
     // Test MongoDB connection
     let mongoTest = 'Not tested';
     if (mongoose.connection.readyState === 1) {
@@ -4246,7 +4247,7 @@ app.get('/health', async (req, res) => {
         mongoTest = 'Connected but not responding';
       }
     }
-    
+
     res.json({
       status: 'ok',
       database: states[dbState],
@@ -4277,17 +4278,17 @@ app.get('/view-files/:quizId', requireAuth, async (req, res) => {
       <h1>Files for Quiz: ${quiz.title}</h1>
       <hr>
       <h2>Question Paper</h2>
-      ${quiz.questionPaperUrl ? 
-        `<p><a href="${quiz.questionPaperUrl}" target="_blank">View Question Paper</a></p>` : 
+      ${quiz.questionPaperUrl ?
+        `<p><a href="${quiz.questionPaperUrl}" target="_blank">View Question Paper</a></p>` :
         '<p>No question paper stored</p>'
       }
-      
+
       <h2>Answer Paper</h2>
-      ${quiz.answerPaperUrl ? 
-        `<p><a href="${quiz.answerPaperUrl}" target="_blank">View Answer Paper</a></p>` : 
+      ${quiz.answerPaperUrl ?
+        `<p><a href="${quiz.answerPaperUrl}" target="_blank">View Answer Paper</a></p>` :
         '<p>No answer paper stored</p>'
       }
-      
+
       <hr>
       <p><a href="/teacher/dashboard">Back to Dashboard</a></p>
     `);
@@ -4351,18 +4352,18 @@ a) 3,800 b) 3,900 c) 4,000 d) 3,850`;
 app.delete('/delete-quiz/:quizId', requireAuth, requireRole(['teacher']), async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
-    
+
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
-    
+
     // Check if the teacher owns this quiz
     if (quiz.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: 'You can only delete your own quizzes' });
     }
-    
+
     await Quiz.findByIdAndDelete(req.params.quizId);
-    
+
     res.json({ success: true, message: 'Quiz deleted successfully' });
   } catch (error) {
     console.error('Error deleting quiz:', error);
@@ -4377,57 +4378,57 @@ app.post('/update-student-profile', requireAuth, requireRole(['student']), async
     console.log('Request body:', req.body);
     console.log('User ID:', req.user._id);
     console.log('User role:', req.user.role);
-    
+
     const { gradeLevel, subjects } = req.body;
-    
+
     console.log('Extracted data:', { gradeLevel, subjects });
-    
+
     // Validate grade level
     const validGradeLevels = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
     if (gradeLevel && !validGradeLevels.includes(gradeLevel)) {
       console.log('Invalid grade level:', gradeLevel);
       return res.status(400).json({ success: false, message: 'Invalid grade level' });
     }
-    
+
     // Validate subjects
     const validSubjects = ['English', 'Science', 'Math'];
     if (subjects && (!Array.isArray(subjects) || !subjects.every(subject => validSubjects.includes(subject)))) {
       console.log('Invalid subjects:', subjects);
       return res.status(400).json({ success: false, message: 'Invalid subjects' });
     }
-    
+
     // Update user profile
     console.log('Updating student profile:', {
       userId: req.user._id,
       gradeLevel: gradeLevel,
       subjects: subjects
     });
-    
+
     const updateData = {
       gradeLevel: gradeLevel || null,
       subjects: subjects || []
     };
-    
+
     console.log('Update data:', updateData);
-    
+
     // Use findOneAndUpdate instead of findByIdAndUpdate for better error handling
     const updatedUser = await User.findOneAndUpdate(
       { _id: req.user._id },
       updateData,
       { new: true, runValidators: true }
     );
-    
+
     if (!updatedUser) {
       console.error('User not found for update');
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    
+
     console.log('Profile updated successfully:', {
       userId: updatedUser._id,
       gradeLevel: updatedUser.gradeLevel,
       subjects: updatedUser.subjects
     });
-    
+
     res.json({ success: true, message: 'Profile updated successfully' });
   } catch (error) {
     console.error('Error updating student profile:', error);
@@ -4441,20 +4442,20 @@ app.get('/student-profile', requireAuth, requireRole(['student']), async (req, r
     console.log('=== STUDENT PROFILE FETCH DEBUG ===');
     console.log('User ID:', req.user._id);
     console.log('User role:', req.user.role);
-    
+
     const user = await User.findById(req.user._id);
-    
+
     if (!user) {
       console.error('User not found');
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    
+
     console.log('Found user:', {
       _id: user._id,
       gradeLevel: user.gradeLevel,
       subjects: user.subjects
     });
-    
+
     res.json({
       gradeLevel: user.gradeLevel,
       subjects: user.subjects || []
@@ -4469,17 +4470,17 @@ app.get('/student-profile', requireAuth, requireRole(['student']), async (req, r
 app.get('/test-quiz-filter', async (req, res) => {
   try {
     // Simulate a student with 4th grade profile
-    const filter = { 
+    const filter = {
       isApproved: true,
       gradeLevel: '4th grade',
       subjects: { $in: ['Math'] }
     };
-    
+
     console.log('Test filter:', filter);
-    
+
     const quizzes = await Quiz.find(filter).select('title gradeLevel subjects');
     console.log('Found quizzes:', quizzes);
-    
+
     res.json({
       filter: filter,
       quizzes: quizzes,
@@ -4495,16 +4496,16 @@ app.get('/test-quiz-filter', async (req, res) => {
 app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     console.log(`\n=== AVAILABLE QUIZZES DEBUG for ${req.user.email} ===`);
-    
+
     // Pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 12;
     const skip = (page - 1) * limit;
     const tab = req.query.tab || 'available'; // 'available' or 'archived'
-    
+
     // Get all organization IDs the student belongs to
     let organizationIds = [];
-    
+
     if (req.user.organizationMemberships && req.user.organizationMemberships.length > 0) {
       // Multi-organization student - get quizzes from all organizations
       organizationIds = req.user.organizationMemberships.map(membership => membership.organizationId);
@@ -4513,7 +4514,7 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
       // Single organization student - legacy support
       organizationIds = [req.user.organizationId];
       console.log(`Single-org student: ${req.user.email} browsing quizzes from 1 organization`);
-      
+
       // Check if there are other accounts for this user that should be included
       const allUserAccounts = await User.find({ email: req.user.email });
       if (allUserAccounts.length > 1) {
@@ -4522,7 +4523,7 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
           .filter(account => account._id.toString() !== req.user._id.toString())
           .map(account => account.organizationId)
           .filter(orgId => orgId);
-        
+
         if (otherOrgIds.length > 0) {
           console.log(`Adding ${otherOrgIds.length} additional organization IDs from other accounts`);
           organizationIds = organizationIds.concat(otherOrgIds);
@@ -4531,10 +4532,10 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     } else {
       console.log(`Student ${req.user.email} has no organization access!`);
     }
-    
+
     // Build filter for ALL organizations
     // Exclude competitive quizzes - they should only be accessed through sessions
-    let filter = { 
+    let filter = {
       isApproved: true,
       organizationId: { $in: organizationIds },
       $or: [
@@ -4542,7 +4543,7 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
         { quizType: { $exists: false } }       // Include old quizzes without quizType field
       ]
     };
-    
+
     // Filter by student's grade level if it exists
     if (req.user.gradeLevel) {
       filter.gradeLevel = req.user.gradeLevel;
@@ -4558,7 +4559,7 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
       organizationId: req.user.organizationId,
       organizationIds: organizationIds
     });
-    
+
     console.log('Quiz filter (all organizations, excluding competitive):', filter);
 
     // First, let's check how many quizzes exist without any filters
@@ -4597,7 +4598,7 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
       quizByOrg[orgName]++;
     });
     console.log(quizByOrg);
-    
+
     // Get the student's quiz results from all organizations
     const studentResults = await QuizResult.find({
       student: req.user._id,
@@ -4621,7 +4622,7 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     });
 
     console.log('Quiz attempts map:', Object.keys(quizAttempts).length, 'quizzes with attempts');
-    
+
     // Separate available and archived quizzes
     const availableQuizzes = [];
     const archivedQuizzes = [];
@@ -4680,8 +4681,8 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
 
     // Use the fetched quizzes directly (already limited by database query)
     const paginatedQuizzes = quizzesToShow.slice(0, limit);
-    
-    res.render('available-quizzes', { 
+
+    res.render('available-quizzes', {
       quizzes: paginatedQuizzes,
       user: req.user,
       currentTab: tab,
@@ -4700,7 +4701,7 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
         archived: estimatedArchivedTotal
       }
     });
-    
+
     console.log(`=== END AVAILABLE QUIZZES DEBUG ===\n`);
   } catch (error) {
     console.error('Error fetching available quizzes:', error);
@@ -4715,7 +4716,7 @@ app.get('/debug-quiz/:quizId', requireAuth, requireRole(['teacher']), async (req
     if (!quiz) {
       return res.status(404).json({ error: 'Quiz not found' });
     }
-    
+
     res.json({
       quizId: quiz._id,
       title: quiz.title,
@@ -4742,7 +4743,7 @@ app.get('/debug-quiz-student/:quizId', requireAuth, requireRole(['student']), as
     if (!quiz) {
       return res.status(404).json({ error: 'Quiz not found' });
     }
-    
+
     res.json({
       quizId: quiz._id,
       title: quiz.title,
@@ -4774,27 +4775,27 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
     if (!quiz) {
       return res.status(404).send('Quiz not found');
     }
-    
+
     // Check if this is a competitive quiz - those must be accessed through sessions
     if (quiz.quizType === 'competitive') {
-      return res.status(403).render('error', { 
-        message: 'This is a competitive quiz. Please join through a session code provided by your teacher.' 
+      return res.status(403).render('error', {
+        message: 'This is a competitive quiz. Please join through a session code provided by your teacher.'
       });
     }
-    
+
     // No need to check approval since all quizzes are auto-approved
     // if (!quiz.isApproved) {
     //   return res.status(403).send('This quiz is not yet approved');
     // }
-    
+
     // Check if student has already taken this quiz and count attempts
     const existingResults = await QuizResult.find({
       student: req.user._id,
       quiz: quiz._id
     });
-    
+
     const attemptCount = existingResults.length;
-    
+
     // Check if student has reached the retake limit (3 attempts)
     if (attemptCount >= 3) {
       return res.status(403).render('error', {
@@ -4803,7 +4804,7 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
         user: req.user
       });
     }
-    
+
     // Convert advanced quiz builder format to standard quiz format
     function convertAdvancedQuizToStandard(quiz) {
       // If quiz already has standard format, return as is
@@ -4944,15 +4945,15 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
-    
+
     // Prevent direct submission to competitive quizzes
     if (quiz.quizType === 'competitive') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Competitive quizzes must be submitted through a session.' 
+      return res.status(403).json({
+        success: false,
+        message: 'Competitive quizzes must be submitted through a session.'
       });
     }
-    
+
     const { answers, timeTaken, isComplexQuiz, timeSpent } = req.body;
 
     // Handle complex quiz submission
@@ -5055,12 +5056,12 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
 
     // Debug: Log received answers
     console.log('Received answers from frontend:', JSON.stringify(answersArray, null, 2));
-    
+
     // Calculate results
     let correctAnswers = 0;
     let totalPoints = 0;
     const processedAnswers = [];
-    
+
     quiz.questions.forEach((question, index) => {
       // Extract selectedAnswer properly from the answers array
       let selectedAnswer = '';
@@ -5069,24 +5070,24 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
       } else if (typeof answersArray[index] === 'string') {
         selectedAnswer = answersArray[index];
       }
-      
+
       // Trim whitespace from both student answer and correct answer for comparison
       const trimmedSelectedAnswer = selectedAnswer.trim();
       const trimmedCorrectAnswer = question.correctAnswer.trim();
-      
+
       // Debug: Log answer extraction and trimming
       console.log(`Question ${index}: received answer object:`, answersArray[index]);
       console.log(`Question ${index}: extracted answer: "${selectedAnswer}"`);
       console.log(`Question ${index}: trimmed student answer: "${trimmedSelectedAnswer}"`);
       console.log(`Question ${index}: trimmed correct answer: "${trimmedCorrectAnswer}"`);
-      
+
       const isCorrect = trimmedSelectedAnswer === trimmedCorrectAnswer;
-      
+
       if (isCorrect) {
         correctAnswers++;
         totalPoints += question.points;
       }
-      
+
       processedAnswers.push({
         questionIndex: index,
         selectedAnswer: selectedAnswer,
@@ -5095,17 +5096,17 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
         points: question.points
       });
     });
-    
+
     const score = totalPoints;
     const percentage = Math.round((correctAnswers / quiz.questions.length) * 100);
-    
+
     // Get attempt number for this quiz
     const existingResults = await QuizResult.find({
       student: req.user._id,
       quiz: quiz._id
     });
     const attemptNumber = existingResults.length + 1;
-    
+
     // Save quiz result
     const quizResult = new QuizResult({
       student: req.user._id,
@@ -5124,13 +5125,13 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
       completedAt: new Date(),
       attemptNumber: attemptNumber
     });
-    
+
     // Assign badge based on score (only for first attempts)
     quizResult.assignBadge();
     await quizResult.save();
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       resultId: quizResult._id,
       score: score,
       percentage: percentage,
@@ -5152,28 +5153,28 @@ app.get('/quiz-result/:resultId', requireAuth, requireRole(['student']), async (
     console.log('🔍 Quiz result route accessed for resultId:', req.params.resultId);
     console.log('🔍 User ID:', req.user._id);
     console.log('🔍 User role:', req.user.role);
-    
+
     const result = await QuizResult.findById(req.params.resultId)
       .populate('quiz')
       .populate('student');
-    
+
     console.log('🔍 QuizResult lookup result:', result ? 'Found' : 'Not found');
-    
+
     if (!result) {
       console.log('❌ Result not found in database');
       return res.status(404).send('Result not found');
     }
-    
+
     console.log('🔍 Result found, checking ownership...');
     console.log('🔍 Result student ID:', result.student._id);
     console.log('🔍 Current user ID:', req.user._id);
-    
+
     // Check if the student owns this result
     if (result.student._id.toString() !== req.user._id.toString()) {
       console.log('❌ Access denied - student does not own this result');
       return res.status(403).send('Access denied');
     }
-    
+
     console.log('✅ Access granted, rendering quiz result page');
     res.render('quiz-result', { result, user: req.user });
   } catch (error) {
@@ -5188,16 +5189,16 @@ app.get('/api/student-badges', requireAuth, requireRole(['student']), async (req
   try {
     const QuizResult = require('./models/QuizResult');
     const badgeSummary = await QuizResult.getStudentBadgeSummary(req.user._id, req.user.organizationId);
-    
-    res.json({ 
-      success: true, 
-      badgeSummary 
+
+    res.json({
+      success: true,
+      badgeSummary
     });
   } catch (error) {
     console.error('Error getting student badge summary:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error getting badge summary' 
+    res.status(500).json({
+      success: false,
+      message: 'Error getting badge summary'
     });
   }
 });
@@ -5206,14 +5207,14 @@ app.get('/api/student-badges', requireAuth, requireRole(['student']), async (req
 app.get('/api/debug-quiz-result/:resultId', requireAuth, requireRole(['student']), async (req, res) => {
   try {
     console.log('🔍 Debug route accessed for resultId:', req.params.resultId);
-    
+
     // Check if QuizResult model is available
     console.log('🔍 QuizResult model available:', typeof QuizResult);
-    
+
     // Try to find the result
     const result = await QuizResult.findById(req.params.resultId);
     console.log('🔍 Direct lookup result:', result ? 'Found' : 'Not found');
-    
+
     if (result) {
       console.log('🔍 Result details:', {
         id: result._id,
@@ -5224,11 +5225,11 @@ app.get('/api/debug-quiz-result/:resultId', requireAuth, requireRole(['student']
         createdAt: result.createdAt
       });
     }
-    
+
     // Also check if there are any results for this user
     const userResults = await QuizResult.find({ student: req.user._id }).limit(5);
     console.log('🔍 User has', userResults.length, 'results');
-    
+
     res.json({
       success: true,
       resultExists: !!result,
@@ -5258,17 +5259,17 @@ app.post('/fix-quiz-options/:quizId', requireAuth, requireRole(['teacher']), asy
     if (!quiz) {
       return res.status(404).json({ error: 'Quiz not found' });
     }
-    
+
     // Check if the teacher owns this quiz
     if (quiz.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'You can only fix your own quizzes' });
     }
-    
+
     // Fix each question to have exactly 4 options
     quiz.questions.forEach((question, index) => {
       console.log(`Fixing question ${index + 1}: ${question.options.length} options`);
       console.log(`Question ${index + 1} original options:`, question.options);
-      
+
       // AGGRESSIVE FIX: Force exactly 4 options
       if (question.options.length < 4) {
         while (question.options.length < 4) {
@@ -5280,16 +5281,16 @@ app.post('/fix-quiz-options/:quizId', requireAuth, requireRole(['teacher']), asy
         question.options = question.options.slice(0, 4);
         console.log(`Question ${index + 1} trimmed to 4 options`);
       }
-      
+
       console.log(`Question ${index + 1} after fix: ${question.options.length} options`);
       console.log(`Question ${index + 1} final options:`, question.options);
     });
-    
+
     await quiz.save();
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Quiz options fixed to 4 options per question',
-      quizId: quiz._id 
+      quizId: quiz._id
     });
   } catch (error) {
     console.error('Error fixing quiz options:', error);
@@ -5304,12 +5305,12 @@ app.post('/recreate-quiz/:quizId', requireAuth, requireRole(['teacher']), async 
     if (!originalQuiz) {
       return res.status(404).json({ error: 'Quiz not found' });
     }
-    
+
     // Check if the teacher owns this quiz
     if (originalQuiz.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'You can only recreate your own quizzes' });
     }
-    
+
     // Create a new quiz with the same title and description
     const newQuiz = new Quiz({
       title: originalQuiz.title + ' (Updated)',
@@ -5323,19 +5324,19 @@ app.post('/recreate-quiz/:quizId', requireAuth, requireRole(['teacher']), async 
       isApproved: true, // Auto-approve teacher quizzes
       questions: originalQuiz.questions.map(q => ({
         ...q,
-        options: q.options.length < 4 ? 
-          [...q.options, ...Array(4 - q.options.length).fill().map((_, i) => 
+        options: q.options.length < 4 ?
+          [...q.options, ...Array(4 - q.options.length).fill().map((_, i) =>
             `Option ${String.fromCharCode(65 + q.options.length + i)}`
-          )] : 
+          )] :
           q.options.slice(0, 4)
       }))
     });
-    
+
     await newQuiz.save();
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Quiz recreated with 4 options per question',
-      newQuizId: newQuiz._id 
+      newQuizId: newQuiz._id
     });
   } catch (error) {
     console.error('Error recreating quiz:', error);
@@ -5350,7 +5351,7 @@ app.get('/debug-quiz/:quizId', requireAuth, async (req, res) => {
     if (!quiz) {
       return res.status(404).json({ error: 'Quiz not found' });
     }
-    
+
     res.json({
       title: quiz.title,
       questionsCount: quiz.questions.length,
@@ -5374,7 +5375,7 @@ app.get('/my-results', requireAuth, requireRole(['student']), async (req, res) =
     const results = await QuizResult.find({ student: req.user._id })
       .populate('quiz')
       .sort({ createdAt: -1 });
-    
+
     // Add isArchived property to each result
     const resultsWithArchiveStatus = results.map(result => {
       const resultObj = result.toObject();
@@ -5382,7 +5383,7 @@ app.get('/my-results', requireAuth, requireRole(['student']), async (req, res) =
       resultObj.isArchived = result.attemptNumber > 1;
       return resultObj;
     });
-    
+
     res.render('my-results', { results: resultsWithArchiveStatus, user: req.user });
   } catch (error) {
     console.error('Error fetching results:', error);
@@ -5397,7 +5398,7 @@ app.get('/view-quiz/:quizId', requireAuth, async (req, res) => {
     if (!quiz) {
       return res.status(404).send('Quiz not found');
     }
-    
+
     // Check if this is a competitive quiz and user is a student
     if (quiz.quizType === 'competitive' && req.user.role === 'student') {
       return res.status(403).render('error', {
@@ -5520,7 +5521,7 @@ app.get('/test-create-admin', async (req, res) => {
         message: 'Database connection failed'
       });
     }
-    
+
     // Create super admin user (doesn't require organizationId)
     const adminUser = new User({
       googleId: 'test-admin-' + Date.now(),
@@ -5529,9 +5530,9 @@ app.get('/test-create-admin', async (req, res) => {
       role: 'super_admin', // Changed to super_admin for SaaS
       isApproved: true
     });
-    
+
     await adminUser.save();
-    
+
     res.json({
       success: true,
       message: 'Admin created successfully',
@@ -5582,7 +5583,7 @@ app.get('/test-db', async (req, res) => {
     // Test database connection
     const dbState = mongoose.connection.readyState;
     const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
-    
+
     if (dbState === 1) { // Connected
       // Test user count
       const userCount = await User.countDocuments();
@@ -5647,7 +5648,7 @@ app.get('/debug-user', async (req, res) => {
   try {
     const email = 'sarika.katti@gmail.com';
     const user = await User.findOne({ email });
-    
+
     if (user) {
       res.send(`
         <h1>User Debug Information</h1>
@@ -5708,7 +5709,7 @@ app.get('/create-admin', async (req, res) => {
         role: 'super_admin', // Changed to super_admin for SaaS
         isApproved: true
       });
-      
+
       await adminUser.save();
       res.send(`
         <h2>Admin User Created Successfully!</h2>
@@ -5758,7 +5759,7 @@ app.get('/createadmin', async (req, res) => {
         role: 'super_admin', // Changed to super_admin for SaaS
         isApproved: true
       });
-      
+
       await adminUser.save();
       res.send(`
         <h2>Admin User Created Successfully!</h2>
@@ -5809,7 +5810,7 @@ app.get('/migrate/approve-all-quizzes', async (req, res) => {
       { isApproved: false },
       { isApproved: true }
     );
-    
+
     res.send(`
       <h2>Quiz Approval Migration Complete</h2>
       <p>Updated ${result.modifiedCount} quizzes to approved status.</p>
@@ -5834,41 +5835,41 @@ app.get('/auth/google/callback', (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return res.redirect('/login?error=Google OAuth not configured');
   }
-  
-  passport.authenticate('google', { 
+
+  passport.authenticate('google', {
     failureRedirect: '/login',
     failureFlash: true
   })(req, res, (err) => {
     if (err) {
       console.error('Google OAuth callback error:', err);
-      
+
       // Handle specific SaaS-related errors
       if (err.message.includes('must be invited') || err.message.includes('create an organization')) {
         return res.redirect('/signup?error=Please create an organization or ask a teacher for an invitation');
       }
-      
+
       return res.redirect('/login?error=Authentication failed');
     }
-    
+
     // Check if user exists and has a role
     if (!req.user) {
       console.error('User not found after Google OAuth authentication');
       return res.redirect('/login?error=Authentication failed');
     }
-    
+
     console.log('User authenticated successfully:', req.user._id);
-    
+
     // For SaaS: Check if user has organization context
     if (req.user.role !== 'super_admin' && !req.user.organizationId) {
       console.log('User without organization context, redirecting to signup');
       return res.redirect('/signup?error=Please create an organization first');
     }
-    
+
     // Add null check for req.user.role
     if (!req.user || !req.user.role) {
       return res.redirect('/login?error=User role not set. Please contact administrator.');
     }
-    
+
     // Redirect based on role and organization context
     if (req.user.role === 'super_admin' || req.user.role === 'admin') {
       // Super admins and admins go to admin dashboard
@@ -5978,18 +5979,18 @@ app.post('/api/create-podcast', requireAuth, requireRole(['teacher']), requireAp
   try {
     const Podcast = require('./models/Podcast');
     const { title, description, gradeLevel, subjects, tags, transcription, isTranscriptionEnabled } = req.body;
-    
+
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No audio file provided' });
     }
-    
+
     // Upload audio file to S3
     const audioUrl = await uploadToS3(req.file, 'podcasts');
-    
+
     // Parse subjects and tags arrays
     const subjectsArray = subjects ? JSON.parse(subjects) : [];
     const tagsArray = tags ? JSON.parse(tags) : [];
-    
+
     // Map MIME type to audio format
     const mimeToFormat = {
       'audio/mp3': 'mp3',
@@ -6005,15 +6006,15 @@ app.post('/api/create-podcast', requireAuth, requireRole(['teacher']), requireAp
       'audio/webm': 'webm',
       'audio/x-aac': 'aac'
     };
-    
+
     const audioFormat = mimeToFormat[req.file.mimetype] || 'mp3';
-    
+
     console.log('=== PODCAST CREATION DEBUG ===');
     console.log('File MIME type:', req.file.mimetype);
     console.log('Mapped audio format:', audioFormat);
     console.log('File size:', req.file.size);
     console.log('Duration from form:', req.body.duration);
-    
+
     const podcast = new Podcast({
       title,
       description,
@@ -6030,9 +6031,9 @@ app.post('/api/create-podcast', requireAuth, requireRole(['teacher']), requireAp
       createdByName: req.user.displayName,
       organizationId: req.user.organizationId
     });
-    
+
     await podcast.save();
-    
+
     res.json({ success: true, podcast, message: 'Podcast created successfully' });
   } catch (error) {
     console.error('Error creating podcast:', error);
@@ -6045,7 +6046,7 @@ app.put('/api/update-podcast/:id', requireAuth, requireRole(['teacher']), requir
   try {
     const Podcast = require('./models/Podcast');
     const { title, description, gradeLevel, subjects, tags, transcription, isTranscriptionEnabled } = req.body;
-    
+
     const podcast = await Podcast.findOneAndUpdate(
       { _id: req.params.id, createdBy: req.user._id },
       {
@@ -6059,11 +6060,11 @@ app.put('/api/update-podcast/:id', requireAuth, requireRole(['teacher']), requir
       },
       { new: true, runValidators: true }
     );
-    
+
     if (!podcast) {
       return res.status(404).json({ success: false, message: 'Podcast not found' });
     }
-    
+
     res.json({ success: true, podcast, message: 'Podcast updated successfully' });
   } catch (error) {
     console.error('Error updating podcast:', error);
@@ -6076,16 +6077,16 @@ app.delete('/api/delete-podcast/:id', requireAuth, requireRole(['teacher']), req
   try {
     const Podcast = require('./models/Podcast');
     const podcast = await Podcast.findOneAndDelete({ _id: req.params.id, createdBy: req.user._id });
-    
+
     if (!podcast) {
       return res.status(404).json({ success: false, message: 'Podcast not found' });
     }
-    
+
     // Delete audio file from S3
     if (podcast.audioUrl) {
       await deleteFromS3(podcast.audioUrl);
     }
-    
+
     res.json({ success: true, message: 'Podcast deleted successfully' });
   } catch (error) {
     console.error('Error deleting podcast:', error);
@@ -6148,7 +6149,7 @@ app.get('/api/debug-auth', (req, res) => {
   console.log('Session:', req.session);
   console.log('User:', req.user);
   console.log('isAuthenticated:', req.isAuthenticated ? req.isAuthenticated() : 'undefined');
-  
+
   res.json({
     session: req.session ? {
       id: req.session.id,
@@ -6198,11 +6199,11 @@ app.get('/temp-login', (req, res) => {
 
 app.post('/temp-login', (req, res) => {
   const { email, role } = req.body;
-  
+
   if (!email || !role) {
     return res.render('temp-login', { error: 'Please provide email and role' });
   }
-  
+
   // Create a temporary user session
   req.session.user = {
     _id: 'temp-' + Date.now(),
@@ -6212,7 +6213,7 @@ app.post('/temp-login', (req, res) => {
     isApproved: role === 'student' ? true : false,
     photos: []
   };
-  
+
   res.redirect('/dashboard');
 });
 
@@ -6563,4 +6564,4 @@ console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
 console.log('All env vars with MONGO:', Object.keys(process.env).filter(key => key.includes('MONGO')));
 
 // Start the connection check process after a delay to allow MongoDB to connect
-setTimeout(checkConnectionAndStart, 3000); 
+setTimeout(checkConnectionAndStart, 3000);
