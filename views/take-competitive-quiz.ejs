@@ -178,6 +178,25 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
         }
+
+        /* Question Image Styles */
+        .question-image-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .question-image-loading {
+            color: #667eea;
+            font-style: italic;
+        }
+        .question-image {
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .question-image:hover {
+            border-color: #667eea;
+            transform: scale(1.02);
+        }
     </style>
 </head>
 <body>
@@ -222,6 +241,17 @@
                         <div class="question-text">
                             <p><%= question.question %></p>
                         </div>
+
+                        <!-- Question Image Display -->
+                        <% if (question.image) { %>
+                            <div class="question-image-container" data-s3-key="<%= question.image %>" data-question-index="<%= index %>">
+                                <div class="question-image-loading" style="text-align: center; padding: 20px;">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading question image...
+                                </div>
+                                <img class="question-image" style="max-width: 100%; max-height: 400px; margin-top: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;" alt="Question Image">
+                            </div>
+                        <% } %>
+
                         <div class="options-container">
                             <% question.options.forEach((option, optionIndex) => { %>
                                 <div class="option-item" 
@@ -490,11 +520,51 @@
             }
         }
 
+        // Function to load question images
+        function loadQuestionImages() {
+            console.log('🔄 Loading competitive quiz question images...');
+
+            const questionImageContainers = document.querySelectorAll('.question-image-container[data-s3-key]');
+            console.log(`📸 Found ${questionImageContainers.length} question images to load`);
+
+            questionImageContainers.forEach((container) => {
+                const s3Key = container.dataset.s3Key;
+                const questionIndex = container.dataset.questionIndex;
+                const loadingDiv = container.querySelector('.question-image-loading');
+                const img = container.querySelector('.question-image');
+
+                if (!s3Key || !loadingDiv || !img) {
+                    console.log(`❌ Missing required elements for question ${questionIndex}`);
+                    return;
+                }
+
+                // Fix S3 URL region and use direct S3 URL
+                const s3Url = `https://skillon-test.s3.us-west-1.amazonaws.com/${s3Key}`;
+                console.log(`🔗 Loading image for question ${questionIndex}: ${s3Url}`);
+
+                // Load the image
+                img.onload = function() {
+                    loadingDiv.style.display = 'none';
+                    img.style.display = 'block';
+                    console.log(`✅ Image loaded for question ${questionIndex}`);
+                };
+
+                img.onerror = function() {
+                    console.error(`❌ Failed to load image for question ${questionIndex}: ${s3Url}`);
+                    loadingDiv.innerHTML = '<div class="text-muted"><i class="fas fa-exclamation-triangle"></i> Image failed to load</div>';
+                };
+
+                // Set the image source to start loading
+                img.src = s3Url;
+            });
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             startTimer();
             updateLeaderboard();
-            
+            loadQuestionImages(); // Load question images
+
             // Update leaderboard every 5 seconds
             leaderboardInterval = setInterval(updateLeaderboard, 5000);
         });
