@@ -310,26 +310,54 @@
             <form id="uploadForm" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="studentName">Student Name</label>
-                    <input type="text" id="studentName" name="studentName" class="form-control" 
+                    <input type="text" id="studentName" name="studentName" class="form-control"
                            value="<%= user.displayName %>" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="organizationName">Organization</label>
+                    <input type="text" id="organizationName" name="organizationName" class="form-control"
+                           value="<%= organization ? organization.name : 'Unknown Organization' %>" disabled>
+                    <input type="hidden" name="organizationId" value="<%= user.organizationId %>">
+                </div>
+
+                <div class="form-group">
+                    <label for="assignedTeacher">Assign to Teacher *</label>
+                    <select id="assignedTeacher" name="assignedTeacher" class="form-control" required>
+                        <option value="">Select a teacher</option>
+                        <% if (user.assignedTeacher) { %>
+                            <% teachers.forEach(teacher => { %>
+                                <option value="<%= teacher._id %>" <%= teacher._id.toString() === user.assignedTeacher.toString() ? 'selected' : '' %>>
+                                    <%= teacher.displayName %> (<%= teacher.email %>)
+                                </option>
+                            <% }); %>
+                        <% } else { %>
+                            <% teachers.forEach(teacher => { %>
+                                <option value="<%= teacher._id %>">
+                                    <%= teacher.displayName %> (<%= teacher.email %>)
+                                </option>
+                            <% }); %>
+                        <% } %>
+                    </select>
+                    <div class="error-message" id="teacherError">Please select a teacher</div>
                 </div>
 
                 <div class="form-group">
                     <label for="grade">Grade *</label>
                     <select id="grade" name="grade" class="form-control" required>
                         <option value="">Select your grade</option>
-                        <option value="Grade 1">Grade 1</option>
-                        <option value="Grade 2">Grade 2</option>
-                        <option value="Grade 3">Grade 3</option>
-                        <option value="Grade 4">Grade 4</option>
-                        <option value="Grade 5">Grade 5</option>
-                        <option value="Grade 6">Grade 6</option>
-                        <option value="Grade 7">Grade 7</option>
-                        <option value="Grade 8">Grade 8</option>
-                        <option value="Grade 9">Grade 9</option>
-                        <option value="Grade 10">Grade 10</option>
-                        <option value="Grade 11">Grade 11</option>
-                        <option value="Grade 12">Grade 12</option>
+                        <option value="Grade 1" <%= user.gradeLevel === '1st grade' ? 'selected' : '' %>>Grade 1</option>
+                        <option value="Grade 2" <%= user.gradeLevel === '2nd grade' ? 'selected' : '' %>>Grade 2</option>
+                        <option value="Grade 3" <%= user.gradeLevel === '3rd grade' ? 'selected' : '' %>>Grade 3</option>
+                        <option value="Grade 4" <%= user.gradeLevel === '4th grade' ? 'selected' : '' %>>Grade 4</option>
+                        <option value="Grade 5" <%= user.gradeLevel === '5th grade' ? 'selected' : '' %>>Grade 5</option>
+                        <option value="Grade 6" <%= user.gradeLevel === '6th grade' ? 'selected' : '' %>>Grade 6</option>
+                        <option value="Grade 7" <%= user.gradeLevel === '7th grade' ? 'selected' : '' %>>Grade 7</option>
+                        <option value="Grade 8" <%= user.gradeLevel === '8th grade' ? 'selected' : '' %>>Grade 8</option>
+                        <option value="Grade 9" <%= user.gradeLevel === '9th grade' ? 'selected' : '' %>>Grade 9</option>
+                        <option value="Grade 10" <%= user.gradeLevel === '10th grade' ? 'selected' : '' %>>Grade 10</option>
+                        <option value="Grade 11" <%= user.gradeLevel === '11th grade' ? 'selected' : '' %>>Grade 11</option>
+                        <option value="Grade 12" <%= user.gradeLevel === '12th grade' ? 'selected' : '' %>>Grade 12</option>
                     </select>
                     <div class="error-message" id="gradeError">Please select your grade</div>
                 </div>
@@ -533,6 +561,7 @@
             e.preventDefault();
 
             // Clear all errors
+            clearError('teacherError');
             clearError('gradeError');
             clearError('subjectError');
             clearError('categoryError');
@@ -541,6 +570,11 @@
 
             // Validate form
             let isValid = true;
+
+            if (!document.getElementById('assignedTeacher').value) {
+                showError('teacherError', 'Please select a teacher');
+                isValid = false;
+            }
 
             if (!document.getElementById('grade').value) {
                 showError('gradeError', 'Please select your grade');

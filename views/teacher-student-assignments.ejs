@@ -391,7 +391,7 @@
     <div class="assignments-container">
         <div class="page-header">
             <h1><i class="fas fa-file-alt"></i> Student Assignments</h1>
-            <p>Review and manage student submissions</p>
+            <p>Review and manage student submissions for <strong><%= organization ? organization.name : 'Your Organization' %></strong></p>
         </div>
 
         <!-- Statistics -->
@@ -454,6 +454,14 @@
                     </select>
                 </div>
                 <div class="filter-group">
+                    <label for="teacherFilter">Assigned Teacher</label>
+                    <select id="teacherFilter" class="filter-select">
+                        <option value="">All Teachers</option>
+                        <option value="me">My Assignments</option>
+                        <option value="unassigned">Unassigned</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <button class="filter-btn" onclick="applyFilters()">
                         <i class="fas fa-filter"></i> Apply Filters
                     </button>
@@ -482,6 +490,7 @@
                             <th>Category</th>
                             <th>Grade</th>
                             <th>Subject</th>
+                            <th>Assigned Teacher</th>
                             <th>Status</th>
                             <th>Submitted</th>
                             <th>Actions</th>
@@ -489,9 +498,10 @@
                     </thead>
                     <tbody>
                         <% assignments.forEach(assignment => { %>
-                            <tr data-status="<%= assignment.status %>" 
-                                data-category="<%= assignment.category %>" 
-                                data-grade="<%= assignment.grade %>">
+                            <tr data-status="<%= assignment.status %>"
+                                data-category="<%= assignment.category %>"
+                                data-grade="<%= assignment.grade %>"
+                                data-assigned-teacher="<%= assignment.assignedTeacher ? assignment.assignedTeacher._id : '' %>">
                                 <td>
                                     <div class="student-info">
                                         <div class="student-avatar">
@@ -518,6 +528,23 @@
                                 </td>
                                 <td><%= assignment.grade %></td>
                                 <td><%= assignment.subject %></td>
+                                <td>
+                                    <% if (assignment.assignedTeacher) { %>
+                                        <div style="font-weight: 600; color: #374151; margin-bottom: 2px;">
+                                            <%= assignment.assignedTeacher.displayName %>
+                                        </div>
+                                        <div style="font-size: 12px; color: #6b7280;">
+                                            <%= assignment.assignedTeacher.email %>
+                                        </div>
+                                        <% if (assignment.assignedTeacher._id.toString() === user._id.toString()) { %>
+                                            <span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: 600;">
+                                                YOU
+                                            </span>
+                                        <% } %>
+                                    <% } else { %>
+                                        <span style="color: #9ca3af; font-style: italic;">Unassigned</span>
+                                    <% } %>
+                                </td>
                                 <td>
                                     <span class="status-badge <%= assignment.status.replace('_', '-') %>">
                                         <%= assignment.status.replace('_', ' ') %>
@@ -554,34 +581,45 @@
             const statusFilter = document.getElementById('statusFilter').value;
             const categoryFilter = document.getElementById('categoryFilter').value;
             const gradeFilter = document.getElementById('gradeFilter').value;
-            
+            const teacherFilter = document.getElementById('teacherFilter').value;
+
             const rows = document.querySelectorAll('#assignmentsTable tbody tr');
-            
+            const currentUserId = '<%= user._id %>';
+
             rows.forEach(row => {
                 const status = row.dataset.status;
                 const category = row.dataset.category;
                 const grade = row.dataset.grade;
-                
+                const assignedTeacher = row.dataset.assignedTeacher;
+
                 let show = true;
-                
+
                 if (statusFilter && status !== statusFilter) {
                     show = false;
                 }
-                
+
                 if (categoryFilter && category !== categoryFilter) {
                     show = false;
                 }
-                
+
                 if (gradeFilter && grade !== gradeFilter) {
                     show = false;
                 }
-                
+
+                if (teacherFilter) {
+                    if (teacherFilter === 'me' && assignedTeacher !== currentUserId) {
+                        show = false;
+                    } else if (teacherFilter === 'unassigned' && assignedTeacher !== '') {
+                        show = false;
+                    }
+                }
+
                 row.style.display = show ? '' : 'none';
             });
-            
+
             // Update visible count
             const visibleRows = document.querySelectorAll('#assignmentsTable tbody tr:not([style*="display: none"])');
-            document.querySelector('.section-header h2').textContent = 
+            document.querySelector('.section-header h2').textContent =
                 `All Assignments (${visibleRows.length})`;
         }
         
@@ -589,6 +627,7 @@
         document.getElementById('statusFilter').addEventListener('change', applyFilters);
         document.getElementById('categoryFilter').addEventListener('change', applyFilters);
         document.getElementById('gradeFilter').addEventListener('change', applyFilters);
+        document.getElementById('teacherFilter').addEventListener('change', applyFilters);
     </script>
 </body>
 </html>

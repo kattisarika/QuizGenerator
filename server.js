@@ -4381,10 +4381,18 @@ app.get('/admin/content-management', requireAuth, requireRole(['admin', 'super_a
 app.get('/teacher/student-assignments', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const StudentAssignment = require('./models/StudentAssignment');
+    const Organization = require('./models/Organization');
 
-    // Get all assignments for this teacher's organization
+    // Get teacher's organization information
+    const organization = await Organization.findById(req.user.organizationId);
+
+    // Get assignments assigned to this teacher or unassigned assignments in the organization
     const assignments = await StudentAssignment.find({
-      organizationId: req.user.organizationId
+      organizationId: req.user.organizationId,
+      $or: [
+        { assignedTeacher: req.user._id }, // Assigned to this teacher
+        { assignedTeacher: null } // Unassigned assignments
+      ]
     })
     .populate('student', 'displayName email')
     .populate('assignedTeacher', 'displayName email')
@@ -4399,12 +4407,19 @@ app.get('/teacher/student-assignments', requireAuth, requireRole(['teacher']), r
       returned: assignments.filter(a => a.status === 'returned')
     };
 
-    console.log(`📋 Teacher ${req.user.email} viewing ${assignments.length} student assignments`);
+    // Get assignments specifically assigned to this teacher
+    const myAssignments = assignments.filter(a => a.assignedTeacher && a.assignedTeacher._id.toString() === req.user._id.toString());
+    const unassignedAssignments = assignments.filter(a => !a.assignedTeacher);
+
+    console.log(`📋 Teacher ${req.user.email} viewing ${assignments.length} student assignments (${myAssignments.length} assigned to me, ${unassignedAssignments.length} unassigned)`);
 
     res.render('teacher-student-assignments', {
       user: req.user,
+      organization,
       assignments,
       assignmentsByStatus,
+      myAssignments,
+      unassignedAssignments,
       title: 'Student Assignments'
     });
   } catch (error) {
@@ -5667,12 +5682,28 @@ app.post('/api/student/upload-document', requireAuth, requireRole(['student']), 
     });
 
     // Validate required fields
-    const { grade, subject, category, title, description } = req.body;
+    const { grade, subject, category, title, description, assignedTeacher, organizationId } = req.body;
 
-    if (!grade || !subject || !category || !title) {
+    if (!grade || !subject || !category || !title || !assignedTeacher) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: grade, subject, category, and title are required'
+        message: 'Missing required fields: grade, subject, category, title, and teacher are required'
+      });
+    }
+
+    // Validate that the assigned teacher exists and belongs to the same organization
+    const User = require('./models/User');
+    const teacher = await User.findOne({
+      _id: assignedTeacher,
+      role: 'teacher',
+      organizationId: req.user.organizationId,
+      isApproved: true
+    });
+
+    if (!teacher) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid teacher selection. Please select a valid teacher from your organization.'
       });
     }
 
@@ -5722,6 +5753,7 @@ app.post('/api/student/upload-document', requireAuth, requireRole(['student']), 
       fileType: req.file.mimetype,
       fileSize: req.file.size,
       organizationId: req.user.organizationId,
+      assignedTeacher: assignedTeacher, // Assign to selected teacher
       status: 'submitted',
       submittedAt: new Date()
     });
@@ -5733,6 +5765,9 @@ app.post('/api/student/upload-document', requireAuth, requireRole(['student']), 
       student: req.user.email,
       title: assignment.title,
       category: assignment.category,
+      assignedTeacher: teacher.displayName,
+      teacherEmail: teacher.email,
+      organizationId: req.user.organizationId,
       fileUrl: fileUrl
     });
 
@@ -5973,8 +6008,24 @@ app.get('/debug-quiz/:quizId', requireAuth, async (req, res) => {
 // Route to show student upload document page
 app.get('/student/upload-document', requireAuth, requireRole(['student']), async (req, res) => {
   try {
+    // Get student's organization information
+    const Organization = require('./models/Organization');
+    const organization = await Organization.findById(req.user.organizationId);
+
+    // Get all teachers in the same organization
+    const User = require('./models/User');
+    const teachers = await User.find({
+      organizationId: req.user.organizationId,
+      role: 'teacher',
+      isApproved: true
+    }).select('displayName email _id').sort({ displayName: 1 });
+
+    console.log(`📋 Loading upload page for student ${req.user.email} in organization ${organization?.name || 'Unknown'} with ${teachers.length} available teachers`);
+
     res.render('student-upload-document', {
       user: req.user,
+      organization: organization,
+      teachers: teachers,
       title: 'Upload Document'
     });
   } catch (error) {
