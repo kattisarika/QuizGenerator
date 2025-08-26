@@ -4640,12 +4640,20 @@ app.post('/api/teacher/review-assignment', requireAuth, requireRole(['teacher'])
 
     // Create notification for student
     const Notification = require('./models/Notification');
-    await Notification.createAssignmentNotification(
+    const notification = await Notification.createAssignmentNotification(
       'assignment_reviewed',
       assignment,
       assignment.student,
       req.user
     );
+
+    console.log(`🔔 Created assignment reviewed notification:`, {
+      recipient: assignment.student,
+      title: 'Assignment Reviewed',
+      actionUrl: `/student/assignment/${assignment._id}/result`,
+      assignmentId: assignment._id,
+      assignmentTitle: assignment.title
+    });
 
     console.log(`✅ Review saved for assignment ${assignmentId} by teacher ${req.user.email}`);
 
@@ -6411,6 +6419,17 @@ app.get('/student/assignment/:assignmentId/result', requireAuth, requireRole(['s
       console.log(`❌ Assignment not found or access denied for student ${req.user.email}`);
       return res.status(404).send('Assignment not found or access denied');
     }
+
+    console.log(`✅ Assignment found for student ${req.user.email}:`, {
+      id: assignment._id,
+      title: assignment.title,
+      status: assignment.status,
+      grade_score: assignment.grade_score,
+      teacherComments: assignment.teacherComments ? 'Present' : 'None',
+      feedback: assignment.feedback ? 'Present' : 'None',
+      reviewedBy: assignment.reviewedBy ? assignment.reviewedBy.displayName : 'None',
+      assignedTeacher: assignment.assignedTeacher ? assignment.assignedTeacher.displayName : 'None'
+    });
 
     res.render('student-assignment-result', {
       user: req.user,
