@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Assignment - SkillOns</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .review-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .review-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .review-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .review-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .review-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+
+        .assignment-details {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .details-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .details-header h2 {
+            margin: 0;
+            color: #374151;
+            font-size: 20px;
+        }
+
+        .details-content {
+            padding: 30px;
+        }
+
+        .detail-item {
+            margin-bottom: 20px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 5px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .student-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 20px;
+        }
+
+        .student-details h3 {
+            margin: 0 0 5px 0;
+            color: #374151;
+        }
+
+        .student-details p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .file-preview {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            height: fit-content;
+        }
+
+        .preview-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-header h3 {
+            margin: 0;
+            color: #374151;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn.view {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .action-btn.download {
+            background: #10b981;
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            text-decoration: none;
+            color: white;
+        }
+
+        .preview-content {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .file-icon {
+            font-size: 48px;
+            color: #9ca3af;
+            margin-bottom: 15px;
+        }
+
+        .file-info {
+            color: #6b7280;
+        }
+
+        .review-form {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f9fafb;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .grade-input {
+            width: 120px;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .cancel-btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background: #4b5563;
+            color: white;
+            text-decoration: none;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.submitted {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-badge.under-review {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.reviewed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .category-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .category-badge.assignment {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .category-badge.doubts {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        @media (max-width: 768px) {
+            .review-container {
+                padding: 10px;
+            }
+
+            .review-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .review-header {
+                padding: 20px;
+            }
+
+            .review-header h1 {
+                font-size: 24px;
+            }
+
+            .details-content {
+                padding: 20px;
+            }
+
+            .review-form {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">SkillOns</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/teacher/dashboard" class="nav-link">Dashboard</a>
+                <a href="/teacher/create-quiz" class="nav-link">Create Quiz</a>
+                <a href="/teacher/student-assignments" class="nav-link">Student Assignments</a>
+                <a href="/teacher/student-results" class="nav-link">Student Results</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="review-container">
+        <div class="review-header">
+            <h1><i class="fas fa-edit"></i> Review Assignment</h1>
+            <p>Provide feedback and grade for student submission</p>
+        </div>
+
+        <div class="review-content">
+            <div class="assignment-details">
+                <div class="details-header">
+                    <h2>Assignment Details</h2>
+                </div>
+                <div class="details-content">
+                    <!-- Student Information -->
+                    <div class="student-info">
+                        <div class="student-avatar">
+                            <%= assignment.studentName.charAt(0).toUpperCase() %>
+                        </div>
+                        <div class="student-details">
+                            <h3><%= assignment.studentName %></h3>
+                            <p><%= assignment.studentEmail %></p>
+                        </div>
+                    </div>
+
+                    <!-- Assignment Information -->
+                    <div class="detail-item">
+                        <div class="detail-label">Title</div>
+                        <div class="detail-value"><%= assignment.title %></div>
+                    </div>
+
+                    <% if (assignment.description) { %>
+                    <div class="detail-item">
+                        <div class="detail-label">Description</div>
+                        <div class="detail-value"><%= assignment.description %></div>
+                    </div>
+                    <% } %>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Category</div>
+                        <div class="detail-value">
+                            <span class="category-badge <%= assignment.category.toLowerCase() %>">
+                                <%= assignment.category %>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Grade & Subject</div>
+                        <div class="detail-value"><%= assignment.grade %> - <%= assignment.subject %></div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value">
+                            <span class="status-badge <%= assignment.status.replace('_', '-') %>">
+                                <%= assignment.status.replace('_', ' ') %>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Submitted</div>
+                        <div class="detail-value">
+                            <%= new Date(assignment.submittedAt).toLocaleDateString() %> at 
+                            <%= new Date(assignment.submittedAt).toLocaleTimeString() %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="file-preview">
+                <div class="preview-header">
+                    <h3>Submitted File</h3>
+                    <div class="file-actions">
+                        <a href="/teacher/assignment/<%= assignment._id %>/file" target="_blank" class="action-btn view">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        <a href="/teacher/assignment/<%= assignment._id %>/download" class="action-btn download">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                </div>
+                <div class="preview-content">
+                    <div class="file-icon">
+                        <% if (assignment.fileType === 'application/pdf') { %>
+                            <i class="fas fa-file-pdf"></i>
+                        <% } else if (assignment.fileType.startsWith('image/')) { %>
+                            <i class="fas fa-file-image"></i>
+                        <% } else { %>
+                            <i class="fas fa-file"></i>
+                        <% } %>
+                    </div>
+                    <div class="file-info">
+                        <strong><%= assignment.originalFileName %></strong><br>
+                        <small><%= assignment.fileType %> • <%= Math.round(assignment.fileSize / 1024) %> KB</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Form -->
+        <div class="review-form">
+            <h2><i class="fas fa-clipboard-check"></i> Provide Review</h2>
+            <form id="reviewForm">
+                <input type="hidden" name="assignmentId" value="<%= assignment._id %>">
+                
+                <div class="form-group">
+                    <label for="grade">Grade (0-100)</label>
+                    <input type="number" id="grade" name="grade" class="form-control grade-input" 
+                           min="0" max="100" placeholder="85" value="<%= assignment.grade_score || '' %>">
+                </div>
+
+                <div class="form-group">
+                    <label for="comments">Comments</label>
+                    <textarea id="comments" name="comments" class="form-control" rows="4" 
+                              placeholder="Provide feedback on the student's work..."><%= assignment.teacherComments || '' %></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="feedback">Detailed Feedback</label>
+                    <textarea id="feedback" name="feedback" class="form-control" rows="6" 
+                              placeholder="Detailed feedback for improvement..."><%= assignment.feedback || '' %></textarea>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-save"></i> Save Review
+                    </button>
+                    <a href="/teacher/student-assignments" class="cancel-btn">
+                        <i class="fas fa-arrow-left"></i> Back to Assignments
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/teacher/review-assignment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Review saved successfully!');
+                    window.location.href = '/teacher/student-assignments';
+                } else {
+                    alert('Error saving review: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error saving review: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

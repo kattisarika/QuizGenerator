@@ -4596,6 +4596,64 @@ app.get('/teacher/assignment/:assignmentId/review', requireAuth, requireRole(['t
   }
 });
 
+// Route for teacher to submit assignment review
+app.post('/api/teacher/review-assignment', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { assignmentId, grade, comments, feedback } = req.body;
+
+    console.log(`📝 Teacher ${req.user.email} submitting review for assignment ${assignmentId}`);
+
+    if (!assignmentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Assignment ID is required'
+      });
+    }
+
+    const StudentAssignment = require('./models/StudentAssignment');
+
+    // Find the assignment and verify teacher has access
+    const assignment = await StudentAssignment.findOne({
+      _id: assignmentId,
+      organizationId: req.user.organizationId,
+      $or: [
+        { assignedTeacher: req.user._id },
+        { assignedTeacher: null } // Unassigned assignments
+      ]
+    });
+
+    if (!assignment) {
+      console.log(`❌ Assignment not found or access denied for teacher ${req.user.email}`);
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found or access denied'
+      });
+    }
+
+    // Update assignment with review
+    await assignment.addReview(
+      req.user._id,
+      comments || '',
+      grade ? parseInt(grade) : null,
+      feedback || ''
+    );
+
+    console.log(`✅ Review saved for assignment ${assignmentId} by teacher ${req.user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Review saved successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Error saving assignment review:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error saving review: ' + error.message
+    });
+  }
+});
+
 // Route for teacher to view student assignments
 app.get('/teacher/student-assignments', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
