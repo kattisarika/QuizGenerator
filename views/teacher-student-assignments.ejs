@@ -223,6 +223,29 @@
             text-decoration: none;
         }
 
+        .action-btn.download {
+            background: #10b981;
+            color: white;
+        }
+
+        .action-btn.download:hover {
+            background: #059669;
+            color: white;
+            text-decoration: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons .action-btn {
+            flex: 1;
+            min-width: 80px;
+            text-align: center;
+        }
+
         .student-info {
             display: flex;
             align-items: center;
@@ -340,6 +363,110 @@
             background: #5a67d8;
         }
 
+        /* File Preview Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 2% auto;
+            padding: 0;
+            width: 90%;
+            height: 90%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            height: calc(100% - 60px);
+            padding: 0;
+        }
+
+        .file-preview {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .file-info {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-details {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .file-meta {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .download-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .download-btn:hover {
+            background: #059669;
+            color: white;
+            text-decoration: none;
+        }
+
         @media (max-width: 768px) {
             .assignments-container {
                 padding: 10px;
@@ -368,6 +495,20 @@
 
             .filters-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                width: 95%;
+                height: 95%;
+                margin: 2.5% auto;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .action-buttons .action-btn {
+                min-width: auto;
             }
         }
     </style>
@@ -559,20 +700,50 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <a href="<%= assignment.fileUrl %>" target="_blank" class="action-btn view">
-                                        <i class="fas fa-eye"></i> View
-                                    </a>
-                                    <% if (assignment.status === 'submitted' || assignment.status === 'under_review') { %>
-                                        <a href="/teacher/assignment/<%= assignment._id %>/review" class="action-btn review">
-                                            <i class="fas fa-edit"></i> Review
+                                    <div class="action-buttons">
+                                        <button class="action-btn view" onclick="previewFile('<%= assignment._id %>', '<%= assignment.originalFileName %>', '<%= assignment.fileType %>')" title="Preview file">
+                                            <i class="fas fa-eye"></i> Preview
+                                        </button>
+                                        <a href="/teacher/assignment/<%= assignment._id %>/file" target="_blank" class="action-btn view" title="View file in new tab">
+                                            <i class="fas fa-external-link-alt"></i> Open
                                         </a>
-                                    <% } %>
+                                        <a href="/teacher/assignment/<%= assignment._id %>/download" class="action-btn download" title="Download file">
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                        <% if (assignment.status === 'submitted' || assignment.status === 'under_review') { %>
+                                            <a href="/teacher/assignment/<%= assignment._id %>/review" class="action-btn review" title="Review and grade assignment">
+                                                <i class="fas fa-edit"></i> Review
+                                            </a>
+                                        <% } %>
+                                    </div>
                                 </td>
                             </tr>
                         <% }); %>
                     </tbody>
                 </table>
             <% } %>
+        </div>
+    </div>
+
+    <!-- File Preview Modal -->
+    <div id="fileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">File Preview</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="file-info">
+                <div class="file-details">
+                    <div class="file-name" id="modalFileName">Loading...</div>
+                    <div class="file-meta" id="modalFileMeta">Please wait...</div>
+                </div>
+                <a id="modalDownloadBtn" href="#" class="download-btn">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </div>
+            <div class="modal-body">
+                <iframe id="filePreview" class="file-preview" src=""></iframe>
+            </div>
         </div>
     </div>
 
@@ -628,6 +799,85 @@
         document.getElementById('categoryFilter').addEventListener('change', applyFilters);
         document.getElementById('gradeFilter').addEventListener('change', applyFilters);
         document.getElementById('teacherFilter').addEventListener('change', applyFilters);
+
+        // File preview functions
+        function previewFile(assignmentId, fileName, fileType) {
+            const modal = document.getElementById('fileModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalFileName = document.getElementById('modalFileName');
+            const modalFileMeta = document.getElementById('modalFileMeta');
+            const modalDownloadBtn = document.getElementById('modalDownloadBtn');
+            const filePreview = document.getElementById('filePreview');
+
+            // Set modal content
+            modalTitle.textContent = 'File Preview - ' + fileName;
+            modalFileName.textContent = fileName;
+            modalFileMeta.textContent = `File Type: ${fileType}`;
+            modalDownloadBtn.href = `/teacher/assignment/${assignmentId}/download`;
+
+            // Set preview source
+            const previewUrl = `/teacher/assignment/${assignmentId}/file`;
+
+            // Check if it's a PDF or image
+            if (fileType === 'application/pdf') {
+                filePreview.src = previewUrl;
+            } else if (fileType.startsWith('image/')) {
+                // For images, create an img element instead of iframe
+                filePreview.style.display = 'none';
+                const existingImg = document.getElementById('imagePreview');
+                if (existingImg) {
+                    existingImg.remove();
+                }
+
+                const img = document.createElement('img');
+                img.id = 'imagePreview';
+                img.src = previewUrl;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'contain';
+                img.style.backgroundColor = '#f8f9fa';
+
+                document.querySelector('.modal-body').appendChild(img);
+            } else {
+                filePreview.src = previewUrl;
+            }
+
+            // Show modal
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('fileModal');
+            const filePreview = document.getElementById('filePreview');
+            const existingImg = document.getElementById('imagePreview');
+
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+
+            // Clear preview sources
+            filePreview.src = '';
+            filePreview.style.display = 'block';
+
+            if (existingImg) {
+                existingImg.remove();
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('fileModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>

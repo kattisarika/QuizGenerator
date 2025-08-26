@@ -4394,6 +4394,208 @@ app.get('/admin/content-management', requireAuth, requireRole(['admin', 'super_a
   }
 });
 
+// Route for teacher to view/download assignment file
+app.get('/teacher/assignment/:assignmentId/file', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const StudentAssignment = require('./models/StudentAssignment');
+    const assignmentId = req.params.assignmentId;
+
+    console.log(`📁 Teacher ${req.user.email} requesting file for assignment ${assignmentId}`);
+
+    // Find the assignment and verify teacher has access
+    const assignment = await StudentAssignment.findOne({
+      _id: assignmentId,
+      organizationId: req.user.organizationId,
+      $or: [
+        { assignedTeacher: req.user._id },
+        { assignedTeacher: null } // Unassigned assignments
+      ]
+    }).populate('student', 'displayName email');
+
+    if (!assignment) {
+      console.log(`❌ Assignment not found or access denied for teacher ${req.user.email}`);
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found or access denied'
+      });
+    }
+
+    // Mark assignment as viewed by teacher if not already
+    if (!assignment.viewedByTeacher) {
+      await assignment.markAsViewed(req.user._id);
+      console.log(`👁️ Assignment ${assignmentId} marked as viewed by teacher ${req.user.email}`);
+    }
+
+    // Check if it's an S3 URL
+    if (assignment.fileUrl.includes('s3') || assignment.fileUrl.includes('amazonaws.com')) {
+      try {
+        // Generate signed URL for secure access
+        const AWS = require('aws-sdk');
+        const s3 = new AWS.S3({
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+          region: process.env.AWS_REGION || 'us-west-1'
+        });
+
+        // Extract S3 key from URL
+        const urlParts = assignment.fileUrl.split('/');
+        const key = urlParts.slice(3).join('/'); // Remove https://bucket.s3.region.amazonaws.com/
+
+        const signedUrl = s3.getSignedUrl('getObject', {
+          Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
+          Key: key,
+          Expires: 3600, // 1 hour
+          ResponseContentDisposition: `inline; filename="${assignment.originalFileName}"`
+        });
+
+        console.log(`✅ Generated signed URL for assignment ${assignmentId}`);
+
+        // Redirect to signed URL for viewing
+        res.redirect(signedUrl);
+      } catch (error) {
+        console.error('❌ Error generating signed URL:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Error accessing file'
+        });
+      }
+    } else {
+      // Direct URL access
+      res.redirect(assignment.fileUrl);
+    }
+
+  } catch (error) {
+    console.error('❌ Error accessing assignment file:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error accessing file'
+    });
+  }
+});
+
+// Route for teacher to download assignment file
+app.get('/teacher/assignment/:assignmentId/download', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const StudentAssignment = require('./models/StudentAssignment');
+    const assignmentId = req.params.assignmentId;
+
+    console.log(`⬇️ Teacher ${req.user.email} downloading file for assignment ${assignmentId}`);
+
+    // Find the assignment and verify teacher has access
+    const assignment = await StudentAssignment.findOne({
+      _id: assignmentId,
+      organizationId: req.user.organizationId,
+      $or: [
+        { assignedTeacher: req.user._id },
+        { assignedTeacher: null } // Unassigned assignments
+      ]
+    }).populate('student', 'displayName email');
+
+    if (!assignment) {
+      console.log(`❌ Assignment not found or access denied for teacher ${req.user.email}`);
+      return res.status(404).json({
+        success: false,
+        message: 'Assignment not found or access denied'
+      });
+    }
+
+    // Mark assignment as viewed by teacher if not already
+    if (!assignment.viewedByTeacher) {
+      await assignment.markAsViewed(req.user._id);
+    }
+
+    // Check if it's an S3 URL
+    if (assignment.fileUrl.includes('s3') || assignment.fileUrl.includes('amazonaws.com')) {
+      try {
+        // Generate signed URL for download
+        const AWS = require('aws-sdk');
+        const s3 = new AWS.S3({
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+          region: process.env.AWS_REGION || 'us-west-1'
+        });
+
+        // Extract S3 key from URL
+        const urlParts = assignment.fileUrl.split('/');
+        const key = urlParts.slice(3).join('/'); // Remove https://bucket.s3.region.amazonaws.com/
+
+        const signedUrl = s3.getSignedUrl('getObject', {
+          Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
+          Key: key,
+          Expires: 3600, // 1 hour
+          ResponseContentDisposition: `attachment; filename="${assignment.originalFileName}"`
+        });
+
+        console.log(`✅ Generated download URL for assignment ${assignmentId}`);
+
+        // Redirect to signed URL for download
+        res.redirect(signedUrl);
+      } catch (error) {
+        console.error('❌ Error generating download URL:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Error downloading file'
+        });
+      }
+    } else {
+      // For direct URLs, set download headers
+      res.redirect(assignment.fileUrl);
+    }
+
+  } catch (error) {
+    console.error('❌ Error downloading assignment file:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error downloading file'
+    });
+  }
+});
+
+// Route for teacher to review assignment
+app.get('/teacher/assignment/:assignmentId/review', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const StudentAssignment = require('./models/StudentAssignment');
+    const assignmentId = req.params.assignmentId;
+
+    console.log(`📝 Teacher ${req.user.email} reviewing assignment ${assignmentId}`);
+
+    // Find the assignment and verify teacher has access
+    const assignment = await StudentAssignment.findOne({
+      _id: assignmentId,
+      organizationId: req.user.organizationId,
+      $or: [
+        { assignedTeacher: req.user._id },
+        { assignedTeacher: null } // Unassigned assignments
+      ]
+    }).populate('student', 'displayName email');
+
+    if (!assignment) {
+      console.log(`❌ Assignment not found or access denied for teacher ${req.user.email}`);
+      return res.status(404).send('Assignment not found or access denied');
+    }
+
+    // Mark assignment as viewed and under review
+    if (!assignment.viewedByTeacher) {
+      await assignment.markAsViewed(req.user._id);
+    }
+
+    if (assignment.status === 'submitted') {
+      assignment.status = 'under_review';
+      await assignment.save();
+    }
+
+    res.render('teacher-assignment-review', {
+      user: req.user,
+      assignment,
+      title: 'Review Assignment'
+    });
+
+  } catch (error) {
+    console.error('❌ Error loading assignment review:', error);
+    res.status(500).send('Error loading assignment review');
+  }
+});
+
 // Route for teacher to view student assignments
 app.get('/teacher/student-assignments', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
