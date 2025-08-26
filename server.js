@@ -6425,10 +6425,12 @@ app.get('/student/assignment/:assignmentId/result', requireAuth, requireRole(['s
       title: assignment.title,
       status: assignment.status,
       grade_score: assignment.grade_score,
-      teacherComments: assignment.teacherComments ? 'Present' : 'None',
-      feedback: assignment.feedback ? 'Present' : 'None',
+      teacherComments: assignment.teacherComments ? `Present: "${assignment.teacherComments}"` : 'None',
+      feedback: assignment.feedback ? `Present: "${assignment.feedback}"` : 'None',
       reviewedBy: assignment.reviewedBy ? assignment.reviewedBy.displayName : 'None',
-      assignedTeacher: assignment.assignedTeacher ? assignment.assignedTeacher.displayName : 'None'
+      assignedTeacher: assignment.assignedTeacher ? assignment.assignedTeacher.displayName : 'None',
+      reviewedAt: assignment.reviewedAt,
+      submittedAt: assignment.submittedAt
     });
 
     res.render('student-assignment-result', {

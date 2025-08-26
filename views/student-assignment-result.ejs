@@ -391,12 +391,22 @@
 
             <!-- Grade and Teacher Info -->
             <div>
-                <% if (assignment.status === 'reviewed' && assignment.grade_score !== null) { %>
-                    <div class="grade-display">
-                        <div class="grade-score"><%= assignment.grade_score %></div>
-                        <div class="grade-label">out of 100</div>
-                    </div>
+                <% if (assignment.status === 'reviewed') { %>
+                    <% if (assignment.grade_score !== null && assignment.grade_score !== undefined) { %>
+                        <!-- Numeric Grade Display -->
+                        <div class="grade-display">
+                            <div class="grade-score"><%= assignment.grade_score %></div>
+                            <div class="grade-label">out of 100</div>
+                        </div>
+                    <% } else { %>
+                        <!-- Reviewed but No Numeric Grade -->
+                        <div class="grade-display" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <div class="grade-score"><i class="fas fa-check-circle"></i></div>
+                            <div class="grade-label">Reviewed</div>
+                        </div>
+                    <% } %>
                 <% } else { %>
+                    <!-- Not Yet Reviewed -->
                     <div class="grade-display" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
                         <div class="grade-score"><i class="fas fa-clock"></i></div>
                         <div class="grade-label">
