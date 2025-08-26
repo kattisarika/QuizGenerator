@@ -6391,6 +6391,39 @@ app.get('/debug-quiz/:quizId', requireAuth, async (req, res) => {
   }
 });
 
+// Route for student to view assignment result
+app.get('/student/assignment/:assignmentId/result', requireAuth, requireRole(['student']), async (req, res) => {
+  try {
+    const StudentAssignment = require('./models/StudentAssignment');
+    const assignmentId = req.params.assignmentId;
+
+    console.log(`📋 Student ${req.user.email} viewing assignment result ${assignmentId}`);
+
+    // Find the assignment and verify student owns it
+    const assignment = await StudentAssignment.findOne({
+      _id: assignmentId,
+      student: req.user._id,
+      organizationId: req.user.organizationId
+    }).populate('assignedTeacher', 'displayName email')
+      .populate('reviewedBy', 'displayName email');
+
+    if (!assignment) {
+      console.log(`❌ Assignment not found or access denied for student ${req.user.email}`);
+      return res.status(404).send('Assignment not found or access denied');
+    }
+
+    res.render('student-assignment-result', {
+      user: req.user,
+      assignment,
+      title: 'Assignment Result'
+    });
+
+  } catch (error) {
+    console.error('❌ Error loading assignment result:', error);
+    res.status(500).send('Error loading assignment result');
+  }
+});
+
 // Route to show student upload document page
 app.get('/student/upload-document', requireAuth, requireRole(['student']), async (req, res) => {
   try {
@@ -6417,6 +6450,39 @@ app.get('/student/upload-document', requireAuth, requireRole(['student']), async
   } catch (error) {
     console.error('Error loading upload document page:', error);
     res.status(500).send('Error loading upload document page');
+  }
+});
+
+// Route to view all notifications
+app.get('/notifications', requireAuth, async (req, res) => {
+  try {
+    const Notification = require('./models/Notification');
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const notifications = await Notification.find({ recipient: req.user._id })
+      .populate('sender', 'displayName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalNotifications = await Notification.countDocuments({ recipient: req.user._id });
+    const totalPages = Math.ceil(totalNotifications / limit);
+    const unreadCount = await Notification.getUnreadCount(req.user._id);
+
+    res.render('notifications', {
+      user: req.user,
+      notifications,
+      currentPage: page,
+      totalPages,
+      totalNotifications,
+      unreadCount,
+      title: 'Notifications'
+    });
+  } catch (error) {
+    console.error('Error fetching notifications page:', error);
+    res.status(500).send('Error loading notifications');
   }
 });
 

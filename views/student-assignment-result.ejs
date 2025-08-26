@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment Result - SkillOns</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .result-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .result-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .result-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .result-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .result-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .assignment-info {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .info-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-header h2 {
+            margin: 0;
+            color: #374151;
+            font-size: 20px;
+        }
+
+        .info-content {
+            padding: 30px;
+        }
+
+        .info-item {
+            margin-bottom: 20px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 5px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.submitted {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-badge.under-review {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.reviewed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.returned {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .category-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .category-badge.assignment {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .category-badge.doubts {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .grade-display {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .grade-score {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .grade-label {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .feedback-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-top: 30px;
+        }
+
+        .feedback-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .feedback-header h3 {
+            margin: 0;
+            color: #374151;
+        }
+
+        .feedback-content {
+            padding: 30px;
+        }
+
+        .feedback-item {
+            margin-bottom: 25px;
+        }
+
+        .feedback-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .feedback-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feedback-text {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            color: #374151;
+            line-height: 1.6;
+            border-left: 4px solid #667eea;
+        }
+
+        .teacher-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .teacher-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .teacher-details h4 {
+            margin: 0 0 2px 0;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .teacher-details p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        .back-btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #4b5563;
+            color: white;
+            text-decoration: none;
+        }
+
+        .no-feedback {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .no-feedback i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .result-container {
+                padding: 10px;
+            }
+
+            .result-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .result-header {
+                padding: 20px;
+            }
+
+            .result-header h1 {
+                font-size: 24px;
+            }
+
+            .grade-score {
+                font-size: 36px;
+            }
+
+            .info-content,
+            .feedback-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/">SkillOns</a>
+            </div>
+            <div class="nav-menu">
+                <a href="/student/dashboard" class="nav-link">Dashboard</a>
+                <a href="/available-quizzes" class="nav-link">Available Quizzes</a>
+                <a href="/student/study-material" class="nav-link">Study Material</a>
+                <a href="/my-results" class="nav-link">My Results</a>
+                <a href="/logout" class="nav-link logout-btn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="result-container">
+        <a href="/student/dashboard" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+
+        <div class="result-header">
+            <h1><i class="fas fa-clipboard-check"></i> Assignment Result</h1>
+            <p>View your assignment feedback and grade</p>
+        </div>
+
+        <div class="result-content">
+            <!-- Assignment Information -->
+            <div class="assignment-info">
+                <div class="info-header">
+                    <h2>Assignment Details</h2>
+                </div>
+                <div class="info-content">
+                    <div class="info-item">
+                        <div class="info-label">Title</div>
+                        <div class="info-value"><%= assignment.title %></div>
+                    </div>
+
+                    <% if (assignment.description) { %>
+                    <div class="info-item">
+                        <div class="info-label">Description</div>
+                        <div class="info-value"><%= assignment.description %></div>
+                    </div>
+                    <% } %>
+
+                    <div class="info-item">
+                        <div class="info-label">Category</div>
+                        <div class="info-value">
+                            <span class="category-badge <%= assignment.category.toLowerCase() %>">
+                                <%= assignment.category %>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-label">Grade & Subject</div>
+                        <div class="info-value"><%= assignment.grade %> - <%= assignment.subject %></div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-label">Status</div>
+                        <div class="info-value">
+                            <span class="status-badge <%= assignment.status.replace('_', '-') %>">
+                                <%= assignment.status.replace('_', ' ') %>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-label">Submitted</div>
+                        <div class="info-value">
+                            <%= new Date(assignment.submittedAt).toLocaleDateString() %> at 
+                            <%= new Date(assignment.submittedAt).toLocaleTimeString() %>
+                        </div>
+                    </div>
+
+                    <% if (assignment.reviewedAt) { %>
+                    <div class="info-item">
+                        <div class="info-label">Reviewed</div>
+                        <div class="info-value">
+                            <%= new Date(assignment.reviewedAt).toLocaleDateString() %> at 
+                            <%= new Date(assignment.reviewedAt).toLocaleTimeString() %>
+                        </div>
+                    </div>
+                    <% } %>
+
+                    <div class="info-item">
+                        <div class="info-label">Submitted File</div>
+                        <div class="info-value">
+                            <strong><%= assignment.originalFileName %></strong><br>
+                            <small><%= assignment.fileType %> • <%= Math.round(assignment.fileSize / 1024) %> KB</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grade and Teacher Info -->
+            <div>
+                <% if (assignment.status === 'reviewed' && assignment.grade_score !== null) { %>
+                    <div class="grade-display">
+                        <div class="grade-score"><%= assignment.grade_score %></div>
+                        <div class="grade-label">out of 100</div>
+                    </div>
+                <% } else { %>
+                    <div class="grade-display" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <div class="grade-score"><i class="fas fa-clock"></i></div>
+                        <div class="grade-label">
+                            <% if (assignment.status === 'submitted') { %>
+                                Waiting for Review
+                            <% } else if (assignment.status === 'under_review') { %>
+                                Under Review
+                            <% } else { %>
+                                Not Graded Yet
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
+
+                <% if (assignment.assignedTeacher || assignment.reviewedBy) { %>
+                    <div class="teacher-info">
+                        <div class="teacher-avatar">
+                            <%= (assignment.reviewedBy ? assignment.reviewedBy.displayName : assignment.assignedTeacher.displayName).charAt(0).toUpperCase() %>
+                        </div>
+                        <div class="teacher-details">
+                            <h4><%= assignment.reviewedBy ? assignment.reviewedBy.displayName : assignment.assignedTeacher.displayName %></h4>
+                            <p><%= assignment.reviewedBy ? 'Reviewed by' : 'Assigned to' %> • <%= assignment.reviewedBy ? assignment.reviewedBy.email : assignment.assignedTeacher.email %></p>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Feedback Section -->
+        <% if (assignment.status === 'reviewed' && (assignment.teacherComments || assignment.feedback)) { %>
+            <div class="feedback-section">
+                <div class="feedback-header">
+                    <h3><i class="fas fa-comment-alt"></i> Teacher Feedback</h3>
+                </div>
+                <div class="feedback-content">
+                    <% if (assignment.teacherComments) { %>
+                        <div class="feedback-item">
+                            <div class="feedback-label">
+                                <i class="fas fa-comment"></i> Comments
+                            </div>
+                            <div class="feedback-text">
+                                <%= assignment.teacherComments %>
+                            </div>
+                        </div>
+                    <% } %>
+
+                    <% if (assignment.feedback) { %>
+                        <div class="feedback-item">
+                            <div class="feedback-label">
+                                <i class="fas fa-clipboard-list"></i> Detailed Feedback
+                            </div>
+                            <div class="feedback-text">
+                                <%= assignment.feedback %>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        <% } else { %>
+            <div class="feedback-section">
+                <div class="feedback-content">
+                    <div class="no-feedback">
+                        <i class="fas fa-hourglass-half"></i>
+                        <h4>No Feedback Yet</h4>
+                        <p>Your teacher will provide feedback once the assignment is reviewed.</p>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+    </div>
+</body>
+</html>
