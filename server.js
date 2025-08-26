@@ -248,6 +248,23 @@ const audioUpload = multer({
   }
 });
 
+// Multer configuration for student assignment uploads (S3)
+const assignmentUpload = multer({
+  storage: multer.memoryStorage(), // Store in memory temporarily
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = ['.pdf', '.jpg', '.jpeg', '.png'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, JPG, and PNG files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit for assignment files
+  }
+});
+
 // Helper function to upload file to S3 and return full S3 URL
 async function uploadToS3(file, folder = 'uploads') {
   const s3Key = `${folder}/${Date.now()}-${file.originalname}`;
@@ -5669,15 +5686,17 @@ app.get('/api/student-badges', requireAuth, requireRole(['student']), async (req
 });
 
 // Route to handle student document upload
-app.post('/api/student/upload-document', requireAuth, requireRole(['student']), upload.single('file'), async (req, res) => {
+app.post('/api/student/upload-document', requireAuth, requireRole(['student']), assignmentUpload.single('file'), async (req, res) => {
   try {
     console.log('📤 Student document upload request:', {
       student: req.user.email,
+      organizationId: req.user.organizationId,
       body: req.body,
       file: req.file ? {
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
-        size: req.file.size
+        size: req.file.size,
+        buffer: req.file.buffer ? 'Buffer present' : 'No buffer'
       } : 'No file'
     });
 
@@ -5735,10 +5754,15 @@ app.post('/api/student/upload-document', requireAuth, requireRole(['student']), 
     // Upload file to S3
     const fileUrl = await uploadToS3(req.file, 'student-assignments');
 
+    // Generate a unique filename for storage
+    const timestamp = Date.now();
+    const fileExtension = req.file.originalname.split('.').pop();
+    const uniqueFileName = `${timestamp}-${req.user._id}-${req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
     // Create StudentAssignment record
     const StudentAssignment = require('./models/StudentAssignment');
 
-    const assignment = new StudentAssignment({
+    const assignmentData = {
       student: req.user._id,
       studentName: req.user.displayName,
       studentEmail: req.user.email,
@@ -5747,7 +5771,7 @@ app.post('/api/student/upload-document', requireAuth, requireRole(['student']), 
       category: category,
       grade: grade,
       subject: subject,
-      fileName: req.file.filename,
+      fileName: uniqueFileName, // Use generated unique filename
       originalFileName: req.file.originalname,
       fileUrl: fileUrl,
       fileType: req.file.mimetype,
@@ -5756,8 +5780,19 @@ app.post('/api/student/upload-document', requireAuth, requireRole(['student']), 
       assignedTeacher: assignedTeacher, // Assign to selected teacher
       status: 'submitted',
       submittedAt: new Date()
+    };
+
+    console.log('📝 Creating assignment with data:', {
+      ...assignmentData,
+      student: assignmentData.student.toString(),
+      organizationId: assignmentData.organizationId.toString(),
+      assignedTeacher: assignmentData.assignedTeacher.toString(),
+      fileName: assignmentData.fileName,
+      originalFileName: assignmentData.originalFileName,
+      uniqueFileNameGenerated: uniqueFileName
     });
 
+    const assignment = new StudentAssignment(assignmentData);
     await assignment.save();
 
     console.log(`✅ Student assignment uploaded successfully:`, {
