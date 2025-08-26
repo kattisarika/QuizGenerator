@@ -4377,6 +4377,42 @@ app.get('/admin/content-management', requireAuth, requireRole(['admin', 'super_a
   }
 });
 
+// Route for teacher to view student assignments
+app.get('/teacher/student-assignments', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const StudentAssignment = require('./models/StudentAssignment');
+
+    // Get all assignments for this teacher's organization
+    const assignments = await StudentAssignment.find({
+      organizationId: req.user.organizationId
+    })
+    .populate('student', 'displayName email')
+    .populate('assignedTeacher', 'displayName email')
+    .populate('reviewedBy', 'displayName email')
+    .sort({ submittedAt: -1 });
+
+    // Group assignments by status
+    const assignmentsByStatus = {
+      submitted: assignments.filter(a => a.status === 'submitted'),
+      under_review: assignments.filter(a => a.status === 'under_review'),
+      reviewed: assignments.filter(a => a.status === 'reviewed'),
+      returned: assignments.filter(a => a.status === 'returned')
+    };
+
+    console.log(`📋 Teacher ${req.user.email} viewing ${assignments.length} student assignments`);
+
+    res.render('teacher-student-assignments', {
+      user: req.user,
+      assignments,
+      assignmentsByStatus,
+      title: 'Student Assignments'
+    });
+  } catch (error) {
+    console.error('Error fetching student assignments:', error);
+    res.status(500).send('Error fetching student assignments');
+  }
+});
+
 // Route for teacher's student results overview page
 app.get('/teacher/student-results', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
@@ -5617,7 +5653,104 @@ app.get('/api/student-badges', requireAuth, requireRole(['student']), async (req
   }
 });
 
+// Route to handle student document upload
+app.post('/api/student/upload-document', requireAuth, requireRole(['student']), upload.single('file'), async (req, res) => {
+  try {
+    console.log('📤 Student document upload request:', {
+      student: req.user.email,
+      body: req.body,
+      file: req.file ? {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      } : 'No file'
+    });
 
+    // Validate required fields
+    const { grade, subject, category, title, description } = req.body;
+
+    if (!grade || !subject || !category || !title) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: grade, subject, category, and title are required'
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file type. Only PDF, JPG, and PNG files are allowed'
+      });
+    }
+
+    // Validate file size (10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (req.file.size > maxSize) {
+      return res.status(400).json({
+        success: false,
+        message: 'File size too large. Maximum size is 10MB'
+      });
+    }
+
+    // Upload file to S3
+    const fileUrl = await uploadToS3(req.file, 'student-assignments');
+
+    // Create StudentAssignment record
+    const StudentAssignment = require('./models/StudentAssignment');
+
+    const assignment = new StudentAssignment({
+      student: req.user._id,
+      studentName: req.user.displayName,
+      studentEmail: req.user.email,
+      title: title.trim(),
+      description: description ? description.trim() : '',
+      category: category,
+      grade: grade,
+      subject: subject,
+      fileName: req.file.filename,
+      originalFileName: req.file.originalname,
+      fileUrl: fileUrl,
+      fileType: req.file.mimetype,
+      fileSize: req.file.size,
+      organizationId: req.user.organizationId,
+      status: 'submitted',
+      submittedAt: new Date()
+    });
+
+    await assignment.save();
+
+    console.log(`✅ Student assignment uploaded successfully:`, {
+      id: assignment._id,
+      student: req.user.email,
+      title: assignment.title,
+      category: assignment.category,
+      fileUrl: fileUrl
+    });
+
+    res.json({
+      success: true,
+      message: 'Document uploaded successfully',
+      assignmentId: assignment._id,
+      fileUrl: fileUrl
+    });
+
+  } catch (error) {
+    console.error('❌ Error uploading student document:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error uploading document: ' + error.message
+    });
+  }
+});
 
 // Debug route to check competitive quiz results for current student
 app.get('/api/debug-competitive-results', requireAuth, requireRole(['student']), async (req, res) => {
@@ -5834,6 +5967,19 @@ app.get('/debug-quiz/:quizId', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching quiz debug info:', error);
     res.status(500).json({ error: 'Error fetching quiz info' });
+  }
+});
+
+// Route to show student upload document page
+app.get('/student/upload-document', requireAuth, requireRole(['student']), async (req, res) => {
+  try {
+    res.render('student-upload-document', {
+      user: req.user,
+      title: 'Upload Document'
+    });
+  } catch (error) {
+    console.error('Error loading upload document page:', error);
+    res.status(500).send('Error loading upload document page');
   }
 });
 
