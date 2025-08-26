@@ -1759,6 +1759,23 @@
                     </div>
                 </div>
 
+                <!-- Notifications Section -->
+                <section class="notifications-section" style="background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); padding: 30px; margin-bottom: 30px;">
+                    <div class="section-header" style="margin-bottom: 25px;">
+                        <h2 style="color: #374151; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-bell" style="color: #667eea;"></i> Recent Notifications
+                        </h2>
+                        <p style="color: #6b7280; margin: 0;">Stay updated with student submissions and activities</p>
+                    </div>
+
+                    <div class="notifications-summary" id="notificationsSummary">
+                        <div class="loading-state" style="text-align: center; padding: 40px; color: #6b7280;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 15px;"></i>
+                            <p>Loading notifications...</p>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Grade Tabs for Quiz Organization -->
                 <div class="grade-tabs-section">
                     <h3><i class="fas fa-layer-group me-2"></i>Quiz Organization by Grade</h3>
@@ -3300,6 +3317,106 @@
             currentUrl.searchParams.set('page', '1'); // Reset to first page when switching grades
             window.location.href = currentUrl.toString();
         }
+        // Notification System Functions
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/api/notifications?limit=5');
+                if (response.ok) {
+                    const data = await response.json();
+                    displayNotifications(data.notifications);
+                } else {
+                    console.error('Error loading notifications:', response.status);
+                    document.getElementById('notificationsSummary').innerHTML =
+                        '<div style="text-align: center; padding: 40px; color: #ef4444;"><p>Error loading notifications</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                document.getElementById('notificationsSummary').innerHTML =
+                    '<div style="text-align: center; padding: 40px; color: #ef4444;"><p>Error loading notifications</p></div>';
+            }
+        }
+
+        function displayNotifications(notifications) {
+            const container = document.getElementById('notificationsSummary');
+
+            if (!notifications || notifications.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #6b7280;">
+                        <i class="fas fa-bell-slash" style="font-size: 48px; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <h4>No Notifications</h4>
+                        <p>You're all caught up! New notifications will appear here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            notifications.forEach(notification => {
+                const timeAgo = getTimeAgo(new Date(notification.createdAt));
+                const iconColor = notification.color || '#667eea';
+
+                html += `
+                    <div style="display: flex; align-items: flex-start; gap: 15px; padding: 15px; border-radius: 8px; margin-bottom: 10px; transition: all 0.3s ease; border-left: 4px solid ${!notification.isRead ? '#667eea' : 'transparent'}; background: ${!notification.isRead ? '#f0f9ff' : 'transparent'};"
+                         onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='${!notification.isRead ? '#f0f9ff' : 'transparent'}'">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; flex-shrink: 0; background-color: ${iconColor};">
+                            <i class="${notification.icon || 'fas fa-bell'}"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #374151; margin-bottom: 5px; font-size: 14px;">${notification.title}</div>
+                            <div style="color: #6b7280; font-size: 13px; line-height: 1.4; margin-bottom: 5px;">${notification.message}</div>
+                            <div style="color: #9ca3af; font-size: 11px;">${timeAgo}</div>
+                            ${notification.actionUrl ? `
+                                <div style="margin-top: 8px;">
+                                    <a href="${notification.actionUrl}" onclick="markAsRead('${notification._id}')"
+                                       style="background: #667eea; color: white; border: none; padding: 4px 12px; font-size: 11px; border-radius: 4px; text-decoration: none; display: inline-block;">
+                                        ${notification.actionText || 'View'}
+                                    </a>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="/notifications" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px;">
+                        <i class="fas fa-list"></i> View All Notifications
+                    </a>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+
+            if (diffInSeconds < 60) return 'Just now';
+            if (diffInSeconds < 3600) return Math.floor(diffInSeconds / 60) + ' minutes ago';
+            if (diffInSeconds < 86400) return Math.floor(diffInSeconds / 3600) + ' hours ago';
+            if (diffInSeconds < 604800) return Math.floor(diffInSeconds / 86400) + ' days ago';
+
+            return date.toLocaleDateString();
+        }
+
+        async function markAsRead(notificationId) {
+            try {
+                await fetch(`/api/notifications/${notificationId}/read`, {
+                    method: 'POST'
+                });
+                loadNotifications();
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        // Load notifications when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadNotifications();
+        });
+
         // Mobile menu functionality
         function toggleMobileMenu() {
             const navMenu = document.getElementById('navMenu');

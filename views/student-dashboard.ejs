@@ -1092,6 +1092,114 @@
             font-size: 16px;
         }
 
+        /* Notifications Section */
+        .notifications-section {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .notification-item:hover {
+            background: #f8f9fa;
+        }
+
+        .notification-item.unread {
+            background: #f0f9ff;
+            border-left-color: var(--primary-color);
+        }
+
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .notification-message {
+            color: var(--text-color);
+            font-size: 13px;
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+
+        .notification-time {
+            color: var(--muted-color);
+            font-size: 11px;
+        }
+
+        .notification-action {
+            margin-top: 8px;
+        }
+
+        .notification-action .btn {
+            padding: 4px 12px;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+
+        .no-notifications {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted-color);
+        }
+
+        .no-notifications i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .view-all-notifications {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .view-all-notifications .btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .view-all-notifications .btn:hover {
+            background: var(--primary-dark);
+            color: white;
+            text-decoration: none;
+        }
+
         .total-badges {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
@@ -1351,6 +1459,23 @@
                         <div class="stat-info">
                             <h3 id="score-stat">Average Score</h3>
                             <p class="stat-number" aria-label="Average quiz score"><%= averageScore > 0 ? averageScore + '%' : '--' %></p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Notifications Section -->
+                <section class="notifications-section" aria-labelledby="notifications-heading">
+                    <div class="section-header">
+                        <h2 id="notifications-heading">
+                            <i class="fas fa-bell" aria-hidden="true"></i> Recent Notifications
+                        </h2>
+                        <p>Stay updated with your latest activities</p>
+                    </div>
+
+                    <div class="notifications-summary" id="notificationsSummary">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                            <p>Loading notifications...</p>
                         </div>
                     </div>
                 </section>
@@ -2330,9 +2455,104 @@
 
 
 
-        // Load badges when page loads
+        // Notification System Functions
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/api/notifications?limit=5');
+                if (response.ok) {
+                    const data = await response.json();
+                    displayNotifications(data.notifications);
+                } else {
+                    console.error('Error loading notifications:', response.status);
+                    document.getElementById('notificationsSummary').innerHTML =
+                        '<div class="error-state"><p>Error loading notifications</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                document.getElementById('notificationsSummary').innerHTML =
+                    '<div class="error-state"><p>Error loading notifications: ' + error.message + '</p></div>';
+            }
+        }
+
+        function displayNotifications(notifications) {
+            const container = document.getElementById('notificationsSummary');
+
+            if (!notifications || notifications.length === 0) {
+                container.innerHTML = `
+                    <div class="no-notifications">
+                        <i class="fas fa-bell-slash" aria-hidden="true"></i>
+                        <h4>No Notifications</h4>
+                        <p>You're all caught up! New notifications will appear here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            notifications.forEach(notification => {
+                const timeAgo = getTimeAgo(new Date(notification.createdAt));
+                const iconColor = notification.color || '#667eea';
+
+                html += `
+                    <div class="notification-item ${!notification.isRead ? 'unread' : ''}" data-id="${notification._id}">
+                        <div class="notification-icon" style="background-color: ${iconColor}">
+                            <i class="${notification.icon || 'fas fa-bell'}"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">${notification.title}</div>
+                            <div class="notification-message">${notification.message}</div>
+                            <div class="notification-time">${timeAgo}</div>
+                            ${notification.actionUrl ? `
+                                <div class="notification-action">
+                                    <a href="${notification.actionUrl}" class="btn btn-primary btn-sm" onclick="markAsRead('${notification._id}')">
+                                        ${notification.actionText || 'View'}
+                                    </a>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                <div class="view-all-notifications">
+                    <a href="/notifications" class="btn">
+                        <i class="fas fa-list"></i> View All Notifications
+                    </a>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+
+            if (diffInSeconds < 60) return 'Just now';
+            if (diffInSeconds < 3600) return Math.floor(diffInSeconds / 60) + ' minutes ago';
+            if (diffInSeconds < 86400) return Math.floor(diffInSeconds / 3600) + ' hours ago';
+            if (diffInSeconds < 604800) return Math.floor(diffInSeconds / 86400) + ' days ago';
+
+            return date.toLocaleDateString();
+        }
+
+        async function markAsRead(notificationId) {
+            try {
+                await fetch(`/api/notifications/${notificationId}/read`, {
+                    method: 'POST'
+                });
+                // Reload notifications to update read status
+                loadNotifications();
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        // Load badges and notifications when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadStudentBadges();
+            loadNotifications();
         });
     </script>
 </body>

@@ -4638,6 +4638,15 @@ app.post('/api/teacher/review-assignment', requireAuth, requireRole(['teacher'])
       feedback || ''
     );
 
+    // Create notification for student
+    const Notification = require('./models/Notification');
+    await Notification.createAssignmentNotification(
+      'assignment_reviewed',
+      assignment,
+      assignment.student,
+      req.user
+    );
+
     console.log(`✅ Review saved for assignment ${assignmentId} by teacher ${req.user.email}`);
 
     res.json({
@@ -5945,6 +5954,79 @@ app.get('/api/student-badges', requireAuth, requireRole(['student']), async (req
   }
 });
 
+// Route to get user notifications
+app.get('/api/notifications', requireAuth, async (req, res) => {
+  try {
+    const { limit = 20, unreadOnly = false } = req.query;
+    const Notification = require('./models/Notification');
+
+    const notifications = await Notification.getUserNotifications(
+      req.user._id,
+      parseInt(limit),
+      unreadOnly === 'true'
+    );
+
+    const unreadCount = await Notification.getUnreadCount(req.user._id);
+
+    res.json({
+      success: true,
+      notifications,
+      unreadCount
+    });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching notifications'
+    });
+  }
+});
+
+// Route to mark notification as read
+app.post('/api/notifications/:notificationId/read', requireAuth, async (req, res) => {
+  try {
+    const Notification = require('./models/Notification');
+    const notification = await Notification.markAsRead(req.params.notificationId, req.user._id);
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      notification
+    });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating notification'
+    });
+  }
+});
+
+// Route to mark all notifications as read
+app.post('/api/notifications/mark-all-read', requireAuth, async (req, res) => {
+  try {
+    const Notification = require('./models/Notification');
+    await Notification.markAllAsRead(req.user._id);
+
+    res.json({
+      success: true,
+      message: 'All notifications marked as read'
+    });
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating notifications'
+    });
+  }
+});
+
 // Route to handle student document upload
 app.post('/api/student/upload-document', requireAuth, requireRole(['student']), assignmentUpload.single('file'), async (req, res) => {
   try {
@@ -6054,6 +6136,15 @@ app.post('/api/student/upload-document', requireAuth, requireRole(['student']), 
 
     const assignment = new StudentAssignment(assignmentData);
     await assignment.save();
+
+    // Create notification for assigned teacher
+    const Notification = require('./models/Notification');
+    await Notification.createAssignmentNotification(
+      'assignment_submitted',
+      assignment,
+      assignedTeacher,
+      req.user
+    );
 
     console.log(`✅ Student assignment uploaded successfully:`, {
       id: assignment._id,
