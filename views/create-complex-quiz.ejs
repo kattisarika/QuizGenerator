@@ -141,6 +141,29 @@
             background: #fafbfc;
         }
 
+        /* PDF Equation Rendering Styles */
+        .pdf-equation-container .MathJax {
+            font-size: 120% !important;
+            line-height: 1.8 !important;
+            margin: 10px 0 !important;
+        }
+
+        .pdf-equation-container .MathJax_Display {
+            margin: 20px 0 !important;
+            padding: 10px !important;
+        }
+
+        .pdf-equation-container mjx-container {
+            margin: 15px 0 !important;
+            padding: 8px !important;
+            overflow: visible !important;
+        }
+
+        .pdf-equation-container mjx-math {
+            font-size: 1.2em !important;
+            line-height: 1.6 !important;
+        }
+
         .canvas-header {
             background: white;
             padding: 15px 25px;
@@ -4474,7 +4497,11 @@
                         height: 600px;
                         background: white;
                         border: 1px solid #e2e8f0;
+                        font-family: Inter, sans-serif;
+                        overflow: visible;
+                        z-index: -1000;
                     `;
+                    tempCanvas.className = 'pdf-equation-container';
                     document.body.appendChild(tempCanvas);
 
                     // Render elements on temporary canvas
@@ -4504,21 +4531,31 @@
                         try {
                             await MathJax.typesetPromise([tempCanvas]);
                             console.log('MathJax rendered for PDF page', pageIndex + 1);
+
+                            // Additional delay for complex equations to fully render
+                            await new Promise(resolve => setTimeout(resolve, 1000));
                         } catch (mathError) {
                             console.warn('MathJax rendering error:', mathError);
                         }
                     }
 
-                    // Small delay to ensure rendering is complete
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // Extended delay to ensure all rendering is complete
+                    await new Promise(resolve => setTimeout(resolve, 1500));
 
-                    // Convert canvas to image using html2canvas
+                    // Convert canvas to image using html2canvas with optimized settings for equations
                     try {
                         const canvas = await html2canvas(tempCanvas, {
                             backgroundColor: '#ffffff',
-                            scale: 2,
+                            scale: 3, // Higher scale for better equation quality
                             useCORS: true,
-                            allowTaint: true
+                            allowTaint: true,
+                            logging: false,
+                            width: tempCanvas.offsetWidth,
+                            height: tempCanvas.offsetHeight,
+                            scrollX: 0,
+                            scrollY: 0,
+                            windowWidth: tempCanvas.offsetWidth,
+                            windowHeight: tempCanvas.offsetHeight
                         });
 
                         const imgData = canvas.toDataURL('image/png');
@@ -4612,29 +4649,33 @@
                     </div>`;
                 case 'latex':
                 case 'equation':
-                    // Render LaTeX as actual math equation for PDF
+                    // Render LaTeX as actual math equation for PDF with proper spacing
                     const latexContent = element.content || '\\sum_{i=1}^{n} x_i';
-                    return `<div style="padding: 15px; text-align: center; font-size: 16px;">
-                        $$${latexContent}$$
+                    return `<div style="padding: 20px; text-align: center; font-size: 18px; line-height: 2.5; min-height: 80px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; margin: 10px 0;">
+                        <div style="padding: 15px;">$$${latexContent}$$</div>
                     </div>`;
                 case 'math-equation':
                     const equationType = element.equationType || 'simple';
                     let equationContent = element.content || 'x + 5 = 12';
 
                     if (equationType === 'complex') {
-                        // Complex equations use LaTeX syntax
+                        // Complex equations use LaTeX syntax with improved spacing
                         equationContent = element.content || '\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}';
-                        return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 18px; color: #1e40af; min-height: 40px; display: flex; align-items: center; justify-content: center;">
-                                $$${equationContent}$$
+                        return `<div style="padding: 25px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center; margin: 15px 0;">
+                            <div style="font-size: 20px; color: #1e40af; min-height: 80px; line-height: 3; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                                <div style="padding: 10px;">$$${equationContent}$$</div>
                             </div>
-                            <small style="color: #64748b;">Complex Equation</small>
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #93c5fd;">
+                                <small style="color: #64748b; font-weight: 600;">Complex Equation</small>
+                            </div>
                         </div>`;
                     } else {
                         // Simple equations as plain text
-                        return `<div style="padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 18px; font-weight: bold; color: #1e40af;">${equationContent}</div>
-                            <small style="color: #64748b;">Simple Equation</small>
+                        return `<div style="padding: 20px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center; margin: 10px 0;">
+                            <div style="font-size: 18px; font-weight: bold; color: #1e40af; padding: 10px;">${equationContent}</div>
+                            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #93c5fd;">
+                                <small style="color: #64748b; font-weight: 600;">Simple Equation</small>
+                            </div>
                         </div>`;
                     }
                 case 'math-expression':
