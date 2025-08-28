@@ -4459,7 +4459,7 @@
 
                 // Save all current element content before PDF generation
                 console.log('Saving current element content...');
-                quizData.pages.forEach((page, pageIndex) => {
+                questionPages.forEach((page, pageIndex) => {
                     page.elements.forEach(element => {
                         const domElement = document.querySelector(`[data-element-id="${element.id}"]`);
                         if (domElement) {
