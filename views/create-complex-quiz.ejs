@@ -164,6 +164,29 @@
             line-height: 1.6 !important;
         }
 
+        /* PDF Equation Rendering Styles */
+        .pdf-equation-container .MathJax {
+            font-size: 120% !important;
+            line-height: 1.8 !important;
+            margin: 10px 0 !important;
+        }
+
+        .pdf-equation-container .MathJax_Display {
+            margin: 20px 0 !important;
+            padding: 10px !important;
+        }
+
+        .pdf-equation-container mjx-container {
+            margin: 15px 0 !important;
+            padding: 8px !important;
+            overflow: visible !important;
+        }
+
+        .pdf-equation-container mjx-math {
+            font-size: 1.2em !important;
+            line-height: 1.6 !important;
+        }
+
         .canvas-header {
             background: white;
             padding: 15px 25px;
@@ -4424,6 +4447,10 @@
                             </div>
                         `;
                         await window.MathJax.startup.promise;
+
+                        // Temporarily disable auto-processing to prevent double rendering
+                        const originalProcessReset = window.MathJax.startup.document.state;
+
                         console.log('MathJax is ready for PDF export');
                     } catch (mathError) {
                         console.warn('MathJax loading error:', mathError);
@@ -4526,21 +4553,41 @@
                         tempCanvas.appendChild(elementDiv);
                     });
 
-                    // Wait for MathJax to render equations before capturing
+                    // Wait for DOM to be ready before MathJax processing
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    // Process MathJax equations only once with controlled rendering
                     if (window.MathJax) {
                         try {
+                            // Clear any existing MathJax processing in the temp canvas
+                            const existingMath = tempCanvas.querySelectorAll('.MathJax, mjx-container, mjx-assistive-mml');
+                            existingMath.forEach(el => el.remove());
+
+                            // Find all math content elements
+                            const mathElements = tempCanvas.querySelectorAll('.pdf-math-content');
+
+                            // Process each math element individually to prevent duplication
+                            for (const mathEl of mathElements) {
+                                const latex = mathEl.getAttribute('data-latex');
+                                if (latex) {
+                                    // Clear existing content and set fresh LaTeX
+                                    mathEl.innerHTML = `\\[${latex}\\]`;
+                                }
+                            }
+
+                            // Process equations fresh
                             await MathJax.typesetPromise([tempCanvas]);
                             console.log('MathJax rendered for PDF page', pageIndex + 1);
 
-                            // Additional delay for complex equations to fully render
-                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            // Wait for rendering to complete
+                            await new Promise(resolve => setTimeout(resolve, 800));
                         } catch (mathError) {
                             console.warn('MathJax rendering error:', mathError);
                         }
                     }
 
-                    // Extended delay to ensure all rendering is complete
-                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    // Final delay to ensure all rendering is complete
+                    await new Promise(resolve => setTimeout(resolve, 500));
 
                     // Convert canvas to image using html2canvas with optimized settings for equations
                     try {
@@ -4652,7 +4699,7 @@
                     // Render LaTeX as actual math equation for PDF with proper spacing
                     const latexContent = element.content || '\\sum_{i=1}^{n} x_i';
                     return `<div style="padding: 20px; text-align: center; font-size: 18px; line-height: 2.5; min-height: 80px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; margin: 10px 0;">
-                        <div style="padding: 15px;">$$${latexContent}$$</div>
+                        <div class="pdf-math-content" style="padding: 15px;" data-latex="${latexContent.replace(/"/g, '&quot;')}">\\[${latexContent}\\]</div>
                     </div>`;
                 case 'math-equation':
                     const equationType = element.equationType || 'simple';
@@ -4663,7 +4710,7 @@
                         equationContent = element.content || '\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}';
                         return `<div style="padding: 25px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center; margin: 15px 0;">
                             <div style="font-size: 20px; color: #1e40af; min-height: 80px; line-height: 3; display: flex; align-items: center; justify-content: center; padding: 20px;">
-                                <div style="padding: 10px;">$$${equationContent}$$</div>
+                                <div class="pdf-math-content" style="padding: 10px;" data-latex="${equationContent.replace(/"/g, '&quot;')}">\\[${equationContent}\\]</div>
                             </div>
                             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #93c5fd;">
                                 <small style="color: #64748b; font-weight: 600;">Complex Equation</small>
