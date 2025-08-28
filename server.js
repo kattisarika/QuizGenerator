@@ -4080,18 +4080,23 @@ app.get('/teacher/assign-students', requireAuth, requireRole(['teacher']), requi
     console.log('Accessing /teacher/assign-students route');
     console.log('User:', req.user.displayName, 'Role:', req.user.role, 'Approved:', req.user.isApproved);
 
-    // Get all students
-    const students = await User.find({ role: 'student' }).sort({ displayName: 1 });
-    console.log('Found', students.length, 'students');
+    // Get students from the same organization as the teacher
+    const students = await User.find({
+      role: 'student',
+      organizationId: req.user.organizationId
+    }).sort({ displayName: 1 });
+    console.log('Found', students.length, 'students in organization', req.user.organizationId);
 
-    // Count statistics
+    // Count statistics (only for students in the same organization)
     const assignedToMe = await User.countDocuments({
       role: 'student',
+      organizationId: req.user.organizationId,
       assignedTeacher: req.user._id
     });
 
     const unassigned = await User.countDocuments({
       role: 'student',
+      organizationId: req.user.organizationId,
       assignedTeacher: null
     });
 
@@ -4142,10 +4147,14 @@ app.post('/teacher/assign-students', requireAuth, requireRole(['teacher']), requ
       }
     }
 
-    // Update students
+    // Update students (only students from the same organization)
     const updatePromises = assignments.map(assignment =>
-      User.findByIdAndUpdate(
-        assignment.studentId,
+      User.findOneAndUpdate(
+        {
+          _id: assignment.studentId,
+          role: 'student',
+          organizationId: req.user.organizationId
+        },
         {
           assignedTeacher: req.user._id,
           gradeLevel: assignment.gradeLevel
@@ -4174,10 +4183,12 @@ app.post('/teacher/unassign-students', requireAuth, requireRole(['teacher']), re
       return res.status(400).json({ success: false, message: 'Invalid student IDs' });
     }
 
-    // Only allow unassigning students that are currently assigned to this teacher
+    // Only allow unassigning students that are currently assigned to this teacher and in the same organization
     const result = await User.updateMany(
       {
         _id: { $in: studentIds },
+        role: 'student',
+        organizationId: req.user.organizationId,
         assignedTeacher: req.user._id
       },
       {
