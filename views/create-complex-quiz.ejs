@@ -4457,6 +4457,39 @@
                     }
                 }
 
+                // Save all current element content before PDF generation
+                console.log('Saving current element content...');
+                quizData.pages.forEach((page, pageIndex) => {
+                    page.elements.forEach(element => {
+                        const domElement = document.querySelector(`[data-element-id="${element.id}"]`);
+                        if (domElement) {
+                            switch (element.type) {
+                                case 'textbox':
+                                    const textDiv = domElement.querySelector('[contenteditable="true"]');
+                                    if (textDiv) {
+                                        element.content = textDiv.innerHTML;
+                                        console.log(`Saved textbox content: ${element.content.substring(0, 50)}...`);
+                                    }
+                                    break;
+                                case 'table':
+                                    const table = domElement.querySelector('table');
+                                    if (table) {
+                                        element.content = table.outerHTML;
+                                        console.log(`Saved table content: ${element.content.substring(0, 100)}...`);
+                                    }
+                                    break;
+                                case 'textarea':
+                                    const textarea = domElement.querySelector('textarea');
+                                    if (textarea) {
+                                        element.content = textarea.value;
+                                        console.log(`Saved textarea content: ${element.content.substring(0, 50)}...`);
+                                    }
+                                    break;
+                            }
+                        }
+                    });
+                });
+
                 // Initialize jsPDF
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF('p', 'mm', 'a4');
@@ -4556,31 +4589,43 @@
                     // Wait for DOM to be ready before MathJax processing
                     await new Promise(resolve => setTimeout(resolve, 100));
 
-                    // Process MathJax equations only once with controlled rendering
+                    // Process MathJax equations with complete control to prevent double rendering
                     if (window.MathJax) {
                         try {
-                            // Clear any existing MathJax processing in the temp canvas
-                            const existingMath = tempCanvas.querySelectorAll('.MathJax, mjx-container, mjx-assistive-mml');
-                            existingMath.forEach(el => el.remove());
+                            // First, completely clear any existing MathJax elements
+                            const existingMath = tempCanvas.querySelectorAll('.MathJax, mjx-container, mjx-assistive-mml, mjx-math, mjx-merror');
+                            existingMath.forEach(el => {
+                                el.parentNode && el.parentNode.removeChild(el);
+                            });
 
                             // Find all math content elements
                             const mathElements = tempCanvas.querySelectorAll('.pdf-math-content');
+                            console.log(`Found ${mathElements.length} math elements to process`);
 
-                            // Process each math element individually to prevent duplication
+                            // Process each math element individually with complete control
                             for (const mathEl of mathElements) {
                                 const latex = mathEl.getAttribute('data-latex');
                                 if (latex) {
-                                    // Clear existing content and set fresh LaTeX
-                                    mathEl.innerHTML = `\\[${latex}\\]`;
+                                    // Completely clear the element first
+                                    mathEl.innerHTML = '';
+
+                                    // Create a fresh text node with LaTeX delimiters
+                                    const mathText = document.createTextNode(`\\[${latex}\\]`);
+                                    mathEl.appendChild(mathText);
+
+                                    console.log(`Prepared LaTeX: ${latex}`);
                                 }
                             }
 
-                            // Process equations fresh
-                            await MathJax.typesetPromise([tempCanvas]);
-                            console.log('MathJax rendered for PDF page', pageIndex + 1);
+                            // Only process if we have math elements
+                            if (mathElements.length > 0) {
+                                // Process equations with MathJax
+                                await MathJax.typesetPromise([tempCanvas]);
+                                console.log('MathJax rendered for PDF page', pageIndex + 1);
 
-                            // Wait for rendering to complete
-                            await new Promise(resolve => setTimeout(resolve, 800));
+                                // Wait for rendering to complete
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            }
                         } catch (mathError) {
                             console.warn('MathJax rendering error:', mathError);
                         }
@@ -4688,18 +4733,25 @@
                         Image placeholder
                     </div>`;
                 case 'table':
-                    return `<div style="padding: 10px; border: 1px solid #e5e7eb;">
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Table</td><td style="border: 1px solid #d1d5db; padding: 8px;">Content</td></tr>
-                            <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Row 1</td><td style="border: 1px solid #d1d5db; padding: 8px;">Data</td></tr>
-                        </table>
-                    </div>`;
+                    // Use the actual table content if available, otherwise use default
+                    if (element.content && element.content.includes('<table')) {
+                        return `<div style="padding: 10px; border: 1px solid #e5e7eb;">
+                            ${element.content}
+                        </div>`;
+                    } else {
+                        return `<div style="padding: 10px; border: 1px solid #e5e7eb;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Table</td><td style="border: 1px solid #d1d5db; padding: 8px;">Content</td></tr>
+                                <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Row 1</td><td style="border: 1px solid #d1d5db; padding: 8px;">Data</td></tr>
+                            </table>
+                        </div>`;
+                    }
                 case 'latex':
                 case 'equation':
                     // Render LaTeX as actual math equation for PDF with proper spacing
                     const latexContent = element.content || '\\sum_{i=1}^{n} x_i';
                     return `<div style="padding: 20px; text-align: center; font-size: 18px; line-height: 2.5; min-height: 80px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; margin: 10px 0;">
-                        <div class="pdf-math-content" style="padding: 15px;" data-latex="${latexContent.replace(/"/g, '&quot;')}">\\[${latexContent}\\]</div>
+                        <div class="pdf-math-content" style="padding: 15px;" data-latex="${latexContent.replace(/"/g, '&quot;')}">${latexContent}</div>
                     </div>`;
                 case 'math-equation':
                     const equationType = element.equationType || 'simple';
@@ -4710,7 +4762,7 @@
                         equationContent = element.content || '\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}';
                         return `<div style="padding: 25px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px; text-align: center; margin: 15px 0;">
                             <div style="font-size: 20px; color: #1e40af; min-height: 80px; line-height: 3; display: flex; align-items: center; justify-content: center; padding: 20px;">
-                                <div class="pdf-math-content" style="padding: 10px;" data-latex="${equationContent.replace(/"/g, '&quot;')}">\\[${equationContent}\\]</div>
+                                <div class="pdf-math-content" style="padding: 10px;" data-latex="${equationContent.replace(/"/g, '&quot;')}">${equationContent}</div>
                             </div>
                             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #93c5fd;">
                                 <small style="color: #64748b; font-weight: 600;">Complex Equation</small>
