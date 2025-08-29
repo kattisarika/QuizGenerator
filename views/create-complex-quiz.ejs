@@ -487,6 +487,114 @@
             display: flex;
         }
 
+        /* Resize handles for text elements */
+        .resize-handles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+        }
+
+        .canvas-element.selected .resize-handles {
+            display: block;
+        }
+
+        .resize-handle {
+            position: absolute;
+            background: var(--primary-color);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            pointer-events: all;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .resize-handle:hover {
+            background: var(--secondary-color);
+            transform: scale(1.2);
+        }
+
+        /* Resize handle positions */
+        .resize-handle.nw {
+            top: -6px;
+            left: -6px;
+            cursor: nw-resize;
+        }
+
+        .resize-handle.ne {
+            top: -6px;
+            right: -6px;
+            cursor: ne-resize;
+        }
+
+        .resize-handle.sw {
+            bottom: -6px;
+            left: -6px;
+            cursor: sw-resize;
+        }
+
+        .resize-handle.se {
+            bottom: -6px;
+            right: -6px;
+            cursor: se-resize;
+        }
+
+        .resize-handle.n {
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: n-resize;
+        }
+
+        .resize-handle.s {
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: s-resize;
+        }
+
+        .resize-handle.w {
+            top: 50%;
+            left: -6px;
+            transform: translateY(-50%);
+            cursor: w-resize;
+        }
+
+        .resize-handle.e {
+            top: 50%;
+            right: -6px;
+            transform: translateY(-50%);
+            cursor: e-resize;
+        }
+
+        /* Disable text selection during resize */
+        .canvas-element.resizing {
+            user-select: none;
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3) !important;
+        }
+
+        .canvas-element.resizing * {
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* Show resize cursor on hover */
+        .canvas-element:hover .resize-handle {
+            opacity: 1;
+        }
+
+        .resize-handle {
+            opacity: 0.7;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
         .control-btn {
             width: 24px;
             height: 24px;
@@ -1577,6 +1685,28 @@
                 </button>
             `;
             elementDiv.appendChild(controls);
+
+            // Add resize handles for text elements
+            if (element.type === 'textbox' || element.type === 'text' || element.type === 'question' || element.type === 'sub-question' || element.type === 'answer-area') {
+                const resizeHandles = document.createElement('div');
+                resizeHandles.className = 'resize-handles';
+                resizeHandles.innerHTML = `
+                    <div class="resize-handle nw" data-direction="nw"></div>
+                    <div class="resize-handle n" data-direction="n"></div>
+                    <div class="resize-handle ne" data-direction="ne"></div>
+                    <div class="resize-handle w" data-direction="w"></div>
+                    <div class="resize-handle e" data-direction="e"></div>
+                    <div class="resize-handle sw" data-direction="sw"></div>
+                    <div class="resize-handle s" data-direction="s"></div>
+                    <div class="resize-handle se" data-direction="se"></div>
+                `;
+                elementDiv.appendChild(resizeHandles);
+
+                // Add resize event listeners
+                resizeHandles.querySelectorAll('.resize-handle').forEach(handle => {
+                    handle.addEventListener('mousedown', (e) => startResize(e, element.id, handle.dataset.direction));
+                });
+            }
 
             // Add click event with null check
             if (elementDiv) {
@@ -3652,6 +3782,19 @@
         let questionPages = []; // Array of question page objects
         let currentPageElements = []; // Elements on current page
 
+        // Variables for resize functionality
+        let isResizing = false;
+        let resizeData = {
+            elementId: null,
+            direction: null,
+            startX: 0,
+            startY: 0,
+            startWidth: 0,
+            startHeight: 0,
+            startLeft: 0,
+            startTop: 0
+        };
+
         // Initialize question navigation
         function initializeQuestionNavigation() {
             // Initialize with first empty page if no questions exist
@@ -3967,6 +4110,151 @@
             if (counter) {
                 counter.textContent = `Q${currentQuestionIndex + 1} of ${questionPages.length}`;
             }
+        }
+
+        // Resize functionality for text elements
+        function startResize(e, elementId, direction) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            console.log('Starting resize for element:', elementId, 'direction:', direction);
+
+            isResizing = true;
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            // Add resizing class to prevent text selection
+            element.classList.add('resizing');
+
+            // Store initial resize data
+            resizeData = {
+                elementId: elementId,
+                direction: direction,
+                startX: e.clientX,
+                startY: e.clientY,
+                startWidth: parseInt(element.style.width) || element.offsetWidth,
+                startHeight: parseInt(element.style.height) || element.offsetHeight,
+                startLeft: parseInt(element.style.left) || 0,
+                startTop: parseInt(element.style.top) || 0
+            };
+
+            // Add global event listeners
+            document.addEventListener('mousemove', handleResize);
+            document.addEventListener('mouseup', stopResize);
+
+            // Prevent default drag behavior
+            document.body.style.userSelect = 'none';
+        }
+
+        function handleResize(e) {
+            if (!isResizing || !resizeData.elementId) return;
+
+            e.preventDefault();
+
+            const element = document.getElementById(resizeData.elementId);
+            if (!element) return;
+
+            const deltaX = e.clientX - resizeData.startX;
+            const deltaY = e.clientY - resizeData.startY;
+
+            let newWidth = resizeData.startWidth;
+            let newHeight = resizeData.startHeight;
+            let newLeft = resizeData.startLeft;
+            let newTop = resizeData.startTop;
+
+            // Calculate new dimensions based on resize direction
+            switch (resizeData.direction) {
+                case 'se': // Southeast - resize width and height
+                    newWidth = Math.max(50, resizeData.startWidth + deltaX);
+                    newHeight = Math.max(30, resizeData.startHeight + deltaY);
+                    break;
+                case 'sw': // Southwest - resize width and height, move left
+                    newWidth = Math.max(50, resizeData.startWidth - deltaX);
+                    newHeight = Math.max(30, resizeData.startHeight + deltaY);
+                    newLeft = resizeData.startLeft + deltaX;
+                    break;
+                case 'ne': // Northeast - resize width and height, move top
+                    newWidth = Math.max(50, resizeData.startWidth + deltaX);
+                    newHeight = Math.max(30, resizeData.startHeight - deltaY);
+                    newTop = resizeData.startTop + deltaY;
+                    break;
+                case 'nw': // Northwest - resize width and height, move left and top
+                    newWidth = Math.max(50, resizeData.startWidth - deltaX);
+                    newHeight = Math.max(30, resizeData.startHeight - deltaY);
+                    newLeft = resizeData.startLeft + deltaX;
+                    newTop = resizeData.startTop + deltaY;
+                    break;
+                case 'e': // East - resize width only
+                    newWidth = Math.max(50, resizeData.startWidth + deltaX);
+                    break;
+                case 'w': // West - resize width, move left
+                    newWidth = Math.max(50, resizeData.startWidth - deltaX);
+                    newLeft = resizeData.startLeft + deltaX;
+                    break;
+                case 's': // South - resize height only
+                    newHeight = Math.max(30, resizeData.startHeight + deltaY);
+                    break;
+                case 'n': // North - resize height, move top
+                    newHeight = Math.max(30, resizeData.startHeight - deltaY);
+                    newTop = resizeData.startTop + deltaY;
+                    break;
+            }
+
+            // Apply new dimensions and position
+            element.style.width = newWidth + 'px';
+            element.style.height = newHeight + 'px';
+            element.style.left = newLeft + 'px';
+            element.style.top = newTop + 'px';
+
+            // Update element data in quizElements array
+            const elementData = quizElements.find(el => el.id === resizeData.elementId);
+            if (elementData) {
+                elementData.width = newWidth;
+                elementData.height = newHeight;
+                elementData.x = newLeft;
+                elementData.y = newTop;
+            }
+
+            // Update properties panel if this element is selected
+            if (selectedElement === resizeData.elementId) {
+                showElementProperties(resizeData.elementId);
+            }
+        }
+
+        function stopResize(e) {
+            if (!isResizing) return;
+
+            console.log('Stopping resize for element:', resizeData.elementId);
+
+            isResizing = false;
+
+            // Remove resizing class
+            const element = document.getElementById(resizeData.elementId);
+            if (element) {
+                element.classList.remove('resizing');
+            }
+
+            // Remove global event listeners
+            document.removeEventListener('mousemove', handleResize);
+            document.removeEventListener('mouseup', stopResize);
+
+            // Restore text selection
+            document.body.style.userSelect = '';
+
+            // Clear resize data
+            resizeData = {
+                elementId: null,
+                direction: null,
+                startX: 0,
+                startY: 0,
+                startWidth: 0,
+                startHeight: 0,
+                startLeft: 0,
+                startTop: 0
+            };
+
+            // Save the current page elements to preserve the new size
+            saveCurrentPageElements();
         }
 
         // Hook into element creation to update navigation
