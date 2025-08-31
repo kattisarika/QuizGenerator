@@ -483,6 +483,7 @@
             padding: 20px;
             margin-bottom: 20px;
             border-left: 4px solid var(--primary-color);
+            position: relative;
         }
 
         .question-item:last-child {
@@ -493,12 +494,92 @@
             font-weight: 700;
             color: var(--primary-color);
             margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .question-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .edit-btn {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .edit-btn:hover {
+            background: #2563eb;
+        }
+
+        .save-btn {
+            background: #10b981;
+            color: white;
+        }
+
+        .save-btn:hover {
+            background: #059669;
+        }
+
+        .cancel-btn {
+            background: #6b7280;
+            color: white;
+        }
+
+        .cancel-btn:hover {
+            background: #4b5563;
+        }
+
+        .blank-btn {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .blank-btn:hover {
+            background: #d97706;
+        }
+
+        .remove-answer-btn {
+            background: #ef4444;
+            color: white;
+        }
+
+        .remove-answer-btn:hover {
+            background: #dc2626;
         }
 
         .question-text {
             font-size: 16px;
             line-height: 1.6;
             margin-bottom: 15px;
+        }
+
+        .question-text-edit {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .question-text-edit:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
 
         .question-options {
@@ -517,6 +598,71 @@
             margin-top: 15px;
             font-weight: 600;
             color: #0277bd;
+            position: relative;
+        }
+
+        .question-answer.hidden {
+            display: none;
+        }
+
+        .answer-edit {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #0277bd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #e0f2fe;
+            color: #0277bd;
+            font-weight: 600;
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        .answer-edit:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .question-explanation {
+            background: #f0f9ff;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .explanation-edit {
+            width: 100%;
+            min-height: 60px;
+            padding: 10px;
+            border: 2px solid #3b82f6;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #f0f9ff;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .explanation-edit:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .blank-placeholder {
+            display: inline-block;
+            border-bottom: 2px solid #374151;
+            min-width: 80px;
+            height: 20px;
+            margin: 0 4px;
+            background: #f3f4f6;
+        }
+
+        .editing-mode {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
         }
 
         /* Responsive Design */
@@ -836,20 +982,33 @@
 
             questions.forEach((question, index) => {
                 questionsHTML += `
-                    <div class="question-item">
-                        <div class="question-number">Question ${index + 1}</div>
-                        <div class="question-text">${question.question}</div>
+                    <div class="question-item" data-question-index="${index}">
+                        <div class="question-number">
+                            Question ${index + 1}
+                            <div class="question-controls">
+                                <button class="control-btn edit-btn" onclick="editQuestion(${index})">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="control-btn blank-btn" onclick="createBlanks(${index})">
+                                    <i class="fas fa-minus"></i> Add Blanks
+                                </button>
+                                <button class="control-btn remove-answer-btn" onclick="toggleAnswer(${index})">
+                                    <i class="fas fa-eye-slash"></i> Hide Answer
+                                </button>
+                            </div>
+                        </div>
+                        <div class="question-text" id="question-text-${index}">${question.question}</div>
                         ${question.options ? `
-                            <ol class="question-options">
+                            <ol class="question-options" id="question-options-${index}">
                                 ${question.options.map(option => `<li>${option}</li>`).join('')}
                             </ol>
                         ` : ''}
-                        <div class="question-answer">
-                            <strong>Answer:</strong> ${question.answer}
+                        <div class="question-answer" id="question-answer-${index}">
+                            <strong>Answer:</strong> <span id="answer-text-${index}">${question.answer}</span>
                         </div>
                         ${question.explanation ? `
-                            <div class="question-explanation" style="margin-top: 10px; padding: 10px; background: #f0f9ff; border-radius: 6px;">
-                                <strong>Explanation:</strong> ${question.explanation}
+                            <div class="question-explanation" id="question-explanation-${index}">
+                                <strong>Explanation:</strong> <span id="explanation-text-${index}">${question.explanation}</span>
                             </div>
                         ` : ''}
                     </div>
@@ -859,14 +1018,49 @@
             questionsContent.innerHTML = questionsHTML;
             generatedQuestionsDiv.style.display = 'block';
 
+            // Store questions data globally for editing
+            window.generatedQuestions = questions;
+
             // Scroll to generated questions
             generatedQuestionsDiv.scrollIntoView({ behavior: 'smooth' });
         }
 
         function exportQuestions() {
-            const questionsContent = document.getElementById('questionsContent');
             const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const questionCount = document.getElementById('questionCount').value;
+
+            // Get current state of questions (including edits)
+            const currentQuestions = window.generatedQuestions || [];
+
+            let questionsHTML = '';
+            currentQuestions.forEach((question, index) => {
+                const questionElement = document.getElementById(`question-text-${index}`);
+                const answerElement = document.getElementById(`answer-text-${index}`);
+                const explanationElement = document.getElementById(`explanation-text-${index}`);
+                const answerDiv = document.getElementById(`question-answer-${index}`);
+
+                const currentQuestion = questionElement ? questionElement.innerHTML : question.question;
+                const currentAnswer = answerElement ? answerElement.innerHTML : question.answer;
+                const currentExplanation = explanationElement ? explanationElement.innerHTML : question.explanation;
+                const isAnswerHidden = answerDiv ? answerDiv.classList.contains('hidden') : false;
+
+                questionsHTML += `
+                    <div style="margin-bottom: 25px; page-break-inside: avoid;">
+                        <div style="font-weight: bold; color: #4F46E5; margin-bottom: 10px;">Question ${index + 1}</div>
+                        <div style="margin-bottom: 15px; line-height: 1.6;">${currentQuestion}</div>
+                        ${!isAnswerHidden ? `
+                            <div style="background: #e0f2fe; padding: 10px; border-radius: 5px; margin-top: 15px;">
+                                <strong>Answer:</strong> ${currentAnswer}
+                            </div>
+                        ` : ''}
+                        ${currentExplanation ? `
+                            <div style="background: #f0f9ff; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                                <strong>Explanation:</strong> ${currentExplanation}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
 
             // Create a new window for printing
             const printWindow = window.open('', '_blank');
@@ -878,13 +1072,7 @@
                     <style>
                         body { font-family: Arial, sans-serif; margin: 20px; }
                         .header { text-align: center; margin-bottom: 30px; }
-                        .question-item { margin-bottom: 25px; page-break-inside: avoid; }
-                        .question-number { font-weight: bold; color: #4F46E5; margin-bottom: 10px; }
-                        .question-text { margin-bottom: 15px; line-height: 1.6; }
-                        .question-options { margin-left: 20px; }
-                        .question-options li { margin-bottom: 8px; }
-                        .question-answer { background: #e0f2fe; padding: 10px; border-radius: 5px; margin-top: 15px; }
-                        .question-explanation { background: #f0f9ff; padding: 10px; border-radius: 5px; margin-top: 10px; }
+                        .blank-placeholder { border-bottom: 2px solid #374151; min-width: 80px; height: 20px; display: inline-block; margin: 0 4px; }
                     </style>
                 </head>
                 <body>
@@ -893,7 +1081,7 @@
                         <p>Difficulty: ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} | Questions: ${questionCount}</p>
                         <p>Generated on: ${new Date().toLocaleDateString()}</p>
                     </div>
-                    ${questionsContent.innerHTML}
+                    ${questionsHTML}
                 </body>
                 </html>
             `);
@@ -932,6 +1120,242 @@
             } catch (error) {
                 console.error('Error saving questions:', error);
                 alert('Failed to save questions. Please try again.');
+            }
+        }
+
+        // Edit question functionality
+        function editQuestion(index) {
+            const questionItem = document.querySelector(`[data-question-index="${index}"]`);
+            const questionText = document.getElementById(`question-text-${index}`);
+            const answerText = document.getElementById(`answer-text-${index}`);
+            const explanationText = document.getElementById(`explanation-text-${index}`);
+            const controls = questionItem.querySelector('.question-controls');
+
+            // Add editing mode class
+            questionItem.classList.add('editing-mode');
+
+            // Store original content
+            const originalQuestion = questionText.innerHTML;
+            const originalAnswer = answerText ? answerText.innerHTML : '';
+            const originalExplanation = explanationText ? explanationText.innerHTML : '';
+
+            // Replace with editable textareas
+            questionText.innerHTML = `<textarea class="question-text-edit" id="edit-question-${index}">${originalQuestion}</textarea>`;
+
+            if (answerText) {
+                answerText.innerHTML = `<textarea class="answer-edit" id="edit-answer-${index}">${originalAnswer}</textarea>`;
+            }
+
+            if (explanationText) {
+                explanationText.innerHTML = `<textarea class="explanation-edit" id="edit-explanation-${index}">${originalExplanation}</textarea>`;
+            }
+
+            // Update controls
+            controls.innerHTML = `
+                <button class="control-btn save-btn" onclick="saveQuestion(${index}, '${originalQuestion.replace(/'/g, "\\'")}', '${originalAnswer.replace(/'/g, "\\'")}', '${originalExplanation.replace(/'/g, "\\'")}')">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button class="control-btn cancel-btn" onclick="cancelEdit(${index}, '${originalQuestion.replace(/'/g, "\\'")}', '${originalAnswer.replace(/'/g, "\\'")}', '${originalExplanation.replace(/'/g, "\\'")}')">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            `;
+        }
+
+        function saveQuestion(index, originalQuestion, originalAnswer, originalExplanation) {
+            const questionItem = document.querySelector(`[data-question-index="${index}"]`);
+            const questionText = document.getElementById(`question-text-${index}`);
+            const answerText = document.getElementById(`answer-text-${index}`);
+            const explanationText = document.getElementById(`explanation-text-${index}`);
+            const controls = questionItem.querySelector('.question-controls');
+
+            // Get edited content
+            const editedQuestion = document.getElementById(`edit-question-${index}`).value;
+            const editedAnswer = document.getElementById(`edit-answer-${index}`) ? document.getElementById(`edit-answer-${index}`).value : '';
+            const editedExplanation = document.getElementById(`edit-explanation-${index}`) ? document.getElementById(`edit-explanation-${index}`).value : '';
+
+            // Update the stored data
+            if (window.generatedQuestions && window.generatedQuestions[index]) {
+                window.generatedQuestions[index].question = editedQuestion;
+                window.generatedQuestions[index].answer = editedAnswer;
+                window.generatedQuestions[index].explanation = editedExplanation;
+            }
+
+            // Update display
+            questionText.innerHTML = editedQuestion;
+            if (answerText) {
+                answerText.innerHTML = editedAnswer;
+            }
+            if (explanationText) {
+                explanationText.innerHTML = editedExplanation;
+            }
+
+            // Remove editing mode
+            questionItem.classList.remove('editing-mode');
+
+            // Restore original controls
+            controls.innerHTML = `
+                <button class="control-btn edit-btn" onclick="editQuestion(${index})">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="control-btn blank-btn" onclick="createBlanks(${index})">
+                    <i class="fas fa-minus"></i> Add Blanks
+                </button>
+                <button class="control-btn remove-answer-btn" onclick="toggleAnswer(${index})">
+                    <i class="fas fa-eye-slash"></i> Hide Answer
+                </button>
+            `;
+        }
+
+        function cancelEdit(index, originalQuestion, originalAnswer, originalExplanation) {
+            const questionItem = document.querySelector(`[data-question-index="${index}"]`);
+            const questionText = document.getElementById(`question-text-${index}`);
+            const answerText = document.getElementById(`answer-text-${index}`);
+            const explanationText = document.getElementById(`explanation-text-${index}`);
+            const controls = questionItem.querySelector('.question-controls');
+
+            // Restore original content
+            questionText.innerHTML = originalQuestion;
+            if (answerText) {
+                answerText.innerHTML = originalAnswer;
+            }
+            if (explanationText) {
+                explanationText.innerHTML = originalExplanation;
+            }
+
+            // Remove editing mode
+            questionItem.classList.remove('editing-mode');
+
+            // Restore original controls
+            controls.innerHTML = `
+                <button class="control-btn edit-btn" onclick="editQuestion(${index})">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="control-btn blank-btn" onclick="createBlanks(${index})">
+                    <i class="fas fa-minus"></i> Add Blanks
+                </button>
+                <button class="control-btn remove-answer-btn" onclick="toggleAnswer(${index})">
+                    <i class="fas fa-eye-slash"></i> Hide Answer
+                </button>
+            `;
+        }
+
+        // Create blanks functionality
+        function createBlanks(index) {
+            const questionText = document.getElementById(`question-text-${index}`);
+            const answerText = document.getElementById(`answer-text-${index}`);
+
+            if (!questionText || !answerText) return;
+
+            const question = questionText.innerHTML;
+            const answer = answerText.innerHTML;
+
+            // Show modal for blank creation
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 2000;
+            `;
+
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%;">
+                    <h3 style="margin-bottom: 20px; color: #374151;">Create Blanks in Question</h3>
+                    <p style="margin-bottom: 15px; color: #6b7280;">Enter text to replace with blanks:</p>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Question:</label>
+                        <textarea id="blank-question-${index}" style="width: 100%; height: 100px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px;">${question}</textarea>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Answer:</label>
+                        <textarea id="blank-answer-${index}" style="width: 100%; height: 60px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px;">${answer}</textarea>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Text to replace with blank:</label>
+                        <input type="text" id="blank-text-${index}" placeholder="Enter text to replace with ______" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px;">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="applyBlanks(${index})" style="padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Apply Blanks
+                        </button>
+                        <button onclick="closeBlanksModal()" style="padding: 10px 20px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            window.currentBlanksModal = modal;
+        }
+
+        function applyBlanks(index) {
+            const questionTextarea = document.getElementById(`blank-question-${index}`);
+            const answerTextarea = document.getElementById(`blank-answer-${index}`);
+            const blankText = document.getElementById(`blank-text-${index}`).value;
+
+            if (!blankText.trim()) {
+                alert('Please enter text to replace with blanks');
+                return;
+            }
+
+            let modifiedQuestion = questionTextarea.value;
+            let modifiedAnswer = answerTextarea.value;
+
+            // Replace the specified text with blanks
+            const blankPlaceholder = '<span class="blank-placeholder">______</span>';
+            modifiedQuestion = modifiedQuestion.replace(new RegExp(blankText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), blankPlaceholder);
+            modifiedAnswer = modifiedAnswer.replace(new RegExp(blankText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), blankPlaceholder);
+
+            // Update the question display
+            document.getElementById(`question-text-${index}`).innerHTML = modifiedQuestion;
+            document.getElementById(`answer-text-${index}`).innerHTML = modifiedAnswer;
+
+            // Update stored data
+            if (window.generatedQuestions && window.generatedQuestions[index]) {
+                window.generatedQuestions[index].question = modifiedQuestion;
+                window.generatedQuestions[index].answer = modifiedAnswer;
+            }
+
+            closeBlanksModal();
+        }
+
+        function closeBlanksModal() {
+            if (window.currentBlanksModal) {
+                document.body.removeChild(window.currentBlanksModal);
+                window.currentBlanksModal = null;
+            }
+        }
+
+        // Toggle answer visibility
+        function toggleAnswer(index) {
+            const answerDiv = document.getElementById(`question-answer-${index}`);
+            const button = document.querySelector(`[data-question-index="${index}"] .remove-answer-btn`);
+
+            if (!answerDiv || !button) return;
+
+            if (answerDiv.classList.contains('hidden')) {
+                // Show answer
+                answerDiv.classList.remove('hidden');
+                button.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Answer';
+                button.classList.remove('save-btn');
+                button.classList.add('remove-answer-btn');
+            } else {
+                // Hide answer
+                answerDiv.classList.add('hidden');
+                button.innerHTML = '<i class="fas fa-eye"></i> Show Answer';
+                button.classList.remove('remove-answer-btn');
+                button.classList.add('save-btn');
             }
         }
     </script>
