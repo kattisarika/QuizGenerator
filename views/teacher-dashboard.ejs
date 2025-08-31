@@ -149,6 +149,77 @@
             transform: translateY(-2px);
         }
 
+        /* Dropdown Menu Styles */
+        .nav-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-toggle {
+            position: relative;
+        }
+
+        .dropdown-toggle .fa-chevron-down {
+            font-size: 12px;
+            margin-left: 4px;
+            transition: transform 0.3s ease;
+        }
+
+        .dropdown-toggle.active .fa-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb;
+        }
+
+        .dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            color: var(--dark-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: var(--light-color);
+            color: var(--primary-color);
+            transform: translateX(5px);
+        }
+
+        .dropdown-item i {
+            width: 16px;
+            text-align: center;
+            color: var(--primary-color);
+        }
+
         /* Mobile Menu Overlay */
         .mobile-menu-overlay {
             position: fixed;
@@ -1424,6 +1495,40 @@
                 justify-content: flex-start;
             }
 
+            /* Mobile dropdown styles */
+            .nav-dropdown {
+                width: 100%;
+            }
+
+            .dropdown-menu {
+                position: static;
+                opacity: 1;
+                visibility: visible;
+                transform: none;
+                box-shadow: none;
+                border: none;
+                background: #f8f9fa;
+                margin-top: 10px;
+                border-radius: 8px;
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+            }
+
+            .dropdown-menu.show {
+                max-height: 400px;
+            }
+
+            .dropdown-item {
+                padding: 12px 20px;
+                border-bottom: 1px solid #e9ecef;
+            }
+
+            .dropdown-item:hover {
+                transform: none;
+                background: #e9ecef;
+            }
+
             .main-content {
                 padding: 15px;
             }
@@ -1571,6 +1676,34 @@
                 <a href="/create-quiz" class="nav-link">
                     <i class="fas fa-plus-circle"></i> Create Quiz
                 </a>
+                <div class="nav-dropdown">
+                    <a href="#" class="nav-link dropdown-toggle" onclick="toggleDropdown(event)">
+                        <i class="fas fa-cube"></i> Create Products <i class="fas fa-chevron-down"></i>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="/create-products/grade-6-math" class="dropdown-item">
+                            <i class="fas fa-calculator"></i> Grade 6 Math
+                        </a>
+                        <a href="/create-products/prealgebra" class="dropdown-item">
+                            <i class="fas fa-square-root-alt"></i> Pre-Algebra
+                        </a>
+                        <a href="/create-products/algebra" class="dropdown-item">
+                            <i class="fas fa-function"></i> Algebra
+                        </a>
+                        <a href="/create-products/geometry" class="dropdown-item">
+                            <i class="fas fa-shapes"></i> Geometry
+                        </a>
+                        <a href="/create-products/algebra-2" class="dropdown-item">
+                            <i class="fas fa-superscript"></i> Algebra 2
+                        </a>
+                        <a href="/create-products/precalculus" class="dropdown-item">
+                            <i class="fas fa-chart-line"></i> Pre-Calculus
+                        </a>
+                        <a href="/create-products/calculus" class="dropdown-item">
+                            <i class="fas fa-infinity"></i> Calculus
+                        </a>
+                    </div>
+                </div>
                 <a href="/create-podcast" class="nav-link">
                     <i class="fas fa-podcast"></i> Create Podcast
                 </a>
@@ -3441,6 +3574,37 @@
             const overlay = document.querySelector('.mobile-menu-overlay');
             if (overlay) {
                 overlay.addEventListener('click', toggleMobileMenu);
+            }
+        });
+
+        // Dropdown toggle function
+        function toggleDropdown(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const dropdownToggle = event.currentTarget;
+            const dropdownMenu = dropdownToggle.nextElementSibling;
+
+            // Close other dropdowns
+            document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                if (menu !== dropdownMenu) {
+                    menu.classList.remove('show');
+                    menu.previousElementSibling.classList.remove('active');
+                }
+            });
+
+            // Toggle current dropdown
+            dropdownMenu.classList.toggle('show');
+            dropdownToggle.classList.toggle('active');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.nav-dropdown')) {
+                document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                    menu.classList.remove('show');
+                    menu.previousElementSibling.classList.remove('active');
+                });
             }
         });
     </script>

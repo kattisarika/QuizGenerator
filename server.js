@@ -2461,6 +2461,70 @@ app.get('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireAp
   res.render('create-complex-quiz', { user: req.user });
 });
 
+// Create Products routes
+app.get('/create-products/grade-6-math', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('create-products', {
+    user: req.user,
+    subject: 'Grade 6 Math',
+    subjectCode: 'grade-6-math',
+    description: 'Create engaging Grade 6 mathematics products including worksheets, assessments, and interactive activities.'
+  });
+});
+
+app.get('/create-products/prealgebra', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('create-products', {
+    user: req.user,
+    subject: 'Pre-Algebra',
+    subjectCode: 'prealgebra',
+    description: 'Develop Pre-Algebra educational materials covering basic algebraic concepts and problem-solving strategies.'
+  });
+});
+
+app.get('/create-products/algebra', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('create-products', {
+    user: req.user,
+    subject: 'Algebra',
+    subjectCode: 'algebra',
+    description: 'Create comprehensive Algebra resources including equations, functions, and graphing activities.'
+  });
+});
+
+app.get('/create-products/geometry', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('create-products', {
+    user: req.user,
+    subject: 'Geometry',
+    subjectCode: 'geometry',
+    description: 'Design Geometry educational products featuring shapes, proofs, and spatial reasoning exercises.'
+  });
+});
+
+app.get('/create-products/algebra-2', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('create-products', {
+    user: req.user,
+    subject: 'Algebra 2',
+    subjectCode: 'algebra-2',
+    description: 'Build advanced Algebra 2 materials covering polynomials, logarithms, and complex functions.'
+  });
+});
+
+app.get('/create-products/precalculus', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('create-products', {
+    user: req.user,
+    subject: 'Pre-Calculus',
+    subjectCode: 'precalculus',
+    description: 'Develop Pre-Calculus resources including trigonometry, limits, and advanced function analysis.'
+  });
+});
+
+app.get('/create-products/calculus', requireAuth, requireRole(['teacher']), requireApprovedTeacher, (req, res) => {
+  res.render('create-products', {
+    user: req.user,
+    subject: 'Calculus',
+    subjectCode: 'calculus',
+    description: 'Create Calculus educational materials covering derivatives, integrals, and advanced mathematical concepts.'
+  });
+});
+
 // Save complex quiz route
 app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   console.log('=== COMPLEX QUIZ CREATION START ===');
