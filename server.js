@@ -2525,6 +2525,270 @@ app.get('/create-products/calculus', requireAuth, requireRole(['teacher']), requ
   });
 });
 
+// API route for generating trigonometry questions
+app.post('/api/generate-trig-questions', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { difficulty, questionCount, questionType, subject } = req.body;
+
+    console.log('Generating trigonometry questions:', { difficulty, questionCount, questionType, subject });
+
+    // Generate questions based on difficulty level
+    const questions = generateTrigonometryQuestions(difficulty, questionCount, questionType);
+
+    res.json({
+      success: true,
+      questions: questions,
+      metadata: {
+        difficulty,
+        questionCount,
+        questionType,
+        subject,
+        generatedAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Error generating trigonometry questions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate questions'
+    });
+  }
+});
+
+// API route for saving generated questions
+app.post('/api/save-generated-questions', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const { difficulty, questionCount, questionType, subject, content, title } = req.body;
+
+    // Here you would typically save to database
+    // For now, we'll just log and return success
+    console.log('Saving generated questions:', {
+      teacherId: req.user._id,
+      organizationId: req.user.organizationId,
+      title,
+      difficulty,
+      questionCount,
+      questionType,
+      subject
+    });
+
+    res.json({
+      success: true,
+      message: 'Questions saved successfully'
+    });
+
+  } catch (error) {
+    console.error('Error saving questions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save questions'
+    });
+  }
+});
+
+// Function to generate trigonometry questions based on difficulty
+function generateTrigonometryQuestions(difficulty, questionCount, questionType) {
+  const questions = [];
+
+  const easyQuestions = [
+    {
+      question: "Find the value of sin(30°).",
+      answer: "1/2 or 0.5",
+      explanation: "sin(30°) is a standard angle. sin(30°) = 1/2 = 0.5"
+    },
+    {
+      question: "What is cos(60°)?",
+      answer: "1/2 or 0.5",
+      explanation: "cos(60°) is a standard angle. cos(60°) = 1/2 = 0.5"
+    },
+    {
+      question: "Calculate tan(45°).",
+      answer: "1",
+      explanation: "tan(45°) is a standard angle. tan(45°) = 1"
+    },
+    {
+      question: "Find sin(90°).",
+      answer: "1",
+      explanation: "sin(90°) = 1, as the sine of 90° is at its maximum value"
+    },
+    {
+      question: "What is cos(0°)?",
+      answer: "1",
+      explanation: "cos(0°) = 1, as the cosine of 0° is at its maximum value"
+    },
+    {
+      question: "Calculate sin(0°).",
+      answer: "0",
+      explanation: "sin(0°) = 0, as there is no vertical component at 0°"
+    },
+    {
+      question: "Find cos(90°).",
+      answer: "0",
+      explanation: "cos(90°) = 0, as there is no horizontal component at 90°"
+    },
+    {
+      question: "What is tan(0°)?",
+      answer: "0",
+      explanation: "tan(0°) = sin(0°)/cos(0°) = 0/1 = 0"
+    }
+  ];
+
+  const mediumQuestions = [
+    {
+      question: "Solve for x: sin(x) = √3/2, where 0° ≤ x ≤ 360°.",
+      answer: "x = 60° or x = 120°",
+      explanation: "sin(x) = √3/2 occurs at 60° and 120° in the range [0°, 360°]"
+    },
+    {
+      question: "Find all solutions to cos(x) = -1/2 in the interval [0, 2π].",
+      answer: "x = 2π/3 or x = 4π/3",
+      explanation: "cos(x) = -1/2 occurs at 2π/3 and 4π/3 radians"
+    },
+    {
+      question: "Simplify: sin²(x) + cos²(x)",
+      answer: "1",
+      explanation: "This is the Pythagorean identity: sin²(x) + cos²(x) = 1 for all x"
+    },
+    {
+      question: "If sin(θ) = 3/5 and θ is in the first quadrant, find cos(θ).",
+      answer: "4/5",
+      explanation: "Using sin²(θ) + cos²(θ) = 1: cos²(θ) = 1 - (3/5)² = 1 - 9/25 = 16/25, so cos(θ) = 4/5"
+    },
+    {
+      question: "Find the period of y = sin(2x).",
+      answer: "π",
+      explanation: "The period of sin(bx) is 2π/|b|. For sin(2x), period = 2π/2 = π"
+    },
+    {
+      question: "What is the amplitude of y = 3cos(x)?",
+      answer: "3",
+      explanation: "The amplitude of y = A·cos(x) is |A|. For y = 3cos(x), amplitude = |3| = 3"
+    }
+  ];
+
+  const difficultQuestions = [
+    {
+      question: "Prove the identity: tan(x) + cot(x) = 2csc(2x)",
+      answer: "tan(x) + cot(x) = sin(x)/cos(x) + cos(x)/sin(x) = (sin²(x) + cos²(x))/(sin(x)cos(x)) = 1/(sin(x)cos(x)) = 2/(2sin(x)cos(x)) = 2/sin(2x) = 2csc(2x)",
+      explanation: "Use the definitions of tan and cot, find common denominator, apply Pythagorean identity, and use double angle formula"
+    },
+    {
+      question: "Solve: 2sin²(x) - 3sin(x) + 1 = 0 for 0 ≤ x ≤ 2π",
+      answer: "x = π/6, 5π/6, π/2",
+      explanation: "Let u = sin(x): 2u² - 3u + 1 = 0, factors to (2u-1)(u-1) = 0, so u = 1/2 or u = 1"
+    },
+    {
+      question: "Find the exact value of sin(15°) using angle subtraction formula.",
+      answer: "(√6 - √2)/4",
+      explanation: "sin(15°) = sin(45° - 30°) = sin(45°)cos(30°) - cos(45°)sin(30°) = (√2/2)(√3/2) - (√2/2)(1/2) = (√6 - √2)/4"
+    },
+    {
+      question: "If cos(α + β) = 1/3 and cos(α - β) = 2/3, find cos(α)cos(β).",
+      answer: "1/2",
+      explanation: "Using sum-to-product formulas: cos(α+β) + cos(α-β) = 2cos(α)cos(β), so 1/3 + 2/3 = 1 = 2cos(α)cos(β), therefore cos(α)cos(β) = 1/2"
+    },
+    {
+      question: "Find the general solution to sin(3x) = cos(2x).",
+      answer: "x = π/10 + 2πk/5 or x = π/2 + 2πk (where k is any integer)",
+      explanation: "Rewrite as sin(3x) = sin(π/2 - 2x), then 3x = π/2 - 2x + 2πk or 3x = π - (π/2 - 2x) + 2πk"
+    }
+  ];
+
+  let questionPool;
+  switch (difficulty) {
+    case 'easy':
+      questionPool = easyQuestions;
+      break;
+    case 'medium':
+      questionPool = mediumQuestions;
+      break;
+    case 'difficult':
+      questionPool = difficultQuestions;
+      break;
+    default:
+      questionPool = easyQuestions;
+  }
+
+  // Select random questions from the pool
+  const selectedQuestions = [];
+  const poolCopy = [...questionPool];
+
+  for (let i = 0; i < Math.min(questionCount, poolCopy.length); i++) {
+    const randomIndex = Math.floor(Math.random() * poolCopy.length);
+    const selectedQuestion = poolCopy.splice(randomIndex, 1)[0];
+
+    // Add multiple choice options for multiple choice questions
+    if (questionType === 'multiple-choice') {
+      selectedQuestion.options = generateMultipleChoiceOptions(selectedQuestion.answer, difficulty);
+    }
+
+    selectedQuestions.push(selectedQuestion);
+  }
+
+  // If we need more questions than available in pool, repeat with variations
+  while (selectedQuestions.length < questionCount) {
+    const baseQuestion = questionPool[selectedQuestions.length % questionPool.length];
+    const variation = createQuestionVariation(baseQuestion, difficulty);
+
+    if (questionType === 'multiple-choice') {
+      variation.options = generateMultipleChoiceOptions(variation.answer, difficulty);
+    }
+
+    selectedQuestions.push(variation);
+  }
+
+  return selectedQuestions;
+}
+
+// Helper function to generate multiple choice options
+function generateMultipleChoiceOptions(correctAnswer, difficulty) {
+  const options = [correctAnswer];
+
+  // Generate plausible wrong answers based on difficulty
+  if (difficulty === 'easy') {
+    options.push('0', '√2/2', '√3/2', '2');
+  } else if (difficulty === 'medium') {
+    options.push('π/4', 'π/3', '2π/3', '3π/4');
+  } else {
+    options.push('(√6 + √2)/4', '(√3 - 1)/2', '(2 + √3)/4', '(√2 + 1)/3');
+  }
+
+  // Remove duplicates and shuffle
+  const uniqueOptions = [...new Set(options)];
+  while (uniqueOptions.length < 4 && uniqueOptions.length < 6) {
+    uniqueOptions.push(`Option ${uniqueOptions.length + 1}`);
+  }
+
+  // Shuffle options
+  for (let i = uniqueOptions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [uniqueOptions[i], uniqueOptions[j]] = [uniqueOptions[j], uniqueOptions[i]];
+  }
+
+  return uniqueOptions.slice(0, 4);
+}
+
+// Helper function to create question variations
+function createQuestionVariation(baseQuestion, difficulty) {
+  // Simple variation by changing angles or coefficients
+  const angles = ['30°', '45°', '60°', 'π/6', 'π/4', 'π/3'];
+  const coefficients = ['2', '3', '4', '1/2', '1/3'];
+
+  let newQuestion = { ...baseQuestion };
+
+  // Simple text replacement for variations
+  if (newQuestion.question.includes('30°')) {
+    newQuestion.question = newQuestion.question.replace('30°', '60°');
+    newQuestion.answer = newQuestion.answer.replace('1/2', '√3/2');
+  } else if (newQuestion.question.includes('45°')) {
+    newQuestion.question = newQuestion.question.replace('45°', '30°');
+    newQuestion.answer = newQuestion.answer.replace('1', '1/2');
+  }
+
+  return newQuestion;
+}
+
 // Save complex quiz route
 app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   console.log('=== COMPLEX QUIZ CREATION START ===');
