@@ -7,6 +7,22 @@
     <link rel="stylesheet" href="/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- MathJax for LaTeX rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                }
+            }
+        };
+    </script>
     <style>
         :root {
             --primary-color: #4F46E5;
@@ -1000,7 +1016,14 @@
                         <div class="question-text" id="question-text-${index}">${question.question}</div>
                         ${question.options ? `
                             <ol class="question-options" id="question-options-${index}">
-                                ${question.options.map(option => `<li>${option}</li>`).join('')}
+                                ${question.options.map((option, optIndex) => `
+                                    <li>
+                                        <span class="option-text" id="option-${index}-${optIndex}">${option}</span>
+                                        <button class="control-btn edit-btn" onclick="editOption(${index}, ${optIndex})" style="margin-left: 10px; font-size: 10px; padding: 2px 6px;">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </li>
+                                `).join('')}
                             </ol>
                         ` : ''}
                         <div class="question-answer" id="question-answer-${index}">
@@ -1020,6 +1043,11 @@
 
             // Store questions data globally for editing
             window.generatedQuestions = questions;
+
+            // Render LaTeX expressions
+            if (window.MathJax) {
+                MathJax.typesetPromise([questionsContent]).catch((err) => console.log(err.message));
+            }
 
             // Scroll to generated questions
             generatedQuestionsDiv.scrollIntoView({ behavior: 'smooth' });
@@ -1139,15 +1167,42 @@
             const originalAnswer = answerText ? answerText.innerHTML : '';
             const originalExplanation = explanationText ? explanationText.innerHTML : '';
 
-            // Replace with editable textareas
-            questionText.innerHTML = `<textarea class="question-text-edit" id="edit-question-${index}">${originalQuestion}</textarea>`;
+            // Replace with editable textareas and LaTeX toolbar
+            questionText.innerHTML = `
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question (LaTeX supported: use $...$ for inline math, $$...$$ for display math):</label>
+                    <textarea class="question-text-edit" id="edit-question-${index}">${originalQuestion}</textarea>
+                </div>
+            `;
+
+            // Add LaTeX toolbar for question
+            const questionToolbar = addLatexToolbar(`edit-question-${index}`);
+            questionText.appendChild(questionToolbar);
 
             if (answerText) {
-                answerText.innerHTML = `<textarea class="answer-edit" id="edit-answer-${index}">${originalAnswer}</textarea>`;
+                answerText.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Answer (LaTeX supported):</label>
+                        <textarea class="answer-edit" id="edit-answer-${index}">${originalAnswer}</textarea>
+                    </div>
+                `;
+
+                // Add LaTeX toolbar for answer
+                const answerToolbar = addLatexToolbar(`edit-answer-${index}`);
+                answerText.appendChild(answerToolbar);
             }
 
             if (explanationText) {
-                explanationText.innerHTML = `<textarea class="explanation-edit" id="edit-explanation-${index}">${originalExplanation}</textarea>`;
+                explanationText.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Explanation (LaTeX supported):</label>
+                        <textarea class="explanation-edit" id="edit-explanation-${index}">${originalExplanation}</textarea>
+                    </div>
+                `;
+
+                // Add LaTeX toolbar for explanation
+                const explanationToolbar = addLatexToolbar(`edit-explanation-${index}`);
+                explanationText.appendChild(explanationToolbar);
             }
 
             // Update controls
@@ -1191,6 +1246,11 @@
 
             // Remove editing mode
             questionItem.classList.remove('editing-mode');
+
+            // Re-render LaTeX if MathJax is available
+            if (window.MathJax) {
+                MathJax.typesetPromise([questionItem]).catch((err) => console.log(err.message));
+            }
 
             // Restore original controls
             controls.innerHTML = `
@@ -1270,13 +1330,15 @@
                     <p style="margin-bottom: 15px; color: #6b7280;">Enter text to replace with blanks:</p>
 
                     <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Question:</label>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Question (LaTeX supported):</label>
                         <textarea id="blank-question-${index}" style="width: 100%; height: 100px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px;">${question}</textarea>
+                        <div id="question-latex-toolbar-${index}" style="margin-top: 5px;"></div>
                     </div>
 
                     <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Answer:</label>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Answer (LaTeX supported):</label>
                         <textarea id="blank-answer-${index}" style="width: 100%; height: 60px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px;">${answer}</textarea>
+                        <div id="answer-latex-toolbar-${index}" style="margin-top: 5px;"></div>
                     </div>
 
                     <div style="margin-bottom: 20px;">
@@ -1297,6 +1359,24 @@
 
             document.body.appendChild(modal);
             window.currentBlanksModal = modal;
+
+            // Add LaTeX toolbars to the modal
+            setTimeout(() => {
+                const questionToolbarContainer = document.getElementById(`question-latex-toolbar-${index}`);
+                const answerToolbarContainer = document.getElementById(`answer-latex-toolbar-${index}`);
+
+                if (questionToolbarContainer) {
+                    const questionToolbar = addLatexToolbar(`blank-question-${index}`);
+                    questionToolbar.style.fontSize = '11px';
+                    questionToolbarContainer.appendChild(questionToolbar);
+                }
+
+                if (answerToolbarContainer) {
+                    const answerToolbar = addLatexToolbar(`blank-answer-${index}`);
+                    answerToolbar.style.fontSize = '11px';
+                    answerToolbarContainer.appendChild(answerToolbar);
+                }
+            }, 100);
         }
 
         function applyBlanks(index) {
@@ -1325,6 +1405,13 @@
             if (window.generatedQuestions && window.generatedQuestions[index]) {
                 window.generatedQuestions[index].question = modifiedQuestion;
                 window.generatedQuestions[index].answer = modifiedAnswer;
+            }
+
+            // Re-render LaTeX
+            if (window.MathJax) {
+                const questionElement = document.getElementById(`question-text-${index}`);
+                const answerElement = document.getElementById(`answer-text-${index}`);
+                MathJax.typesetPromise([questionElement, answerElement]).catch((err) => console.log(err.message));
             }
 
             closeBlanksModal();
@@ -1357,6 +1444,127 @@
                 button.classList.remove('remove-answer-btn');
                 button.classList.add('save-btn');
             }
+        }
+
+        // Edit multiple choice options
+        function editOption(questionIndex, optionIndex) {
+            const optionSpan = document.getElementById(`option-${questionIndex}-${optionIndex}`);
+            if (!optionSpan) return;
+
+            const originalText = optionSpan.innerHTML;
+
+            // Create inline editor
+            optionSpan.innerHTML = `
+                <input type="text" id="edit-option-input-${questionIndex}-${optionIndex}"
+                       value="${originalText.replace(/"/g, '&quot;')}"
+                       style="width: 300px; padding: 4px 8px; border: 2px solid #4f46e5; border-radius: 4px; font-size: 14px;"
+                       onkeypress="if(event.key==='Enter') saveOption(${questionIndex}, ${optionIndex}, '${originalText.replace(/'/g, "\\'")}'); if(event.key==='Escape') cancelOptionEdit(${questionIndex}, ${optionIndex}, '${originalText.replace(/'/g, "\\'")}')"
+                       onblur="saveOption(${questionIndex}, ${optionIndex}, '${originalText.replace(/'/g, "\\'")}')">
+                <button onclick="saveOption(${questionIndex}, ${optionIndex}, '${originalText.replace(/'/g, "\\'")}'); return false;"
+                        style="margin-left: 5px; padding: 2px 6px; background: #10b981; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button onclick="cancelOptionEdit(${questionIndex}, ${optionIndex}, '${originalText.replace(/'/g, "\\'")}'); return false;"
+                        style="margin-left: 3px; padding: 2px 6px; background: #ef4444; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            // Focus on input
+            const input = document.getElementById(`edit-option-input-${questionIndex}-${optionIndex}`);
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }
+
+        function saveOption(questionIndex, optionIndex, originalText) {
+            const input = document.getElementById(`edit-option-input-${questionIndex}-${optionIndex}`);
+            const optionSpan = document.getElementById(`option-${questionIndex}-${optionIndex}`);
+
+            if (!input || !optionSpan) return;
+
+            const newText = input.value.trim();
+
+            // Update display
+            optionSpan.innerHTML = `
+                ${newText}
+                <button class="control-btn edit-btn" onclick="editOption(${questionIndex}, ${optionIndex})" style="margin-left: 10px; font-size: 10px; padding: 2px 6px;">
+                    <i class="fas fa-edit"></i>
+                </button>
+            `;
+
+            // Update stored data
+            if (window.generatedQuestions && window.generatedQuestions[questionIndex] && window.generatedQuestions[questionIndex].options) {
+                window.generatedQuestions[questionIndex].options[optionIndex] = newText;
+            }
+
+            // Re-render LaTeX if MathJax is available
+            if (window.MathJax) {
+                MathJax.typesetPromise([optionSpan]).catch((err) => console.log(err.message));
+            }
+        }
+
+        function cancelOptionEdit(questionIndex, optionIndex, originalText) {
+            const optionSpan = document.getElementById(`option-${questionIndex}-${optionIndex}`);
+            if (!optionSpan) return;
+
+            // Restore original content
+            optionSpan.innerHTML = `
+                ${originalText}
+                <button class="control-btn edit-btn" onclick="editOption(${questionIndex}, ${optionIndex})" style="margin-left: 10px; font-size: 10px; padding: 2px 6px;">
+                    <i class="fas fa-edit"></i>
+                </button>
+            `;
+        }
+
+        // Add LaTeX helper function
+        function insertLatex(elementId, latexCode) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                const currentValue = element.value || element.innerHTML;
+                const newValue = currentValue + ' $' + latexCode + '$ ';
+
+                if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+                    element.value = newValue;
+                } else {
+                    element.innerHTML = newValue;
+                }
+
+                // Re-render LaTeX
+                if (window.MathJax) {
+                    MathJax.typesetPromise([element]).catch((err) => console.log(err.message));
+                }
+            }
+        }
+
+        // Add common LaTeX shortcuts
+        function addLatexToolbar(targetElementId) {
+            const toolbar = document.createElement('div');
+            toolbar.style.cssText = 'margin: 10px 0; padding: 10px; background: #f3f4f6; border-radius: 6px; display: flex; flex-wrap: wrap; gap: 5px;';
+
+            const latexButtons = [
+                { symbol: '\\frac{a}{b}', label: 'Fraction' },
+                { symbol: '\\int', label: 'Integral' },
+                { symbol: '\\sum', label: 'Sum' },
+                { symbol: '\\lim', label: 'Limit' },
+                { symbol: '^{2}', label: 'Superscript' },
+                { symbol: '_{n}', label: 'Subscript' },
+                { symbol: '\\sqrt{x}', label: 'Square Root' },
+                { symbol: '\\pi', label: 'Pi' },
+                { symbol: '\\infty', label: 'Infinity' },
+                { symbol: '\\partial', label: 'Partial' }
+            ];
+
+            latexButtons.forEach(btn => {
+                const button = document.createElement('button');
+                button.innerHTML = btn.label;
+                button.style.cssText = 'padding: 4px 8px; background: #4f46e5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;';
+                button.onclick = () => insertLatex(targetElementId, btn.symbol);
+                toolbar.appendChild(button);
+            });
+
+            return toolbar;
         }
     </script>
 </body>
