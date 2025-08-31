@@ -2525,15 +2525,15 @@ app.get('/create-products/calculus', requireAuth, requireRole(['teacher']), requ
   });
 });
 
-// API route for generating trigonometry questions
-app.post('/api/generate-trig-questions', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+// API route for generating calculus questions
+app.post('/api/generate-calculus-questions', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
     const { difficulty, questionCount, questionType, subject } = req.body;
 
-    console.log('Generating trigonometry questions:', { difficulty, questionCount, questionType, subject });
+    console.log('Generating calculus questions:', { difficulty, questionCount, questionType, subject });
 
     // Generate questions based on difficulty level
-    const questions = generateTrigonometryQuestions(difficulty, questionCount, questionType);
+    const questions = generateCalculusQuestions(difficulty, questionCount, questionType);
 
     res.json({
       success: true,
@@ -2548,7 +2548,7 @@ app.post('/api/generate-trig-questions', requireAuth, requireRole(['teacher']), 
     });
 
   } catch (error) {
-    console.error('Error generating trigonometry questions:', error);
+    console.error('Error generating calculus questions:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate questions'
@@ -2587,111 +2587,111 @@ app.post('/api/save-generated-questions', requireAuth, requireRole(['teacher']),
   }
 });
 
-// Function to generate trigonometry questions based on difficulty
-function generateTrigonometryQuestions(difficulty, questionCount, questionType) {
+// Function to generate calculus questions based on difficulty
+function generateCalculusQuestions(difficulty, questionCount, questionType) {
   const questions = [];
 
   const easyQuestions = [
     {
-      question: "Find the value of sin(30°).",
-      answer: "1/2 or 0.5",
-      explanation: "sin(30°) is a standard angle. sin(30°) = 1/2 = 0.5"
+      question: "Find the derivative of f(x) = x³.",
+      answer: "f'(x) = 3x²",
+      explanation: "Using the power rule: d/dx[xⁿ] = nxⁿ⁻¹, so d/dx[x³] = 3x²"
     },
     {
-      question: "What is cos(60°)?",
-      answer: "1/2 or 0.5",
-      explanation: "cos(60°) is a standard angle. cos(60°) = 1/2 = 0.5"
+      question: "What is the derivative of f(x) = 5x²?",
+      answer: "f'(x) = 10x",
+      explanation: "Using the power rule and constant multiple rule: d/dx[5x²] = 5 · 2x = 10x"
     },
     {
-      question: "Calculate tan(45°).",
+      question: "Calculate the limit: lim(x→2) (x + 3).",
+      answer: "5",
+      explanation: "For continuous functions, we can substitute directly: lim(x→2) (x + 3) = 2 + 3 = 5"
+    },
+    {
+      question: "Find the derivative of f(x) = 7x.",
+      answer: "f'(x) = 7",
+      explanation: "The derivative of a linear function ax is simply a, so d/dx[7x] = 7"
+    },
+    {
+      question: "What is the derivative of a constant function f(x) = 5?",
+      answer: "f'(x) = 0",
+      explanation: "The derivative of any constant is zero, so d/dx[5] = 0"
+    },
+    {
+      question: "Calculate ∫ 2x dx.",
+      answer: "x² + C",
+      explanation: "Using the power rule for integration: ∫ 2x dx = 2 · x²/2 + C = x² + C"
+    },
+    {
+      question: "Find the limit: lim(x→0) (3x + 1).",
       answer: "1",
-      explanation: "tan(45°) is a standard angle. tan(45°) = 1"
+      explanation: "Substituting x = 0: lim(x→0) (3x + 1) = 3(0) + 1 = 1"
     },
     {
-      question: "Find sin(90°).",
-      answer: "1",
-      explanation: "sin(90°) = 1, as the sine of 90° is at its maximum value"
-    },
-    {
-      question: "What is cos(0°)?",
-      answer: "1",
-      explanation: "cos(0°) = 1, as the cosine of 0° is at its maximum value"
-    },
-    {
-      question: "Calculate sin(0°).",
-      answer: "0",
-      explanation: "sin(0°) = 0, as there is no vertical component at 0°"
-    },
-    {
-      question: "Find cos(90°).",
-      answer: "0",
-      explanation: "cos(90°) = 0, as there is no horizontal component at 90°"
-    },
-    {
-      question: "What is tan(0°)?",
-      answer: "0",
-      explanation: "tan(0°) = sin(0°)/cos(0°) = 0/1 = 0"
+      question: "What is ∫ 5 dx?",
+      answer: "5x + C",
+      explanation: "The integral of a constant k is kx + C, so ∫ 5 dx = 5x + C"
     }
   ];
 
   const mediumQuestions = [
     {
-      question: "Solve for x: sin(x) = √3/2, where 0° ≤ x ≤ 360°.",
-      answer: "x = 60° or x = 120°",
-      explanation: "sin(x) = √3/2 occurs at 60° and 120° in the range [0°, 360°]"
+      question: "Find the derivative of f(x) = x² · sin(x) using the product rule.",
+      answer: "f'(x) = 2x·sin(x) + x²·cos(x)",
+      explanation: "Using the product rule: (uv)' = u'v + uv'. Here u = x², v = sin(x), so f'(x) = 2x·sin(x) + x²·cos(x)"
     },
     {
-      question: "Find all solutions to cos(x) = -1/2 in the interval [0, 2π].",
-      answer: "x = 2π/3 or x = 4π/3",
-      explanation: "cos(x) = -1/2 occurs at 2π/3 and 4π/3 radians"
+      question: "Calculate the derivative of f(x) = (3x + 1)⁵ using the chain rule.",
+      answer: "f'(x) = 15(3x + 1)⁴",
+      explanation: "Using the chain rule: d/dx[f(g(x))] = f'(g(x))·g'(x). Here f'(x) = 5(3x + 1)⁴ · 3 = 15(3x + 1)⁴"
     },
     {
-      question: "Simplify: sin²(x) + cos²(x)",
+      question: "Evaluate ∫ x·e^x dx using integration by parts.",
+      answer: "xe^x - e^x + C",
+      explanation: "Using integration by parts: ∫u dv = uv - ∫v du. Let u = x, dv = e^x dx, then du = dx, v = e^x. Result: xe^x - ∫e^x dx = xe^x - e^x + C"
+    },
+    {
+      question: "Find the critical points of f(x) = x³ - 3x² + 2.",
+      answer: "x = 0 and x = 2",
+      explanation: "Critical points occur where f'(x) = 0. f'(x) = 3x² - 6x = 3x(x - 2) = 0, so x = 0 or x = 2"
+    },
+    {
+      question: "Calculate lim(x→0) (sin(x)/x).",
       answer: "1",
-      explanation: "This is the Pythagorean identity: sin²(x) + cos²(x) = 1 for all x"
+      explanation: "This is a standard limit in calculus. lim(x→0) (sin(x)/x) = 1, which can be proven using L'Hôpital's rule or geometric arguments"
     },
     {
-      question: "If sin(θ) = 3/5 and θ is in the first quadrant, find cos(θ).",
-      answer: "4/5",
-      explanation: "Using sin²(θ) + cos²(θ) = 1: cos²(θ) = 1 - (3/5)² = 1 - 9/25 = 16/25, so cos(θ) = 4/5"
-    },
-    {
-      question: "Find the period of y = sin(2x).",
-      answer: "π",
-      explanation: "The period of sin(bx) is 2π/|b|. For sin(2x), period = 2π/2 = π"
-    },
-    {
-      question: "What is the amplitude of y = 3cos(x)?",
-      answer: "3",
-      explanation: "The amplitude of y = A·cos(x) is |A|. For y = 3cos(x), amplitude = |3| = 3"
+      question: "Find the area under the curve y = x² from x = 0 to x = 2.",
+      answer: "8/3",
+      explanation: "Area = ∫₀² x² dx = [x³/3]₀² = 8/3 - 0 = 8/3"
     }
   ];
 
   const difficultQuestions = [
     {
-      question: "Prove the identity: tan(x) + cot(x) = 2csc(2x)",
-      answer: "tan(x) + cot(x) = sin(x)/cos(x) + cos(x)/sin(x) = (sin²(x) + cos²(x))/(sin(x)cos(x)) = 1/(sin(x)cos(x)) = 2/(2sin(x)cos(x)) = 2/sin(2x) = 2csc(2x)",
-      explanation: "Use the definitions of tan and cot, find common denominator, apply Pythagorean identity, and use double angle formula"
+      question: "Solve the differential equation dy/dx = y/x with initial condition y(1) = 2.",
+      answer: "y = 2x",
+      explanation: "This is a separable differential equation. Separating variables: dy/y = dx/x. Integrating: ln|y| = ln|x| + C. With y(1) = 2: ln(2) = ln(1) + C, so C = ln(2). Therefore ln|y| = ln|x| + ln(2) = ln(2x), giving y = 2x."
     },
     {
-      question: "Solve: 2sin²(x) - 3sin(x) + 1 = 0 for 0 ≤ x ≤ 2π",
-      answer: "x = π/6, 5π/6, π/2",
-      explanation: "Let u = sin(x): 2u² - 3u + 1 = 0, factors to (2u-1)(u-1) = 0, so u = 1/2 or u = 1"
+      question: "Find the Taylor series for f(x) = e^x centered at x = 0 up to the x³ term.",
+      answer: "1 + x + x²/2 + x³/6",
+      explanation: "f(x) = e^x, f'(x) = e^x, f''(x) = e^x, f'''(x) = e^x. At x = 0, all derivatives equal 1. Taylor series: f(0) + f'(0)x + f''(0)x²/2! + f'''(0)x³/3! = 1 + x + x²/2 + x³/6"
     },
     {
-      question: "Find the exact value of sin(15°) using angle subtraction formula.",
-      answer: "(√6 - √2)/4",
-      explanation: "sin(15°) = sin(45° - 30°) = sin(45°)cos(30°) - cos(45°)sin(30°) = (√2/2)(√3/2) - (√2/2)(1/2) = (√6 - √2)/4"
+      question: "Evaluate the improper integral ∫₁^∞ (1/x²) dx.",
+      answer: "1",
+      explanation: "∫₁^∞ (1/x²) dx = lim(t→∞) ∫₁^t x⁻² dx = lim(t→∞) [-x⁻¹]₁^t = lim(t→∞) (-1/t + 1) = 0 + 1 = 1"
     },
     {
-      question: "If cos(α + β) = 1/3 and cos(α - β) = 2/3, find cos(α)cos(β).",
+      question: "Find the absolute maximum and minimum of f(x) = x³ - 3x² + 1 on the interval [0, 3].",
+      answer: "Maximum: f(3) = 1, Minimum: f(2) = -3",
+      explanation: "f'(x) = 3x² - 6x = 3x(x-2). Critical points: x = 0, 2. Evaluate f at critical points and endpoints: f(0) = 1, f(2) = -3, f(3) = 1. Maximum is 1, minimum is -3."
+    },
+    {
+      question: "Use L'Hôpital's rule to evaluate lim(x→0) (e^x - 1 - x)/x².",
       answer: "1/2",
-      explanation: "Using sum-to-product formulas: cos(α+β) + cos(α-β) = 2cos(α)cos(β), so 1/3 + 2/3 = 1 = 2cos(α)cos(β), therefore cos(α)cos(β) = 1/2"
-    },
-    {
-      question: "Find the general solution to sin(3x) = cos(2x).",
-      answer: "x = π/10 + 2πk/5 or x = π/2 + 2πk (where k is any integer)",
-      explanation: "Rewrite as sin(3x) = sin(π/2 - 2x), then 3x = π/2 - 2x + 2πk or 3x = π - (π/2 - 2x) + 2πk"
+      explanation: "This is 0/0 form. Applying L'Hôpital's rule twice: lim(x→0) (e^x - 1)/2x = lim(x→0) e^x/2 = 1/2"
     }
   ];
 
@@ -2747,11 +2747,11 @@ function generateMultipleChoiceOptions(correctAnswer, difficulty) {
 
   // Generate plausible wrong answers based on difficulty
   if (difficulty === 'easy') {
-    options.push('0', '√2/2', '√3/2', '2');
+    options.push('0', '2x', '3x', 'x²');
   } else if (difficulty === 'medium') {
-    options.push('π/4', 'π/3', '2π/3', '3π/4');
+    options.push('2x·cos(x)', 'x²·sin(x)', '2x + cos(x)', 'sin(x) + x²');
   } else {
-    options.push('(√6 + √2)/4', '(√3 - 1)/2', '(2 + √3)/4', '(√2 + 1)/3');
+    options.push('xe^x + e^x', '2x', 'e^x - xe^x', 'x²e^x');
   }
 
   // Remove duplicates and shuffle
@@ -2771,19 +2771,22 @@ function generateMultipleChoiceOptions(correctAnswer, difficulty) {
 
 // Helper function to create question variations
 function createQuestionVariation(baseQuestion, difficulty) {
-  // Simple variation by changing angles or coefficients
-  const angles = ['30°', '45°', '60°', 'π/6', 'π/4', 'π/3'];
-  const coefficients = ['2', '3', '4', '1/2', '1/3'];
+  // Simple variation by changing powers or coefficients
+  const powers = ['x²', 'x³', 'x⁴', 'x⁵'];
+  const coefficients = ['2', '3', '4', '5', '6'];
 
   let newQuestion = { ...baseQuestion };
 
   // Simple text replacement for variations
-  if (newQuestion.question.includes('30°')) {
-    newQuestion.question = newQuestion.question.replace('30°', '60°');
-    newQuestion.answer = newQuestion.answer.replace('1/2', '√3/2');
-  } else if (newQuestion.question.includes('45°')) {
-    newQuestion.question = newQuestion.question.replace('45°', '30°');
-    newQuestion.answer = newQuestion.answer.replace('1', '1/2');
+  if (newQuestion.question.includes('x³')) {
+    newQuestion.question = newQuestion.question.replace('x³', 'x⁴');
+    newQuestion.answer = newQuestion.answer.replace('3x²', '4x³');
+  } else if (newQuestion.question.includes('5x²')) {
+    newQuestion.question = newQuestion.question.replace('5x²', '3x²');
+    newQuestion.answer = newQuestion.answer.replace('10x', '6x');
+  } else if (newQuestion.question.includes('2x')) {
+    newQuestion.question = newQuestion.question.replace('2x', '3x');
+    newQuestion.answer = newQuestion.answer.replace('x²', '3x²/2');
   }
 
   return newQuestion;

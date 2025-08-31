@@ -604,8 +604,8 @@
                             <div class="generator-icon">
                                 <i class="fas fa-brain"></i>
                             </div>
-                            <h3>AI Trigonometry Question Generator</h3>
-                            <p>Generate custom trigonometry questions using advanced AI. Select difficulty level and let our LLM create tailored questions for your students.</p>
+                            <h3>AI Calculus Question Generator</h3>
+                            <p>Generate custom calculus questions using advanced AI. Select difficulty level and let our LLM create tailored questions covering derivatives, integrals, and limits.</p>
                         </div>
 
                         <div class="generator-form">
@@ -617,7 +617,7 @@
                                         <span class="radio-custom"></span>
                                         <div class="radio-content">
                                             <strong>Easy</strong>
-                                            <small>Basic trigonometric functions and simple angle calculations</small>
+                                            <small>Basic derivatives, simple limits, and fundamental calculus concepts</small>
                                         </div>
                                     </label>
 
@@ -626,7 +626,7 @@
                                         <span class="radio-custom"></span>
                                         <div class="radio-content">
                                             <strong>Medium</strong>
-                                            <small>Trigonometric identities and intermediate problem solving</small>
+                                            <small>Chain rule, product rule, integration techniques, and optimization</small>
                                         </div>
                                     </label>
 
@@ -635,7 +635,7 @@
                                         <span class="radio-custom"></span>
                                         <div class="radio-content">
                                             <strong>Difficult</strong>
-                                            <small>Complex trigonometric equations and advanced applications</small>
+                                            <small>Advanced integration, differential equations, and multivariable calculus</small>
                                         </div>
                                     </label>
                                 </div>
@@ -667,8 +667,8 @@
                             </div>
 
                             <div class="action-section">
-                                <button type="button" class="btn btn-primary" onclick="generateTrigQuestions()">
-                                    <i class="fas fa-magic"></i> Generate Trigonometry Questions
+                                <button type="button" class="btn btn-primary" onclick="generateCalculusQuestions()">
+                                    <i class="fas fa-magic"></i> Generate Calculus Questions
                                 </button>
                                 <div class="loading-indicator" id="loadingIndicator" style="display: none;">
                                     <i class="fas fa-spinner fa-spin"></i> Generating questions with AI...
@@ -680,7 +680,7 @@
                     <!-- Generated Questions Display -->
                     <div class="generated-questions" id="generatedQuestions" style="display: none;">
                         <div class="questions-header">
-                            <h3><i class="fas fa-list-ol"></i> Generated Trigonometry Questions</h3>
+                            <h3><i class="fas fa-list-ol"></i> Generated Calculus Questions</h3>
                             <div class="questions-actions">
                                 <button type="button" class="btn btn-secondary" onclick="exportQuestions()">
                                     <i class="fas fa-download"></i> Export PDF
@@ -782,7 +782,7 @@
 
     <script>
         // Question generation functionality
-        async function generateTrigQuestions() {
+        async function generateCalculusQuestions() {
             const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const questionCount = document.getElementById('questionCount').value;
             const questionType = document.getElementById('questionType').value;
@@ -797,7 +797,7 @@
             generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
 
             try {
-                const response = await fetch('/api/generate-trig-questions', {
+                const response = await fetch('/api/generate-calculus-questions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -806,7 +806,7 @@
                         difficulty: difficulty,
                         questionCount: parseInt(questionCount),
                         questionType: questionType,
-                        subject: 'trigonometry'
+                        subject: 'calculus'
                     })
                 });
 
@@ -824,7 +824,7 @@
                 // Hide loading state
                 loadingIndicator.style.display = 'none';
                 generateBtn.disabled = false;
-                generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Trigonometry Questions';
+                generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Calculus Questions';
             }
         }
 
@@ -874,7 +874,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Trigonometry Questions - ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Level</title>
+                    <title>Calculus Questions - ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Level</title>
                     <style>
                         body { font-family: Arial, sans-serif; margin: 20px; }
                         .header { text-align: center; margin-bottom: 30px; }
@@ -889,7 +889,7 @@
                 </head>
                 <body>
                     <div class="header">
-                        <h1>Trigonometry Questions</h1>
+                        <h1>Calculus Questions</h1>
                         <p>Difficulty: ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} | Questions: ${questionCount}</p>
                         <p>Generated on: ${new Date().toLocaleDateString()}</p>
                     </div>
@@ -917,9 +917,9 @@
                         difficulty: difficulty,
                         questionCount: parseInt(questionCount),
                         questionType: questionType,
-                        subject: 'trigonometry',
+                        subject: 'calculus',
                         content: questionsContent.innerHTML,
-                        title: `Trigonometry Questions - ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Level`
+                        title: `Calculus Questions - ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Level`
                     })
                 });
 
