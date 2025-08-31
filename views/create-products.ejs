@@ -1018,10 +1018,12 @@
                             <ol class="question-options" id="question-options-${index}">
                                 ${question.options.map((option, optIndex) => `
                                     <li>
-                                        <span class="option-text" id="option-${index}-${optIndex}">${option}</span>
-                                        <button class="control-btn edit-btn" onclick="editOption(${index}, ${optIndex})" style="margin-left: 10px; font-size: 10px; padding: 2px 6px;">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
+                                        <span class="option-text" id="option-${index}-${optIndex}">
+                                            <span class="option-content">${option.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}</span>
+                                            <button class="control-btn edit-btn" onclick="editOption(${index}, ${optIndex})" style="margin-left: 10px; font-size: 10px; padding: 2px 6px;">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </span>
                                     </li>
                                 `).join('')}
                             </ol>
@@ -1205,15 +1207,29 @@
                 explanationText.appendChild(explanationToolbar);
             }
 
+            // Store original content in data attributes for safe access
+            questionItem.setAttribute('data-original-question', originalQuestion);
+            questionItem.setAttribute('data-original-answer', originalAnswer);
+            questionItem.setAttribute('data-original-explanation', originalExplanation);
+
             // Update controls
             controls.innerHTML = `
-                <button class="control-btn save-btn" onclick="saveQuestion(${index}, '${originalQuestion.replace(/'/g, "\\'")}', '${originalAnswer.replace(/'/g, "\\'")}', '${originalExplanation.replace(/'/g, "\\'")}')">
+                <button class="control-btn save-btn" onclick="saveQuestionSafe(${index})">
                     <i class="fas fa-save"></i> Save
                 </button>
-                <button class="control-btn cancel-btn" onclick="cancelEdit(${index}, '${originalQuestion.replace(/'/g, "\\'")}', '${originalAnswer.replace(/'/g, "\\'")}', '${originalExplanation.replace(/'/g, "\\'")}')">
+                <button class="control-btn cancel-btn" onclick="cancelEditSafe(${index})">
                     <i class="fas fa-times"></i> Cancel
                 </button>
             `;
+        }
+
+        function saveQuestionSafe(index) {
+            const questionItem = document.querySelector(`[data-question-index="${index}"]`);
+            saveQuestion(index,
+                questionItem.getAttribute('data-original-question') || '',
+                questionItem.getAttribute('data-original-answer') || '',
+                questionItem.getAttribute('data-original-explanation') || ''
+            );
         }
 
         function saveQuestion(index, originalQuestion, originalAnswer, originalExplanation) {
@@ -1264,6 +1280,15 @@
                     <i class="fas fa-eye-slash"></i> Hide Answer
                 </button>
             `;
+        }
+
+        function cancelEditSafe(index) {
+            const questionItem = document.querySelector(`[data-question-index="${index}"]`);
+            cancelEdit(index,
+                questionItem.getAttribute('data-original-question') || '',
+                questionItem.getAttribute('data-original-answer') || '',
+                questionItem.getAttribute('data-original-explanation') || ''
+            );
         }
 
         function cancelEdit(index, originalQuestion, originalAnswer, originalExplanation) {
@@ -1451,20 +1476,24 @@
             const optionSpan = document.getElementById(`option-${questionIndex}-${optionIndex}`);
             if (!optionSpan) return;
 
-            const originalText = optionSpan.innerHTML;
+            // Get the text content without HTML tags for editing
+            const originalText = optionSpan.textContent || optionSpan.innerText || '';
+
+            // Store original text safely
+            optionSpan.setAttribute('data-original-text', originalText);
 
             // Create inline editor
             optionSpan.innerHTML = `
                 <input type="text" id="edit-option-input-${questionIndex}-${optionIndex}"
                        value="${originalText.replace(/"/g, '&quot;')}"
                        style="width: 300px; padding: 4px 8px; border: 2px solid #4f46e5; border-radius: 4px; font-size: 14px;"
-                       onkeypress="if(event.key==='Enter') saveOption(${questionIndex}, ${optionIndex}, '${originalText.replace(/'/g, "\\'")}'); if(event.key==='Escape') cancelOptionEdit(${questionIndex}, ${optionIndex}, '${originalText.replace(/'/g, "\\'")}')"
-                       onblur="saveOption(${questionIndex}, ${optionIndex}, '${originalText.replace(/'/g, "\\'")}')">
-                <button onclick="saveOption(${questionIndex}, ${optionIndex}, '${originalText.replace(/'/g, "\\'")}'); return false;"
+                       onkeypress="if(event.key==='Enter') saveOptionSafe(${questionIndex}, ${optionIndex}); if(event.key==='Escape') cancelOptionEditSafe(${questionIndex}, ${optionIndex})"
+                       onblur="saveOptionSafe(${questionIndex}, ${optionIndex})">
+                <button onclick="saveOptionSafe(${questionIndex}, ${optionIndex}); return false;"
                         style="margin-left: 5px; padding: 2px 6px; background: #10b981; color: white; border: none; border-radius: 3px; cursor: pointer;">
                     <i class="fas fa-check"></i>
                 </button>
-                <button onclick="cancelOptionEdit(${questionIndex}, ${optionIndex}, '${originalText.replace(/'/g, "\\'")}'); return false;"
+                <button onclick="cancelOptionEditSafe(${questionIndex}, ${optionIndex}); return false;"
                         style="margin-left: 3px; padding: 2px 6px; background: #ef4444; color: white; border: none; border-radius: 3px; cursor: pointer;">
                     <i class="fas fa-times"></i>
                 </button>
@@ -1478,6 +1507,18 @@
             }
         }
 
+        function saveOptionSafe(questionIndex, optionIndex) {
+            const optionSpan = document.getElementById(`option-${questionIndex}-${optionIndex}`);
+            const originalText = optionSpan ? optionSpan.getAttribute('data-original-text') || '' : '';
+            saveOption(questionIndex, optionIndex, originalText);
+        }
+
+        function cancelOptionEditSafe(questionIndex, optionIndex) {
+            const optionSpan = document.getElementById(`option-${questionIndex}-${optionIndex}`);
+            const originalText = optionSpan ? optionSpan.getAttribute('data-original-text') || '' : '';
+            cancelOptionEdit(questionIndex, optionIndex, originalText);
+        }
+
         function saveOption(questionIndex, optionIndex, originalText) {
             const input = document.getElementById(`edit-option-input-${questionIndex}-${optionIndex}`);
             const optionSpan = document.getElementById(`option-${questionIndex}-${optionIndex}`);
@@ -1486,9 +1527,13 @@
 
             const newText = input.value.trim();
 
+            // Create a temporary container to safely set the content
+            const tempDiv = document.createElement('div');
+            tempDiv.textContent = newText;
+
             // Update display
             optionSpan.innerHTML = `
-                ${newText}
+                <span class="option-content">${tempDiv.innerHTML}</span>
                 <button class="control-btn edit-btn" onclick="editOption(${questionIndex}, ${optionIndex})" style="margin-left: 10px; font-size: 10px; padding: 2px 6px;">
                     <i class="fas fa-edit"></i>
                 </button>
@@ -1509,9 +1554,13 @@
             const optionSpan = document.getElementById(`option-${questionIndex}-${optionIndex}`);
             if (!optionSpan) return;
 
+            // Create a temporary container to safely set the content
+            const tempDiv = document.createElement('div');
+            tempDiv.textContent = originalText;
+
             // Restore original content
             optionSpan.innerHTML = `
-                ${originalText}
+                <span class="option-content">${tempDiv.innerHTML}</span>
                 <button class="control-btn edit-btn" onclick="editOption(${questionIndex}, ${optionIndex})" style="margin-left: 10px; font-size: 10px; padding: 2px 6px;">
                     <i class="fas fa-edit"></i>
                 </button>
