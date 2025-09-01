@@ -2528,12 +2528,12 @@ app.get('/create-products/calculus', requireAuth, requireRole(['teacher']), requ
 // API route for generating calculus questions
 app.post('/api/generate-calculus-questions', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {
-    const { difficulty, questionCount, questionType, subject } = req.body;
+    const { difficulty, questionCount, questionType, subject, subtopics } = req.body;
 
-    console.log('Generating calculus questions:', { difficulty, questionCount, questionType, subject });
+    console.log('Generating calculus questions:', { difficulty, questionCount, questionType, subject, subtopics });
 
-    // Generate questions based on difficulty level
-    const questions = generateCalculusQuestions(difficulty, questionCount, questionType);
+    // Generate questions based on difficulty level and selected subtopics
+    const questions = generateCalculusQuestions(difficulty, questionCount, questionType, subtopics);
 
     res.json({
       success: true,
@@ -2543,6 +2543,7 @@ app.post('/api/generate-calculus-questions', requireAuth, requireRole(['teacher'
         questionCount,
         questionType,
         subject,
+        subtopics,
         generatedAt: new Date().toISOString()
       }
     });
@@ -2588,131 +2589,193 @@ app.post('/api/save-generated-questions', requireAuth, requireRole(['teacher']),
 });
 
 // Function to generate calculus questions based on difficulty
-function generateCalculusQuestions(difficulty, questionCount, questionType) {
+function generateCalculusQuestions(difficulty, questionCount, questionType, subtopics = []) {
   const questions = [];
 
-  const easyQuestions = [
-    {
-      question: "Find the derivative of f(x) = x³.",
-      answer: "f'(x) = 3x²",
-      explanation: "Using the power rule: d/dx[xⁿ] = nxⁿ⁻¹, so d/dx[x³] = 3x²"
-    },
-    {
-      question: "What is the derivative of f(x) = 5x²?",
-      answer: "f'(x) = 10x",
-      explanation: "Using the power rule and constant multiple rule: d/dx[5x²] = 5 · 2x = 10x"
-    },
-    {
-      question: "Calculate the limit: lim(x→2) (x + 3).",
-      answer: "5",
-      explanation: "For continuous functions, we can substitute directly: lim(x→2) (x + 3) = 2 + 3 = 5"
-    },
-    {
-      question: "Find the derivative of f(x) = 7x.",
-      answer: "f'(x) = 7",
-      explanation: "The derivative of a linear function ax is simply a, so d/dx[7x] = 7"
-    },
-    {
-      question: "What is the derivative of a constant function f(x) = 5?",
-      answer: "f'(x) = 0",
-      explanation: "The derivative of any constant is zero, so d/dx[5] = 0"
-    },
-    {
-      question: "Calculate ∫ 2x dx.",
-      answer: "x² + C",
-      explanation: "Using the power rule for integration: ∫ 2x dx = 2 · x²/2 + C = x² + C"
-    },
-    {
-      question: "Find the limit: lim(x→0) (3x + 1).",
-      answer: "1",
-      explanation: "Substituting x = 0: lim(x→0) (3x + 1) = 3(0) + 1 = 1"
-    },
-    {
-      question: "What is ∫ 5 dx?",
-      answer: "5x + C",
-      explanation: "The integral of a constant k is kx + C, so ∫ 5 dx = 5x + C"
-    }
-  ];
-
-  const mediumQuestions = [
-    {
-      question: "Find the derivative of f(x) = x² · sin(x) using the product rule.",
-      answer: "f'(x) = 2x·sin(x) + x²·cos(x)",
-      explanation: "Using the product rule: (uv)' = u'v + uv'. Here u = x², v = sin(x), so f'(x) = 2x·sin(x) + x²·cos(x)"
-    },
-    {
-      question: "Calculate the derivative of f(x) = (3x + 1)⁵ using the chain rule.",
-      answer: "f'(x) = 15(3x + 1)⁴",
-      explanation: "Using the chain rule: d/dx[f(g(x))] = f'(g(x))·g'(x). Here f'(x) = 5(3x + 1)⁴ · 3 = 15(3x + 1)⁴"
-    },
-    {
-      question: "Evaluate ∫ x·e^x dx using integration by parts.",
-      answer: "xe^x - e^x + C",
-      explanation: "Using integration by parts: ∫u dv = uv - ∫v du. Let u = x, dv = e^x dx, then du = dx, v = e^x. Result: xe^x - ∫e^x dx = xe^x - e^x + C"
-    },
-    {
-      question: "Find the critical points of f(x) = x³ - 3x² + 2.",
-      answer: "x = 0 and x = 2",
-      explanation: "Critical points occur where f'(x) = 0. f'(x) = 3x² - 6x = 3x(x - 2) = 0, so x = 0 or x = 2"
-    },
-    {
-      question: "Calculate lim(x→0) (sin(x)/x).",
-      answer: "1",
-      explanation: "This is a standard limit in calculus. lim(x→0) (sin(x)/x) = 1, which can be proven using L'Hôpital's rule or geometric arguments"
-    },
-    {
-      question: "Find the area under the curve y = x² from x = 0 to x = 2.",
-      answer: "8/3",
-      explanation: "Area = ∫₀² x² dx = [x³/3]₀² = 8/3 - 0 = 8/3"
-    }
-  ];
-
-  const difficultQuestions = [
-    {
-      question: "Solve the differential equation dy/dx = y/x with initial condition y(1) = 2.",
-      answer: "y = 2x",
-      explanation: "This is a separable differential equation. Separating variables: dy/y = dx/x. Integrating: ln|y| = ln|x| + C. With y(1) = 2: ln(2) = ln(1) + C, so C = ln(2). Therefore ln|y| = ln|x| + ln(2) = ln(2x), giving y = 2x."
-    },
-    {
-      question: "Find the Taylor series for f(x) = e^x centered at x = 0 up to the x³ term.",
-      answer: "1 + x + x²/2 + x³/6",
-      explanation: "f(x) = e^x, f'(x) = e^x, f''(x) = e^x, f'''(x) = e^x. At x = 0, all derivatives equal 1. Taylor series: f(0) + f'(0)x + f''(0)x²/2! + f'''(0)x³/3! = 1 + x + x²/2 + x³/6"
-    },
-    {
-      question: "Evaluate the improper integral ∫₁^∞ (1/x²) dx.",
-      answer: "1",
-      explanation: "∫₁^∞ (1/x²) dx = lim(t→∞) ∫₁^t x⁻² dx = lim(t→∞) [-x⁻¹]₁^t = lim(t→∞) (-1/t + 1) = 0 + 1 = 1"
-    },
-    {
-      question: "Find the absolute maximum and minimum of f(x) = x³ - 3x² + 1 on the interval [0, 3].",
-      answer: "Maximum: f(3) = 1, Minimum: f(2) = -3",
-      explanation: "f'(x) = 3x² - 6x = 3x(x-2). Critical points: x = 0, 2. Evaluate f at critical points and endpoints: f(0) = 1, f(2) = -3, f(3) = 1. Maximum is 1, minimum is -3."
-    },
-    {
-      question: "Use L'Hôpital's rule to evaluate lim(x→0) (e^x - 1 - x)/x².",
-      answer: "1/2",
-      explanation: "This is 0/0 form. Applying L'Hôpital's rule twice: lim(x→0) (e^x - 1)/2x = lim(x→0) e^x/2 = 1/2"
-    }
-  ];
-
-  let questionPool;
-  switch (difficulty) {
-    case 'easy':
-      questionPool = easyQuestions;
-      break;
-    case 'medium':
-      questionPool = mediumQuestions;
-      break;
-    case 'difficult':
-      questionPool = difficultQuestions;
-      break;
-    default:
-      questionPool = easyQuestions;
+  // If no subtopics selected, use all available questions
+  if (!subtopics || subtopics.length === 0) {
+    subtopics = ['power-rule', 'basic-integration', 'basic-limits']; // Default subtopics
   }
 
-  // Select random questions from the pool
+  // Organize questions by subtopic and difficulty
+  const questionsBySubtopic = {
+    'power-rule': {
+      easy: [
+        {
+          question: "Find the derivative of f(x) = x³.",
+          answer: "f'(x) = 3x²",
+          explanation: "Using the power rule: d/dx[xⁿ] = nxⁿ⁻¹, so d/dx[x³] = 3x²",
+          subtopic: "Power Rule"
+        },
+        {
+          question: "What is the derivative of f(x) = 5x²?",
+          answer: "f'(x) = 10x",
+          explanation: "Using the power rule and constant multiple rule: d/dx[5x²] = 5 · 2x = 10x",
+          subtopic: "Power Rule"
+        },
+        {
+          question: "Find the derivative of f(x) = 7x.",
+          answer: "f'(x) = 7",
+          explanation: "The derivative of a linear function ax is simply a, so d/dx[7x] = 7",
+          subtopic: "Power Rule"
+        }
+      ],
+      medium: [
+        {
+          question: "Find the derivative of f(x) = 3x⁴ - 2x³ + x² - 5x + 1.",
+          answer: "f'(x) = 12x³ - 6x² + 2x - 5",
+          explanation: "Apply the power rule to each term: d/dx[3x⁴] = 12x³, d/dx[-2x³] = -6x², d/dx[x²] = 2x, d/dx[-5x] = -5, d/dx[1] = 0",
+          subtopic: "Power Rule"
+        }
+      ],
+      difficult: [
+        {
+          question: "Find the derivative of f(x) = x^(3/2) + 2x^(-1/2).",
+          answer: "f'(x) = (3/2)x^(1/2) - x^(-3/2)",
+          explanation: "Using the power rule with fractional exponents: d/dx[x^(3/2)] = (3/2)x^(1/2) and d/dx[2x^(-1/2)] = 2(-1/2)x^(-3/2) = -x^(-3/2)",
+          subtopic: "Power Rule"
+        }
+      ]
+    },
+    'product-rule': {
+      easy: [
+        {
+          question: "Find the derivative of f(x) = x · sin(x) using the product rule.",
+          answer: "f'(x) = sin(x) + x·cos(x)",
+          explanation: "Using the product rule: (uv)' = u'v + uv'. Here u = x, v = sin(x), so f'(x) = 1·sin(x) + x·cos(x)",
+          subtopic: "Product Rule"
+        }
+      ],
+      medium: [
+        {
+          question: "Find the derivative of f(x) = x² · sin(x) using the product rule.",
+          answer: "f'(x) = 2x·sin(x) + x²·cos(x)",
+          explanation: "Using the product rule: (uv)' = u'v + uv'. Here u = x², v = sin(x), so f'(x) = 2x·sin(x) + x²·cos(x)",
+          subtopic: "Product Rule"
+        }
+      ],
+      difficult: [
+        {
+          question: "Find the derivative of f(x) = x³ · e^x · cos(x).",
+          answer: "f'(x) = 3x²e^x cos(x) + x³e^x cos(x) - x³e^x sin(x)",
+          explanation: "For three functions, use the product rule repeatedly: (uvw)' = u'vw + uv'w + uvw'",
+          subtopic: "Product Rule"
+        }
+      ]
+    },
+    'chain-rule': {
+      easy: [
+        {
+          question: "Find the derivative of f(x) = (2x + 1)³.",
+          answer: "f'(x) = 6(2x + 1)²",
+          explanation: "Using the chain rule: d/dx[f(g(x))] = f'(g(x))·g'(x). Here f'(x) = 3(2x + 1)² · 2 = 6(2x + 1)²",
+          subtopic: "Chain Rule"
+        }
+      ],
+      medium: [
+        {
+          question: "Calculate the derivative of f(x) = (3x + 1)⁵ using the chain rule.",
+          answer: "f'(x) = 15(3x + 1)⁴",
+          explanation: "Using the chain rule: d/dx[f(g(x))] = f'(g(x))·g'(x). Here f'(x) = 5(3x + 1)⁴ · 3 = 15(3x + 1)⁴",
+          subtopic: "Chain Rule"
+        }
+      ],
+      difficult: [
+        {
+          question: "Find the derivative of f(x) = sin(cos(x²)).",
+          answer: "f'(x) = -2x·sin(x²)·cos(cos(x²))",
+          explanation: "Multiple applications of chain rule: outer function sin, middle function cos, inner function x²",
+          subtopic: "Chain Rule"
+        }
+      ]
+    },
+    'basic-integration': {
+      easy: [
+        {
+          question: "Calculate ∫ 2x dx.",
+          answer: "x² + C",
+          explanation: "Using the power rule for integration: ∫ 2x dx = 2 · x²/2 + C = x² + C",
+          subtopic: "Basic Integration"
+        },
+        {
+          question: "What is ∫ 5 dx?",
+          answer: "5x + C",
+          explanation: "The integral of a constant k is kx + C, so ∫ 5 dx = 5x + C",
+          subtopic: "Basic Integration"
+        }
+      ],
+      medium: [
+        {
+          question: "Evaluate ∫ (3x² - 2x + 1) dx.",
+          answer: "x³ - x² + x + C",
+          explanation: "Integrate term by term: ∫ 3x² dx = x³, ∫ -2x dx = -x², ∫ 1 dx = x",
+          subtopic: "Basic Integration"
+        }
+      ],
+      difficult: [
+        {
+          question: "Calculate ∫ x^(3/2) dx.",
+          answer: "(2/5)x^(5/2) + C",
+          explanation: "Using the power rule: ∫ x^n dx = x^(n+1)/(n+1) + C, so ∫ x^(3/2) dx = x^(5/2)/(5/2) = (2/5)x^(5/2) + C",
+          subtopic: "Basic Integration"
+        }
+      ]
+    },
+    'basic-limits': {
+      easy: [
+        {
+          question: "Calculate the limit: lim(x→2) (x + 3).",
+          answer: "5",
+          explanation: "For continuous functions, we can substitute directly: lim(x→2) (x + 3) = 2 + 3 = 5",
+          subtopic: "Basic Limits"
+        },
+        {
+          question: "Find the limit: lim(x→0) (3x + 1).",
+          answer: "1",
+          explanation: "Substituting x = 0: lim(x→0) (3x + 1) = 3(0) + 1 = 1",
+          subtopic: "Basic Limits"
+        }
+      ],
+      medium: [
+        {
+          question: "Calculate lim(x→0) (sin(x)/x).",
+          answer: "1",
+          explanation: "This is a standard limit in calculus. lim(x→0) (sin(x)/x) = 1, which can be proven using L'Hôpital's rule or geometric arguments",
+          subtopic: "Basic Limits"
+        }
+      ],
+      difficult: [
+        {
+          question: "Find lim(x→∞) (1 + 1/x)^x.",
+          answer: "e",
+          explanation: "This is the definition of e: lim(x→∞) (1 + 1/x)^x = e ≈ 2.718",
+          subtopic: "Basic Limits"
+        }
+      ]
+    }
+  };
+
+  // Collect questions from selected subtopics
+  let availableQuestions = [];
+
+  subtopics.forEach(subtopic => {
+    if (questionsBySubtopic[subtopic] && questionsBySubtopic[subtopic][difficulty]) {
+      availableQuestions = availableQuestions.concat(questionsBySubtopic[subtopic][difficulty]);
+    }
+  });
+
+  // If no questions available for selected subtopics/difficulty, use all available
+  if (availableQuestions.length === 0) {
+    Object.keys(questionsBySubtopic).forEach(subtopic => {
+      if (questionsBySubtopic[subtopic][difficulty]) {
+        availableQuestions = availableQuestions.concat(questionsBySubtopic[subtopic][difficulty]);
+      }
+    });
+  }
+
+  // Select random questions from available pool
   const selectedQuestions = [];
-  const poolCopy = [...questionPool];
+  const poolCopy = [...availableQuestions];
 
   for (let i = 0; i < Math.min(questionCount, poolCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * poolCopy.length);
@@ -2727,8 +2790,8 @@ function generateCalculusQuestions(difficulty, questionCount, questionType) {
   }
 
   // If we need more questions than available in pool, repeat with variations
-  while (selectedQuestions.length < questionCount) {
-    const baseQuestion = questionPool[selectedQuestions.length % questionPool.length];
+  while (selectedQuestions.length < questionCount && availableQuestions.length > 0) {
+    const baseQuestion = availableQuestions[selectedQuestions.length % availableQuestions.length];
     const variation = createQuestionVariation(baseQuestion, difficulty);
 
     if (questionType === 'multiple-choice') {

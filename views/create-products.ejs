@@ -681,6 +681,148 @@
             background: #fffbeb;
         }
 
+        /* Sub-topics Section Styles */
+        .subtopics-section {
+            margin-bottom: 40px;
+        }
+
+        .subtopics-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .subtopic-category {
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .subtopic-category:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .subtopic-category h5 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .subtopic-category h5::before {
+            content: "📚";
+            font-size: 16px;
+        }
+
+        .subtopic-checkboxes {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .subtopic-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .subtopic-checkbox:hover {
+            background: #e0f2fe;
+            transform: translateX(3px);
+        }
+
+        .subtopic-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .subtopic-checkbox input[type="checkbox"]:checked + span {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .subtopic-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .subtopic-actions .btn {
+            font-size: 14px;
+            padding: 10px 16px;
+        }
+
+        /* Custom subtopic input */
+        .custom-subtopic-input {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            border: 2px solid var(--primary-color);
+        }
+
+        .custom-subtopic-input.show {
+            display: block;
+        }
+
+        .custom-input-field {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .custom-input-field:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .custom-input-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .custom-input-actions button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .add-custom-btn {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .cancel-custom-btn {
+            background: var(--danger-color);
+            color: white;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .nav-container {
@@ -800,6 +942,137 @@
                                             <small>Advanced integration, differential equations, and multivariable calculus</small>
                                         </div>
                                     </label>
+                                </div>
+                            </div>
+
+                            <div class="subtopics-section">
+                                <h4><i class="fas fa-list"></i> Calculus Sub-Topics</h4>
+                                <div class="subtopics-container">
+                                    <div class="subtopic-category">
+                                        <h5>Derivatives</h5>
+                                        <div class="subtopic-checkboxes">
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="power-rule" checked>
+                                                <span>Power Rule</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="product-rule">
+                                                <span>Product Rule</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="chain-rule">
+                                                <span>Chain Rule</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="quotient-rule">
+                                                <span>Quotient Rule</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="implicit-differentiation">
+                                                <span>Implicit Differentiation</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="subtopic-category">
+                                        <h5>Integrals</h5>
+                                        <div class="subtopic-checkboxes">
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="basic-integration">
+                                                <span>Basic Integration</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="substitution">
+                                                <span>U-Substitution</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="integration-by-parts">
+                                                <span>Integration by Parts</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="definite-integrals">
+                                                <span>Definite Integrals</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="improper-integrals">
+                                                <span>Improper Integrals</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="subtopic-category">
+                                        <h5>Limits</h5>
+                                        <div class="subtopic-checkboxes">
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="basic-limits">
+                                                <span>Basic Limits</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="lhopital-rule">
+                                                <span>L'Hôpital's Rule</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="infinite-limits">
+                                                <span>Infinite Limits</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="continuity">
+                                                <span>Continuity</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="subtopic-category">
+                                        <h5>Applications</h5>
+                                        <div class="subtopic-checkboxes">
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="optimization">
+                                                <span>Optimization</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="related-rates">
+                                                <span>Related Rates</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="area-volume">
+                                                <span>Area & Volume</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="differential-equations">
+                                                <span>Differential Equations</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="subtopic-category">
+                                        <h5>Series & Sequences</h5>
+                                        <div class="subtopic-checkboxes">
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="taylor-series">
+                                                <span>Taylor Series</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="power-series">
+                                                <span>Power Series</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="convergence-tests">
+                                                <span>Convergence Tests</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="subtopic-actions">
+                                    <button type="button" class="btn btn-secondary" onclick="selectAllSubtopics()">
+                                        <i class="fas fa-check-double"></i> Select All
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="clearAllSubtopics()">
+                                        <i class="fas fa-times"></i> Clear All
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="addCustomSubtopic()">
+                                        <i class="fas fa-plus"></i> Add Custom Topic
+                                    </button>
                                 </div>
                             </div>
 
@@ -968,7 +1241,8 @@
                         difficulty: difficulty,
                         questionCount: parseInt(questionCount),
                         questionType: questionType,
-                        subject: 'calculus'
+                        subject: 'calculus',
+                        subtopics: getSelectedSubtopics()
                     })
                 });
 
@@ -1615,6 +1889,177 @@
 
             return toolbar;
         }
+
+        // Sub-topic management functions
+        function getSelectedSubtopics() {
+            const checkboxes = document.querySelectorAll('input[name="subtopic"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        function selectAllSubtopics() {
+            const checkboxes = document.querySelectorAll('input[name="subtopic"]');
+            checkboxes.forEach(cb => cb.checked = true);
+        }
+
+        function clearAllSubtopics() {
+            const checkboxes = document.querySelectorAll('input[name="subtopic"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+
+        function addCustomSubtopic() {
+            // Check if custom input already exists
+            let customInput = document.getElementById('custom-subtopic-input');
+
+            if (!customInput) {
+                // Create custom subtopic input
+                customInput = document.createElement('div');
+                customInput.id = 'custom-subtopic-input';
+                customInput.className = 'custom-subtopic-input';
+                customInput.innerHTML = `
+                    <h6 style="margin-bottom: 10px; color: var(--primary-color); font-weight: 600;">Add Custom Sub-Topic</h6>
+                    <input type="text" id="custom-topic-name" class="custom-input-field" placeholder="Enter custom sub-topic name" maxlength="50">
+                    <div class="custom-input-actions">
+                        <button class="add-custom-btn" onclick="saveCustomSubtopic()">
+                            <i class="fas fa-plus"></i> Add Topic
+                        </button>
+                        <button class="cancel-custom-btn" onclick="cancelCustomSubtopic()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                `;
+
+                // Add to the last subtopic category
+                const lastCategory = document.querySelector('.subtopic-category:last-child');
+                lastCategory.appendChild(customInput);
+            }
+
+            // Show the input and focus
+            customInput.classList.add('show');
+            const input = document.getElementById('custom-topic-name');
+            input.focus();
+            input.value = '';
+        }
+
+        function saveCustomSubtopic() {
+            const input = document.getElementById('custom-topic-name');
+            const topicName = input.value.trim();
+
+            if (!topicName) {
+                alert('Please enter a topic name');
+                return;
+            }
+
+            // Create a unique value for the custom topic
+            const topicValue = 'custom-' + topicName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+            // Check if topic already exists
+            const existingCheckbox = document.querySelector(`input[value="${topicValue}"]`);
+            if (existingCheckbox) {
+                alert('This topic already exists');
+                return;
+            }
+
+            // Create new checkbox for the custom topic
+            const newCheckbox = document.createElement('label');
+            newCheckbox.className = 'subtopic-checkbox';
+            newCheckbox.innerHTML = `
+                <input type="checkbox" name="subtopic" value="${topicValue}" checked>
+                <span>${topicName}</span>
+                <button onclick="removeCustomSubtopic('${topicValue}')" style="margin-left: auto; background: #ef4444; color: white; border: none; border-radius: 3px; padding: 2px 6px; font-size: 10px; cursor: pointer;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+
+            // Add to the custom topics section (create if doesn't exist)
+            let customCategory = document.getElementById('custom-topics-category');
+            if (!customCategory) {
+                customCategory = document.createElement('div');
+                customCategory.id = 'custom-topics-category';
+                customCategory.className = 'subtopic-category';
+                customCategory.innerHTML = `
+                    <h5>Custom Topics</h5>
+                    <div class="subtopic-checkboxes" id="custom-checkboxes"></div>
+                `;
+                document.querySelector('.subtopics-container').appendChild(customCategory);
+            }
+
+            // Add the new checkbox
+            document.getElementById('custom-checkboxes').appendChild(newCheckbox);
+
+            // Hide the input
+            cancelCustomSubtopic();
+
+            // Show success message
+            showToast('Custom topic added successfully!', 'success');
+        }
+
+        function cancelCustomSubtopic() {
+            const customInput = document.getElementById('custom-subtopic-input');
+            if (customInput) {
+                customInput.classList.remove('show');
+            }
+        }
+
+        function removeCustomSubtopic(topicValue) {
+            if (confirm('Are you sure you want to remove this custom topic?')) {
+                const checkbox = document.querySelector(`input[value="${topicValue}"]`);
+                if (checkbox) {
+                    checkbox.closest('.subtopic-checkbox').remove();
+                    showToast('Custom topic removed', 'info');
+                }
+
+                // Remove custom category if empty
+                const customCheckboxes = document.getElementById('custom-checkboxes');
+                if (customCheckboxes && customCheckboxes.children.length === 0) {
+                    document.getElementById('custom-topics-category').remove();
+                }
+            }
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 3000;
+                font-weight: 500;
+                max-width: 300px;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.textContent = message;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Add CSS animations for toast
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
