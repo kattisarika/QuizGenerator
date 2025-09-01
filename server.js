@@ -2599,40 +2599,85 @@ function generateCalculusQuestions(difficulty, questionCount, questionType, subt
 
   // Organize questions by subtopic and difficulty
   const questionsBySubtopic = {
+    // Limits
+    'direct-evaluation': {
+      easy: [
+        {
+          question: "Calculate the limit: $\\lim_{x \\to 2} (x + 3)$.",
+          answer: "5",
+          explanation: "For continuous functions, we can substitute directly: $\\lim_{x \\to 2} (x + 3) = 2 + 3 = 5$",
+          subtopic: "By direct evaluation"
+        },
+        {
+          question: "Find $\\lim_{x \\to 0} (3x + 1)$.",
+          answer: "1",
+          explanation: "Substituting x = 0: $\\lim_{x \\to 0} (3x + 1) = 3(0) + 1 = 1$",
+          subtopic: "By direct evaluation"
+        }
+      ],
+      medium: [
+        {
+          question: "Evaluate $\\lim_{x \\to 4} \\frac{x^2 - 16}{x - 4}$.",
+          answer: "8",
+          explanation: "Factor the numerator: $\\frac{(x-4)(x+4)}{x-4} = x+4$. Then $\\lim_{x \\to 4} (x+4) = 8$",
+          subtopic: "By direct evaluation"
+        }
+      ],
+      difficult: [
+        {
+          question: "Find $\\lim_{x \\to 1} \\frac{x^3 - 1}{x^2 - 1}$.",
+          answer: "3/2",
+          explanation: "Factor: $\\frac{(x-1)(x^2+x+1)}{(x-1)(x+1)} = \\frac{x^2+x+1}{x+1}$. At x=1: $\\frac{1+1+1}{1+1} = \\frac{3}{2}$",
+          subtopic: "By direct evaluation"
+        }
+      ]
+    },
+    'jump-discontinuities': {
+      easy: [
+        {
+          question: "Find $\\lim_{x \\to 2^-} f(x)$ where $f(x) = \\begin{cases} x+1 & \\text{if } x < 2 \\\\ x^2 & \\text{if } x \\geq 2 \\end{cases}$",
+          answer: "3",
+          explanation: "From the left, we use $f(x) = x+1$, so $\\lim_{x \\to 2^-} f(x) = 2+1 = 3$",
+          subtopic: "At jump discontinuities and kinks"
+        }
+      ],
+      medium: [
+        {
+          question: "Analyze the discontinuity of $f(x) = \\begin{cases} x^2 & \\text{if } x < 1 \\\\ 3 & \\text{if } x = 1 \\\\ 2x & \\text{if } x > 1 \\end{cases}$ at $x = 1$.",
+          answer: "Jump discontinuity: $\\lim_{x \\to 1^-} f(x) = 1$, $\\lim_{x \\to 1^+} f(x) = 2$, $f(1) = 3$",
+          explanation: "Left limit: $\\lim_{x \\to 1^-} x^2 = 1$. Right limit: $\\lim_{x \\to 1^+} 2x = 2$. Since left ≠ right, it's a jump discontinuity.",
+          subtopic: "At jump discontinuities and kinks"
+        }
+      ]
+    },
     'power-rule': {
       easy: [
         {
-          question: "Find the derivative of f(x) = x³.",
-          answer: "f'(x) = 3x²",
-          explanation: "Using the power rule: d/dx[xⁿ] = nxⁿ⁻¹, so d/dx[x³] = 3x²",
+          question: "Find the derivative of $f(x) = x^3$.",
+          answer: "$f'(x) = 3x^2$",
+          explanation: "Using the power rule: $\\frac{d}{dx}[x^n] = nx^{n-1}$, so $\\frac{d}{dx}[x^3] = 3x^2$",
           subtopic: "Power Rule"
         },
         {
-          question: "What is the derivative of f(x) = 5x²?",
-          answer: "f'(x) = 10x",
-          explanation: "Using the power rule and constant multiple rule: d/dx[5x²] = 5 · 2x = 10x",
-          subtopic: "Power Rule"
-        },
-        {
-          question: "Find the derivative of f(x) = 7x.",
-          answer: "f'(x) = 7",
-          explanation: "The derivative of a linear function ax is simply a, so d/dx[7x] = 7",
+          question: "What is the derivative of $f(x) = 5x^2$?",
+          answer: "$f'(x) = 10x$",
+          explanation: "Using the power rule and constant multiple rule: $\\frac{d}{dx}[5x^2] = 5 \\cdot 2x = 10x$",
           subtopic: "Power Rule"
         }
       ],
       medium: [
         {
-          question: "Find the derivative of f(x) = 3x⁴ - 2x³ + x² - 5x + 1.",
-          answer: "f'(x) = 12x³ - 6x² + 2x - 5",
-          explanation: "Apply the power rule to each term: d/dx[3x⁴] = 12x³, d/dx[-2x³] = -6x², d/dx[x²] = 2x, d/dx[-5x] = -5, d/dx[1] = 0",
+          question: "Find the derivative of $f(x) = 3x^4 - 2x^3 + x^2 - 5x + 1$.",
+          answer: "$f'(x) = 12x^3 - 6x^2 + 2x - 5$",
+          explanation: "Apply the power rule to each term: $\\frac{d}{dx}[3x^4] = 12x^3$, $\\frac{d}{dx}[-2x^3] = -6x^2$, etc.",
           subtopic: "Power Rule"
         }
       ],
       difficult: [
         {
-          question: "Find the derivative of f(x) = x^(3/2) + 2x^(-1/2).",
-          answer: "f'(x) = (3/2)x^(1/2) - x^(-3/2)",
-          explanation: "Using the power rule with fractional exponents: d/dx[x^(3/2)] = (3/2)x^(1/2) and d/dx[2x^(-1/2)] = 2(-1/2)x^(-3/2) = -x^(-3/2)",
+          question: "Find the derivative of $f(x) = x^{3/2} + 2x^{-1/2}$.",
+          answer: "$f'(x) = \\frac{3}{2}x^{1/2} - x^{-3/2}$",
+          explanation: "Using the power rule with fractional exponents: $\\frac{d}{dx}[x^{3/2}] = \\frac{3}{2}x^{1/2}$ and $\\frac{d}{dx}[2x^{-1/2}] = -x^{-3/2}$",
           subtopic: "Power Rule"
         }
       ]
@@ -2640,25 +2685,17 @@ function generateCalculusQuestions(difficulty, questionCount, questionType, subt
     'product-rule': {
       easy: [
         {
-          question: "Find the derivative of f(x) = x · sin(x) using the product rule.",
-          answer: "f'(x) = sin(x) + x·cos(x)",
-          explanation: "Using the product rule: (uv)' = u'v + uv'. Here u = x, v = sin(x), so f'(x) = 1·sin(x) + x·cos(x)",
+          question: "Find the derivative of $f(x) = x \\cdot \\sin(x)$ using the product rule.",
+          answer: "$f'(x) = \\sin(x) + x\\cos(x)$",
+          explanation: "Using the product rule: $(uv)' = u'v + uv'$. Here $u = x$, $v = \\sin(x)$, so $f'(x) = 1 \\cdot \\sin(x) + x \\cdot \\cos(x)$",
           subtopic: "Product Rule"
         }
       ],
       medium: [
         {
-          question: "Find the derivative of f(x) = x² · sin(x) using the product rule.",
-          answer: "f'(x) = 2x·sin(x) + x²·cos(x)",
-          explanation: "Using the product rule: (uv)' = u'v + uv'. Here u = x², v = sin(x), so f'(x) = 2x·sin(x) + x²·cos(x)",
-          subtopic: "Product Rule"
-        }
-      ],
-      difficult: [
-        {
-          question: "Find the derivative of f(x) = x³ · e^x · cos(x).",
-          answer: "f'(x) = 3x²e^x cos(x) + x³e^x cos(x) - x³e^x sin(x)",
-          explanation: "For three functions, use the product rule repeatedly: (uvw)' = u'vw + uv'w + uvw'",
+          question: "Find the derivative of $f(x) = x^2 \\cdot \\sin(x)$ using the product rule.",
+          answer: "$f'(x) = 2x\\sin(x) + x^2\\cos(x)$",
+          explanation: "Using the product rule: $(uv)' = u'v + uv'$. Here $u = x^2$, $v = \\sin(x)$, so $f'(x) = 2x \\cdot \\sin(x) + x^2 \\cdot \\cos(x)$",
           subtopic: "Product Rule"
         }
       ]
@@ -2666,90 +2703,60 @@ function generateCalculusQuestions(difficulty, questionCount, questionType, subt
     'chain-rule': {
       easy: [
         {
-          question: "Find the derivative of f(x) = (2x + 1)³.",
-          answer: "f'(x) = 6(2x + 1)²",
-          explanation: "Using the chain rule: d/dx[f(g(x))] = f'(g(x))·g'(x). Here f'(x) = 3(2x + 1)² · 2 = 6(2x + 1)²",
+          question: "Find the derivative of $f(x) = (2x + 1)^3$.",
+          answer: "$f'(x) = 6(2x + 1)^2$",
+          explanation: "Using the chain rule: $\\frac{d}{dx}[f(g(x))] = f'(g(x)) \\cdot g'(x)$. Here $f'(x) = 3(2x + 1)^2 \\cdot 2 = 6(2x + 1)^2$",
           subtopic: "Chain Rule"
         }
       ],
       medium: [
         {
-          question: "Calculate the derivative of f(x) = (3x + 1)⁵ using the chain rule.",
-          answer: "f'(x) = 15(3x + 1)⁴",
-          explanation: "Using the chain rule: d/dx[f(g(x))] = f'(g(x))·g'(x). Here f'(x) = 5(3x + 1)⁴ · 3 = 15(3x + 1)⁴",
-          subtopic: "Chain Rule"
-        }
-      ],
-      difficult: [
-        {
-          question: "Find the derivative of f(x) = sin(cos(x²)).",
-          answer: "f'(x) = -2x·sin(x²)·cos(cos(x²))",
-          explanation: "Multiple applications of chain rule: outer function sin, middle function cos, inner function x²",
+          question: "Calculate the derivative of $f(x) = (3x + 1)^5$ using the chain rule.",
+          answer: "$f'(x) = 15(3x + 1)^4$",
+          explanation: "Using the chain rule: $\\frac{d}{dx}[f(g(x))] = f'(g(x)) \\cdot g'(x)$. Here $f'(x) = 5(3x + 1)^4 \\cdot 3 = 15(3x + 1)^4$",
           subtopic: "Chain Rule"
         }
       ]
     },
-    'basic-integration': {
+    'integration-power-rule': {
       easy: [
         {
-          question: "Calculate ∫ 2x dx.",
-          answer: "x² + C",
-          explanation: "Using the power rule for integration: ∫ 2x dx = 2 · x²/2 + C = x² + C",
-          subtopic: "Basic Integration"
+          question: "Calculate $\\int 2x \\, dx$.",
+          answer: "$x^2 + C$",
+          explanation: "Using the power rule for integration: $\\int 2x \\, dx = 2 \\cdot \\frac{x^2}{2} + C = x^2 + C$",
+          subtopic: "Power Rule"
         },
         {
-          question: "What is ∫ 5 dx?",
-          answer: "5x + C",
-          explanation: "The integral of a constant k is kx + C, so ∫ 5 dx = 5x + C",
-          subtopic: "Basic Integration"
+          question: "What is $\\int 5 \\, dx$?",
+          answer: "$5x + C$",
+          explanation: "The integral of a constant $k$ is $kx + C$, so $\\int 5 \\, dx = 5x + C$",
+          subtopic: "Power Rule"
         }
       ],
       medium: [
         {
-          question: "Evaluate ∫ (3x² - 2x + 1) dx.",
-          answer: "x³ - x² + x + C",
-          explanation: "Integrate term by term: ∫ 3x² dx = x³, ∫ -2x dx = -x², ∫ 1 dx = x",
-          subtopic: "Basic Integration"
-        }
-      ],
-      difficult: [
-        {
-          question: "Calculate ∫ x^(3/2) dx.",
-          answer: "(2/5)x^(5/2) + C",
-          explanation: "Using the power rule: ∫ x^n dx = x^(n+1)/(n+1) + C, so ∫ x^(3/2) dx = x^(5/2)/(5/2) = (2/5)x^(5/2) + C",
-          subtopic: "Basic Integration"
+          question: "Evaluate $\\int (3x^2 - 2x + 1) \\, dx$.",
+          answer: "$x^3 - x^2 + x + C$",
+          explanation: "Integrate term by term: $\\int 3x^2 \\, dx = x^3$, $\\int -2x \\, dx = -x^2$, $\\int 1 \\, dx = x$",
+          subtopic: "Power Rule"
         }
       ]
     },
-    'basic-limits': {
+    'optimization': {
       easy: [
         {
-          question: "Calculate the limit: lim(x→2) (x + 3).",
-          answer: "5",
-          explanation: "For continuous functions, we can substitute directly: lim(x→2) (x + 3) = 2 + 3 = 5",
-          subtopic: "Basic Limits"
-        },
-        {
-          question: "Find the limit: lim(x→0) (3x + 1).",
-          answer: "1",
-          explanation: "Substituting x = 0: lim(x→0) (3x + 1) = 3(0) + 1 = 1",
-          subtopic: "Basic Limits"
+          question: "Find the critical points of $f(x) = x^2 - 4x + 3$.",
+          answer: "$x = 2$",
+          explanation: "Critical points occur where $f'(x) = 0$. $f'(x) = 2x - 4 = 0$, so $x = 2$",
+          subtopic: "Optimization"
         }
       ],
       medium: [
         {
-          question: "Calculate lim(x→0) (sin(x)/x).",
-          answer: "1",
-          explanation: "This is a standard limit in calculus. lim(x→0) (sin(x)/x) = 1, which can be proven using L'Hôpital's rule or geometric arguments",
-          subtopic: "Basic Limits"
-        }
-      ],
-      difficult: [
-        {
-          question: "Find lim(x→∞) (1 + 1/x)^x.",
-          answer: "e",
-          explanation: "This is the definition of e: lim(x→∞) (1 + 1/x)^x = e ≈ 2.718",
-          subtopic: "Basic Limits"
+          question: "Find the absolute maximum and minimum of $f(x) = x^3 - 3x^2 + 1$ on $[0, 3]$.",
+          answer: "Maximum: $f(3) = 1$, Minimum: $f(2) = -3$",
+          explanation: "$f'(x) = 3x^2 - 6x = 3x(x-2)$. Critical points: $x = 0, 2$. Evaluate: $f(0) = 1$, $f(2) = -3$, $f(3) = 1$",
+          subtopic: "Optimization"
         }
       ]
     }

@@ -823,6 +823,43 @@
             color: white;
         }
 
+        /* Custom subtopic styles */
+        .custom-subtopic {
+            background: linear-gradient(135deg, #f3e8ff, #faf5ff);
+            border: 1px solid #c084fc;
+            margin-left: 20px;
+            border-radius: 8px;
+        }
+
+        .custom-subtopic:hover {
+            background: linear-gradient(135deg, #e9d5ff, #f3e8ff);
+            border-color: #a855f7;
+        }
+
+        .custom-subtopic span {
+            color: #7c3aed !important;
+            font-weight: 600 !important;
+        }
+
+        /* Modal overlay styles */
+        #custom-topic-modal {
+            animation: fadeIn 0.3s ease;
+        }
+
+        #custom-topic-modal > div {
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .nav-container {
@@ -949,115 +986,305 @@
                                 <h4><i class="fas fa-list"></i> Calculus Sub-Topics</h4>
                                 <div class="subtopics-container">
                                     <div class="subtopic-category">
-                                        <h5>Derivatives</h5>
-                                        <div class="subtopic-checkboxes">
-                                            <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="power-rule" checked>
-                                                <span>Power Rule</span>
-                                            </label>
-                                            <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="product-rule">
-                                                <span>Product Rule</span>
-                                            </label>
-                                            <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="chain-rule">
-                                                <span>Chain Rule</span>
-                                            </label>
-                                            <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="quotient-rule">
-                                                <span>Quotient Rule</span>
-                                            </label>
-                                            <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="implicit-differentiation">
-                                                <span>Implicit Differentiation</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div class="subtopic-category">
-                                        <h5>Integrals</h5>
-                                        <div class="subtopic-checkboxes">
-                                            <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="basic-integration">
-                                                <span>Basic Integration</span>
-                                            </label>
-                                            <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="substitution">
-                                                <span>U-Substitution</span>
-                                            </label>
-                                            <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="integration-by-parts">
-                                                <span>Integration by Parts</span>
-                                            </label>
-                                            <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="definite-integrals">
-                                                <span>Definite Integrals</span>
-                                            </label>
-                                            <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="improper-integrals">
-                                                <span>Improper Integrals</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div class="subtopic-category">
                                         <h5>Limits</h5>
                                         <div class="subtopic-checkboxes">
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="basic-limits">
-                                                <span>Basic Limits</span>
+                                                <input type="checkbox" name="subtopic" value="direct-evaluation" onchange="showCustomTopicOption(this)">
+                                                <span>By direct evaluation</span>
                                             </label>
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="lhopital-rule">
-                                                <span>L'Hôpital's Rule</span>
+                                                <input type="checkbox" name="subtopic" value="jump-discontinuities" onchange="showCustomTopicOption(this)">
+                                                <span>At jump discontinuities and kinks</span>
                                             </label>
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="infinite-limits">
-                                                <span>Infinite Limits</span>
+                                                <input type="checkbox" name="subtopic" value="removable-discontinuities" onchange="showCustomTopicOption(this)">
+                                                <span>At removable discontinuities</span>
                                             </label>
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="continuity">
-                                                <span>Continuity</span>
+                                                <input type="checkbox" name="subtopic" value="essential-discontinuities" onchange="showCustomTopicOption(this)">
+                                                <span>At essential discontinuities</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="limits-at-infinity" onchange="showCustomTopicOption(this)">
+                                                <span>At infinity</span>
                                             </label>
                                         </div>
                                     </div>
 
                                     <div class="subtopic-category">
-                                        <h5>Applications</h5>
+                                        <h5>Continuity</h5>
                                         <div class="subtopic-checkboxes">
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="optimization">
+                                                <input type="checkbox" name="subtopic" value="determining-classifying" onchange="showCustomTopicOption(this)">
+                                                <span>Determining and classifying</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="subtopic-category">
+                                        <h5>Differentiation</h5>
+                                        <div class="subtopic-checkboxes">
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="average-rates" onchange="showCustomTopicOption(this)">
+                                                <span>Average rates of change</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="definition-derivative" onchange="showCustomTopicOption(this)">
+                                                <span>Definition of the derivative</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="instantaneous-rates" onchange="showCustomTopicOption(this)">
+                                                <span>Instantaneous rates of change</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="power-rule" onchange="showCustomTopicOption(this)" checked>
+                                                <span>Power Rule</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="higher-order" onchange="showCustomTopicOption(this)">
+                                                <span>Higher order derivatives</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="product-rule" onchange="showCustomTopicOption(this)">
+                                                <span>Product Rule</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="quotient-rule" onchange="showCustomTopicOption(this)">
+                                                <span>Quotient Rule</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="chain-rule" onchange="showCustomTopicOption(this)">
+                                                <span>Chain Rule</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="rules-tables" onchange="showCustomTopicOption(this)">
+                                                <span>Rules, using tables</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="trigonometric" onchange="showCustomTopicOption(this)">
+                                                <span>Trigonometric</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="inverse-trig" onchange="showCustomTopicOption(this)">
+                                                <span>Inverse trigonometric</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="natural-log-exp" onchange="showCustomTopicOption(this)">
+                                                <span>Natural logarithms and exponentials</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="other-base-log" onchange="showCustomTopicOption(this)">
+                                                <span>Other base logarithms and exponentials</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="logarithmic" onchange="showCustomTopicOption(this)">
+                                                <span>Logarithmic</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="implicit" onchange="showCustomTopicOption(this)">
+                                                <span>Implicit</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="inverse-functions" onchange="showCustomTopicOption(this)">
+                                                <span>Inverse functions</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="subtopic-category">
+                                        <h5>Applications of Differentiation</h5>
+                                        <div class="subtopic-checkboxes">
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="slope-tangent" onchange="showCustomTopicOption(this)">
+                                                <span>Slope, tangent, and normal lines</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="rolles-theorem" onchange="showCustomTopicOption(this)">
+                                                <span>Rolle's Theorem</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="mean-value-theorem" onchange="showCustomTopicOption(this)">
+                                                <span>Mean Value Theorem</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="increase-decrease" onchange="showCustomTopicOption(this)">
+                                                <span>Intervals of increase and decrease</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="concavity" onchange="showCustomTopicOption(this)">
+                                                <span>Intervals of concavity</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="relative-extrema" onchange="showCustomTopicOption(this)">
+                                                <span>Relative extrema</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="absolute-extrema" onchange="showCustomTopicOption(this)">
+                                                <span>Absolute extrema</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="optimization" onchange="showCustomTopicOption(this)">
                                                 <span>Optimization</span>
                                             </label>
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="related-rates">
-                                                <span>Related Rates</span>
+                                                <input type="checkbox" name="subtopic" value="curve-sketching" onchange="showCustomTopicOption(this)">
+                                                <span>Curve sketching</span>
                                             </label>
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="area-volume">
-                                                <span>Area & Volume</span>
+                                                <input type="checkbox" name="subtopic" value="graphical-comparison" onchange="showCustomTopicOption(this)">
+                                                <span>Graphical comparison of f, f', and f''</span>
                                             </label>
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="differential-equations">
-                                                <span>Differential Equations</span>
+                                                <input type="checkbox" name="subtopic" value="motion-line" onchange="showCustomTopicOption(this)">
+                                                <span>Motion along a line</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="related-rates" onchange="showCustomTopicOption(this)">
+                                                <span>Related rates</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="differentials" onchange="showCustomTopicOption(this)">
+                                                <span>Differentials</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="newtons-method" onchange="showCustomTopicOption(this)">
+                                                <span>Newton's Method</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="limits-derivative-def" onchange="showCustomTopicOption(this)">
+                                                <span>Limits in form of definition of derivative</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="lhopital-rule" onchange="showCustomTopicOption(this)">
+                                                <span>L'Hôpital's Rule</span>
                                             </label>
                                         </div>
                                     </div>
 
                                     <div class="subtopic-category">
-                                        <h5>Series & Sequences</h5>
+                                        <h5>Indefinite Integration</h5>
                                         <div class="subtopic-checkboxes">
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="taylor-series">
-                                                <span>Taylor Series</span>
+                                                <input type="checkbox" name="subtopic" value="integration-power-rule" onchange="showCustomTopicOption(this)">
+                                                <span>Power Rule</span>
                                             </label>
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="power-series">
-                                                <span>Power Series</span>
+                                                <input type="checkbox" name="subtopic" value="log-rule-exp" onchange="showCustomTopicOption(this)">
+                                                <span>Logarithmic Rule and Exponentials</span>
                                             </label>
                                             <label class="subtopic-checkbox">
-                                                <input type="checkbox" name="subtopic" value="convergence-tests">
-                                                <span>Convergence Tests</span>
+                                                <input type="checkbox" name="subtopic" value="trig-integration" onchange="showCustomTopicOption(this)">
+                                                <span>Trigonometric</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="inverse-trig-integration" onchange="showCustomTopicOption(this)">
+                                                <span>Inverse trigonometric</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="power-rule-substitution" onchange="showCustomTopicOption(this)">
+                                                <span>Power rule with substitution</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="log-exp-substitution" onchange="showCustomTopicOption(this)">
+                                                <span>Logarithmic rule and exponentials with subs.</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="trig-substitution" onchange="showCustomTopicOption(this)">
+                                                <span>Trigonometric with substitution</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="inverse-trig-substitution" onchange="showCustomTopicOption(this)">
+                                                <span>Inverse trigonometric with substitution</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="integration-by-parts" onchange="showCustomTopicOption(this)">
+                                                <span>Integration by parts</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="subtopic-category">
+                                        <h5>Definite Integration</h5>
+                                        <div class="subtopic-checkboxes">
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="approximating-area" onchange="showCustomTopicOption(this)">
+                                                <span>Approximating area under a curve</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="area-limit-sums" onchange="showCustomTopicOption(this)">
+                                                <span>Area under a curve by limit of sums</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="riemann-sum-tables" onchange="showCustomTopicOption(this)">
+                                                <span>Riemann sum tables</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="first-fundamental" onchange="showCustomTopicOption(this)">
+                                                <span>First Fundamental Theorem of Calculus</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="substitution-change-vars" onchange="showCustomTopicOption(this)">
+                                                <span>Substitution with change of variables</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="mean-value-integration" onchange="showCustomTopicOption(this)">
+                                                <span>Mean Value Theorem</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="second-fundamental" onchange="showCustomTopicOption(this)">
+                                                <span>Second Fundamental Theorem of Calculus</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="subtopic-category">
+                                        <h5>Applications of Integration</h5>
+                                        <div class="subtopic-checkboxes">
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="area-under-curve" onchange="showCustomTopicOption(this)">
+                                                <span>Area under a curve</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="area-between-curves" onchange="showCustomTopicOption(this)">
+                                                <span>Area between curves</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="volume-disks-washers" onchange="showCustomTopicOption(this)">
+                                                <span>Volume by slicing, disks and washers</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="volume-cylinders" onchange="showCustomTopicOption(this)">
+                                                <span>Volume by cylinders</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="volume-cross-sections" onchange="showCustomTopicOption(this)">
+                                                <span>Volume of solids with known cross sections</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="motion-line-revisited" onchange="showCustomTopicOption(this)">
+                                                <span>Motion along a line revisited</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="subtopic-category">
+                                        <h5>Differential Equations</h5>
+                                        <div class="subtopic-checkboxes">
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="slope-fields" onchange="showCustomTopicOption(this)">
+                                                <span>Slope fields</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="de-introduction" onchange="showCustomTopicOption(this)">
+                                                <span>Introduction</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="separable" onchange="showCustomTopicOption(this)">
+                                                <span>Separable</span>
+                                            </label>
+                                            <label class="subtopic-checkbox">
+                                                <input type="checkbox" name="subtopic" value="exponential-growth-decay" onchange="showCustomTopicOption(this)">
+                                                <span>Exponential growth and decay</span>
                                             </label>
                                         </div>
                                     </div>
@@ -2060,6 +2287,126 @@
             }
         `;
         document.head.appendChild(style);
+
+        // Show custom topic option when any checkbox is selected
+        function showCustomTopicOption(checkbox) {
+            if (checkbox.checked) {
+                // Show custom topic modal
+                const modal = document.createElement('div');
+                modal.id = 'custom-topic-modal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 2000;
+                `;
+
+                modal.innerHTML = `
+                    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.15);">
+                        <h3 style="margin-bottom: 20px; color: #374151; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
+                            Add Custom Sub-Topic
+                        </h3>
+                        <p style="margin-bottom: 20px; color: #6b7280; line-height: 1.6;">
+                            You've selected "<strong>${checkbox.nextElementSibling.textContent}</strong>".
+                            Would you like to add a custom sub-topic related to this area?
+                        </p>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">Custom Sub-Topic Name:</label>
+                            <input type="text" id="custom-topic-input" placeholder="e.g., Advanced applications, Special cases, etc."
+                                   style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;"
+                                   maxlength="60">
+                            <small style="color: #6b7280; font-size: 12px;">Enter a specific sub-topic you'd like to focus on (optional)</small>
+                        </div>
+
+                        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                            <button onclick="skipCustomTopic()"
+                                    style="padding: 10px 20px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                                Skip
+                            </button>
+                            <button onclick="addCustomTopicFromModal('${checkbox.value}')"
+                                    style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                                <i class="fas fa-plus"></i> Add Custom Topic
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                // Focus on input
+                setTimeout(() => {
+                    document.getElementById('custom-topic-input').focus();
+                }, 100);
+
+                // Handle Enter key
+                document.getElementById('custom-topic-input').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        addCustomTopicFromModal(checkbox.value);
+                    }
+                });
+            }
+        }
+
+        function addCustomTopicFromModal(parentTopicValue) {
+            const input = document.getElementById('custom-topic-input');
+            const customTopicName = input.value.trim();
+
+            if (customTopicName) {
+                // Create a unique value for the custom topic
+                const customTopicValue = parentTopicValue + '-custom-' + customTopicName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+                // Check if topic already exists
+                const existingCheckbox = document.querySelector(`input[value="${customTopicValue}"]`);
+                if (existingCheckbox) {
+                    alert('This custom topic already exists');
+                    return;
+                }
+
+                // Find the parent category
+                const parentCheckbox = document.querySelector(`input[value="${parentTopicValue}"]`);
+                const parentCategory = parentCheckbox.closest('.subtopic-category');
+                const checkboxContainer = parentCategory.querySelector('.subtopic-checkboxes');
+
+                // Create new custom checkbox
+                const newCheckbox = document.createElement('label');
+                newCheckbox.className = 'subtopic-checkbox custom-subtopic';
+                newCheckbox.innerHTML = `
+                    <input type="checkbox" name="subtopic" value="${customTopicValue}" checked>
+                    <span style="font-style: italic; color: #7c3aed;">📝 ${customTopicName}</span>
+                    <button onclick="removeCustomSubtopic('${customTopicValue}')"
+                            style="margin-left: auto; background: #ef4444; color: white; border: none; border-radius: 3px; padding: 2px 6px; font-size: 10px; cursor: pointer;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+
+                // Add after the parent checkbox
+                const parentLabel = parentCheckbox.closest('.subtopic-checkbox');
+                parentLabel.insertAdjacentElement('afterend', newCheckbox);
+
+                showToast(`Custom topic "${customTopicName}" added successfully!`, 'success');
+            }
+
+            closeCustomTopicModal();
+        }
+
+        function skipCustomTopic() {
+            closeCustomTopicModal();
+        }
+
+        function closeCustomTopicModal() {
+            const modal = document.getElementById('custom-topic-modal');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
+        }
     </script>
 </body>
 </html>
