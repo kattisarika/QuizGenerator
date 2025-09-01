@@ -860,6 +860,66 @@
             to { transform: translateY(0); opacity: 1; }
         }
 
+        /* Graph container styles */
+        .graph-container {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .graph-container canvas {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            background: white;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .graph-controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .graph-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .graph-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .graph-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive graph container */
+        @media (max-width: 768px) {
+            .graph-container canvas {
+                width: 100%;
+                height: auto;
+            }
+
+            .graph-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .nav-container {
@@ -1512,9 +1572,29 @@
                                 <button class="control-btn remove-answer-btn" onclick="toggleAnswer(${index})">
                                     <i class="fas fa-eye-slash"></i> Hide Answer
                                 </button>
+                                ${question.needsGraph ? `
+                                    <button class="control-btn graph-btn" onclick="generateGraph(${index})">
+                                        <i class="fas fa-chart-line"></i> Generate Graph
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                         <div class="question-text" id="question-text-${index}">${question.question}</div>
+
+                        ${question.needsGraph ? `
+                            <div class="graph-container" id="graph-container-${index}" style="margin: 20px 0;">
+                                <canvas id="graph-canvas-${index}" width="600" height="400" style="border: 2px solid #e5e7eb; border-radius: 8px; background: white; display: none;"></canvas>
+                                <div class="graph-controls" style="margin-top: 10px; display: none;" id="graph-controls-${index}">
+                                    <button class="control-btn" onclick="downloadGraph(${index})">
+                                        <i class="fas fa-download"></i> Download Graph
+                                    </button>
+                                    <button class="control-btn" onclick="regenerateGraph(${index})">
+                                        <i class="fas fa-sync"></i> Regenerate
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
+
                         ${question.options ? `
                             <ol class="question-options" id="question-options-${index}">
                                 ${question.options.map((option, optIndex) => `
@@ -1546,6 +1626,13 @@
 
             // Store questions data globally for editing
             window.generatedQuestions = questions;
+
+            // Generate graphs for questions that need them
+            questions.forEach((question, index) => {
+                if (question.needsGraph) {
+                    setTimeout(() => generateGraph(index), 500);
+                }
+            });
 
             // Render LaTeX expressions
             if (window.MathJax) {
@@ -2405,6 +2492,287 @@
             const modal = document.getElementById('custom-topic-modal');
             if (modal) {
                 document.body.removeChild(modal);
+            }
+        }
+
+        // Graph generation functions for trigonometry slope questions
+        function generateGraph(questionIndex) {
+            const canvas = document.getElementById(`graph-canvas-${questionIndex}`);
+            const controls = document.getElementById(`graph-controls-${questionIndex}`);
+            const question = window.generatedQuestions[questionIndex];
+
+            if (!canvas || !question) return;
+
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Set up coordinate system
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const scaleX = 60; // pixels per unit
+            const scaleY = 60; // pixels per unit
+
+            // Draw grid
+            drawGrid(ctx, width, height, centerX, centerY, scaleX, scaleY);
+
+            // Draw axes
+            drawAxes(ctx, width, height, centerX, centerY);
+
+            // Determine which function to draw based on question content
+            if (question.graphType === 'sine-slope' || question.question.toLowerCase().includes('sin')) {
+                drawSineWithSlope(ctx, centerX, centerY, scaleX, scaleY, question.slopePoint || Math.PI/4);
+            } else if (question.graphType === 'cosine-slope' || question.question.toLowerCase().includes('cos')) {
+                drawCosineWithSlope(ctx, centerX, centerY, scaleX, scaleY, question.slopePoint || Math.PI/6);
+            } else if (question.graphType === 'tangent-slope' || question.question.toLowerCase().includes('tan')) {
+                drawTangentWithSlope(ctx, centerX, centerY, scaleX, scaleY, question.slopePoint || Math.PI/4);
+            } else {
+                // Default: draw sine function
+                drawSineWithSlope(ctx, centerX, centerY, scaleX, scaleY, Math.PI/4);
+            }
+
+            // Show canvas and controls
+            canvas.style.display = 'block';
+            controls.style.display = 'block';
+        }
+
+        function drawGrid(ctx, width, height, centerX, centerY, scaleX, scaleY) {
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+
+            // Vertical grid lines
+            for (let x = centerX % scaleX; x < width; x += scaleX) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+
+            // Horizontal grid lines
+            for (let y = centerY % scaleY; y < height; y += scaleY) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawAxes(ctx, width, height, centerX, centerY) {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+
+            // X-axis
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+
+            // Y-axis
+            ctx.beginPath();
+            ctx.moveTo(centerX, 0);
+            ctx.lineTo(centerX, height);
+            ctx.stroke();
+
+            // Add axis labels
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+
+            // X-axis labels
+            for (let i = -5; i <= 5; i++) {
+                if (i !== 0) {
+                    const x = centerX + i * 60;
+                    if (x > 0 && x < width) {
+                        ctx.fillText(i.toString(), x, centerY + 20);
+                    }
+                }
+            }
+
+            // Y-axis labels
+            ctx.textAlign = 'right';
+            for (let i = -3; i <= 3; i++) {
+                if (i !== 0) {
+                    const y = centerY - i * 60;
+                    if (y > 0 && y < height) {
+                        ctx.fillText(i.toString(), centerX - 10, y + 5);
+                    }
+                }
+            }
+
+            // Origin
+            ctx.textAlign = 'right';
+            ctx.fillText('0', centerX - 10, centerY + 15);
+        }
+
+        function drawSineWithSlope(ctx, centerX, centerY, scaleX, scaleY, slopePoint) {
+            // Draw sine function
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+
+            for (let x = -5; x <= 5; x += 0.01) {
+                const canvasX = centerX + x * scaleX;
+                const canvasY = centerY - Math.sin(x) * scaleY;
+
+                if (x === -5) {
+                    ctx.moveTo(canvasX, canvasY);
+                } else {
+                    ctx.lineTo(canvasX, canvasY);
+                }
+            }
+            ctx.stroke();
+
+            // Draw slope point and tangent line
+            const pointX = centerX + slopePoint * scaleX;
+            const pointY = centerY - Math.sin(slopePoint) * scaleY;
+            const slope = Math.cos(slopePoint); // derivative of sin(x) is cos(x)
+
+            // Draw point
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.arc(pointX, pointY, 6, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Draw tangent line
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const tangentLength = 2;
+            const startX = pointX - tangentLength * scaleX;
+            const startY = pointY + tangentLength * slope * scaleY;
+            const endX = pointX + tangentLength * scaleX;
+            const endY = pointY - tangentLength * slope * scaleY;
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            // Add labels
+            ctx.fillStyle = '#333';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('y = sin(x)', centerX + 10, 30);
+            ctx.fillStyle = '#dc2626';
+            ctx.fillText(`Slope at x = ${slopePoint.toFixed(2)}: ${slope.toFixed(3)}`, centerX + 10, 50);
+        }
+
+        function drawCosineWithSlope(ctx, centerX, centerY, scaleX, scaleY, slopePoint) {
+            // Draw cosine function
+            ctx.strokeStyle = '#059669';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+
+            for (let x = -5; x <= 5; x += 0.01) {
+                const canvasX = centerX + x * scaleX;
+                const canvasY = centerY - Math.cos(x) * scaleY;
+
+                if (x === -5) {
+                    ctx.moveTo(canvasX, canvasY);
+                } else {
+                    ctx.lineTo(canvasX, canvasY);
+                }
+            }
+            ctx.stroke();
+
+            // Draw slope point and tangent line
+            const pointX = centerX + slopePoint * scaleX;
+            const pointY = centerY - Math.cos(slopePoint) * scaleY;
+            const slope = -Math.sin(slopePoint); // derivative of cos(x) is -sin(x)
+
+            // Draw point
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.arc(pointX, pointY, 6, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Draw tangent line
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const tangentLength = 2;
+            const startX = pointX - tangentLength * scaleX;
+            const startY = pointY + tangentLength * slope * scaleY;
+            const endX = pointX + tangentLength * scaleX;
+            const endY = pointY - tangentLength * slope * scaleY;
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            // Add labels
+            ctx.fillStyle = '#333';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('y = cos(x)', centerX + 10, 30);
+            ctx.fillStyle = '#dc2626';
+            ctx.fillText(`Slope at x = ${slopePoint.toFixed(2)}: ${slope.toFixed(3)}`, centerX + 10, 50);
+        }
+
+        function drawTangentWithSlope(ctx, centerX, centerY, scaleX, scaleY, slopePoint) {
+            // Draw tangent function (avoiding asymptotes)
+            ctx.strokeStyle = '#7c3aed';
+            ctx.lineWidth = 3;
+
+            const segments = [
+                [-Math.PI/2 + 0.1, Math.PI/2 - 0.1],
+                [Math.PI/2 + 0.1, 3*Math.PI/2 - 0.1]
+            ];
+
+            segments.forEach(([start, end]) => {
+                ctx.beginPath();
+                let firstPoint = true;
+                for (let x = start; x <= end; x += 0.01) {
+                    if (x >= -5 && x <= 5) {
+                        const canvasX = centerX + x * scaleX;
+                        const tanValue = Math.tan(x);
+                        if (Math.abs(tanValue) < 10) { // Limit extreme values
+                            const canvasY = centerY - tanValue * scaleY;
+                            if (firstPoint) {
+                                ctx.moveTo(canvasX, canvasY);
+                                firstPoint = false;
+                            } else {
+                                ctx.lineTo(canvasX, canvasY);
+                            }
+                        }
+                    }
+                }
+                ctx.stroke();
+            });
+
+            // Draw slope point and tangent line
+            if (Math.abs(Math.tan(slopePoint)) < 10) {
+                const pointX = centerX + slopePoint * scaleX;
+                const pointY = centerY - Math.tan(slopePoint) * scaleY;
+                const slope = 1 / (Math.cos(slopePoint) * Math.cos(slopePoint)); // derivative of tan(x) is sec²(x)
+
+                // Draw point
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.arc(pointX, pointY, 6, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // Add labels
+                ctx.fillStyle = '#333';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('y = tan(x)', centerX + 10, 30);
+                ctx.fillStyle = '#dc2626';
+                ctx.fillText(`Slope at x = ${slopePoint.toFixed(2)}: ${slope.toFixed(3)}`, centerX + 10, 50);
+            }
+        }
+
+        function regenerateGraph(questionIndex) {
+            generateGraph(questionIndex);
+        }
+
+        function downloadGraph(questionIndex) {
+            const canvas = document.getElementById(`graph-canvas-${questionIndex}`);
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = `trigonometry-graph-question-${questionIndex + 1}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
             }
         }
     </script>

@@ -2759,6 +2759,115 @@ function generateCalculusQuestions(difficulty, questionCount, questionType, subt
           subtopic: "Optimization"
         }
       ]
+    },
+    'trigonometric': {
+      easy: [
+        {
+          question: "Find the derivative of $f(x) = \\sin(x)$.",
+          answer: "$f'(x) = \\cos(x)$",
+          explanation: "The derivative of $\\sin(x)$ is $\\cos(x)$",
+          subtopic: "Trigonometric",
+          needsGraph: false
+        },
+        {
+          question: "What is the derivative of $f(x) = \\cos(x)$?",
+          answer: "$f'(x) = -\\sin(x)$",
+          explanation: "The derivative of $\\cos(x)$ is $-\\sin(x)$",
+          subtopic: "Trigonometric",
+          needsGraph: false
+        }
+      ],
+      medium: [
+        {
+          question: "Find the slope of the tangent line to $y = \\sin(x)$ at $x = \\frac{\\pi}{4}$.",
+          answer: "$\\frac{\\sqrt{2}}{2}$",
+          explanation: "The slope is given by the derivative: $f'(x) = \\cos(x)$. At $x = \\frac{\\pi}{4}$: $f'(\\frac{\\pi}{4}) = \\cos(\\frac{\\pi}{4}) = \\frac{\\sqrt{2}}{2}$",
+          subtopic: "Trigonometric",
+          needsGraph: true,
+          graphType: "sine-slope",
+          slopePoint: Math.PI/4
+        },
+        {
+          question: "Determine the slope of $y = \\cos(x)$ at $x = \\frac{\\pi}{6}$.",
+          answer: "$-\\frac{1}{2}$",
+          explanation: "The derivative is $f'(x) = -\\sin(x)$. At $x = \\frac{\\pi}{6}$: $f'(\\frac{\\pi}{6}) = -\\sin(\\frac{\\pi}{6}) = -\\frac{1}{2}$",
+          subtopic: "Trigonometric",
+          needsGraph: true,
+          graphType: "cosine-slope",
+          slopePoint: Math.PI/6
+        },
+        {
+          question: "Find the slope of the tangent line to $y = \\tan(x)$ at $x = \\frac{\\pi}{4}$.",
+          answer: "$2$",
+          explanation: "The derivative of $\\tan(x)$ is $\\sec^2(x)$. At $x = \\frac{\\pi}{4}$: $\\sec^2(\\frac{\\pi}{4}) = \\frac{1}{\\cos^2(\\frac{\\pi}{4})} = \\frac{1}{(\\frac{\\sqrt{2}}{2})^2} = 2$",
+          subtopic: "Trigonometric",
+          needsGraph: true,
+          graphType: "tangent-slope",
+          slopePoint: Math.PI/4
+        }
+      ],
+      difficult: [
+        {
+          question: "Find the equation of the tangent line to $y = \\sin(2x)$ at $x = \\frac{\\pi}{6}$.",
+          answer: "$y = x - \\frac{\\pi}{6} + \\frac{\\sqrt{3}}{2}$",
+          explanation: "First find the point: $y(\\frac{\\pi}{6}) = \\sin(\\frac{\\pi}{3}) = \\frac{\\sqrt{3}}{2}$. Then find the slope: $y'(x) = 2\\cos(2x)$, so $y'(\\frac{\\pi}{6}) = 2\\cos(\\frac{\\pi}{3}) = 1$. Using point-slope form: $y - \\frac{\\sqrt{3}}{2} = 1(x - \\frac{\\pi}{6})$",
+          subtopic: "Trigonometric",
+          needsGraph: true,
+          graphType: "sine-slope",
+          slopePoint: Math.PI/6
+        },
+        {
+          question: "Analyze the behavior of the slope of $y = \\sin(x) + \\cos(x)$ at critical points.",
+          answer: "Critical points at $x = \\frac{\\pi}{4} + n\\pi$ where slope is 0",
+          explanation: "$y' = \\cos(x) - \\sin(x) = 0$ when $\\cos(x) = \\sin(x)$, which occurs at $x = \\frac{\\pi}{4} + n\\pi$",
+          subtopic: "Trigonometric",
+          needsGraph: true,
+          graphType: "sine-slope",
+          slopePoint: Math.PI/4
+        },
+        {
+          question: "Find where the slope of $y = \\cos(x)$ equals $-\\frac{\\sqrt{3}}{2}$.",
+          answer: "$x = \\frac{\\pi}{3} + 2n\\pi$ or $x = \\frac{2\\pi}{3} + 2n\\pi$",
+          explanation: "We need $-\\sin(x) = -\\frac{\\sqrt{3}}{2}$, so $\\sin(x) = \\frac{\\sqrt{3}}{2}$. This occurs at $x = \\frac{\\pi}{3}$ and $x = \\frac{2\\pi}{3}$ in $[0, 2\\pi]$",
+          subtopic: "Trigonometric",
+          needsGraph: true,
+          graphType: "cosine-slope",
+          slopePoint: Math.PI/3
+        }
+      ]
+    },
+    'slope-tangent': {
+      easy: [
+        {
+          question: "Find the slope of the line tangent to $y = x^2$ at $x = 3$.",
+          answer: "$6$",
+          explanation: "The slope is given by the derivative: $y' = 2x$. At $x = 3$: slope = $2(3) = 6$",
+          subtopic: "Slope, tangent, and normal lines",
+          needsGraph: false
+        }
+      ],
+      medium: [
+        {
+          question: "Find the equation of the tangent line to $y = x^3 - 2x + 1$ at $x = 1$.",
+          answer: "$y = x$",
+          explanation: "Point: $(1, 0)$. Slope: $y' = 3x^2 - 2$, so at $x = 1$: slope = $1$. Equation: $y - 0 = 1(x - 1)$, so $y = x$",
+          subtopic: "Slope, tangent, and normal lines",
+          needsGraph: true,
+          graphType: "polynomial-slope",
+          slopePoint: 1
+        }
+      ],
+      difficult: [
+        {
+          question: "Find the points on $y = \\sin(x)$ where the tangent line has slope $\\frac{1}{2}$.",
+          answer: "$x = \\frac{\\pi}{3} + 2n\\pi$ or $x = \\frac{2\\pi}{3} + 2n\\pi$",
+          explanation: "We need $\\cos(x) = \\frac{1}{2}$. This occurs at $x = \\frac{\\pi}{3}$ and $x = \\frac{2\\pi}{3}$ in $[0, 2\\pi]$",
+          subtopic: "Slope, tangent, and normal lines",
+          needsGraph: true,
+          graphType: "sine-slope",
+          slopePoint: Math.PI/3
+        }
+      ]
     }
   };
 
