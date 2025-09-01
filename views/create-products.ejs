@@ -1627,6 +1627,23 @@
             // Store questions data globally for editing
             window.generatedQuestions = questions;
 
+            // Store original LaTeX content for each question
+            questions.forEach((question, index) => {
+                const questionElement = document.getElementById(`question-text-${index}`);
+                const answerElement = document.getElementById(`answer-text-${index}`);
+                const explanationElement = document.getElementById(`explanation-text-${index}`);
+
+                if (questionElement) {
+                    questionElement.setAttribute('data-original-latex', question.question);
+                }
+                if (answerElement) {
+                    answerElement.setAttribute('data-original-latex', question.answer);
+                }
+                if (explanationElement) {
+                    explanationElement.setAttribute('data-original-latex', question.explanation || '');
+                }
+            });
+
             // Generate graphs for questions that need them
             questions.forEach((question, index) => {
                 if (question.needsGraph) {
@@ -1752,16 +1769,17 @@
             // Add editing mode class
             questionItem.classList.add('editing-mode');
 
-            // Store original content
-            const originalQuestion = questionText.innerHTML;
-            const originalAnswer = answerText ? answerText.innerHTML : '';
-            const originalExplanation = explanationText ? explanationText.innerHTML : '';
+            // Get original LaTeX content from data attributes (not rendered HTML)
+            const originalQuestion = questionText.getAttribute('data-original-latex') || window.generatedQuestions[index]?.question || '';
+            const originalAnswer = answerText ? (answerText.getAttribute('data-original-latex') || window.generatedQuestions[index]?.answer || '') : '';
+            const originalExplanation = explanationText ? (explanationText.getAttribute('data-original-latex') || window.generatedQuestions[index]?.explanation || '') : '';
 
             // Replace with editable textareas and LaTeX toolbar
             questionText.innerHTML = `
                 <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Question (LaTeX supported: use $...$ for inline math, $$...$$ for display math):</label>
-                    <textarea class="question-text-edit" id="edit-question-${index}">${originalQuestion}</textarea>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Question (LaTeX supported: use $...$ for inline math, $$...$$ for display math):</label>
+                    <textarea class="question-text-edit" id="edit-question-${index}" style="width: 100%; min-height: 80px; padding: 12px; border: 2px solid #4f46e5; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5; resize: vertical;">${originalQuestion.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                    <small style="color: #6b7280; font-size: 12px;">💡 Tip: Use LaTeX for math expressions. Example: $x^2$ for inline, $$\\int x dx$$ for display</small>
                 </div>
             `;
 
@@ -1772,8 +1790,8 @@
             if (answerText) {
                 answerText.innerHTML = `
                     <div style="margin-bottom: 10px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Answer (LaTeX supported):</label>
-                        <textarea class="answer-edit" id="edit-answer-${index}">${originalAnswer}</textarea>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Answer (LaTeX supported):</label>
+                        <textarea class="answer-edit" id="edit-answer-${index}" style="width: 100%; min-height: 60px; padding: 12px; border: 2px solid #4f46e5; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5; resize: vertical;">${originalAnswer.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
                     </div>
                 `;
 
@@ -1785,8 +1803,8 @@
             if (explanationText) {
                 explanationText.innerHTML = `
                     <div style="margin-bottom: 10px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Explanation (LaTeX supported):</label>
-                        <textarea class="explanation-edit" id="edit-explanation-${index}">${originalExplanation}</textarea>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Explanation (LaTeX supported):</label>
+                        <textarea class="explanation-edit" id="edit-explanation-${index}" style="width: 100%; min-height: 80px; padding: 12px; border: 2px solid #4f46e5; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5; resize: vertical;">${originalExplanation.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
                     </div>
                 `;
 
@@ -1802,13 +1820,93 @@
 
             // Update controls
             controls.innerHTML = `
-                <button class="control-btn save-btn" onclick="saveQuestionSafe(${index})">
+                <button class="control-btn save-btn" onclick="saveQuestionSafe(${index})" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
                     <i class="fas fa-save"></i> Save
                 </button>
-                <button class="control-btn cancel-btn" onclick="cancelEditSafe(${index})">
+                <button class="control-btn cancel-btn" onclick="cancelEditSafe(${index})" style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white;">
                     <i class="fas fa-times"></i> Cancel
                 </button>
+                <button class="control-btn preview-btn" onclick="previewLatex(${index})" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
+                    <i class="fas fa-eye"></i> Preview
+                </button>
             `;
+        }
+
+        function previewLatex(index) {
+            const editedQuestion = document.getElementById(`edit-question-${index}`)?.value || '';
+            const editedAnswer = document.getElementById(`edit-answer-${index}`)?.value || '';
+            const editedExplanation = document.getElementById(`edit-explanation-${index}`)?.value || '';
+
+            // Create preview modal
+            const modal = document.createElement('div');
+            modal.id = 'latex-preview-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 3000;
+                padding: 20px;
+                box-sizing: border-box;
+            `;
+
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 12px; max-width: 800px; width: 100%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                    <h3 style="margin-bottom: 20px; color: #374151; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-eye" style="color: #3b82f6;"></i>
+                        LaTeX Preview
+                    </h3>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #374151; margin-bottom: 10px;">Question:</h4>
+                        <div id="preview-question" style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3b82f6;">${editedQuestion}</div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #374151; margin-bottom: 10px;">Answer:</h4>
+                        <div id="preview-answer" style="padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #10b981;">${editedAnswer}</div>
+                    </div>
+
+                    ${editedExplanation ? `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: #374151; margin-bottom: 10px;">Explanation:</h4>
+                            <div id="preview-explanation" style="padding: 15px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">${editedExplanation}</div>
+                        </div>
+                    ` : ''}
+
+                    <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                        <button onclick="closePreviewModal()" style="padding: 10px 20px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            Close Preview
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Render LaTeX in preview
+            if (window.MathJax) {
+                MathJax.typesetPromise([modal]).catch((err) => console.log(err.message));
+            }
+
+            // Close on background click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closePreviewModal();
+                }
+            });
+        }
+
+        function closePreviewModal() {
+            const modal = document.getElementById('latex-preview-modal');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
         }
 
         function saveQuestionSafe(index) {
@@ -1839,7 +1937,16 @@
                 window.generatedQuestions[index].explanation = editedExplanation;
             }
 
-            // Update display
+            // Store the LaTeX source in data attributes before updating display
+            questionText.setAttribute('data-original-latex', editedQuestion);
+            if (answerText) {
+                answerText.setAttribute('data-original-latex', editedAnswer);
+            }
+            if (explanationText) {
+                explanationText.setAttribute('data-original-latex', editedExplanation);
+            }
+
+            // Update display with the LaTeX content
             questionText.innerHTML = editedQuestion;
             if (answerText) {
                 answerText.innerHTML = editedAnswer;
