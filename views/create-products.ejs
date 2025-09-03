@@ -1660,15 +1660,75 @@
             generatedQuestionsDiv.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function exportQuestions() {
+        async function exportQuestions() {
             const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
             const questionCount = document.getElementById('questionCount').value;
 
             // Get current state of questions (including edits)
             const currentQuestions = window.generatedQuestions || [];
 
+            if (currentQuestions.length === 0) {
+                alert('No questions to export. Please generate questions first.');
+                return;
+            }
+
+            // Ensure all graphs are generated before export
+            const graphQuestions = currentQuestions.filter((q, index) => {
+                const canvas = document.getElementById(`graph-canvas-${index}`);
+                return q.needsGraph && (!canvas || canvas.style.display === 'none');
+            });
+
+            if (graphQuestions.length > 0) {
+                // Show loading message
+                const loadingToast = document.createElement('div');
+                loadingToast.id = 'export-loading';
+                loadingToast.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #3b82f6;
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 3000;
+                    font-weight: 500;
+                `;
+                loadingToast.innerHTML = `
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Generating graphs for export... (${graphQuestions.length} remaining)
+                `;
+                document.body.appendChild(loadingToast);
+
+                // Generate missing graphs
+                for (let i = 0; i < currentQuestions.length; i++) {
+                    if (currentQuestions[i].needsGraph) {
+                        const canvas = document.getElementById(`graph-canvas-${i}`);
+                        if (!canvas || canvas.style.display === 'none') {
+                            generateGraph(i);
+                            // Wait a bit for graph to render
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        }
+                    }
+                }
+
+                // Remove loading message
+                setTimeout(() => {
+                    const loading = document.getElementById('export-loading');
+                    if (loading) {
+                        document.body.removeChild(loading);
+                    }
+                }, 500);
+
+                // Wait a bit more for all graphs to be ready
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
             let questionsHTML = '';
-            currentQuestions.forEach((question, index) => {
+
+            // Process each question and include graphs
+            for (let index = 0; index < currentQuestions.length; index++) {
+                const question = currentQuestions[index];
                 const questionElement = document.getElementById(`question-text-${index}`);
                 const answerElement = document.getElementById(`answer-text-${index}`);
                 const explanationElement = document.getElementById(`explanation-text-${index}`);
@@ -1679,23 +1739,59 @@
                 const currentExplanation = explanationElement ? explanationElement.innerHTML : question.explanation;
                 const isAnswerHidden = answerDiv ? answerDiv.classList.contains('hidden') : false;
 
+                // Get graph image if it exists
+                let graphImageData = '';
+                if (question.needsGraph) {
+                    const canvas = document.getElementById(`graph-canvas-${index}`);
+                    if (canvas && canvas.style.display !== 'none') {
+                        try {
+                            // Ensure canvas is visible and rendered before capturing
+                            if (canvas.width > 0 && canvas.height > 0) {
+                                graphImageData = canvas.toDataURL('image/png', 1.0);
+                            }
+                        } catch (error) {
+                            console.warn('Could not export graph for question', index + 1, error);
+                        }
+                    }
+                }
+
                 questionsHTML += `
-                    <div style="margin-bottom: 25px; page-break-inside: avoid;">
-                        <div style="font-weight: bold; color: #4F46E5; margin-bottom: 10px;">Question ${index + 1}</div>
-                        <div style="margin-bottom: 15px; line-height: 1.6;">${currentQuestion}</div>
-                        ${!isAnswerHidden ? `
-                            <div style="background: #e0f2fe; padding: 10px; border-radius: 5px; margin-top: 15px;">
-                                <strong>Answer:</strong> ${currentAnswer}
+                    <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; page-break-inside: avoid;">
+                        <h3 style="color: #374151; margin-bottom: 15px; font-size: 18px;">Question ${index + 1}</h3>
+                        <div style="margin-bottom: 15px; line-height: 1.6; font-size: 16px;">${currentQuestion}</div>
+
+                        ${graphImageData ? `
+                            <div style="margin: 20px 0; text-align: center; page-break-inside: avoid;">
+                                <img src="${graphImageData}" alt="Mathematical Graph for Question ${index + 1}"
+                                     style="max-width: 100%; height: auto; border: 2px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                                <p style="font-size: 12px; color: #6b7280; margin-top: 8px; font-style: italic;">
+                                    Graph showing mathematical function and slope analysis
+                                </p>
                             </div>
                         ` : ''}
+
+                        ${question.options ? `
+                            <ol style="margin: 15px 0; padding-left: 20px; font-size: 15px;">
+                                ${question.options.map(option => `<li style="margin-bottom: 8px; line-height: 1.4;">${option}</li>`).join('')}
+                            </ol>
+                        ` : ''}
+
+                        ${!isAnswerHidden ? `
+                            <div style="background: #e0f2fe; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #0ea5e9;">
+                                <strong style="color: #0c4a6e;">Answer:</strong>
+                                <span style="font-size: 15px; margin-left: 8px;">${currentAnswer}</span>
+                            </div>
+                        ` : ''}
+
                         ${currentExplanation ? `
-                            <div style="background: #f0f9ff; padding: 10px; border-radius: 5px; margin-top: 10px;">
-                                <strong>Explanation:</strong> ${currentExplanation}
+                            <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 4px solid #8b5cf6;">
+                                <strong style="color: #581c87;">Explanation:</strong>
+                                <div style="font-size: 14px; margin-top: 8px; line-height: 1.5;">${currentExplanation}</div>
                             </div>
                         ` : ''}
                     </div>
                 `;
-            });
+            }
 
             // Create a new window for printing
             const printWindow = window.open('', '_blank');
@@ -1704,24 +1800,116 @@
                 <html>
                 <head>
                     <title>Calculus Questions - ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Level</title>
+                    <!-- MathJax for LaTeX rendering in PDF -->
+                    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+                    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+                    <script>
+                        window.MathJax = {
+                            tex: {
+                                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+                                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']]
+                            },
+                            startup: {
+                                ready: () => {
+                                    MathJax.startup.defaultReady();
+                                    // Print after MathJax is done rendering
+                                    MathJax.startup.promise.then(() => {
+                                        setTimeout(() => {
+                                            window.print();
+                                        }, 1500);
+                                    });
+                                }
+                            }
+                        };
+                    </script>
                     <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        .header { text-align: center; margin-bottom: 30px; }
-                        .blank-placeholder { border-bottom: 2px solid #374151; min-width: 80px; height: 20px; display: inline-block; margin: 0 4px; }
+                        body {
+                            font-family: 'Times New Roman', serif;
+                            margin: 20px;
+                            line-height: 1.6;
+                            color: #333;
+                        }
+                        .header {
+                            text-align: center;
+                            margin-bottom: 40px;
+                            border-bottom: 3px solid #374151;
+                            padding-bottom: 20px;
+                        }
+                        .header h1 {
+                            color: #1f2937;
+                            margin-bottom: 10px;
+                            font-size: 28px;
+                        }
+                        .header p {
+                            color: #6b7280;
+                            margin: 5px 0;
+                            font-size: 14px;
+                        }
+                        .blank-placeholder {
+                            border-bottom: 2px solid #374151;
+                            min-width: 80px;
+                            height: 20px;
+                            display: inline-block;
+                            margin: 0 4px;
+                        }
+                        img {
+                            max-width: 100% !important;
+                            height: auto !important;
+                            page-break-inside: avoid;
+                        }
+                        @media print {
+                            body {
+                                margin: 15px;
+                                font-size: 12pt;
+                            }
+                            .header {
+                                margin-bottom: 25px;
+                            }
+                            .header h1 {
+                                font-size: 24pt;
+                            }
+                            div[style*="page-break-inside: avoid"] {
+                                page-break-inside: avoid;
+                            }
+                            img {
+                                max-width: 90% !important;
+                                page-break-inside: avoid;
+                            }
+                        }
+                        @page {
+                            margin: 1in;
+                            size: letter;
+                        }
                     </style>
                 </head>
                 <body>
                     <div class="header">
                         <h1>Calculus Questions</h1>
-                        <p>Difficulty: ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} | Questions: ${questionCount}</p>
-                        <p>Generated on: ${new Date().toLocaleDateString()}</p>
+                        <p><strong>Difficulty Level:</strong> ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</p>
+                        <p><strong>Number of Questions:</strong> ${questionCount}</p>
+                        <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()}</p>
+                        ${currentQuestions.some(q => q.needsGraph) ? '<p style="color: #059669; font-weight: bold;"><em>📊 Includes mathematical graphs and visualizations</em></p>' : ''}
                     </div>
                     ${questionsHTML}
+
+                    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
+                        <p>Generated by Calculus Question Generator | ${new Date().toLocaleString()}</p>
+                    </div>
                 </body>
                 </html>
             `);
             printWindow.document.close();
-            printWindow.print();
+
+            // If no graphs and no LaTeX, print immediately
+            const hasGraphs = currentQuestions.some(q => q.needsGraph);
+            const hasLatex = questionsHTML.includes('$') || questionsHTML.includes('\\\\');
+
+            if (!hasGraphs && !hasLatex) {
+                setTimeout(() => {
+                    printWindow.print();
+                }, 500);
+            }
+            // Otherwise, MathJax will handle printing after rendering
         }
 
         async function saveQuestions() {
