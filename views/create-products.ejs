@@ -7,22 +7,30 @@
     <link rel="stylesheet" href="/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- MathJax for LaTeX rendering -->
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- MathJax Configuration - Must be before MathJax script -->
     <script>
         window.MathJax = {
             tex: {
                 inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
             },
             startup: {
                 ready: () => {
+                    console.log('MathJax is loaded and ready');
                     MathJax.startup.defaultReady();
                 }
             }
         };
     </script>
+    <!-- MathJax for LaTeX rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         :root {
             --primary-color: #4F46E5;
@@ -1503,6 +1511,34 @@
     </main>
 
     <script>
+        // Safe MathJax rendering function
+        function renderMathJax(elements) {
+            try {
+                if (window.MathJax && MathJax.typesetPromise) {
+                    MathJax.typesetPromise(elements).catch((err) => {
+                        console.warn('MathJax rendering error:', err);
+                    });
+                } else {
+                    // MathJax not ready yet, try again after a delay
+                    setTimeout(() => renderMathJax(elements), 500);
+                }
+            } catch (error) {
+                console.warn('MathJax error:', error);
+            }
+        }
+
+        // Wait for MathJax to be ready
+        function waitForMathJax(callback) {
+            if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+                MathJax.startup.promise.then(callback).catch((err) => {
+                    console.warn('MathJax startup error:', err);
+                    callback(); // Continue anyway
+                });
+            } else {
+                setTimeout(() => waitForMathJax(callback), 100);
+            }
+        }
+
         // Question generation functionality
         async function generateCalculusQuestions() {
             const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
@@ -1538,7 +1574,12 @@
                 }
 
                 const data = await response.json();
-                displayGeneratedQuestions(data.questions);
+
+                if (data.success && data.questions) {
+                    displayGeneratedQuestions(data.questions);
+                } else {
+                    throw new Error(data.error || 'No questions returned from server');
+                }
 
             } catch (error) {
                 console.error('Error generating questions:', error);
@@ -1652,9 +1693,7 @@
             });
 
             // Render LaTeX expressions
-            if (window.MathJax) {
-                MathJax.typesetPromise([questionsContent]).catch((err) => console.log(err.message));
-            }
+            renderMathJax([questionsContent]);
 
             // Scroll to generated questions
             generatedQuestionsDiv.scrollIntoView({ behavior: 'smooth' });
@@ -2078,9 +2117,7 @@
             document.body.appendChild(modal);
 
             // Render LaTeX in preview
-            if (window.MathJax) {
-                MathJax.typesetPromise([modal]).catch((err) => console.log(err.message));
-            }
+            renderMathJax([modal]);
 
             // Close on background click
             modal.addEventListener('click', function(e) {
@@ -2147,9 +2184,7 @@
             questionItem.classList.remove('editing-mode');
 
             // Re-render LaTeX if MathJax is available
-            if (window.MathJax) {
-                MathJax.typesetPromise([questionItem]).catch((err) => console.log(err.message));
-            }
+            renderMathJax([questionItem]);
 
             // Restore original controls
             controls.innerHTML = `
@@ -2316,11 +2351,9 @@
             }
 
             // Re-render LaTeX
-            if (window.MathJax) {
-                const questionElement = document.getElementById(`question-text-${index}`);
-                const answerElement = document.getElementById(`answer-text-${index}`);
-                MathJax.typesetPromise([questionElement, answerElement]).catch((err) => console.log(err.message));
-            }
+            const questionElement = document.getElementById(`question-text-${index}`);
+            const answerElement = document.getElementById(`answer-text-${index}`);
+            renderMathJax([questionElement, answerElement]);
 
             closeBlanksModal();
         }
@@ -2428,9 +2461,7 @@
             }
 
             // Re-render LaTeX if MathJax is available
-            if (window.MathJax) {
-                MathJax.typesetPromise([optionSpan]).catch((err) => console.log(err.message));
-            }
+            renderMathJax([optionSpan]);
         }
 
         function cancelOptionEdit(questionIndex, optionIndex, originalText) {
@@ -2464,9 +2495,7 @@
                 }
 
                 // Re-render LaTeX
-                if (window.MathJax) {
-                    MathJax.typesetPromise([element]).catch((err) => console.log(err.message));
-                }
+                renderMathJax([element]);
             }
         }
 
