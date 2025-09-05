@@ -1085,6 +1085,24 @@
         <div class="properties-panel">
             <div class="properties-header">
                 <h5><i class="fas fa-cog me-2"></i>Element Properties</h5>
+
+                <!-- Measurement Unit Selection -->
+                <div class="property-group" style="margin-top: 15px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #64748b; margin-bottom: 8px; display: block;">
+                        <i class="fas fa-ruler me-1"></i>Measurement Unit
+                    </label>
+                    <select id="measurementUnitSelector" onchange="changeMeasurementUnit(this.value)" class="form-control" style="font-size: 0.9rem;">
+                        <option value="px" selected>Pixels (px)</option>
+                        <option value="cm">Centimeters (cm)</option>
+                        <option value="m">Meters (m)</option>
+                        <option value="in">Inches (in)</option>
+                        <option value="ft">Feet (ft)</option>
+                        <option value="yd">Yards (yd)</option>
+                    </select>
+                    <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">
+                        Display unit for measurements. Image size remains unchanged.
+                    </small>
+                </div>
             </div>
             <div class="properties-content" id="properties-content">
                 <div class="text-center text-muted">
@@ -1219,6 +1237,213 @@
                 document.head.appendChild(script);
             });
         }
+
+        // Measurement Unit Conversion System
+        const MeasurementConverter = {
+            // Conversion factors from pixels to other units
+            // Assuming standard screen DPI of 96 pixels per inch
+            conversionFactors: {
+                'px': 1,
+                'cm': 96 / 2.54,  // 96 pixels per inch / 2.54 cm per inch
+                'm': 96 / 2.54 / 100,  // cm to meters
+                'in': 96,  // 96 pixels per inch
+                'ft': 96 * 12,  // 96 pixels per inch * 12 inches per foot
+                'yd': 96 * 12 * 3  // 96 pixels per inch * 12 inches per foot * 3 feet per yard
+            },
+
+            // Precision settings for each unit
+            precision: {
+                'px': 0,  // Whole pixels
+                'cm': 2,  // 2 decimal places for cm
+                'm': 4,   // 4 decimal places for meters
+                'in': 3,  // 3 decimal places for inches
+                'ft': 3,  // 3 decimal places for feet
+                'yd': 4   // 4 decimal places for yards
+            },
+
+            // Current display unit (default: pixels)
+            currentUnit: 'px',
+
+            // Convert pixels to the specified unit
+            convertFromPixels: function(pixels, targetUnit = this.currentUnit) {
+                if (!this.conversionFactors[targetUnit]) {
+                    console.warn(`Unknown unit: ${targetUnit}, defaulting to pixels`);
+                    return pixels;
+                }
+
+                const converted = pixels / this.conversionFactors[targetUnit];
+                const precision = this.precision[targetUnit];
+                return parseFloat(converted.toFixed(precision));
+            },
+
+            // Convert from any unit to pixels
+            convertToPixels: function(value, sourceUnit) {
+                if (!this.conversionFactors[sourceUnit]) {
+                    console.warn(`Unknown unit: ${sourceUnit}, treating as pixels`);
+                    return value;
+                }
+
+                return Math.round(value * this.conversionFactors[sourceUnit]);
+            },
+
+            // Format a pixel value for display in the current unit
+            formatForDisplay: function(pixels, unit = this.currentUnit, includeUnit = true) {
+                const converted = this.convertFromPixels(pixels, unit);
+                const formatted = converted.toString();
+                return includeUnit ? `${formatted} ${unit}` : formatted;
+            },
+
+            // Get unit display name
+            getUnitDisplayName: function(unit) {
+                const displayNames = {
+                    'px': 'Pixels',
+                    'cm': 'Centimeters',
+                    'm': 'Meters',
+                    'in': 'Inches',
+                    'ft': 'Feet',
+                    'yd': 'Yards'
+                };
+                return displayNames[unit] || unit;
+            },
+
+            // Set the current display unit
+            setDisplayUnit: function(unit) {
+                if (this.conversionFactors[unit]) {
+                    this.currentUnit = unit;
+                    this.updateAllDisplays();
+                } else {
+                    console.warn(`Invalid unit: ${unit}`);
+                }
+            },
+
+            // Update all dimension displays when unit changes
+            updateAllDisplays: function() {
+                // Update properties panel if an element is selected
+                if (selectedElement) {
+                    showElementProperties(selectedElement);
+                }
+
+                // Update shape annotations
+                this.updateShapeAnnotations();
+
+                // Update any other dimension displays
+                this.updateDimensionInputs();
+            },
+
+            // Update shape annotations with new unit
+            updateShapeAnnotations: function() {
+                quizElements.forEach(element => {
+                    const elementDiv = document.getElementById(element.id);
+                    if (elementDiv) {
+                        elementDiv.innerHTML = getElementContent(element);
+                    }
+                });
+            },
+
+            // Update dimension input displays
+            updateDimensionInputs: function() {
+                // Update width/height inputs in properties panel
+                const widthInput = document.querySelector('input[onchange*="width"]');
+                const heightInput = document.querySelector('input[onchange*="height"]');
+
+                if (widthInput && selectedElement) {
+                    const elementData = quizElements.find(e => e.id === selectedElement);
+                    if (elementData) {
+                        widthInput.value = this.convertFromPixels(elementData.width);
+                        const widthLabel = widthInput.previousElementSibling;
+                        if (widthLabel) {
+                            widthLabel.textContent = `Width (${this.currentUnit})`;
+                        }
+                    }
+                }
+
+                if (heightInput && selectedElement) {
+                    const elementData = quizElements.find(e => e.id === selectedElement);
+                    if (elementData) {
+                        heightInput.value = this.convertFromPixels(elementData.height);
+                        const heightLabel = heightInput.previousElementSibling;
+                        if (heightLabel) {
+                            heightLabel.textContent = `Height (${this.currentUnit})`;
+                        }
+                    }
+                }
+            }
+        };
+
+        // Make MeasurementConverter globally available
+        window.MeasurementConverter = MeasurementConverter;
+
+        // Function to handle measurement unit changes
+        function changeMeasurementUnit(newUnit) {
+            console.log('Changing measurement unit to:', newUnit);
+            MeasurementConverter.setDisplayUnit(newUnit);
+
+            // Update the dropdown to reflect the change
+            const selector = document.getElementById('measurementUnitSelector');
+            if (selector) {
+                selector.value = newUnit;
+            }
+        }
+        window.changeMeasurementUnit = changeMeasurementUnit;
+
+        // Function to update element dimensions with unit conversion
+        function updateElementDimension(elementId, property, value) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (!elementData) return;
+
+            // Convert the input value from current unit to pixels
+            const pixelValue = MeasurementConverter.convertToPixels(parseFloat(value), MeasurementConverter.currentUnit);
+
+            // Update the element data
+            elementData[property] = pixelValue;
+
+            // Update the DOM element
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.style[property] = pixelValue + 'px';
+            }
+
+            // Refresh the properties panel to show updated values
+            showElementProperties(elementId);
+        }
+        window.updateElementDimension = updateElementDimension;
+
+        // Function to update shape dimensions with unit conversion
+        function updateShapeDimensionWithUnit(elementId, property, value) {
+            const elementData = quizElements.find(e => e.id === elementId);
+            if (!elementData) return;
+
+            // Convert the input value from current unit to pixels
+            const pixelValue = MeasurementConverter.convertToPixels(parseFloat(value), MeasurementConverter.currentUnit);
+
+            // Update the element data
+            elementData[property] = pixelValue;
+
+            // Update the DOM element content
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = getElementContent(elementData);
+
+                // For certain shapes, we might want to update the container size too
+                if (elementData.type === 'line' && property === 'shapeLength') {
+                    // Update container width for lines
+                    element.style.width = (pixelValue + 20) + 'px';
+                    elementData.width = pixelValue + 20;
+                } else if ((elementData.type === 'circle' || elementData.type === 'square') &&
+                          (property === 'shapeDiameter' || property === 'shapeSideLength')) {
+                    // Update container size for circles and squares
+                    const size = pixelValue + 20;
+                    element.style.width = size + 'px';
+                    element.style.height = size + 'px';
+                    elementData.width = size;
+                    elementData.height = size;
+                }
+            }
+
+            // Refresh the properties panel to show updated values
+            showElementProperties(elementId);
+        }
+        window.updateShapeDimensionWithUnit = updateShapeDimensionWithUnit;
 
         // Initialize the quiz builder
         document.addEventListener('DOMContentLoaded', function() {
@@ -1848,7 +2073,7 @@
                               stroke="${element.strokeColor || '#3b82f6'}"
                               stroke-width="${element.strokeWidth || 2}"
                               ${element.strokeDasharray ? `stroke-dasharray="${element.strokeDasharray}"` : ''} />
-                        <text x="${(lineLength + 20) / 2}" y="18" text-anchor="middle" font-size="10" fill="#64748b">Line (${lineLength}px)</text>
+                        <text x="${(lineLength + 20) / 2}" y="18" text-anchor="middle" font-size="10" fill="#64748b">Line (${MeasurementConverter.formatForDisplay(lineLength)})</text>
                     </svg>`;
 
                 case 'triangle':
@@ -1865,7 +2090,7 @@
                                 fill="${element.fillColor || '#dbeafe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
-                        <text x="${topX}" y="${triangleHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Triangle (${baseWidth}×${triangleHeight}px)</text>
+                        <text x="${topX}" y="${triangleHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Triangle (${MeasurementConverter.formatForDisplay(baseWidth)}×${MeasurementConverter.formatForDisplay(triangleHeight)})</text>
                     </svg>`;
 
                 case 'square':
@@ -1878,7 +2103,7 @@
                               fill="${element.fillColor || '#dbeafe'}"
                               stroke="${element.strokeColor || '#3b82f6'}"
                               stroke-width="${element.strokeWidth || 2}" />
-                        <text x="${(sideLength + 20) / 2}" y="${sideLength + 25}" text-anchor="middle" font-size="10" fill="#64748b">Square (${sideLength}×${sideLength}px)</text>
+                        <text x="${(sideLength + 20) / 2}" y="${sideLength + 25}" text-anchor="middle" font-size="10" fill="#64748b">Square (${MeasurementConverter.formatForDisplay(sideLength)}×${MeasurementConverter.formatForDisplay(sideLength)})</text>
                     </svg>`;
 
                 case 'rectangle':
@@ -1892,7 +2117,7 @@
                               fill="${element.fillColor || '#dbeafe'}"
                               stroke="${element.strokeColor || '#3b82f6'}"
                               stroke-width="${element.strokeWidth || 2}" />
-                        <text x="${(rectWidth + 20) / 2}" y="${rectHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Rectangle (${rectWidth}×${rectHeight}px)</text>
+                        <text x="${(rectWidth + 20) / 2}" y="${rectHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Rectangle (${MeasurementConverter.formatForDisplay(rectWidth)}×${MeasurementConverter.formatForDisplay(rectHeight)})</text>
                     </svg>`;
 
                 case 'rhombus':
@@ -1913,7 +2138,7 @@
                                 fill="${element.fillColor || '#dbeafe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
-                        <text x="${rhombusCenterX}" y="${rhombusHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Rhombus (${rhombusWidth}×${rhombusHeight}px)</text>
+                        <text x="${rhombusCenterX}" y="${rhombusHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Rhombus (${MeasurementConverter.formatForDisplay(rhombusWidth)}×${MeasurementConverter.formatForDisplay(rhombusHeight)})</text>
                     </svg>`;
 
                 case 'parallelogram':
@@ -1930,7 +2155,7 @@
                                 fill="${element.fillColor || '#dbeafe'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
-                        <text x="${(paraWidth + 40) / 2}" y="${paraHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Parallelogram (${paraWidth}×${paraHeight}px)</text>
+                        <text x="${(paraWidth + 40) / 2}" y="${paraHeight + 25}" text-anchor="middle" font-size="10" fill="#64748b">Parallelogram (${MeasurementConverter.formatForDisplay(paraWidth)}×${MeasurementConverter.formatForDisplay(paraHeight)})</text>
                     </svg>`;
 
                 case 'circle':
@@ -1944,7 +2169,7 @@
                                fill="${element.fillColor || '#dbeafe'}"
                                stroke="${element.strokeColor || '#3b82f6'}"
                                stroke-width="${element.strokeWidth || 2}" />
-                        <text x="${circleCx}" y="${diameter + 25}" text-anchor="middle" font-size="10" fill="#64748b">Circle (⌀${diameter}px)</text>
+                        <text x="${circleCx}" y="${diameter + 25}" text-anchor="middle" font-size="10" fill="#64748b">Circle (⌀${MeasurementConverter.formatForDisplay(diameter)})</text>
                     </svg>`;
 
                 case 'pentagon':
@@ -2060,7 +2285,7 @@
                                 fill="${element.fillColor || '#93c5fd'}"
                                 stroke="${element.strokeColor || '#3b82f6'}"
                                 stroke-width="${element.strokeWidth || 2}" />
-                        <text x="${(cuboidWidth + cuboidDepth + 20) / 2}" y="${cuboidHeight + cuboidDepth + 25}" text-anchor="middle" font-size="10" fill="#64748b">Cuboid (${cuboidWidth}×${cuboidHeight}×${cuboidDepth}px)</text>
+                        <text x="${(cuboidWidth + cuboidDepth + 20) / 2}" y="${cuboidHeight + cuboidDepth + 25}" text-anchor="middle" font-size="10" fill="#64748b">Cuboid (${MeasurementConverter.formatForDisplay(cuboidWidth)}×${MeasurementConverter.formatForDisplay(cuboidHeight)}×${MeasurementConverter.formatForDisplay(cuboidDepth)})</text>
                     </svg>`;
 
                 // Math Elements - Basic
@@ -2543,12 +2768,14 @@
                     <input type="text" value="${elementData.type}" readonly class="form-control">
                 </div>
                 <div class="property-group">
-                    <label>Width (px)</label>
-                    <input type="number" value="${elementData.width}" onchange="updateElementProperty('${elementId}', 'width', this.value + 'px')" class="form-control">
+                    <label>Width (${MeasurementConverter.currentUnit})</label>
+                    <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.width)}" onchange="updateElementDimension('${elementId}', 'width', this.value)" class="form-control">
+                    <small class="text-muted">Actual: ${elementData.width}px</small>
                 </div>
                 <div class="property-group">
-                    <label>Height (px)</label>
-                    <input type="number" value="${elementData.height}" onchange="updateElementProperty('${elementId}', 'height', this.value + 'px')" class="form-control">
+                    <label>Height (${MeasurementConverter.currentUnit})</label>
+                    <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.height)}" onchange="updateElementDimension('${elementId}', 'height', this.value)" class="form-control">
+                    <small class="text-muted">Actual: ${elementData.height}px</small>
                 </div>
                 <div class="property-group">
                     <label>Background Color</label>
@@ -2649,9 +2876,9 @@
                 case 'line':
                     return `
                         <div class="property-group">
-                            <label>Length (px)</label>
-                            <input type="number" min="10" max="500" value="${elementData.shapeLength || 180}" onchange="updateShapeDimension('${elementData.id}', 'shapeLength', this.value)" class="form-control">
-                            <small class="text-muted">Length of the line</small>
+                            <label>Length (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeLength || 180)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeLength', this.value)" class="form-control">
+                            <small class="text-muted">Length of the line (Actual: ${elementData.shapeLength || 180}px)</small>
                         </div>
                         <div class="property-group">
                             <label>Stroke Color</label>
@@ -2676,9 +2903,9 @@
                 case 'circle':
                     return `
                         <div class="property-group">
-                            <label>Diameter (px)</label>
-                            <input type="number" min="20" max="300" value="${elementData.shapeDiameter || 100}" onchange="updateShapeDimension('${elementData.id}', 'shapeDiameter', this.value)" class="form-control">
-                            <small class="text-muted">Diameter of the circle</small>
+                            <label>Diameter (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeDiameter || 100)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeDiameter', this.value)" class="form-control">
+                            <small class="text-muted">Diameter of the circle (Actual: ${elementData.shapeDiameter || 100}px)</small>
                         </div>
                         <div class="property-group">
                             <label>Fill Color</label>
@@ -2698,9 +2925,9 @@
                 case 'square':
                     return `
                         <div class="property-group">
-                            <label>Side Length (px)</label>
-                            <input type="number" min="20" max="300" value="${elementData.shapeSideLength || 100}" onchange="updateShapeDimension('${elementData.id}', 'shapeSideLength', this.value)" class="form-control">
-                            <small class="text-muted">Length of each side</small>
+                            <label>Side Length (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeSideLength || 100)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeSideLength', this.value)" class="form-control">
+                            <small class="text-muted">Length of each side (Actual: ${elementData.shapeSideLength || 100}px)</small>
                         </div>
                         <div class="property-group">
                             <label>Fill Color</label>
@@ -2720,14 +2947,14 @@
                 case 'rectangle':
                     return `
                         <div class="property-group">
-                            <label>Width (px)</label>
-                            <input type="number" min="30" max="400" value="${elementData.shapeWidth || 160}" onchange="updateShapeDimension('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
-                            <small class="text-muted">Width of the rectangle</small>
+                            <label>Width (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeWidth || 160)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
+                            <small class="text-muted">Width of the rectangle (Actual: ${elementData.shapeWidth || 160}px)</small>
                         </div>
                         <div class="property-group">
-                            <label>Height (px)</label>
-                            <input type="number" min="20" max="300" value="${elementData.shapeHeight || 100}" onchange="updateShapeDimension('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
-                            <small class="text-muted">Height of the rectangle</small>
+                            <label>Height (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeHeight || 100)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
+                            <small class="text-muted">Height of the rectangle (Actual: ${elementData.shapeHeight || 100}px)</small>
                         </div>
                         <div class="property-group">
                             <label>Fill Color</label>
@@ -2747,14 +2974,14 @@
                 case 'rhombus':
                     return `
                         <div class="property-group">
-                            <label>Width (px)</label>
-                            <input type="number" min="30" max="400" value="${elementData.shapeWidth || 140}" onchange="updateShapeDimension('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
-                            <small class="text-muted">Width of the rhombus</small>
+                            <label>Width (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeWidth || 140)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
+                            <small class="text-muted">Width of the rhombus (Actual: ${elementData.shapeWidth || 140}px)</small>
                         </div>
                         <div class="property-group">
-                            <label>Height (px)</label>
-                            <input type="number" min="20" max="300" value="${elementData.shapeHeight || 100}" onchange="updateShapeDimension('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
-                            <small class="text-muted">Height of the rhombus</small>
+                            <label>Height (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeHeight || 100)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
+                            <small class="text-muted">Height of the rhombus (Actual: ${elementData.shapeHeight || 100}px)</small>
                         </div>
                         <div class="property-group">
                             <label>Fill Color</label>
@@ -2774,14 +3001,14 @@
                 case 'triangle':
                     return `
                         <div class="property-group">
-                            <label>Base Width (px)</label>
-                            <input type="number" min="20" max="300" value="${elementData.shapeBaseWidth || 110}" onchange="updateShapeDimension('${elementData.id}', 'shapeBaseWidth', this.value)" class="form-control">
-                            <small class="text-muted">Width of the triangle base</small>
+                            <label>Base Width (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeBaseWidth || 110)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeBaseWidth', this.value)" class="form-control">
+                            <small class="text-muted">Width of the triangle base (Actual: ${elementData.shapeBaseWidth || 110}px)</small>
                         </div>
                         <div class="property-group">
-                            <label>Height (px)</label>
-                            <input type="number" min="20" max="300" value="${elementData.shapeHeight || 110}" onchange="updateShapeDimension('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
-                            <small class="text-muted">Height of the triangle</small>
+                            <label>Height (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeHeight || 110)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
+                            <small class="text-muted">Height of the triangle (Actual: ${elementData.shapeHeight || 110}px)</small>
                         </div>
                         <div class="property-group">
                             <label>Fill Color</label>
@@ -2801,14 +3028,14 @@
                 case 'parallelogram':
                     return `
                         <div class="property-group">
-                            <label>Width (px)</label>
-                            <input type="number" min="30" max="400" value="${elementData.shapeWidth || 160}" onchange="updateShapeDimension('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
-                            <small class="text-muted">Width of the parallelogram</small>
+                            <label>Width (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeWidth || 160)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
+                            <small class="text-muted">Width of the parallelogram (Actual: ${elementData.shapeWidth || 160}px)</small>
                         </div>
                         <div class="property-group">
-                            <label>Height (px)</label>
-                            <input type="number" min="20" max="300" value="${elementData.shapeHeight || 80}" onchange="updateShapeDimension('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
-                            <small class="text-muted">Height of the parallelogram</small>
+                            <label>Height (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeHeight || 80)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
+                            <small class="text-muted">Height of the parallelogram (Actual: ${elementData.shapeHeight || 80}px)</small>
                         </div>
                         <div class="property-group">
                             <label>Fill Color</label>
@@ -2852,9 +3079,9 @@
                 case 'sphere':
                     return `
                         <div class="property-group">
-                            <label>${elementData.type === 'cube' ? 'Side Length' : 'Diameter'} (px)</label>
-                            <input type="number" min="30" max="300" value="${elementData.shapeSize || 80}" onchange="updateShapeDimension('${elementData.id}', 'shapeSize', this.value)" class="form-control">
-                            <small class="text-muted">${elementData.type === 'cube' ? 'Length of each side' : 'Diameter of the sphere'}</small>
+                            <label>${elementData.type === 'cube' ? 'Side Length' : 'Diameter'} (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeSize || 80)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeSize', this.value)" class="form-control">
+                            <small class="text-muted">${elementData.type === 'cube' ? 'Length of each side' : 'Diameter of the sphere'} (Actual: ${elementData.shapeSize || 80}px)</small>
                         </div>
                         <div class="property-group">
                             <label>Fill Color</label>
@@ -2874,19 +3101,19 @@
                 case 'cuboid':
                     return `
                         <div class="property-group">
-                            <label>Width (px)</label>
-                            <input type="number" min="30" max="400" value="${elementData.shapeWidth || 120}" onchange="updateShapeDimension('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
-                            <small class="text-muted">Width of the cuboid</small>
+                            <label>Width (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeWidth || 120)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeWidth', this.value)" class="form-control">
+                            <small class="text-muted">Width of the cuboid (Actual: ${elementData.shapeWidth || 120}px)</small>
                         </div>
                         <div class="property-group">
-                            <label>Height (px)</label>
-                            <input type="number" min="20" max="300" value="${elementData.shapeHeight || 80}" onchange="updateShapeDimension('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
-                            <small class="text-muted">Height of the cuboid</small>
+                            <label>Height (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeHeight || 80)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeHeight', this.value)" class="form-control">
+                            <small class="text-muted">Height of the cuboid (Actual: ${elementData.shapeHeight || 80}px)</small>
                         </div>
                         <div class="property-group">
-                            <label>Depth (px)</label>
-                            <input type="number" min="10" max="200" value="${elementData.shapeDepth || 60}" onchange="updateShapeDimension('${elementData.id}', 'shapeDepth', this.value)" class="form-control">
-                            <small class="text-muted">Depth of the cuboid</small>
+                            <label>Depth (${MeasurementConverter.currentUnit})</label>
+                            <input type="number" step="any" value="${MeasurementConverter.convertFromPixels(elementData.shapeDepth || 60)}" onchange="updateShapeDimensionWithUnit('${elementData.id}', 'shapeDepth', this.value)" class="form-control">
+                            <small class="text-muted">Depth of the cuboid (Actual: ${elementData.shapeDepth || 60}px)</small>
                         </div>
                         <div class="property-group">
                             <label>Fill Color</label>
