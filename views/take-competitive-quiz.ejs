@@ -810,14 +810,15 @@
             }
         }
 
-        // Function to load question images
-        function loadQuestionImages() {
+        // Enhanced function to load question images with pre-signed URLs
+        async function loadQuestionImages() {
             console.log('🔄 Loading competitive quiz question images...');
 
             const questionImageContainers = document.querySelectorAll('.question-image-container[data-s3-key]');
             console.log(`📸 Found ${questionImageContainers.length} question images to load`);
 
-            questionImageContainers.forEach((container) => {
+            // Process each image container
+            for (const container of questionImageContainers) {
                 const s3Key = container.dataset.s3Key;
                 const questionIndex = container.dataset.questionIndex;
                 const loadingDiv = container.querySelector('.question-image-loading');
@@ -825,35 +826,69 @@
 
                 if (!s3Key || !loadingDiv || !img) {
                     console.log(`❌ Missing required elements for question ${questionIndex}`);
-                    return;
+                    continue;
                 }
 
-                // Handle both S3 keys and full URLs
-                let s3Url;
-                if (s3Key.startsWith('https://')) {
-                    // Already a full URL - fix region if needed
-                    s3Url = s3Key.replace('s3.us-east-1.amazonaws.com', 's3.us-west-1.amazonaws.com');
-                } else {
-                    // S3 key only - construct full URL
-                    s3Url = `https://skillon-test.s3.us-west-1.amazonaws.com/${s3Key}`;
+                try {
+                    console.log(`🔗 Loading image for question ${questionIndex}, S3 key: ${s3Key}`);
+
+                    // Try multiple approaches to load the image
+                    let imageUrl = null;
+
+                    // Approach 1: Try to get pre-signed URL from API
+                    try {
+                        const response = await fetch(`/api/image/${encodeURIComponent(s3Key)}?expiresIn=3600`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.presignedUrl) {
+                                imageUrl = data.presignedUrl;
+                                console.log(`✅ Got pre-signed URL for question ${questionIndex}`);
+                            }
+                        }
+                    } catch (apiError) {
+                        console.log(`⚠️  Pre-signed URL API failed for question ${questionIndex}:`, apiError);
+                    }
+
+                    // Approach 2: Fallback to direct S3 URL construction
+                    if (!imageUrl) {
+                        if (s3Key.startsWith('https://')) {
+                            // Already a full URL - fix region if needed
+                            imageUrl = s3Key.replace('s3.us-east-1.amazonaws.com', 's3.us-west-1.amazonaws.com');
+                        } else {
+                            // S3 key only - construct full URL
+                            imageUrl = `https://skillon-test.s3.us-west-1.amazonaws.com/${s3Key}`;
+                        }
+                        console.log(`🔄 Using direct S3 URL for question ${questionIndex}: ${imageUrl}`);
+                    }
+
+                    // Load the image
+                    img.onload = function() {
+                        loadingDiv.style.display = 'none';
+                        img.style.display = 'block';
+                        console.log(`✅ Image loaded successfully for question ${questionIndex}`);
+                    };
+
+                    img.onerror = function() {
+                        console.error(`❌ Failed to load image for question ${questionIndex} from URL: ${imageUrl}`);
+                        loadingDiv.innerHTML = `
+                            <div style="text-align: center; padding: 20px; color: #dc3545;">
+                                <i class="fas fa-exclamation-triangle"></i> Failed to load image
+                                <br><small>S3 Key: ${s3Key}</small>
+                            </div>
+                        `;
+                    };
+
+                    img.src = imageUrl;
+
+                } catch (error) {
+                    console.error(`❌ Error processing image for question ${questionIndex}:`, error);
+                    loadingDiv.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #dc3545;">
+                            <i class="fas fa-exclamation-triangle"></i> Error loading image
+                        </div>
+                    `;
                 }
-                console.log(`🔗 Loading image for question ${questionIndex}: ${s3Url}`);
-
-                // Load the image
-                img.onload = function() {
-                    loadingDiv.style.display = 'none';
-                    img.style.display = 'block';
-                    console.log(`✅ Image loaded for question ${questionIndex}`);
-                };
-
-                img.onerror = function() {
-                    console.error(`❌ Failed to load image for question ${questionIndex}: ${s3Url}`);
-                    loadingDiv.innerHTML = '<div class="text-muted"><i class="fas fa-exclamation-triangle"></i> Image failed to load</div>';
-                };
-
-                // Set the image source to start loading
-                img.src = s3Url;
-            });
+            }
         }
 
         // Initialize on page load

@@ -407,24 +407,136 @@ app.get('/api/image/:s3Key', requireAuth, async (req, res) => {
     const { expiresIn = 3600 } = req.query; // Default 1 hour
 
     console.log(`🔗 Generating pre-signed URL for image: ${s3Key}`);
+    console.log(`📋 Request details - User: ${req.user?.displayName}, Organization: ${req.user?.organizationId}`);
+
+    // Decode the S3 key if it was URL encoded
+    const decodedS3Key = decodeURIComponent(s3Key);
+    console.log(`🔑 Decoded S3 key: ${decodedS3Key}`);
 
     // Generate pre-signed URL
-    const presignedUrl = await generatePresignedUrl(s3Key, parseInt(expiresIn));
+    const presignedUrl = await generatePresignedUrl(decodedS3Key, parseInt(expiresIn));
 
     if (!presignedUrl) {
-      return res.status(404).json({ error: 'Image not found' });
+      console.log(`❌ No pre-signed URL generated for: ${decodedS3Key}`);
+
+      // Try to construct direct public URL as fallback
+      const directUrl = `https://skillon-test.s3.us-west-1.amazonaws.com/${decodedS3Key}`;
+      console.log(`🔄 Trying direct URL fallback: ${directUrl}`);
+
+      return res.json({
+        presignedUrl: directUrl,
+        fallback: true,
+        expiresIn: parseInt(expiresIn),
+        s3Key: decodedS3Key
+      });
     }
 
-    console.log(`✅ Generated pre-signed URL for image: ${s3Key}`);
+    console.log(`✅ Generated pre-signed URL for image: ${decodedS3Key}`);
     res.json({
       presignedUrl,
       expiresIn: parseInt(expiresIn),
-      s3Key
+      s3Key: decodedS3Key
     });
 
   } catch (error) {
     console.error('❌ Error generating pre-signed URL:', error);
-    res.status(500).json({ error: 'Failed to generate image URL' });
+    console.error('❌ Error details:', error.message);
+
+    // Provide fallback direct URL
+    const decodedS3Key = decodeURIComponent(req.params.s3Key);
+    const directUrl = `https://skillon-test.s3.us-west-1.amazonaws.com/${decodedS3Key}`;
+
+    res.json({
+      presignedUrl: directUrl,
+      fallback: true,
+      error: error.message,
+      s3Key: decodedS3Key
+    });
+  }
+});
+
+// Debug endpoint to test image accessibility
+app.get('/api/test-image/:s3Key', requireAuth, async (req, res) => {
+  try {
+    const { s3Key } = req.params;
+    const decodedS3Key = decodeURIComponent(s3Key);
+
+    console.log(`🧪 Testing image accessibility for: ${decodedS3Key}`);
+
+    // Test multiple URL formats
+    const testUrls = [
+      `https://skillon-test.s3.us-west-1.amazonaws.com/${decodedS3Key}`,
+      `https://s3.us-west-1.amazonaws.com/skillon-test/${decodedS3Key}`,
+      `https://skillon-test.s3.amazonaws.com/${decodedS3Key}`
+    ];
+
+    const results = [];
+
+    for (const url of testUrls) {
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        results.push({
+          url,
+          status: response.status,
+          accessible: response.ok,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+      } catch (error) {
+        results.push({
+          url,
+          status: 'ERROR',
+          accessible: false,
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      s3Key: decodedS3Key,
+      testResults: results
+    });
+
+  } catch (error) {
+    console.error('❌ Error testing image accessibility:', error);
+    res.status(500).json({ error: 'Failed to test image accessibility' });
+  }
+});
+
+// Debug endpoint to check quiz images in database
+app.get('/api/debug-quiz-images/:quizId', requireAuth, async (req, res) => {
+  try {
+    const { quizId } = req.params;
+
+    console.log(`🔍 Debugging quiz images for quiz: ${quizId}`);
+
+    // Find the quiz
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+
+    // Extract image information from questions
+    const imageInfo = quiz.questions.map((question, index) => ({
+      questionIndex: index,
+      questionNumber: index + 1,
+      hasImage: !!question.image,
+      imageKey: question.image || null,
+      questionText: question.question.substring(0, 100) + '...' // First 100 chars
+    }));
+
+    const questionsWithImages = imageInfo.filter(q => q.hasImage);
+
+    res.json({
+      quizId,
+      quizTitle: quiz.title,
+      totalQuestions: quiz.questions.length,
+      questionsWithImages: questionsWithImages.length,
+      imageDetails: imageInfo
+    });
+
+  } catch (error) {
+    console.error('❌ Error debugging quiz images:', error);
+    res.status(500).json({ error: 'Failed to debug quiz images' });
   }
 });
 
