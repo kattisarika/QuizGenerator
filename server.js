@@ -400,7 +400,7 @@ async function makeS3ObjectPublic(s3Key) {
 
 
 // API endpoint to get a single pre-signed URL for an image
-app.get('/api/image/:s3Key', requireAuth, async (req, res) => {
+app.get('/api/image/:s3Key(*)', requireAuth, async (req, res) => {
   try {
     const { s3Key } = req.params;
     const { expiresIn = 3600 } = req.query; // Default 1 hour
@@ -412,29 +412,32 @@ app.get('/api/image/:s3Key', requireAuth, async (req, res) => {
     const decodedS3Key = decodeURIComponent(s3Key);
     console.log(`🔑 Decoded S3 key: ${decodedS3Key}`);
 
+    // Ensure we have just the S3 key (strip full URL if provided)
+    const keyOnly = decodedS3Key.startsWith('http') ? extractS3Key(decodedS3Key) : decodedS3Key;
+
     // Generate pre-signed URL
-    const presignedUrl = await generatePresignedUrl(decodedS3Key, parseInt(expiresIn));
+    const presignedUrl = await generatePresignedUrl(keyOnly, parseInt(expiresIn));
 
     if (!presignedUrl) {
-      console.log(`❌ No pre-signed URL generated for: ${decodedS3Key}`);
+      console.log(`❌ No pre-signed URL generated for: ${keyOnly}`);
 
       // Try to construct direct public URL as fallback
-      const directUrl = `https://skillon-test.s3.us-west-1.amazonaws.com/${decodedS3Key}`;
+      const directUrl = `https://skillon-test.s3.us-west-1.amazonaws.com/${keyOnly}`;
       console.log(`🔄 Trying direct URL fallback: ${directUrl}`);
 
       return res.json({
         presignedUrl: directUrl,
         fallback: true,
         expiresIn: parseInt(expiresIn),
-        s3Key: decodedS3Key
+        s3Key: keyOnly
       });
     }
 
-    console.log(`✅ Generated pre-signed URL for image: ${decodedS3Key}`);
+    console.log(`✅ Generated pre-signed URL for image: ${keyOnly}`);
     res.json({
       presignedUrl,
       expiresIn: parseInt(expiresIn),
-      s3Key: decodedS3Key
+      s3Key: keyOnly
     });
 
   } catch (error) {
@@ -442,14 +445,15 @@ app.get('/api/image/:s3Key', requireAuth, async (req, res) => {
     console.error('❌ Error details:', error.message);
 
     // Provide fallback direct URL
-    const decodedS3Key = decodeURIComponent(req.params.s3Key);
-    const directUrl = `https://skillon-test.s3.us-west-1.amazonaws.com/${decodedS3Key}`;
+    const decodedS3Key = decodeURIComponent(req.params.s3Key || '');
+    const keyOnly = decodedS3Key.startsWith('http') ? extractS3Key(decodedS3Key) : decodedS3Key;
+    const directUrl = `https://skillon-test.s3.us-west-1.amazonaws.com/${keyOnly}`;
 
     res.json({
       presignedUrl: directUrl,
       fallback: true,
       error: error.message,
-      s3Key: decodedS3Key
+      s3Key: keyOnly
     });
   }
 });
