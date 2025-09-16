@@ -502,6 +502,57 @@ app.get('/api/test-image/:s3Key', requireAuth, async (req, res) => {
   }
 });
 
+// Manual image upload endpoint for quiz questions
+app.post('/api/quiz/:quizId/upload-question-image/:questionIndex', requireAuth, requireRole(['teacher']), upload.single('questionImage'), async (req, res) => {
+  try {
+    const { quizId, questionIndex } = req.params;
+
+    console.log(`📸 Manual image upload for quiz ${quizId}, question ${questionIndex}`);
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    // Find the quiz
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+
+    // Check if user owns this quiz
+    if (quiz.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const qIndex = parseInt(questionIndex);
+    if (qIndex < 0 || qIndex >= quiz.questions.length) {
+      return res.status(400).json({ error: 'Invalid question index' });
+    }
+
+    // Upload image to S3
+    const s3Url = await uploadToS3(req.file, 'question-images');
+    const s3Key = extractS3Key(s3Url);
+
+    // Update the question with the image
+    quiz.questions[qIndex].image = s3Key;
+    await quiz.save();
+
+    console.log(`✅ Image uploaded and associated with question ${qIndex + 1}: ${s3Key}`);
+
+    res.json({
+      success: true,
+      message: `Image uploaded for question ${qIndex + 1}`,
+      s3Key,
+      s3Url,
+      questionIndex: qIndex
+    });
+
+  } catch (error) {
+    console.error('❌ Error uploading question image:', error);
+    res.status(500).json({ error: 'Failed to upload question image' });
+  }
+});
+
 // Debug endpoint to check quiz images in database
 app.get('/api/debug-quiz-images/:quizId', requireAuth, async (req, res) => {
   try {
@@ -1015,75 +1066,151 @@ async function extractImagesFromPDF(fileBuffer, originalName) {
   try {
     console.log('🖼️  Starting PDF image extraction for:', originalName);
 
-    // Create temporary file for pdf2pic
-    const tempDir = path.join(__dirname, 'temp');
-    await fs.ensureDir(tempDir);
-
-    const tempFilePath = path.join(tempDir, `temp_${Date.now()}_${originalName}`);
-    await fs.writeFile(tempFilePath, fileBuffer);
-
-    // Configure pdf2pic options
-    const convert = pdf2pic.fromPath(tempFilePath, {
-      density: 150,           // DPI for image quality
-      saveFilename: "page",   // Base filename for extracted images
-      savePath: tempDir,      // Directory to save images
-      format: "png",          // Image format
-      width: 800,             // Max width
-      height: 1200            // Max height
-    });
-
-    // Extract images from all pages
-    const results = await convert.bulk(-1, { responseType: "buffer" });
-    console.log(`📄 Extracted ${results.length} page images from PDF`);
-
-    const extractedImages = [];
-
-    // Upload each page image to S3
-    for (let i = 0; i < results.length; i++) {
-      const pageResult = results[i];
-      if (pageResult.buffer) {
-        try {
-          // Create a file-like object for S3 upload
-          const imageFile = {
-            buffer: pageResult.buffer,
-            originalname: `${originalName}_page_${i + 1}.png`,
-            mimetype: 'image/png'
-          };
-
-          // Upload to S3
-          const s3Url = await uploadToS3(imageFile, 'pdf-images');
-          extractedImages.push({
-            pageNumber: i + 1,
-            s3Key: extractS3Key(s3Url),
-            s3Url: s3Url
-          });
-
-          console.log(`✅ Uploaded page ${i + 1} image to S3: ${s3Url}`);
-        } catch (uploadError) {
-          console.error(`❌ Failed to upload page ${i + 1} image:`, uploadError);
-        }
-      }
-    }
-
-    // Clean up temporary files
+    // Check if pdf2pic is available and working
     try {
-      await fs.remove(tempFilePath);
-      // Clean up any generated page images
-      const pageFiles = await fs.readdir(tempDir);
-      for (const file of pageFiles) {
-        if (file.startsWith('page') && file.endsWith('.png')) {
-          await fs.remove(path.join(tempDir, file));
+      const pdf2pic = require('pdf2pic');
+      console.log('✅ pdf2pic library loaded');
+
+      // Create temporary file for pdf2pic
+      const tempDir = path.join(__dirname, 'temp');
+      await fs.ensureDir(tempDir);
+
+      const tempFilePath = path.join(tempDir, `temp_${Date.now()}_${originalName}`);
+      await fs.writeFile(tempFilePath, fileBuffer);
+
+      // Configure pdf2pic options
+      const convert = pdf2pic.fromPath(tempFilePath, {
+        density: 150,           // DPI for image quality
+        saveFilename: "page",   // Base filename for extracted images
+        savePath: tempDir,      // Directory to save images
+        format: "png",          // Image format
+        width: 800,             // Max width
+        height: 1200            // Max height
+      });
+
+      // Extract images from all pages
+      const results = await convert.bulk(-1, { responseType: "buffer" });
+      console.log(`📄 Extracted ${results.length} page images from PDF`);
+
+      const extractedImages = [];
+
+      // Upload each page image to S3
+      for (let i = 0; i < results.length; i++) {
+        const pageResult = results[i];
+        if (pageResult.buffer) {
+          try {
+            // Create a file-like object for S3 upload
+            const imageFile = {
+              buffer: pageResult.buffer,
+              originalname: `${originalName}_page_${i + 1}.png`,
+              mimetype: 'image/png'
+            };
+
+            // Upload to S3
+            const s3Url = await uploadToS3(imageFile, 'pdf-images');
+            extractedImages.push({
+              pageNumber: i + 1,
+              s3Key: extractS3Key(s3Url),
+              s3Url: s3Url
+            });
+
+            console.log(`✅ Uploaded page ${i + 1} image to S3: ${s3Url}`);
+          } catch (uploadError) {
+            console.error(`❌ Failed to upload page ${i + 1} image:`, uploadError);
+          }
         }
       }
-    } catch (cleanupError) {
-      console.warn('⚠️  Warning: Could not clean up temporary files:', cleanupError);
-    }
 
-    console.log(`🎉 Successfully extracted ${extractedImages.length} images from PDF`);
-    return extractedImages;
+      // Clean up temporary files
+      try {
+        await fs.remove(tempFilePath);
+        // Clean up any generated page images
+        const pageFiles = await fs.readdir(tempDir);
+        for (const file of pageFiles) {
+          if (file.startsWith('page') && file.endsWith('.png')) {
+            await fs.remove(path.join(tempDir, file));
+          }
+        }
+      } catch (cleanupError) {
+        console.warn('⚠️  Warning: Could not clean up temporary files:', cleanupError);
+      }
+
+      console.log(`🎉 Successfully extracted ${extractedImages.length} images from PDF`);
+      return extractedImages;
+
+    } catch (pdf2picError) {
+      console.error('❌ pdf2pic not available or failed:', pdf2picError.message);
+
+      // Try alternative approach with pdf-poppler
+      try {
+        const pdf = require('pdf-poppler');
+        console.log('🔄 Trying pdf-poppler as fallback...');
+
+        const tempDir = path.join(__dirname, 'temp');
+        await fs.ensureDir(tempDir);
+
+        const tempFilePath = path.join(tempDir, `temp_${Date.now()}_${originalName}`);
+        await fs.writeFile(tempFilePath, fileBuffer);
+
+        const options = {
+          format: 'png',
+          out_dir: tempDir,
+          out_prefix: 'page',
+          page: null // Convert all pages
+        };
+
+        const results = await pdf.convert(tempFilePath, options);
+        console.log(`📄 pdf-poppler extracted ${results.length} page images`);
+
+        const extractedImages = [];
+
+        // Upload each page image to S3
+        for (let i = 0; i < results.length; i++) {
+          try {
+            const imagePath = results[i];
+            const imageBuffer = await fs.readFile(imagePath);
+
+            // Create a file-like object for S3 upload
+            const imageFile = {
+              buffer: imageBuffer,
+              originalname: `${originalName}_page_${i + 1}.png`,
+              mimetype: 'image/png'
+            };
+
+            // Upload to S3
+            const s3Url = await uploadToS3(imageFile, 'pdf-images');
+            extractedImages.push({
+              pageNumber: i + 1,
+              s3Key: extractS3Key(s3Url),
+              s3Url: s3Url
+            });
+
+            console.log(`✅ Uploaded page ${i + 1} image to S3: ${s3Url}`);
+
+            // Clean up the temporary image file
+            await fs.remove(imagePath);
+          } catch (uploadError) {
+            console.error(`❌ Failed to upload page ${i + 1} image:`, uploadError);
+          }
+        }
+
+        // Clean up temporary PDF file
+        await fs.remove(tempFilePath);
+
+        console.log(`🎉 Successfully extracted ${extractedImages.length} images from PDF using pdf-poppler`);
+        return extractedImages;
+
+      } catch (popplerError) {
+        console.error('❌ pdf-poppler also failed:', popplerError.message);
+        console.log('ℹ️  PDF image extraction requires external dependencies (ImageMagick/GraphicsMagick or Poppler)');
+        console.log('ℹ️  Quiz will be created without images. Please install required dependencies for image extraction.');
+        return [];
+      }
+    }
 
   } catch (error) {
     console.error('❌ Error extracting images from PDF:', error);
+    console.log('ℹ️  PDF image extraction failed. Quiz will be created without images.');
     return [];
   }
 }
@@ -3245,29 +3372,43 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
 
         // Extract images from PDF if it's a PDF file
         if (questionFile.originalname.toLowerCase().endsWith('.pdf')) {
-          console.log('🖼️  Extracting images from PDF...');
+          console.log('🖼️  PDF file detected, attempting image extraction...');
+          console.log(`📄 PDF file: ${questionFile.originalname}, size: ${questionFile.size} bytes`);
+
           const extractedImages = await extractImagesFromPDF(questionFile.buffer, questionFile.originalname);
 
           if (extractedImages.length > 0) {
-            console.log(`📸 Found ${extractedImages.length} images in PDF`);
+            console.log(`📸 Successfully found ${extractedImages.length} images in PDF`);
+            console.log(`📊 Questions parsed: ${extractedQuestions.length}, Images extracted: ${extractedImages.length}`);
 
             // Associate images with questions
             // Strategy: If we have images, assign them to questions in order
             // This assumes the PDF has images that correspond to questions
+            let associatedCount = 0;
             for (let i = 0; i < Math.min(extractedQuestions.length, extractedImages.length); i++) {
               if (extractedImages[i]) {
                 extractedQuestions[i].image = extractedImages[i].s3Key;
-                console.log(`🔗 Associated image from page ${extractedImages[i].pageNumber} with question ${i + 1}`);
+                associatedCount++;
+                console.log(`🔗 Associated image from page ${extractedImages[i].pageNumber} with question ${i + 1} (S3 key: ${extractedImages[i].s3Key})`);
               }
             }
+
+            console.log(`✅ Successfully associated ${associatedCount} images with questions`);
 
             // If there are more images than questions, log this information
             if (extractedImages.length > extractedQuestions.length) {
               console.log(`ℹ️  Note: PDF contains ${extractedImages.length} images but only ${extractedQuestions.length} questions were parsed. Extra images are uploaded but not associated with questions.`);
             }
           } else {
-            console.log('ℹ️  No images found in PDF or image extraction failed');
+            console.log('⚠️  No images found in PDF or image extraction failed');
+            console.log('ℹ️  This could be due to:');
+            console.log('   - PDF contains no images');
+            console.log('   - Missing system dependencies (ImageMagick/GraphicsMagick or Poppler)');
+            console.log('   - PDF is text-only or uses vector graphics');
+            console.log('   - Image extraction library errors');
           }
+        } else {
+          console.log(`ℹ️  Non-PDF file (${questionFile.originalname}), skipping image extraction`);
         }
 
 
