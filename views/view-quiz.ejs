@@ -339,6 +339,24 @@
                                                 </div>
                                                 <img class="question-image" style="max-width: 100%; max-height: 300px; margin-top: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;" alt="Question Image">
                                             </div>
+                                        <% } else if (user && user.role === 'teacher' && quiz.createdBy.toString() === user._id.toString()) { %>
+                                            <!-- Image Upload Interface for Teachers -->
+                                            <div class="image-upload-section" style="margin-top: 15px; padding: 15px; background: #f8fafc; border: 2px dashed #cbd5e0; border-radius: 8px;">
+                                                <div class="upload-header" style="display: flex; align-items: center; margin-bottom: 10px;">
+                                                    <i class="fas fa-image" style="color: #64748b; margin-right: 8px;"></i>
+                                                    <span style="color: #64748b; font-size: 14px; font-weight: 500;">Add Image to Question <%= index + 1 %></span>
+                                                </div>
+                                                <div class="upload-controls">
+                                                    <input type="file" id="imageUpload-<%= index %>" accept="image/*" style="display: none;" onchange="uploadQuestionImage('<%= quiz._id %>', <%= index %>, this)">
+                                                    <button type="button" onclick="document.getElementById('imageUpload-<%= index %>').click()" class="btn btn-outline-primary btn-sm">
+                                                        <i class="fas fa-upload me-1"></i> Upload Image
+                                                    </button>
+                                                    <small style="display: block; color: #64748b; margin-top: 5px;">
+                                                        Supports JPG, PNG, GIF. Max 5MB.
+                                                    </small>
+                                                </div>
+                                                <div id="uploadStatus-<%= index %>" style="margin-top: 10px; display: none;"></div>
+                                            </div>
                                         <% } %>
 
                                         <% if (question.options && question.options.length > 0) { %>
@@ -1077,6 +1095,66 @@
         // Make function globally available
         window.exportManualQuizToPDF = exportManualQuizToPDF;
         <% } %>
+
+        // Function to upload question image
+        async function uploadQuestionImage(quizId, questionIndex, fileInput) {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const statusDiv = document.getElementById(`uploadStatus-${questionIndex}`);
+            const uploadSection = fileInput.closest('.image-upload-section');
+
+            // Validate file
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                statusDiv.innerHTML = '<div style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> File too large. Maximum 5MB allowed.</div>';
+                statusDiv.style.display = 'block';
+                return;
+            }
+
+            if (!file.type.startsWith('image/')) {
+                statusDiv.innerHTML = '<div style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Please select an image file.</div>';
+                statusDiv.style.display = 'block';
+                return;
+            }
+
+            // Show uploading status
+            statusDiv.innerHTML = '<div style="color: #3b82f6;"><i class="fas fa-spinner fa-spin"></i> Uploading image...</div>';
+            statusDiv.style.display = 'block';
+
+            try {
+                const formData = new FormData();
+                formData.append('questionImage', file);
+
+                const response = await fetch(`/api/quiz/${quizId}/upload-question-image/${questionIndex}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success message
+                    statusDiv.innerHTML = '<div style="color: #10b981;"><i class="fas fa-check-circle"></i> Image uploaded successfully!</div>';
+
+                    // Replace upload section with image display
+                    setTimeout(() => {
+                        uploadSection.innerHTML = `
+                            <div class="question-image-container" data-s3-key="${result.s3Key}">
+                                <img class="question-image" src="${result.s3Url}" style="max-width: 100%; max-height: 300px; margin-top: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Question Image">
+                            </div>
+                        `;
+                    }, 2000);
+                } else {
+                    statusDiv.innerHTML = `<div style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Upload failed: ${result.error}</div>`;
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                statusDiv.innerHTML = '<div style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Upload failed. Please try again.</div>';
+            }
+        }
+
+        // Make upload function globally available
+        window.uploadQuestionImage = uploadQuestionImage;
     </script>
 </body>
 </html> 
