@@ -1064,15 +1064,88 @@ async function extractTextFromFile(fileBuffer, originalName) {
   }
 }
 
-// Helper function to extract images from PDF (simplified for cloud deployment)
+// Helper function to extract images from PDF using pdf2pic (requires GraphicsMagick + Ghostscript)
 async function extractImagesFromPDF(fileBuffer, originalName) {
   console.log('🖼️  Starting PDF image extraction for:', originalName);
-  console.log('ℹ️  Note: PDF image extraction requires external dependencies not available on most cloud platforms');
-  console.log('ℹ️  Quiz will be created without images. Teachers can manually upload images if needed.');
 
-  // For now, return empty array to prevent crashes
-  // This can be enhanced later with proper dependencies or alternative solutions
-  return [];
+  // Always fail-safe: never throw, always return [] on failure
+  const extractedImages = [];
+  const tempBaseDir = process.env.TMPDIR || '/tmp';
+  const tempDir = path.join(tempBaseDir, 'quizgen-temp');
+  const savePath = path.join(tempDir, `pdf2pic-${Date.now()}`);
+
+  try {
+    await fs.ensureDir(savePath);
+
+    // Write PDF to a temp path for pdf2pic
+    const tempPdfPath = path.join(savePath, `${Date.now()}-${originalName.replace(/[^a-zA-Z0-9_.-]/g, '_')}`);
+    await fs.writeFile(tempPdfPath, fileBuffer);
+
+    let pdf2pic;
+    try {
+      pdf2pic = require('pdf2pic');
+    } catch (e) {
+      console.error('❌ pdf2pic not installed:', e.message);
+      return [];
+    }
+
+    // Configure converter
+    const convert = pdf2pic.fromPath(tempPdfPath, {
+      density: 150,
+      saveFilename: 'page',
+      savePath,
+      format: 'png',
+      width: 1200, // higher width for diagrams
+    });
+
+    let results;
+    try {
+      results = await convert.bulk(-1, { responseType: 'buffer' });
+    } catch (convErr) {
+      console.error('❌ pdf2pic conversion failed. Likely missing GraphicsMagick/ImageMagick or Ghostscript.', convErr.message || convErr);
+      console.log('ℹ️ Install graphicsmagick and ghostscript on the server to enable PDF page-to-image conversion.');
+      return [];
+    }
+
+    console.log(`📄 Extracted ${results?.length || 0} page images from PDF`);
+
+    for (let i = 0; i < (results || []).length; i++) {
+      const page = results[i];
+      const buffer = page?.buffer || page;
+      if (!buffer) continue;
+
+      try {
+        const imageFile = {
+          buffer,
+          originalname: `${originalName}_page_${i + 1}.png`,
+          mimetype: 'image/png'
+        };
+        const s3Url = await uploadToS3(imageFile, 'pdf-images');
+        extractedImages.push({
+          pageNumber: i + 1,
+          s3Key: extractS3Key(s3Url),
+          s3Url
+        });
+        console.log(`✅ Uploaded page ${i + 1} image to S3: ${s3Url}`);
+      } catch (upErr) {
+        console.error(`❌ Failed to upload page ${i + 1} image:`, upErr);
+      }
+    }
+
+    return extractedImages;
+  } catch (err) {
+    console.error('❌ Unexpected error during PDF image extraction:', err);
+    return [];
+  } finally {
+    // Best-effort cleanup
+    try {
+      if (await fs.pathExists(savePath)) {
+        await fs.remove(savePath);
+      }
+    } catch (cleanupErr) {
+      console.warn('⚠️ Could not clean up temp files:', cleanupErr.message || cleanupErr);
+    }
+  }
 }
 
 
