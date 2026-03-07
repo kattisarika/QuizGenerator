@@ -57,6 +57,87 @@ router.get('/api/check-subdomain/:subdomain', async (req, res) => {
 });
 
 /**
+ * POST /api/store-org-pending
+ * Validate and store organization details in session before Google OAuth.
+ * No DB writes — the org is created after OAuth using the Google email.
+ */
+router.post('/api/store-org-pending', async (req, res) => {
+  try {
+    const { organizationName, subdomain, teacherName, bio, planType = 'basic' } = req.body;
+
+    if (!organizationName || !subdomain || !teacherName) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const validPlanTypes = ['free', 'basic', 'premium', 'enterprise'];
+    if (planType && !validPlanTypes.includes(planType)) {
+      return res.status(400).json({ error: 'Invalid plan type' });
+    }
+
+    if (!/^[a-z0-9-]+$/.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
+      return res.status(400).json({ error: 'Invalid subdomain format' });
+    }
+
+    const existingOrg = await Organization.findOne({ subdomain: subdomain.toLowerCase() });
+    if (existingOrg) {
+      return res.status(400).json({ error: 'Subdomain already taken' });
+    }
+
+    req.session.pendingOrganization = {
+      organizationName,
+      subdomain: subdomain.toLowerCase(),
+      teacherName,
+      bio: bio || '',
+      planType
+    };
+
+    res.json({ success: true, message: 'Organization details saved. Proceed to Google sign-in.' });
+  } catch (error) {
+    console.error('Error storing pending organization:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * POST /api/store-student-pending
+ * Validate org codes and store student details in session before Google OAuth.
+ * No DB writes — the accounts are created after OAuth using the real Google email.
+ */
+router.post('/api/store-student-pending', async (req, res) => {
+  try {
+    const { studentName, gradeLevel, organizationCodes, subjects } = req.body;
+
+    if (!studentName || !gradeLevel || !organizationCodes || organizationCodes.length === 0) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    const orgCodes = Array.isArray(organizationCodes) ? organizationCodes : [organizationCodes];
+
+    const organizations = await Organization.find({ subdomain: { $in: orgCodes } });
+    if (organizations.length !== orgCodes.length) {
+      const foundCodes = organizations.map(org => org.subdomain);
+      const invalid = orgCodes.filter(code => !foundCodes.includes(code));
+      return res.status(400).json({
+        success: false,
+        error: `Invalid organization code(s): ${invalid.join(', ')}. Please check with your teacher.`
+      });
+    }
+
+    req.session.pendingStudent = {
+      studentName,
+      gradeLevel,
+      organizationCodes: orgCodes,
+      subjects: subjects || []
+    };
+
+    res.json({ success: true, message: 'Student details saved. Proceed to Google sign-in.' });
+  } catch (error) {
+    console.error('Error storing pending student:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+/**
  * POST /api/create-organization
  * Create a new organization for a teacher
  */

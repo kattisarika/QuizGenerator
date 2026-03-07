@@ -320,10 +320,10 @@
                                         <label for="teacherName">Your Full Name</label>
                                     </div>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="form-floating">
-                                        <input type="email" class="form-control" id="email" name="email" placeholder="Email" required>
-                                        <label for="email">Your Email Address</label>
+                                <div class="col-md-6 mb-3 d-flex align-items-center">
+                                    <div class="alert alert-info mb-0 w-100 py-2">
+                                        <i class="fab fa-google me-2"></i>
+                                        Your email will be taken from Google sign-in in the next step.
                                     </div>
                                 </div>
                             </div>
@@ -352,10 +352,10 @@
                                         <label for="studentName">Your Full Name</label>
                                     </div>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="form-floating">
-                                        <input type="email" class="form-control" id="studentEmail" name="studentEmail" placeholder="Email" required>
-                                        <label for="studentEmail">Your Email Address</label>
+                                <div class="col-md-6 mb-3 d-flex align-items-center">
+                                    <div class="alert alert-info mb-0 w-100 py-2">
+                                        <i class="fab fa-google me-2"></i>
+                                        Your email will be taken from Google sign-in in the next step.
                                     </div>
                                 </div>
                             </div>
@@ -382,41 +382,42 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Organization Selection</label>
-                                    <div class="mb-2">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="orgSelectMethod" id="selectFromList" value="list" checked onchange="toggleOrgSelection()">
-                                            <label class="form-check-label" for="selectFromList">
-                                                Select from list
-                                            </label>
+                                    <label class="form-label fw-semibold">Select Organization</label>
+
+                                    <!-- Search box -->
+                                    <div id="orgSelectBox">
+                                        <div class="org-search-wrapper mb-2" style="position:relative;">
+                                            <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:0.85rem;"></i>
+                                            <input type="text" id="orgSearch" class="form-control" placeholder="Search organization..." oninput="filterOrgs()" style="padding-left:32px;border-radius:10px;border:1.5px solid #e5e7eb;font-size:0.9rem;">
                                         </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="orgSelectMethod" id="enterCode" value="code" onchange="toggleOrgSelection()">
-                                            <label class="form-check-label" for="enterCode">
-                                                Enter organization code manually
-                                            </label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-floating" id="orgSelectBox">
-                                        <select class="form-control" id="organizationSelect" name="organizationCodes" multiple required style="height: 120px;">
+                                        <div id="orgList" style="border:1.5px solid #e5e7eb;border-radius:10px;max-height:180px;overflow-y:auto;background:#fff;">
                                             <% if (typeof organizations !== 'undefined' && organizations.length > 0) { %>
                                                 <% organizations.forEach(function(org) { %>
-                                                    <option value="<%= org.subdomain %>"><%= org.name %> (<%= org.subdomain %>)</option>
+                                                    <div class="org-option" data-value="<%= org.subdomain %>" data-name="<%= org.name.toLowerCase() %>" onclick="toggleOrgSelection2(this)" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f3f4f6;font-size:0.9rem;transition:background 0.15s;">
+                                                        <span class="org-check" style="width:18px;height:18px;border-radius:4px;border:2px solid #d1d5db;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;">
+                                                            <i class="fas fa-check" style="font-size:10px;color:#fff;display:none;"></i>
+                                                        </span>
+                                                        <span><%= org.name %></span>
+                                                    </div>
                                                 <% }); %>
+                                            <% } else { %>
+                                                <div style="padding:14px;color:#9ca3af;text-align:center;font-size:0.9rem;">No organizations found</div>
                                             <% } %>
-                                        </select>
-                                        <label for="organizationSelect">Choose Your Organizations (Hold Ctrl/Cmd to select multiple)</label>
+                                        </div>
+                                        <!-- hidden input to store selected values -->
+                                        <input type="hidden" id="selectedOrgsHidden">
+                                        <div id="selectedOrgsBadges" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
                                     </div>
-                                    <small class="text-muted mt-1">💡 You can select multiple organizations by holding Ctrl (Windows) or Cmd (Mac) while clicking</small>
-                                    
-                                    <div class="form-floating" id="orgCodeInput" style="display: none;">
-                                        <input type="text" class="form-control" id="organizationCodeManual" name="organizationCodeManual" placeholder="code1, code2, code3">
-                                        <label for="organizationCodeManual">Organization Codes (comma-separated)</label>
+
+                                    <!-- Manual code input -->
+                                    <div id="orgCodeInput" style="display:none;">
+                                        <input type="text" class="form-control" id="organizationCodeManual" name="organizationCodeManual" placeholder="Organization code" style="border-radius:10px;border:1.5px solid #e5e7eb;">
                                     </div>
-                                    <small class="text-muted mt-1" id="manualCodeHelp" style="display: none;">💡 Enter multiple codes separated by commas (e.g., school1, academy2, institute3)</small>
-                                    
-                                    <small class="text-muted" id="orgHelpText">Select your school/organization from the list, or use the manual code option if you don't see it listed</small>
+
+                                    <!-- Toggle link -->
+                                    <div class="mt-2">
+                                        <a href="#" id="orgToggleLink" onclick="switchOrgInput(event)" style="font-size:0.82rem;color:#6366f1;text-decoration:none;">Enter code manually instead</a>
+                                    </div>
                                 </div>
                             </div>
 
@@ -730,7 +731,6 @@
                 const orgName = document.getElementById('organizationName').value;
                 const subdomain = document.getElementById('subdomain').value;
                 const teacherName = document.getElementById('teacherName').value;
-                const email = document.getElementById('email').value;
                 const planNames = { basic: 'Basic (Free)', pro: 'Professional ($19/month)', enterprise: 'Enterprise ($49/month)' };
 
                 reviewHTML = `
@@ -740,28 +740,22 @@
                             <p><strong>Organization:</strong> ${orgName}</p>
                             <p><strong>Subdomain:</strong> ${subdomain}.skillons.com</p>
                             <p><strong>Your Name:</strong> ${teacherName}</p>
-                            <p><strong>Email:</strong> ${email}</p>
+                            <p><strong>Email:</strong> <span class="text-muted"><i class="fab fa-google me-1"></i>From Google sign-in</span></p>
                             <p><strong>Plan:</strong> ${planNames[selectedPlan]}</p>
                         </div>
                     </div>
                 `;
             } else {
                 const studentName = document.getElementById('studentName').value;
-                const studentEmail = document.getElementById('studentEmail').value;
                 const gradeLevel = document.getElementById('gradeLevel').value;
                 
-                // Get organization info from either select box or manual input
-                const selectFromList = document.getElementById('selectFromList').checked;
                 let orgDisplayNames = [];
-                
-                if (selectFromList) {
-                    const selectElement = document.getElementById('organizationSelect');
-                    orgDisplayNames = Array.from(selectElement.selectedOptions).map(option => option.text);
-                } else {
+                if (usingManualCode) {
                     const manualCodes = document.getElementById('organizationCodeManual').value;
-                    orgDisplayNames = manualCodes.split(',').map(code => code.trim()).filter(code => code);
+                    orgDisplayNames = manualCodes.split(',').map(c => c.trim()).filter(c => c);
+                } else {
+                    orgDisplayNames = selectedOrgs.map(o => o.name);
                 }
-                
                 const orgDisplayText = orgDisplayNames.length > 0 ? orgDisplayNames.join(', ') : 'None selected';
 
                 const subjects = Array.from(document.querySelectorAll('input[name="subjects"]:checked'))
@@ -772,7 +766,7 @@
                         <div class="card-body">
                             <h5 class="card-title">Student Details</h5>
                             <p><strong>Your Name:</strong> ${studentName}</p>
-                            <p><strong>Email:</strong> ${studentEmail}</p>
+                            <p><strong>Email:</strong> <span class="text-muted"><i class="fab fa-google me-1"></i>From Google sign-in</span></p>
                             <p><strong>Grade Level:</strong> ${gradeLevel}</p>
                             <p><strong>Organizations:</strong> ${orgDisplayText}</p>
                             <p><strong>Subjects:</strong> ${subjects.length ? subjects.join(', ') : 'None selected'}</p>
@@ -784,34 +778,57 @@
             reviewDiv.innerHTML = reviewHTML;
         }
 
-        function toggleOrgSelection() {
-            const selectFromList = document.getElementById('selectFromList').checked;
-            const orgSelectBox = document.getElementById('orgSelectBox');
-            const orgCodeInput = document.getElementById('orgCodeInput');
-            const orgSelect = document.getElementById('organizationSelect');
-            const orgCodeManual = document.getElementById('organizationCodeManual');
-            const helpText = document.getElementById('orgHelpText');
-            const manualCodeHelp = document.getElementById('manualCodeHelp');
+        // ---- Custom org list helpers ----
+        let selectedOrgs = []; // [{value, name}]
+        let usingManualCode = false;
 
-            if (selectFromList) {
-                orgSelectBox.style.display = 'block';
-                orgCodeInput.style.display = 'none';
-                manualCodeHelp.style.display = 'none';
-                orgSelect.required = true;
-                orgCodeManual.required = false;
-                orgCodeManual.value = '';
-                helpText.textContent = 'Select one or more organizations from the list (hold Ctrl/Cmd for multiple)';
+        function toggleOrgSelection2(el) {
+            const value = el.dataset.value;
+            const name = el.querySelector('span:last-child').textContent.trim();
+            const check = el.querySelector('.org-check');
+            const icon = check.querySelector('i');
+            const idx = selectedOrgs.findIndex(o => o.value === value);
+            if (idx === -1) {
+                selectedOrgs.push({ value, name });
+                check.style.background = '#4f46e5';
+                check.style.borderColor = '#4f46e5';
+                icon.style.display = 'block';
+                el.style.background = '#f5f3ff';
             } else {
-                orgSelectBox.style.display = 'none';
-                orgCodeInput.style.display = 'block';
-                manualCodeHelp.style.display = 'block';
-                orgSelect.required = false;
-                orgCodeManual.required = true;
-                // Clear all selections
-                Array.from(orgSelect.options).forEach(option => option.selected = false);
-                helpText.textContent = 'Enter organization codes separated by commas for multiple organizations';
+                selectedOrgs.splice(idx, 1);
+                check.style.background = '';
+                check.style.borderColor = '#d1d5db';
+                icon.style.display = 'none';
+                el.style.background = '';
             }
+            renderOrgBadges();
         }
+
+        function renderOrgBadges() {
+            const container = document.getElementById('selectedOrgsBadges');
+            container.innerHTML = selectedOrgs.map(o =>
+                `<span style="background:#ede9fe;color:#4f46e5;border-radius:20px;padding:3px 10px;font-size:0.8rem;font-weight:500;">${o.name}</span>`
+            ).join('');
+        }
+
+        function filterOrgs() {
+            const q = document.getElementById('orgSearch').value.toLowerCase();
+            document.querySelectorAll('.org-option').forEach(el => {
+                el.style.display = el.dataset.name.includes(q) ? '' : 'none';
+            });
+        }
+
+        function switchOrgInput(e) {
+            e.preventDefault();
+            usingManualCode = !usingManualCode;
+            document.getElementById('orgSelectBox').style.display = usingManualCode ? 'none' : 'block';
+            document.getElementById('orgCodeInput').style.display = usingManualCode ? 'block' : 'none';
+            document.getElementById('orgToggleLink').textContent = usingManualCode
+                ? 'Select from list instead'
+                : 'Enter code manually instead';
+        }
+
+        function toggleOrgSelection() {} // kept for compatibility
 
         function createAccount() {
             const createBtn = document.getElementById('createBtn');
@@ -830,12 +847,11 @@
                 organizationName: document.getElementById('organizationName').value,
                 subdomain: document.getElementById('subdomain').value,
                 teacherName: document.getElementById('teacherName').value,
-                email: document.getElementById('email').value,
                 bio: document.getElementById('bio').value,
                 planType: selectedPlan
             };
 
-            fetch('/api/create-organization', {
+            fetch('/api/store-org-pending', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -845,10 +861,10 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Organization created successfully! Please sign in with Google to complete setup.');
+                    // Redirect to Google OAuth — org will be created using the Google email
                     window.location.href = '/auth/google';
                 } else {
-                    alert('Error: ' + data.message);
+                    alert('Error: ' + (data.error || data.message));
                     resetCreateButton();
                 }
             })
@@ -863,42 +879,33 @@
             const subjects = Array.from(document.querySelectorAll('input[name="subjects"]:checked'))
                 .map(cb => cb.value);
 
-            // Get organization codes from either select box or manual input
-            const selectFromList = document.getElementById('selectFromList').checked;
             let organizationCodes;
-            
-            if (selectFromList) {
-                // Get multiple selected values from the select box
-                const selectElement = document.getElementById('organizationSelect');
-                organizationCodes = Array.from(selectElement.selectedOptions).map(option => option.value);
-            } else {
-                // For manual entry, split by commas or use single code
+            if (usingManualCode) {
                 const manualCodes = document.getElementById('organizationCodeManual').value;
-                organizationCodes = manualCodes.split(',').map(code => code.trim()).filter(code => code);
+                organizationCodes = manualCodes.split(',').map(c => c.trim()).filter(c => c);
+            } else {
+                organizationCodes = selectedOrgs.map(o => o.value);
             }
 
             const formData = {
                 studentName: document.getElementById('studentName').value,
-                email: document.getElementById('studentEmail').value,
                 gradeLevel: document.getElementById('gradeLevel').value,
                 organizationCodes: organizationCodes,
                 subjects: subjects
             };
 
-            fetch('/api/create-student-account', {
+            fetch('/api/store-student-pending', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Student account created successfully! Please sign in with Google to access your dashboard.');
+                    // Redirect to Google OAuth — account will be created using the Google email
                     window.location.href = '/auth/google';
                 } else {
-                    alert('Error: ' + data.message);
+                    alert('Error: ' + (data.error || data.message));
                     resetCreateButton();
                 }
             })
@@ -924,6 +931,27 @@
             const error = urlParams.get('error');
             if (error) {
                 alert(decodeURIComponent(error));
+            }
+
+            // If ?code= is in the URL, pre-select Student role and pre-fill the org code
+            const inviteCode = '<%= typeof prefilledCode !== "undefined" && prefilledCode ? prefilledCode : "" %>';
+            const inviteOrgName = '<%= typeof prefilledOrgName !== "undefined" && prefilledOrgName ? prefilledOrgName : "" %>';
+            if (inviteCode) {
+                // Auto-select student
+                selectUserType('student');
+
+                // Switch to manual code entry and pre-fill it
+                usingManualCode = true;
+                document.getElementById('orgSelectBox').style.display = 'none';
+                document.getElementById('orgCodeInput').style.display = 'block';
+                document.getElementById('orgToggleLink').textContent = 'Select from list instead';
+                document.getElementById('organizationCodeManual').value = inviteCode;
+
+                // Show a friendly message
+                if (inviteOrgName) {
+                    const subtitle = document.querySelector('#studentForm .hero-subtitle');
+                    if (subtitle) subtitle.textContent = `You've been invited to join "${inviteOrgName}"`;
+                }
             }
         });
     </script>

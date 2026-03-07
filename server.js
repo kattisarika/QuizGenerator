@@ -867,9 +867,10 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: callbackURL
+      callbackURL: callbackURL,
+      passReqToCallback: true
     },
-        async function(accessToken, refreshToken, profile, cb) {
+        async function(req, accessToken, refreshToken, profile, cb) {
       try {
         console.log('Google OAuth authentication successful for:', profile.emails ? profile.emails[0].value : 'No email');
 
@@ -971,12 +972,113 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 isApproved: true
                 // organizationId not required for super_admin
               });
+            } else if (req.session && req.session.pendingOrganization) {
+              // Teacher completed Google sign-in after filling the signup form.
+              // Create the user and organization now using the real Google email.
+              const pending = req.session.pendingOrganization;
+
+              // Guard against a race where the subdomain was taken between form submit and OAuth
+              const takenOrg = await Organization.findOne({ subdomain: pending.subdomain });
+              if (takenOrg) {
+                return cb(new Error('Subdomain was taken. Please try again with a different subdomain.'), null);
+              }
+
+              // Create org first (with a placeholder ownerId) so we have its _id for the user
+              const planLimits = Organization.getPlanLimits(pending.planType || 'basic');
+              const placeholderOwnerId = new mongoose.Types.ObjectId();
+              const newOrg = new Organization({
+                name: pending.organizationName,
+                subdomain: pending.subdomain,
+                ownerId: placeholderOwnerId,
+                planType: pending.planType || 'basic',
+                contact: { email: userEmail },
+                settings: {
+                  maxStudents: planLimits.maxStudents,
+                  maxQuizzes: planLimits.maxQuizzes,
+                  maxStorage: planLimits.maxStorage,
+                  features: planLimits.features
+                }
+              });
+              await newOrg.save();
+
+              // Now create the user with organizationId already set (satisfies the required validator)
+              user = new User({
+                googleId: profile.id,
+                displayName: profile.displayName || pending.teacherName,
+                email: userEmail,
+                photos: profile.photos,
+                role: 'teacher',
+                organizationRole: 'owner',
+                isApproved: true,
+                organizationId: newOrg._id,
+                teacherProfile: { bio: pending.bio || '' }
+              });
+              await user.save();
+
+              // Back-patch the real ownerId on the org
+              newOrg.ownerId = user._id;
+              await newOrg.save();
+
+              delete req.session.pendingOrganization;
+              console.log(`New teacher organization '${pending.organizationName}' created for ${userEmail}`);
+            } else if (req.session && req.session.pendingStudent) {
+              // Student completed Google sign-in after filling the signup form.
+              // Create student user(s) now using the real Google email.
+              const ps = req.session.pendingStudent;
+
+              const orgs = await Organization.find({ subdomain: { $in: ps.organizationCodes } });
+              if (orgs.length === 0) {
+                return cb(new Error('Organization not found. Please re-register with a valid code.'), null);
+              }
+
+              const timestamp = Date.now();
+              let primaryUser = null;
+              const memberships = [];
+
+              for (let i = 0; i < orgs.length; i++) {
+                const org = orgs[i];
+                if (i === 0) {
+                  primaryUser = new User({
+                    googleId: profile.id,
+                    displayName: profile.displayName || ps.studentName,
+                    email: userEmail,
+                    photos: profile.photos,
+                    role: 'student',
+                    organizationId: org._id,
+                    organizationRole: 'student',
+                    gradeLevel: ps.gradeLevel,
+                    subjects: ps.subjects || [],
+                    isApproved: true,
+                    invitationStatus: 'accepted'
+                  });
+                  await primaryUser.save();
+                } else {
+                  memberships.push({
+                    organizationId: org._id,
+                    role: 'student',
+                    gradeLevel: ps.gradeLevel,
+                    subjects: ps.subjects || [],
+                    joinedAt: new Date()
+                  });
+                }
+              }
+
+              if (memberships.length > 0) {
+                primaryUser.organizationMemberships = memberships;
+                await primaryUser.save();
+              }
+
+              user = primaryUser;
+              delete req.session.pendingStudent;
+              console.log(`New student '${userEmail}' joined ${orgs.length} organization(s)`);
             } else {
               // Regular new user - needs to go through organization signup or be invited
               console.log('New user without organization context, redirecting to signup');
               return cb(new Error('New users must be invited by a teacher or create an organization'), null);
           }
 
+          // Save super_admin user (teacher/pendingOrg path already saved above)
+          if (user && user.role === 'super_admin') {
           try {
             await user.save();
             console.log('New user created successfully');
@@ -984,6 +1086,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             console.error('Error saving new user:', saveError);
             return cb(new Error('Failed to create user'), null);
             }
+          }
           }
         } else {
           console.log('Existing user found');
@@ -1625,20 +1728,31 @@ app.get('/', async (req, res) => {
 // User signup route - handles both teachers and students
 app.get('/signup', async (req, res) => {
   try {
-    // Fetch all available organizations for student selection
     const organizations = await Organization.find({})
       .select('name subdomain')
       .sort({ name: 1 });
 
+    // Pre-fill org code if ?code= is provided (e.g. from a teacher invite link)
+    const prefilledCode = req.query.code || null;
+    let prefilledOrgName = null;
+    if (prefilledCode) {
+      const prefilledOrg = await Organization.findOne({ subdomain: prefilledCode }).select('name');
+      prefilledOrgName = prefilledOrg ? prefilledOrg.name : null;
+    }
+
     res.render('user-signup', {
       title: 'Join SkillOns - Choose Your Role',
-      organizations: organizations || []
+      organizations: organizations || [],
+      prefilledCode,
+      prefilledOrgName
     });
   } catch (error) {
     console.error('Error fetching organizations for signup:', error);
     res.render('user-signup', {
       title: 'Join SkillOns - Choose Your Role',
-      organizations: []
+      organizations: [],
+      prefilledCode: null,
+      prefilledOrgName: null
     });
   }
 });
