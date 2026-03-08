@@ -24,7 +24,7 @@ router.use(scopeToOrganization);
  */
 router.get('/api/check-subdomain/:subdomain', async (req, res) => {
   try {
-    const { subdomain } = req.params;
+    const subdomain = req.params.subdomain.toLowerCase();
     
     // Validate subdomain format
     if (!/^[a-z0-9-]+$/.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
@@ -43,7 +43,7 @@ router.get('/api/check-subdomain/:subdomain', async (req, res) => {
       });
     }
     
-    // Check if subdomain exists
+    // Check if subdomain exists (exact match on normalized lowercase value)
     const existing = await Organization.findOne({ subdomain });
     
     res.json({ 
@@ -74,18 +74,19 @@ router.post('/api/store-org-pending', async (req, res) => {
       return res.status(400).json({ error: 'Invalid plan type' });
     }
 
-    if (!/^[a-z0-9-]+$/.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
+    const normalizedSubdomain = subdomain.toLowerCase();
+    if (!/^[a-z0-9-]+$/.test(normalizedSubdomain) || normalizedSubdomain.length < 3 || normalizedSubdomain.length > 50) {
       return res.status(400).json({ error: 'Invalid subdomain format' });
     }
 
-    const existingOrg = await Organization.findOne({ subdomain: subdomain.toLowerCase() });
+    const existingOrg = await Organization.findOne({ subdomain: normalizedSubdomain });
     if (existingOrg) {
       return res.status(400).json({ error: 'Subdomain already taken' });
     }
 
     req.session.pendingOrganization = {
       organizationName,
-      subdomain: subdomain.toLowerCase(),
+      subdomain: normalizedSubdomain,
       teacherName,
       bio: bio || '',
       planType
