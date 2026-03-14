@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
@@ -91,7 +92,7 @@ const connectDB = async () => {
     try {
       const invalidTeachers = await User.find({
         role: 'teacher',
-        email: { $ne: 'skillonusers@gmail.com' }, // Exclude super admin
+        email: { $ne: process.env.SUPER_ADMIN_EMAIL || 'skillonusers@gmail.com' }, // Exclude super admin
         $or: [
           { organizationId: null },
           { organizationId: { $exists: false } }
@@ -806,16 +807,32 @@ app.use((req, res, next) => {
 });
 
 // Session configuration
+if (!process.env.SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET environment variable is required in production');
+  } else {
+    console.warn('⚠️  SESSION_SECRET not set. Using insecure default for development only.');
+  }
+}
+
+const isProducionEnv = process.env.NODE_ENV === 'production';
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  secret: process.env.SESSION_SECRET || 'dev-only-secret-do-not-use-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to false for now to fix session issues
-    maxAge: 30 * 60 * 1000 // 30 minutes (reduced from 24 hours)
+    secure: isProducionEnv,   // HTTPS-only in production
+    httpOnly: true,           // Prevent JS access to cookie
+    sameSite: 'lax',
+    maxAge: 30 * 60 * 1000   // 30 minutes
   },
   name: 'takequiznow.sid',
-  store: new session.MemoryStore() // Explicitly set store for production
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/quizgenerator',
+    ttl: 30 * 60,             // 30 minutes, matches cookie maxAge
+    autoRemove: 'native'
+  })
 }));
 
 // Session timeout middleware
@@ -962,7 +979,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             }
           } else {
             // New user - check if they're a super admin first
-            if (userEmail === 'skillonusers@gmail.com') {
+            const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'skillonusers@gmail.com';
+            if (userEmail === superAdminEmail) {
           user = new User({
             googleId: profile.id,
             displayName: profile.displayName,
@@ -1092,13 +1110,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           console.log('Existing user found');
 
           // Validate existing teacher users have organizationId
-          if (user.role === 'teacher' && user.email !== 'skillonusers@gmail.com' && !user.organizationId) {
+          if (user.role === 'teacher' && user.email !== (process.env.SUPER_ADMIN_EMAIL || 'skillonusers@gmail.com') && !user.organizationId) {
             console.error('Existing teacher user missing organizationId:', user.email);
             return cb(new Error('Teacher account incomplete. Please contact administrator to assign an organization.'), null);
           }
 
           // Existing user - check if they should be super admin
-          if (user.email === 'skillonusers@gmail.com' && user.role !== 'super_admin') {
+          const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'skillonusers@gmail.com';
+          if (user.email === superAdminEmail && user.role !== 'super_admin') {
             user.role = 'super_admin';
             user.isApproved = true;
             try {
@@ -7170,7 +7189,7 @@ app.get('/test-create-admin', async (req, res) => {
 // Route to make current user admin (for development)
 app.get('/make-admin', requireAuth, async (req, res) => {
   try {
-    if (req.user.email === 'skillonusers@gmail.com') {
+    if (req.user.email === (process.env.SUPER_ADMIN_EMAIL || 'skillonusers@gmail.com')) {
       req.user.role = 'admin';
       req.user.isApproved = true;
       await req.user.save();
@@ -7455,8 +7474,7 @@ app.get('/auth/google/callback', (req, res) => {
   }
 
   passport.authenticate('google', {
-    failureRedirect: '/login',
-    failureFlash: true
+    failureRedirect: '/login'
   })(req, res, (err) => {
     if (err) {
       console.error('Google OAuth callback error:', err);
@@ -7909,30 +7927,32 @@ app.use((req, res) => {
   res.status(404).render('error', { error: 'Page not found!' });
 });
 
-// Temporary login route for testing (remove this in production)
-app.get('/temp-login', (req, res) => {
-  res.render('temp-login', { error: null });
-});
+// Temporary login route for testing — development only
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/temp-login', (req, res) => {
+    res.render('temp-login', { error: null });
+  });
 
-app.post('/temp-login', (req, res) => {
-  const { email, role } = req.body;
+  app.post('/temp-login', (req, res) => {
+    const { email, role } = req.body;
 
-  if (!email || !role) {
-    return res.render('temp-login', { error: 'Please provide email and role' });
-  }
+    if (!email || !role) {
+      return res.render('temp-login', { error: 'Please provide email and role' });
+    }
 
-  // Create a temporary user session
-  req.session.user = {
-    _id: 'temp-' + Date.now(),
-    displayName: email.split('@')[0],
-    email: email,
-    role: role,
-    isApproved: role === 'student' ? true : false,
-    photos: []
-  };
+    // Create a temporary user session
+    req.session.user = {
+      _id: 'temp-' + Date.now(),
+      displayName: email.split('@')[0],
+      email: email,
+      role: role,
+      isApproved: role === 'student' ? true : false,
+      photos: []
+    };
 
-  res.redirect('/dashboard');
-});
+    res.redirect('/dashboard');
+  });
+}
 
 // Logging configuration
 const isProduction = process.env.NODE_ENV === 'production';
