@@ -63,7 +63,7 @@ router.get('/api/check-subdomain/:subdomain', async (req, res) => {
  */
 router.post('/api/store-org-pending', async (req, res) => {
   try {
-    const { organizationName, subdomain, teacherName, bio, planType = 'basic' } = req.body;
+    const { organizationName, subdomain, teacherName, bio, planType = 'basic', additionalTeachers } = req.body;
 
     if (!organizationName || !subdomain || !teacherName) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -84,12 +84,21 @@ router.post('/api/store-org-pending', async (req, res) => {
       return res.status(400).json({ error: 'Subdomain already taken' });
     }
 
+    // Validate and sanitize additional teacher emails
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const sanitizedTeachers = Array.isArray(additionalTeachers)
+      ? additionalTeachers
+          .map(e => (typeof e === 'string' ? e.trim().toLowerCase() : ''))
+          .filter(e => e && emailRegex.test(e))
+      : [];
+
     req.session.pendingOrganization = {
       organizationName,
       subdomain: normalizedSubdomain,
       teacherName,
       bio: bio || '',
-      planType
+      planType,
+      additionalTeachers: sanitizedTeachers
     };
 
     res.json({ success: true, message: 'Organization details saved. Proceed to Google sign-in.' });

@@ -334,6 +334,19 @@
                                     <label for="bio">Brief Bio (Optional)</label>
                                 </div>
                             </div>
+
+                            <!-- Invite Additional Teachers -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-user-plus me-1 text-primary"></i>
+                                    Invite Additional Teachers <span class="text-muted fw-normal">(Optional)</span>
+                                </label>
+                                <p class="text-muted small mb-2">Add their Google email addresses. They'll be linked to your organization when they sign in.</p>
+                                <div id="teacherEmailList" style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.5rem;"></div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addTeacherEmailField()">
+                                    <i class="fas fa-plus me-1"></i> Add Teacher
+                                </button>
+                            </div>
                         </form>
                     </div>
 
@@ -733,6 +746,11 @@
                 const teacherName = document.getElementById('teacherName').value;
                 const planNames = { basic: 'Basic (Free)', pro: 'Professional ($19/month)', enterprise: 'Enterprise ($49/month)' };
 
+                const additionalTeachers = getAdditionalTeacherEmails();
+                const teachersHTML = additionalTeachers.length > 0
+                    ? additionalTeachers.map(e => `<span style="display:inline-block;background:#ede9fe;color:#4f46e5;border-radius:20px;padding:2px 10px;font-size:0.82rem;margin:2px;">${e}</span>`).join(' ')
+                    : '<span class="text-muted">None</span>';
+
                 reviewHTML = `
                     <div class="card">
                         <div class="card-body">
@@ -742,6 +760,7 @@
                             <p><strong>Your Name:</strong> ${teacherName}</p>
                             <p><strong>Email:</strong> <span class="text-muted"><i class="fab fa-google me-1"></i>From Google sign-in</span></p>
                             <p><strong>Plan:</strong> ${planNames[selectedPlan]}</p>
+                            <p><strong>Additional Teachers:</strong> ${teachersHTML}</p>
                         </div>
                     </div>
                 `;
@@ -842,13 +861,34 @@
             }
         }
 
+        function addTeacherEmailField() {
+            const list = document.getElementById('teacherEmailList');
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
+            row.innerHTML = `
+                <input type="email" class="form-control additional-teacher-email" placeholder="teacher@example.com" style="flex:1;">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.parentElement.remove()" style="white-space:nowrap;">
+                    <i class="fas fa-times"></i>
+                </button>`;
+            list.appendChild(row);
+            row.querySelector('input').focus();
+        }
+
+        function getAdditionalTeacherEmails() {
+            return Array.from(document.querySelectorAll('.additional-teacher-email'))
+                .map(i => i.value.trim().toLowerCase())
+                .filter(e => e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+        }
+
         function createTeacherOrganization() {
+            const additionalTeachers = getAdditionalTeacherEmails();
             const formData = {
                 organizationName: document.getElementById('organizationName').value,
                 subdomain: document.getElementById('subdomain').value,
                 teacherName: document.getElementById('teacherName').value,
                 bio: document.getElementById('bio').value,
-                planType: selectedPlan
+                planType: selectedPlan,
+                additionalTeachers
             };
 
             fetch('/api/store-org-pending', {

@@ -1051,6 +1051,38 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               newOrg.ownerId = user._id;
               await newOrg.save();
 
+              // Create temp User records for additional teachers so they get linked
+              // to this org when they sign in with Google for the first time
+              if (pending.additionalTeachers && pending.additionalTeachers.length > 0) {
+                for (const teacherEmail of pending.additionalTeachers) {
+                  try {
+                    const existing = await User.findOne({ email: teacherEmail });
+                    if (!existing) {
+                      const tempTeacher = new User({
+                        googleId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        displayName: teacherEmail.split('@')[0],
+                        email: teacherEmail,
+                        photos: [],
+                        role: 'teacher',
+                        organizationId: newOrg._id,
+                        organizationRole: 'teacher',
+                        isApproved: true
+                      });
+                      await tempTeacher.save();
+                      console.log(`Created temp teacher account for ${teacherEmail} in org ${newOrg.name}`);
+                    } else if (existing.googleId && !existing.googleId.startsWith('temp_')) {
+                      // Teacher already has a real account — just link them to the new org
+                      existing.organizationId = existing.organizationId || newOrg._id;
+                      await existing.save();
+                      console.log(`Linked existing teacher ${teacherEmail} to org ${newOrg.name}`);
+                    }
+                  } catch (teacherErr) {
+                    console.error(`Error creating temp teacher for ${teacherEmail}:`, teacherErr);
+                    // Non-fatal — continue with other teachers
+                  }
+                }
+              }
+
               delete req.session.pendingOrganization;
               console.log(`New teacher organization '${pending.organizationName}' created for ${userEmail}`);
             } else if (req.session && req.session.pendingStudent) {
