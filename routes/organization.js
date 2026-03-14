@@ -109,6 +109,101 @@ router.post('/api/store-org-pending', async (req, res) => {
 });
 
 /**
+ * POST /api/initialize-organization
+ * Creates the organization and adds additional teachers immediately (before OAuth).
+ * Stores only the org ID in the session so the OAuth callback can link the owner.
+ */
+router.post('/api/initialize-organization', async (req, res) => {
+  try {
+    const { organizationName, subdomain, teacherName, bio, planType = 'basic', additionalTeachers } = req.body;
+
+    if (!organizationName || !subdomain || !teacherName) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const validPlanTypes = ['free', 'basic', 'premium', 'enterprise'];
+    if (!validPlanTypes.includes(planType)) {
+      return res.status(400).json({ error: 'Invalid plan type' });
+    }
+
+    const normalizedSubdomain = subdomain.toLowerCase();
+    if (!/^[a-z0-9-]+$/.test(normalizedSubdomain) || normalizedSubdomain.length < 3 || normalizedSubdomain.length > 50) {
+      return res.status(400).json({ error: 'Invalid subdomain format' });
+    }
+
+    const existingOrg = await Organization.findOne({ subdomain: normalizedSubdomain });
+    if (existingOrg) {
+      return res.status(400).json({ error: 'Subdomain already taken' });
+    }
+
+    // Validate additional teacher emails
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const sanitizedTeachers = Array.isArray(additionalTeachers)
+      ? additionalTeachers.map(e => (typeof e === 'string' ? e.trim().toLowerCase() : '')).filter(e => e && emailRegex.test(e))
+      : [];
+
+    // 1. Create the organization immediately with a placeholder ownerId
+    const planLimits = Organization.getPlanLimits(planType);
+    const placeholderOwnerId = new require('mongoose').Types.ObjectId();
+    const newOrg = new Organization({
+      name: organizationName,
+      subdomain: normalizedSubdomain,
+      ownerId: placeholderOwnerId,
+      planType,
+      settings: {
+        maxStudents: planLimits.maxStudents,
+        maxQuizzes: planLimits.maxQuizzes,
+        maxStorage: planLimits.maxStorage,
+        features: planLimits.features
+      }
+    });
+    await newOrg.save();
+    console.log(`Organization '${organizationName}' pre-created with id ${newOrg._id}`);
+
+    // 2. Create temp User records for each additional teacher linked to this org
+    for (const teacherEmail of sanitizedTeachers) {
+      try {
+        const existing = await User.findOne({ email: teacherEmail });
+        if (!existing) {
+          const tempTeacher = new User({
+            googleId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            displayName: teacherEmail.split('@')[0],
+            email: teacherEmail,
+            photos: [],
+            role: 'teacher',
+            organizationId: newOrg._id,
+            organizationRole: 'teacher',
+            isApproved: true
+          });
+          await tempTeacher.save();
+          console.log(`Added teacher ${teacherEmail} to org ${newOrg._id}`);
+        } else if (!existing.googleId.startsWith('temp_') && !existing.organizationId) {
+          // Real account with no org — link them
+          existing.organizationId = newOrg._id;
+          await existing.save();
+          console.log(`Linked existing teacher ${teacherEmail} to org ${newOrg._id}`);
+        }
+      } catch (err) {
+        console.error(`Failed to add teacher ${teacherEmail}:`, err.message);
+        // Non-fatal — continue
+      }
+    }
+
+    // 3. Store only the org ID + owner details in session for the OAuth callback
+    req.session.pendingOrgId = {
+      orgId: newOrg._id.toString(),
+      teacherName,
+      bio: bio || ''
+    };
+
+    res.json({ success: true, orgId: newOrg._id });
+  } catch (error) {
+    console.error('Error initializing organization:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
  * POST /api/store-student-pending
  * Validate org codes and store student details in session before Google OAuth.
  * No DB writes — the accounts are created after OAuth using the real Google email.

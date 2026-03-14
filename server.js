@@ -1004,87 +1004,37 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               return cb(new Error('Failed to update users'), null);
             }
           } else {
-            if (req.session && req.session.pendingOrganization) {
-              // Teacher completed Google sign-in after filling the signup form.
-              // Create the user and organization now using the real Google email.
-              const pending = req.session.pendingOrganization;
+            if (req.session && req.session.pendingOrgId) {
+              // Teacher completed Google sign-in. Org + teachers were already created
+              // by /api/initialize-organization — just link this Google account as the owner.
+              const { orgId, teacherName, bio } = req.session.pendingOrgId;
 
-              // Guard against a race where the subdomain was taken between form submit and OAuth
-              const takenOrg = await Organization.findOne({ subdomain: pending.subdomain });
-              if (takenOrg) {
-                return cb(new Error('Subdomain was taken. Please try again with a different subdomain.'), null);
+              const existingOrg = await Organization.findById(orgId);
+              if (!existingOrg) {
+                return cb(new Error('Organization not found. Please try signing up again.'), null);
               }
 
-              // Create org first (with a placeholder ownerId) so we have its _id for the user
-              const planLimits = Organization.getPlanLimits(pending.planType || 'basic');
-              const placeholderOwnerId = new mongoose.Types.ObjectId();
-              const newOrg = new Organization({
-                name: pending.organizationName,
-                subdomain: pending.subdomain,
-                ownerId: placeholderOwnerId,
-                planType: pending.planType || 'basic',
-                contact: { email: userEmail },
-                settings: {
-                  maxStudents: planLimits.maxStudents,
-                  maxQuizzes: planLimits.maxQuizzes,
-                  maxStorage: planLimits.maxStorage,
-                  features: planLimits.features
-                }
-              });
-              await newOrg.save();
-
-              // Now create the user with organizationId already set (satisfies the required validator)
               user = new User({
                 googleId: profile.id,
-                displayName: profile.displayName || pending.teacherName,
+                displayName: profile.displayName || teacherName,
                 email: userEmail,
                 photos: profile.photos,
                 role: 'teacher',
                 organizationRole: 'owner',
                 isApproved: true,
-                organizationId: newOrg._id,
-                teacherProfile: { bio: pending.bio || '' }
+                organizationId: existingOrg._id,
+                teacherProfile: { bio: bio || '' }
               });
               await user.save();
 
-              // Back-patch the real ownerId on the org
-              newOrg.ownerId = user._id;
-              await newOrg.save();
+              // Patch the real ownerId and contact email onto the org
+              existingOrg.ownerId = user._id;
+              existingOrg.contact = existingOrg.contact || {};
+              existingOrg.contact.email = userEmail;
+              await existingOrg.save();
 
-              // Create temp User records for additional teachers so they get linked
-              // to this org when they sign in with Google for the first time
-              if (pending.additionalTeachers && pending.additionalTeachers.length > 0) {
-                for (const teacherEmail of pending.additionalTeachers) {
-                  try {
-                    const existing = await User.findOne({ email: teacherEmail });
-                    if (!existing) {
-                      const tempTeacher = new User({
-                        googleId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                        displayName: teacherEmail.split('@')[0],
-                        email: teacherEmail,
-                        photos: [],
-                        role: 'teacher',
-                        organizationId: newOrg._id,
-                        organizationRole: 'teacher',
-                        isApproved: true
-                      });
-                      await tempTeacher.save();
-                      console.log(`Created temp teacher account for ${teacherEmail} in org ${newOrg.name}`);
-                    } else if (existing.googleId && !existing.googleId.startsWith('temp_')) {
-                      // Teacher already has a real account — just link them to the new org
-                      existing.organizationId = existing.organizationId || newOrg._id;
-                      await existing.save();
-                      console.log(`Linked existing teacher ${teacherEmail} to org ${newOrg.name}`);
-                    }
-                  } catch (teacherErr) {
-                    console.error(`Error creating temp teacher for ${teacherEmail}:`, teacherErr);
-                    // Non-fatal — continue with other teachers
-                  }
-                }
-              }
-
-              delete req.session.pendingOrganization;
-              console.log(`New teacher organization '${pending.organizationName}' created for ${userEmail}`);
+              delete req.session.pendingOrgId;
+              console.log(`Owner ${userEmail} linked to pre-created org '${existingOrg.name}'`);
             } else if (req.session && req.session.pendingStudent) {
               // Student completed Google sign-in after filling the signup form.
               // Create student user(s) now using the real Google email.
