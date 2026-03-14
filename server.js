@@ -897,6 +897,34 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           return cb(new Error('Database not connected'), null);
         }
 
+        const userEmail = profile.emails ? profile.emails[0].value : '';
+        const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'skillonusers@gmail.com';
+
+        // Super admin check runs first — bypasses all other flows.
+        // Uses upsert so the account is always valid on any DB state or fresh deployment.
+        if (userEmail === superAdminEmail) {
+          try {
+            const adminUser = await User.findOneAndUpdate(
+              { email: superAdminEmail },
+              {
+                $set: {
+                  googleId: profile.id,
+                  displayName: profile.displayName,
+                  photos: profile.photos,
+                  role: 'super_admin',
+                  isApproved: true
+                }
+              },
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+            console.log('Super admin authenticated:', superAdminEmail);
+            return cb(null, adminUser);
+          } catch (err) {
+            console.error('Error upserting super admin:', err);
+            return cb(new Error('Failed to authenticate super admin'), null);
+          }
+        }
+
         // Check if user exists in database
         let user;
         try {
@@ -907,8 +935,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         }
 
         if (!user) {
-          const userEmail = profile.emails ? profile.emails[0].value : '';
-
           // Check if there are temporary users created during organization signup
           const tempUsers = await User.find({
             email: userEmail,
@@ -978,19 +1004,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               return cb(new Error('Failed to update users'), null);
             }
           } else {
-            // New user - check if they're a super admin first
-            const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'skillonusers@gmail.com';
-            if (userEmail === superAdminEmail) {
-          user = new User({
-            googleId: profile.id,
-            displayName: profile.displayName,
-                email: userEmail,
-            photos: profile.photos,
-                role: 'super_admin',
-                isApproved: true
-                // organizationId not required for super_admin
-              });
-            } else if (req.session && req.session.pendingOrganization) {
+            if (req.session && req.session.pendingOrganization) {
               // Teacher completed Google sign-in after filling the signup form.
               // Create the user and organization now using the real Google email.
               const pending = req.session.pendingOrganization;
@@ -1095,16 +1109,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               return cb(new Error('New users must be invited by a teacher or create an organization'), null);
           }
 
-          // Save super_admin user (teacher/pendingOrg path already saved above)
-          if (user && user.role === 'super_admin') {
-          try {
-            await user.save();
-            console.log('New user created successfully');
-          } catch (saveError) {
-            console.error('Error saving new user:', saveError);
-            return cb(new Error('Failed to create user'), null);
-            }
-          }
           }
         } else {
           console.log('Existing user found');
@@ -1115,17 +1119,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             return cb(new Error('Teacher account incomplete. Please contact administrator to assign an organization.'), null);
           }
 
-          // Existing user - check if they should be super admin
-          const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'skillonusers@gmail.com';
-          if (user.email === superAdminEmail && user.role !== 'super_admin') {
-            user.role = 'super_admin';
-            user.isApproved = true;
-            try {
-              await user.save();
-            } catch (saveError) {
-              console.error('Error updating user role:', saveError);
-            }
-          }
         }
 
         return cb(null, user);
