@@ -2817,12 +2817,59 @@ app.post('/api/migrate-multi-org-account', requireAuth, requireRole(['student'])
 
 app.get('/admin/dashboard', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
-    const pendingTeachers = await User.find({ role: 'teacher', isApproved: false });
-    const pendingQuizzes = [];  // No pending quizzes since all are auto-approved
-    res.render('admin-dashboard', { user: req.user, pendingTeachers, pendingQuizzes });
+    const [pendingTeachers, allTeachers, totalStudents, totalQuizzes] = await Promise.all([
+      User.find({ role: 'teacher', isApproved: false })
+          .populate('organizationId', 'name subdomain planType')
+          .lean(),
+      User.find({ role: 'teacher' })
+          .populate('organizationId', 'name subdomain planType')
+          .sort({ createdAt: -1 })
+          .lean(),
+      User.countDocuments({ role: 'student' }),
+      Quiz.countDocuments()
+    ]);
+
+    // Attach student and quiz counts to each teacher
+    const teacherIds = allTeachers.map(t => t._id);
+    const [studentCounts, quizCounts] = await Promise.all([
+      User.aggregate([
+        { $match: { role: 'student', assignedTeacher: { $in: teacherIds } } },
+        { $group: { _id: '$assignedTeacher', count: { $sum: 1 } } }
+      ]),
+      Quiz.aggregate([
+        { $match: { createdBy: { $in: teacherIds } } },
+        { $group: { _id: '$createdBy', count: { $sum: 1 } } }
+      ])
+    ]);
+
+    const studentCountMap = Object.fromEntries(studentCounts.map(s => [s._id.toString(), s.count]));
+    const quizCountMap = Object.fromEntries(quizCounts.map(q => [q._id.toString(), q.count]));
+
+    const teachersWithStats = allTeachers.map(t => ({
+      ...t,
+      studentCount: studentCountMap[t._id.toString()] || 0,
+      quizCount: quizCountMap[t._id.toString()] || 0
+    }));
+
+    const pendingQuizzes = [];
+    res.render('admin-dashboard', {
+      user: req.user,
+      pendingTeachers,
+      pendingQuizzes,
+      allTeachers: teachersWithStats,
+      totalStudents,
+      totalQuizzes
+    });
   } catch (error) {
     console.error('Error fetching admin data:', error);
-    res.render('admin-dashboard', { user: req.user, pendingTeachers: [], pendingQuizzes: [] });
+    res.render('admin-dashboard', {
+      user: req.user,
+      pendingTeachers: [],
+      pendingQuizzes: [],
+      allTeachers: [],
+      totalStudents: 0,
+      totalQuizzes: 0
+    });
   }
 });
 

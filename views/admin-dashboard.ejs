@@ -46,31 +46,41 @@
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon">
-                            <i class="fas fa-users"></i>
+                            <i class="fas fa-chalkboard-teacher"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>Pending Teachers</h3>
+                            <h3>Total Teachers</h3>
+                            <p class="stat-number"><%= allTeachers.length %></p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Pending Approvals</h3>
                             <p class="stat-number"><%= pendingTeachers.length %></p>
                         </div>
                     </div>
-                    
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Total Students</h3>
+                            <p class="stat-number"><%= totalStudents %></p>
+                        </div>
+                    </div>
+
                     <div class="stat-card">
                         <div class="stat-icon">
                             <i class="fas fa-file-alt"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>Pending Quizzes</h3>
-                            <p class="stat-number"><%= pendingQuizzes.length %></p>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3>Total Users</h3>
-                            <p class="stat-number">--</p>
+                            <h3>Total Quizzes</h3>
+                            <p class="stat-number"><%= totalQuizzes %></p>
                         </div>
                     </div>
                 </div>
@@ -151,6 +161,94 @@
                     </div>
                 </div>
 
+                <!-- All Teachers Section -->
+                <div class="admin-section" style="margin-top: 2rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+                        <h3>All Teachers (<%= allTeachers.length %>)</h3>
+                        <input
+                            type="text"
+                            id="teacherSearch"
+                            placeholder="Search by name, email or organization..."
+                            oninput="filterTeachers()"
+                            style="padding: 0.4rem 0.8rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.875rem; width: 280px;"
+                        >
+                    </div>
+
+                    <% if (allTeachers.length > 0) { %>
+                        <div style="overflow-x: auto;">
+                            <table id="teachersTable" style="width:100%; border-collapse: collapse; font-size: 0.875rem;">
+                                <thead>
+                                    <tr style="background: #f8fafc; text-align: left;">
+                                        <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Teacher</th>
+                                        <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Email</th>
+                                        <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Organization</th>
+                                        <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Plan</th>
+                                        <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Students</th>
+                                        <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Quizzes</th>
+                                        <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Status</th>
+                                        <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Joined</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% allTeachers.forEach(teacher => { %>
+                                        <tr class="teacher-row" style="border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                                            <td style="padding: 0.75rem 1rem;">
+                                                <div style="display:flex; align-items:center; gap: 0.5rem;">
+                                                    <% if (teacher.photos && teacher.photos.length > 0) { %>
+                                                        <img src="<%= teacher.photos[0].value %>" alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover;">
+                                                    <% } else { %>
+                                                        <div style="width:32px; height:32px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center;">
+                                                            <i class="fas fa-user" style="font-size:0.8rem; color:#94a3b8;"></i>
+                                                        </div>
+                                                    <% } %>
+                                                    <span style="font-weight:500;"><%= teacher.displayName %></span>
+                                                </div>
+                                            </td>
+                                            <td style="padding: 0.75rem 1rem; color: #64748b;"><%= teacher.email %></td>
+                                            <td style="padding: 0.75rem 1rem;">
+                                                <% if (teacher.organizationId) { %>
+                                                    <div><%= teacher.organizationId.name %></div>
+                                                    <div style="font-size:0.75rem; color:#94a3b8;"><%= teacher.organizationId.subdomain %></div>
+                                                <% } else { %>
+                                                    <span style="color:#94a3b8;">—</span>
+                                                <% } %>
+                                            </td>
+                                            <td style="padding: 0.75rem 1rem;">
+                                                <% if (teacher.organizationId) { %>
+                                                    <span style="padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500;
+                                                        background: <%= teacher.organizationId.planType === 'premium' ? '#fef3c7' : teacher.organizationId.planType === 'enterprise' ? '#ede9fe' : '#f0fdf4' %>;
+                                                        color: <%= teacher.organizationId.planType === 'premium' ? '#92400e' : teacher.organizationId.planType === 'enterprise' ? '#5b21b6' : '#166534' %>;">
+                                                        <%= teacher.organizationId.planType %>
+                                                    </span>
+                                                <% } else { %>
+                                                    <span style="color:#94a3b8;">—</span>
+                                                <% } %>
+                                            </td>
+                                            <td style="padding: 0.75rem 1rem; text-align:center;"><%= teacher.studentCount %></td>
+                                            <td style="padding: 0.75rem 1rem; text-align:center;"><%= teacher.quizCount %></td>
+                                            <td style="padding: 0.75rem 1rem;">
+                                                <% if (teacher.isApproved) { %>
+                                                    <span style="padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; background: #f0fdf4; color: #166534;">Approved</span>
+                                                <% } else { %>
+                                                    <span style="padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; background: #fef9c3; color: #854d0e;">Pending</span>
+                                                <% } %>
+                                            </td>
+                                            <td style="padding: 0.75rem 1rem; color: #64748b; white-space: nowrap;">
+                                                <%= new Date(teacher.createdAt).toLocaleDateString() %>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <div class="empty-state">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            <p>No teachers registered yet</p>
+                        </div>
+                    <% } %>
+                </div>
+
                 <div class="action-cards">
                     <div class="action-card">
                         <h3>User Management</h3>
@@ -182,5 +280,14 @@
     
     <!-- Session timeout management -->
     <script src="/js/session-timeout.js"></script>
+    <script>
+        function filterTeachers() {
+            const query = document.getElementById('teacherSearch').value.toLowerCase();
+            document.querySelectorAll('#teachersTable .teacher-row').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+    </script>
 </body>
 </html> 
