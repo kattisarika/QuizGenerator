@@ -262,6 +262,16 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Pagination controls -->
+                        <div id="teacherPagination" style="display:flex; align-items:center; justify-content:space-between; margin-top:1rem; font-size:0.875rem;">
+                            <span id="pageInfo" style="color:#64748b;"></span>
+                            <div style="display:flex; gap:0.4rem;">
+                                <button onclick="changePage(-1)" id="prevBtn" style="padding:0.35rem 0.75rem; border:1px solid #e2e8f0; border-radius:6px; background:#fff; cursor:pointer; color:#374151;">&#8249; Prev</button>
+                                <div id="pageNumbers" style="display:flex; gap:0.4rem;"></div>
+                                <button onclick="changePage(1)"  id="nextBtn" style="padding:0.35rem 0.75rem; border:1px solid #e2e8f0; border-radius:6px; background:#fff; cursor:pointer; color:#374151;">Next &#8250;</button>
+                            </div>
+                        </div>
                     <% } else { %>
                         <div class="empty-state">
                             <i class="fas fa-chalkboard-teacher"></i>
@@ -302,26 +312,94 @@
     <!-- Session timeout management -->
     <script src="/js/session-timeout.js"></script>
     <script>
-        function filterTeachers() {
-            const query = document.getElementById('teacherSearch').value.toLowerCase();
-            document.querySelectorAll('#teachersTable .teacher-row').forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(query) ? '' : 'none';
-            });
-        }
-
+        // --- Relative time ---
         function timeAgo(ts) {
             const diff = Math.floor((Date.now() - ts) / 1000);
-            if (diff < 60)          return 'Just now';
-            if (diff < 3600)        return Math.floor(diff / 60) + 'm ago';
-            if (diff < 86400)       return Math.floor(diff / 3600) + 'h ago';
-            if (diff < 2592000)     return Math.floor(diff / 86400) + 'd ago';
+            if (diff < 60)       return 'Just now';
+            if (diff < 3600)     return Math.floor(diff / 60) + 'm ago';
+            if (diff < 86400)    return Math.floor(diff / 3600) + 'h ago';
+            if (diff < 2592000)  return Math.floor(diff / 86400) + 'd ago';
             return new Date(ts).toLocaleDateString();
         }
-
         document.querySelectorAll('[data-ts]').forEach(el => {
             el.textContent = timeAgo(parseInt(el.dataset.ts));
         });
+
+        // --- Pagination + Search ---
+        const PAGE_SIZE = 10;
+        let currentPage = 1;
+        let visibleRows = [];
+
+        const allRows = Array.from(document.querySelectorAll('#teachersTable .teacher-row'));
+
+        function filterTeachers() {
+            const query = document.getElementById('teacherSearch').value.toLowerCase();
+            visibleRows = allRows.filter(row => row.textContent.toLowerCase().includes(query));
+            currentPage = 1;
+            renderPage();
+        }
+
+        function changePage(delta) {
+            const totalPages = Math.ceil(visibleRows.length / PAGE_SIZE);
+            currentPage = Math.min(Math.max(currentPage + delta, 1), totalPages);
+            renderPage();
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            renderPage();
+        }
+
+        function renderPage() {
+            const totalPages = Math.max(Math.ceil(visibleRows.length / PAGE_SIZE), 1);
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const end = start + PAGE_SIZE;
+
+            // Show/hide rows
+            allRows.forEach(row => row.style.display = 'none');
+            visibleRows.forEach((row, i) => {
+                row.style.display = (i >= start && i < end) ? '' : 'none';
+            });
+
+            // Page info
+            const from = visibleRows.length === 0 ? 0 : start + 1;
+            const to   = Math.min(end, visibleRows.length);
+            document.getElementById('pageInfo').textContent =
+                `Showing ${from}–${to} of ${visibleRows.length} teacher${visibleRows.length !== 1 ? 's' : ''}`;
+
+            // Prev / Next
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+
+            // Page number buttons
+            const container = document.getElementById('pageNumbers');
+            container.innerHTML = '';
+            for (let p = 1; p <= totalPages; p++) {
+                // Show first, last, current ±1, and ellipsis
+                if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
+                    const btn = document.createElement('button');
+                    btn.textContent = p;
+                    btn.onclick = () => goToPage(p);
+                    btn.style.cssText = `padding:0.35rem 0.65rem; border-radius:6px; cursor:pointer; font-size:0.875rem;
+                        border: 1px solid ${p === currentPage ? '#6366f1' : '#e2e8f0'};
+                        background: ${p === currentPage ? '#6366f1' : '#fff'};
+                        color: ${p === currentPage ? '#fff' : '#374151'};`;
+                    container.appendChild(btn);
+                } else if (
+                    (p === currentPage - 2 && p > 1) ||
+                    (p === currentPage + 2 && p < totalPages)
+                ) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '…';
+                    dots.style.cssText = 'padding:0.35rem 0.4rem; color:#94a3b8;';
+                    container.appendChild(dots);
+                }
+            }
+        }
+
+        // Init
+        visibleRows = [...allRows];
+        renderPage();
     </script>
 </body>
 </html> 
