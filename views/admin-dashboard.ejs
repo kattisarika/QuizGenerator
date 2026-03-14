@@ -186,6 +186,8 @@
                                         <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Students</th>
                                         <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Quizzes</th>
                                         <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Status</th>
+                                        <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Last Active</th>
+                                        <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Bio</th>
                                         <th style="padding: 0.75rem 1rem; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">Joined</th>
                                     </tr>
                                 </thead>
@@ -231,6 +233,25 @@
                                                     <span style="padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; background: #f0fdf4; color: #166534;">Approved</span>
                                                 <% } else { %>
                                                     <span style="padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; background: #fef9c3; color: #854d0e;">Pending</span>
+                                                <% } %>
+                                            </td>
+                                            <td style="padding: 0.75rem 1rem; color: #64748b; white-space: nowrap;">
+                                                <% if (teacher.lastActive) { %>
+                                                    <span data-ts="<%= new Date(teacher.lastActive).getTime() %>">
+                                                        <%= new Date(teacher.lastActive).toLocaleDateString() %>
+                                                    </span>
+                                                <% } else { %>
+                                                    <span style="color:#94a3b8;">Never</span>
+                                                <% } %>
+                                            </td>
+                                            <td style="padding: 0.75rem 1rem; max-width: 200px;">
+                                                <% const bio = teacher.teacherProfile && teacher.teacherProfile.bio; %>
+                                                <% if (bio) { %>
+                                                    <span title="<%= bio %>" style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#475569; cursor:default;">
+                                                        <%= bio %>
+                                                    </span>
+                                                <% } else { %>
+                                                    <span style="color:#94a3b8;">—</span>
                                                 <% } %>
                                             </td>
                                             <td style="padding: 0.75rem 1rem; color: #64748b; white-space: nowrap;">
@@ -288,6 +309,19 @@
                 row.style.display = text.includes(query) ? '' : 'none';
             });
         }
+
+        function timeAgo(ts) {
+            const diff = Math.floor((Date.now() - ts) / 1000);
+            if (diff < 60)          return 'Just now';
+            if (diff < 3600)        return Math.floor(diff / 60) + 'm ago';
+            if (diff < 86400)       return Math.floor(diff / 3600) + 'h ago';
+            if (diff < 2592000)     return Math.floor(diff / 86400) + 'd ago';
+            return new Date(ts).toLocaleDateString();
+        }
+
+        document.querySelectorAll('[data-ts]').forEach(el => {
+            el.textContent = timeAgo(parseInt(el.dataset.ts));
+        });
     </script>
 </body>
 </html> 
