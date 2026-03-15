@@ -228,20 +228,11 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// Rate limiting
-// Use real client IP (works with Heroku's trust proxy setting)
-const getClientIp = (req) => req.ip || req.connection.remoteAddress || 'unknown';
-
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 500,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: getClientIp,
-  skip: (req) => req.path.startsWith('/css') || req.path.startsWith('/js') || req.path.startsWith('/images') || req.path.startsWith('/uploads'),
-  message: { error: 'Too many requests, please try again later.' }
-});
-app.use(generalLimiter);
+// Rate limiting — only protect the OAuth login endpoints
+const getClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  return (forwarded ? forwarded.split(',')[0].trim() : null) || req.ip || 'unknown';
+};
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
