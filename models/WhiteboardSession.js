@@ -53,7 +53,7 @@ const whiteboardSessionSchema = new mongoose.Schema({
   organizationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Organization',
-    required: true
+    required: false
   },
   
   // Session Status
