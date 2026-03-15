@@ -304,9 +304,10 @@
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="subdomain" name="subdomain" placeholder="Subdomain" required pattern="[a-z0-9-]+" maxlength="50">
+                                        <input type="text" class="form-control" id="subdomain" name="subdomain" placeholder="your-school" required pattern="[a-z0-9-]+" minlength="3" maxlength="50" autocomplete="off">
                                         <label for="subdomain">Choose Your Subdomain</label>
                                     </div>
+                                    <small class="text-muted">Auto-filled from your org name. Only lowercase letters, numbers, hyphens.</small>
                                     <div class="subdomain-preview" id="subdomainPreview">
                                         https://your-school.skillons.com
                                     </div>
@@ -713,6 +714,32 @@
             // Add selected class to chosen plan
             event.target.closest('.plan-card').classList.add('selected');
         }
+
+        // Auto-generate subdomain from org name
+        document.getElementById('organizationName').addEventListener('input', function() {
+            const subdomainField = document.getElementById('subdomain');
+            if (!subdomainField._manuallyEdited) {
+                const generated = this.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')  // spaces/special chars → hyphens
+                    .replace(/^-+|-+$/g, '')        // trim leading/trailing hyphens
+                    .substring(0, 50);
+                subdomainField.value = generated;
+                updateSubdomainPreview();
+            }
+        });
+
+        // Sanitize subdomain as user types — block invalid characters
+        document.getElementById('subdomain').addEventListener('input', function() {
+            this._manuallyEdited = true;
+            const cursor = this.selectionStart;
+            const cleaned = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+            if (cleaned !== this.value) {
+                this.value = cleaned;
+                this.setSelectionRange(cursor - 1, cursor - 1);
+            }
+            updateSubdomainPreview();
+        });
 
         function updateSubdomainPreview() {
             const subdomain = document.getElementById('subdomain').value;
