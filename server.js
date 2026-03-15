@@ -44,6 +44,12 @@ const s3 = new AWS.S3({
 });
 
 const app = express();
+
+// Trust Heroku's proxy so req.secure works correctly for HTTPS detection
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 const http = require('http');
 const socketIo = require('socket.io');
 
@@ -878,10 +884,10 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: isProducionEnv,   // HTTPS-only in production
-    httpOnly: true,           // Prevent JS access to cookie
-    sameSite: 'lax',
-    maxAge: 30 * 60 * 1000   // 30 minutes
+    secure: isProducionEnv,          // HTTPS-only in production
+    httpOnly: true,                  // Prevent JS access to cookie
+    sameSite: isProducionEnv ? 'none' : 'lax',  // 'none' needed for OAuth cross-site redirect on Heroku
+    maxAge: 30 * 60 * 1000          // 30 minutes
   },
   name: 'takequiznow.sid',
   store: MongoStore.create({
