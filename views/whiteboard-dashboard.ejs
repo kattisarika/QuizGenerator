@@ -514,7 +514,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-gradient" onclick="createSession()">
+                    <button type="button" class="btn btn-gradient" onclick="createSession(this)">
                         <i class="fas fa-plus me-2"></i>Create Session
                     </button>
                 </div>
@@ -679,17 +679,15 @@
         }
 
         // Create new session
-        async function createSession() {
-            const form = document.getElementById('createSessionForm');
+        async function createSession(btnEl) {
             const errorDiv = document.getElementById('createSessionError');
             const successDiv = document.getElementById('createSessionSuccess');
-            const createBtn = document.querySelector('#createSessionModal .btn-gradient');
 
             // Reset messages
             errorDiv.classList.add('d-none');
             successDiv.classList.add('d-none');
 
-            const title = document.getElementById('sessionTitle').value.trim();
+            const title = (document.getElementById('sessionTitle').value || '').trim();
             const gradeLevel = document.getElementById('sessionGrade').value;
 
             if (!title) {
@@ -703,38 +701,37 @@
                 return;
             }
 
-            const sessionData = {
-                title,
-                description: document.getElementById('sessionDescription').value,
-                subject: document.getElementById('sessionSubject').value,
-                gradeLevel,
-                isPasswordProtected: document.getElementById('passwordProtected').checked,
-                password: document.getElementById('sessionPassword').value,
-                settings: {
-                    maxParticipants: parseInt(document.getElementById('maxParticipants').value) || 50,
-                    allowStudentDrawing: document.getElementById('allowStudentDrawing').checked,
-                    allowStudentChat: document.getElementById('allowStudentChat').checked,
-                    allowStudentVoice: document.getElementById('allowStudentVoice').checked,
-                    allowStudentVideo: document.getElementById('allowStudentVideo').checked,
-                    autoAdmitStudents: document.getElementById('autoAdmitStudents').checked,
-                    recordSession: document.getElementById('recordSession').checked,
-                    enableAudio: document.getElementById('enableAudio').checked,
-                    enableVideo: document.getElementById('enableVideo').checked,
-                    audioQuality: document.getElementById('audioQuality').value,
-                    videoQuality: document.getElementById('videoQuality').value
-                }
-            };
-
-            // Show loading state
-            const originalText = createBtn.innerHTML;
-            createBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
-            createBtn.disabled = true;
+            const originalText = btnEl ? btnEl.innerHTML : '';
+            if (btnEl) {
+                btnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+                btnEl.disabled = true;
+            }
 
             try {
                 const response = await fetch('/api/whiteboard/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(sessionData)
+                    body: JSON.stringify({
+                        title,
+                        description: document.getElementById('sessionDescription').value,
+                        subject: document.getElementById('sessionSubject').value,
+                        gradeLevel,
+                        isPasswordProtected: document.getElementById('passwordProtected').checked,
+                        password: document.getElementById('sessionPassword').value,
+                        settings: {
+                            maxParticipants: parseInt(document.getElementById('maxParticipants').value) || 50,
+                            allowStudentDrawing: document.getElementById('allowStudentDrawing').checked,
+                            allowStudentChat: document.getElementById('allowStudentChat').checked,
+                            allowStudentVoice: document.getElementById('allowStudentVoice').checked,
+                            allowStudentVideo: document.getElementById('allowStudentVideo').checked,
+                            autoAdmitStudents: document.getElementById('autoAdmitStudents').checked,
+                            recordSession: document.getElementById('recordSession').checked,
+                            enableAudio: document.getElementById('enableAudio').checked,
+                            enableVideo: document.getElementById('enableVideo').checked,
+                            audioQuality: document.getElementById('audioQuality').value,
+                            videoQuality: document.getElementById('videoQuality').value
+                        }
+                    })
                 });
 
                 const data = await response.json();
@@ -742,25 +739,26 @@
                 if (data.success) {
                     successDiv.textContent = `Session created! Join code: ${data.session.joinCode}`;
                     successDiv.classList.remove('d-none');
-                    form.reset();
+                    document.getElementById('createSessionForm').reset();
                     loadSessions();
-                    // Close modal after a short delay so user sees the join code
                     setTimeout(() => {
                         const modal = bootstrap.Modal.getInstance(document.getElementById('createSessionModal'));
-                        modal.hide();
+                        if (modal) modal.hide();
                         successDiv.classList.add('d-none');
                     }, 2500);
                 } else {
                     errorDiv.textContent = data.error || 'Failed to create session. Please try again.';
                     errorDiv.classList.remove('d-none');
                 }
-            } catch (error) {
-                console.error('Error creating session:', error);
-                errorDiv.textContent = 'Network error. Please check your connection and try again.';
+            } catch (err) {
+                console.error('createSession error:', err);
+                errorDiv.textContent = 'Error: ' + (err.message || 'Could not reach server. Please try again.');
                 errorDiv.classList.remove('d-none');
             } finally {
-                createBtn.innerHTML = originalText;
-                createBtn.disabled = false;
+                if (btnEl) {
+                    btnEl.innerHTML = originalText;
+                    btnEl.disabled = false;
+                }
             }
         }
 
