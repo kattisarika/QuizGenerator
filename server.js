@@ -1,4 +1,10 @@
 const express = require('express');
+const Anthropic = require('@anthropic-ai/sdk');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const bcrypt = require('bcryptjs');
+const logger = require('./logger');
 const session = require('express-session');
 const { MongoStore } = require('connect-mongo');
 const passport = require('passport');
@@ -42,10 +48,15 @@ const http = require('http');
 const socketIo = require('socket.io');
 
 const server = http.createServer(app);
+const ALLOWED_SOCKET_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : (process.env.NODE_ENV === 'production' ? [] : ['http://localhost:3000']);
+
 const io = socketIo(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: ALLOWED_SOCKET_ORIGINS,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -193,10 +204,50 @@ const requireApprovedTeacher = (req, res, next) => {
   next();
 };
 
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://cdn.socket.io"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      mediaSrc: ["'self'", "https:"],
+      frameSrc: ["'self'", "https://view.officeapps.live.com", "https://docs.google.com"],
+    }
+  },
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// Rate limiting
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+});
+app.use(generalLimiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts, please try again later.' }
+});
+app.use('/auth/google', authLimiter);
+app.use('/auth/google/callback', authLimiter);
+
 // Middleware with increased payload limits for complex quizzes
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static('public'));
+
+// Sanitize MongoDB queries (prevents NoSQL injection)
+app.use(mongoSanitize());
 
 // Multer configuration for document uploads (S3)
 const upload = multer({
@@ -266,36 +317,41 @@ const assignmentUpload = multer({
   }
 });
 
-// Helper function to upload file to S3 and return full S3 URL
+// Helper function to upload file to S3 (with local disk fallback for dev)
 async function uploadToS3(file, folder = 'uploads') {
+  const hasAwsCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
+
+  // --- Local disk fallback (no AWS credentials configured) ---
+  if (!hasAwsCredentials) {
+    const uploadDir = path.join(__dirname, 'public', 'uploads', folder);
+    await fs.ensureDir(uploadDir);
+    const safeFilename = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+    const localPath = path.join(uploadDir, safeFilename);
+    await fs.writeFile(localPath, file.buffer);
+    const localUrl = `/uploads/${folder}/${safeFilename}`;
+    console.log(`✅ File saved locally (no S3 credentials): ${localUrl}`);
+    return localUrl;
+  }
+
+  // --- S3 upload ---
   const s3Key = `${folder}/${Date.now()}-${file.originalname}`;
   const bucketName = process.env.AWS_BUCKET_NAME || 'skillon-test';
-  const region = process.env.AWS_REGION || 'us-west-1'; // Fixed: bucket is in us-west-1
+  const region = process.env.AWS_REGION || 'us-west-1';
 
   const params = {
     Bucket: bucketName,
     Key: s3Key,
     Body: file.buffer,
-    ContentType: file.mimetype,
-    ACL: 'public-read' // Make files public for direct access
+    ContentType: file.mimetype
   };
 
   try {
-    const result = await s3.upload(params).promise();
-
-    // Generate the full public URL with correct region
+    await s3.upload(params).promise();
     const fullUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
-
-    console.log(`✅ File uploaded to S3: ${s3Key}`);
-    console.log(`✅ Public URL: ${fullUrl}`);
-    console.log(`✅ Region: ${region}`);
-
-    return fullUrl; // Return full S3 URL for direct access
+    console.log(`✅ File uploaded to S3: ${fullUrl}`);
+    return fullUrl;
   } catch (error) {
     console.error('❌ Error uploading to S3:', error);
-    console.error('❌ Bucket:', bucketName);
-    console.error('❌ Region:', region);
-    console.error('❌ Key:', s3Key);
     throw error;
   }
 }
@@ -1845,7 +1901,6 @@ app.get('/api/content-url/:contentId', requireAuth, requireRole(['student']), as
       });
     } catch (s3Error) {
       console.error('❌ Error generating signed URL for API:', s3Error);
-      // Fallback to original URL
       res.json({
         success: true,
         fileUrl: content.fileUrl,
@@ -1856,6 +1911,58 @@ app.get('/api/content-url/:contentId', requireAuth, requireRole(['student']), as
   } catch (error) {
     console.error('❌ Error getting content URL:', error);
     res.status(500).json({ success: false, message: 'Error getting content URL' });
+  }
+});
+
+// Summarize content using Claude AI
+app.post('/api/summarize-content/:contentId', requireAuth, requireRole(['student']), async (req, res) => {
+  try {
+    const content = await Content.findById(req.params.contentId);
+    if (!content) return res.status(404).json({ success: false, message: 'Content not found' });
+
+    // Extract text from the file
+    let extractedText = '';
+    const filePath = content.fileUrl.startsWith('/uploads/')
+      ? path.join(__dirname, 'public', content.fileUrl)
+      : null;
+
+    if (filePath && fs.existsSync(filePath)) {
+      const fileBuffer = await fs.readFile(filePath);
+      if (content.fileType.includes('pdf')) {
+        const parsed = await pdfParse(fileBuffer);
+        extractedText = parsed.text;
+      } else if (content.fileType.includes('word') || content.fileName.toLowerCase().endsWith('.docx')) {
+        const result = await mammoth.extractRawText({ buffer: fileBuffer });
+        extractedText = result.value;
+      }
+    }
+
+    if (!extractedText.trim()) {
+      // Fall back to title + description if text extraction failed (S3 files, PPT, etc.)
+      extractedText = `Title: ${content.title}\nDescription: ${content.description || 'No description provided.'}`;
+    }
+
+    // Truncate to ~12000 chars to stay within token limits
+    const textForSummary = extractedText.slice(0, 12000);
+
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: `You are a helpful study assistant. Summarize the following study material in a clear, student-friendly way. Use bullet points for key concepts and keep it concise.\n\n${textForSummary}`
+      }]
+    });
+
+    const summary = message.content[0].text;
+    res.json({ success: true, summary, title: content.title });
+  } catch (error) {
+    console.error('Error summarizing content:', error.message || error);
+    const userMessage = error.message?.includes('API key') || error.message?.includes('auth')
+      ? 'Anthropic API key is missing or invalid. Please set ANTHROPIC_API_KEY in .env'
+      : `Failed to generate summary: ${error.message || 'Unknown error'}`;
+    res.status(500).json({ success: false, message: userMessage });
   }
 });
 
@@ -2634,10 +2741,17 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
       ]
     };
 
-    // Filter by student's grade level if it exists
+    // Filter by student's grade level, also include SAT Verbal if student has SAT subjects
     if (req.user.gradeLevel) {
-      quizQuery.gradeLevel = req.user.gradeLevel;
-      console.log(`🎓 Filtering quizzes for student ${req.user.displayName} (${req.user.gradeLevel})`);
+      const hasSATSubjects = req.user.subjects &&
+        req.user.subjects.some(s => s === 'SAT Math' || s === 'SAT English');
+      if (hasSATSubjects) {
+        quizQuery.gradeLevel = { $in: [req.user.gradeLevel, 'SAT Verbal'] };
+        console.log(`🎓 Grade filter: ${req.user.gradeLevel} + SAT Verbal (student has SAT subjects)`);
+      } else {
+        quizQuery.gradeLevel = req.user.gradeLevel;
+        console.log(`🎓 Filtering quizzes for student ${req.user.displayName} (${req.user.gradeLevel})`);
+      }
     } else {
       console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all quizzes`);
     }
@@ -3654,14 +3768,16 @@ app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireAp
 
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      console.log(`Processing question ${i + 1}:`, q.questionText.substring(0, 50) + '...');
+      console.log(`Processing question ${i + 1}:`, (q.questionText || q.text || '').substring(0, 50) + '...');
       console.log(`Question ${i + 1} hasImage:`, q.hasImage);
       console.log(`Question ${i + 1} full data:`, JSON.stringify(q, null, 2));
 
       const baseQuestion = {
-        question: q.questionText,
+        question: q.questionText || q.text,
         questionNumber: i + 1,
-        points: 1
+        points: 1,
+        explanation: q.explanation || '',
+        passage: q.passage || ''
       };
 
       // Handle image upload for this question
@@ -4395,7 +4511,8 @@ app.post('/teacher/post-content', requireAuth, requireRole(['teacher']), require
 
     // Validate grade level
     const validGrades = ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade',
-                        '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade'];
+                        '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade',
+                        'SAT Verbal', 'Generic Questionnaire'];
 
     if (!validGrades.includes(gradeLevel)) {
       return res.status(400).send('Invalid grade level selected');
@@ -4432,8 +4549,13 @@ app.post('/teacher/post-content', requireAuth, requireRole(['teacher']), require
 
     res.redirect('/teacher/post-content');
   } catch (error) {
-    console.error('Error posting content:', error);
-    res.status(500).send('Error posting content');
+    console.error('Error posting content:', error.message);
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(e => e.message).join(', ');
+      console.error('Validation errors:', messages);
+      return res.status(400).send(`Validation error: ${messages}`);
+    }
+    res.status(500).send(`Error posting content: ${error.message}`);
   }
 });
 
@@ -5604,12 +5726,32 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
       ]
     };
 
-    // Filter by student's grade level if it exists
-    if (req.user.gradeLevel) {
-      filter.gradeLevel = req.user.gradeLevel;
-      console.log(`🎓 Filtering quizzes for student ${req.user.displayName} (${req.user.gradeLevel})`);
+    // Query-param overrides (e.g. from SAT Math / SAT English cards)
+    const subjectParam = req.query.subject;
+    const gradeParam   = req.query.grade;
+
+    const hasSATSubjects = req.user.subjects &&
+      req.user.subjects.some(s => s === 'SAT Math' || s === 'SAT English');
+
+    if (gradeParam) {
+      filter.gradeLevel = gradeParam;
+      console.log(`🎓 Grade filter from query param: ${gradeParam}`);
+    } else if (req.user.gradeLevel) {
+      // If student has SAT subjects, also include SAT Verbal quizzes alongside their grade
+      if (hasSATSubjects) {
+        filter.gradeLevel = { $in: [req.user.gradeLevel, 'SAT Verbal'] };
+        console.log(`🎓 Grade filter: ${req.user.gradeLevel} + SAT Verbal (student has SAT subjects)`);
+      } else {
+        filter.gradeLevel = req.user.gradeLevel;
+        console.log(`🎓 Filtering quizzes for student ${req.user.displayName} (${req.user.gradeLevel})`);
+      }
     } else {
       console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all quizzes`);
+    }
+
+    if (subjectParam) {
+      filter.subjects = subjectParam;
+      console.log(`📚 Subject filter from query param: ${subjectParam}`);
     }
 
     console.log('Student details:', {
@@ -6340,7 +6482,8 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
         selectedAnswer: selectedAnswer,
         correctAnswer: question.correctAnswer,
         isCorrect: isCorrect,
-        points: question.points
+        points: question.points,
+        explanation: question.explanation || ''
       });
     });
 
@@ -7940,8 +8083,18 @@ app.get('/logout', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).render('error', { error: 'Something went wrong!' });
+  logger.error('Unhandled application error', {
+    message: err.message,
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method,
+    userId: req.user?._id,
+    ip: req.ip
+  });
+  const isDev = process.env.NODE_ENV !== 'production';
+  res.status(err.status || 500).render('error', {
+    error: isDev ? err.message : 'Something went wrong!'
+  });
 });
 
 // 404 handler
@@ -7952,17 +8105,18 @@ app.use((req, res) => {
 // Temporary login route for testing — development only
 if (process.env.NODE_ENV !== 'production') {
   app.get('/temp-login', (req, res) => {
+    if (process.env.NODE_ENV === 'production') return res.status(404).end();
     res.render('temp-login', { error: null });
   });
 
   app.post('/temp-login', (req, res) => {
+    if (process.env.NODE_ENV === 'production') return res.status(404).end();
     const { email, role } = req.body;
 
     if (!email || !role) {
       return res.render('temp-login', { error: 'Please provide email and role' });
     }
 
-    // Create a temporary user session
     req.session.user = {
       _id: 'temp-' + Date.now(),
       displayName: email.split('@')[0],
@@ -7976,14 +8130,12 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Logging configuration
+// Logging helpers (route to Winston)
 const isProduction = process.env.NODE_ENV === 'production';
 const enableVerboseLogging = process.env.VERBOSE_LOGGING === 'true' || !isProduction;
-
-// Logging helpers
-const log = enableVerboseLogging ? console.log : () => {};
-const logError = console.error; // Always log errors
-const logInfo = console.log; // Always log important info
+const log = enableVerboseLogging ? (...a) => logger.debug(a.join(' ')) : () => {};
+const logError = (...a) => logger.error(a.join(' '));
+const logInfo = (...a) => logger.info(a.join(' '));
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {

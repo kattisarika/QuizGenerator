@@ -409,6 +409,113 @@
     border-color: #667eea;
     color: #667eea;
 }
+
+/* Method Selector Cards */
+.method-card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px 24px;
+    border: 2px solid #e9ecef;
+    border-radius: 14px;
+    margin-bottom: 14px;
+    cursor: pointer;
+    background: #fff;
+    transition: all 0.25s ease;
+}
+.method-card:last-child { margin-bottom: 0; }
+.method-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 6px 20px rgba(102,126,234,0.15);
+    transform: translateY(-2px);
+}
+.method-icon-wrap {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    color: #fff;
+}
+.bg-upload  { background: linear-gradient(135deg, #667eea, #764ba2); }
+.bg-manual  { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; }
+.bg-general  { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+.bg-advanced { background: linear-gradient(135deg, #f7971e, #ffd200); }
+.bg-advanced i { color: #7c4a00; }
+.method-info { flex: 1; }
+.method-info h5 {
+    margin: 0 0 4px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1a1a2e;
+}
+.method-info p {
+    margin: 0;
+    font-size: 0.84rem;
+    color: #6c757d;
+    line-height: 1.4;
+}
+.method-arrow {
+    color: #adb5bd;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+.method-card:hover .method-arrow { transform: translateX(4px); color: #667eea; }
+.badge-pro {
+    display: inline-block;
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    color: #7c4a00;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    vertical-align: middle;
+    margin-left: 6px;
+    letter-spacing: 0.5px;
+}
+.method-content { display: none; }
+.method-back-btn {
+    margin-bottom: 20px;
+}
+/* Rich-text toolbar for question editor */
+.rte-toolbar {
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+}
+.rte-btn {
+    width: 30px;
+    height: 28px;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    transition: background 0.15s;
+}
+.rte-btn:hover { background: #e9ecef; border-color: #667eea; }
+.rte-btn:active { background: #667eea; color: #fff; }
+.rte-content {
+    min-height: 80px;
+    border-radius: 0 0 10px 10px !important;
+    padding: 10px 14px;
+    outline: none;
+    line-height: 1.6;
+}
+.rte-content:empty::before {
+    content: attr(data-placeholder);
+    color: #adb5bd;
+    pointer-events: none;
+}
     </style>
 </head>
 <body>
@@ -446,39 +553,63 @@
                 <div class="card">
                     <div class="card-header text-center">
                         <h2><i class="fas fa-plus-circle me-2"></i>Create New Quiz</h2>
-                        <p class="mb-3">Choose how you want to create your quiz</p>
-
-                        <!-- Complex Quiz Builder Button -->
-                        <div class="mb-0">
-                            <a href="/create-complex-quiz" class="btn btn-warning btn-lg shadow-sm me-2">
-                                <i class="fas fa-magic me-2"></i>Advanced Quiz Builder
-                            </a>
-                            <small class="d-block text-light mt-2 opacity-75">
-                                <i class="fas fa-star me-1"></i>Create sophisticated quizzes with drag-and-drop, charts, and LaTeX
-                            </small>
-                        </div>
-                        
-
+                        <p class="mb-0">Select a method to get started</p>
                     </div>
                     <div class="card-body p-4">
-                        <!-- Tab Navigation -->
-                        <ul class="nav nav-tabs mb-4" id="quizCreationTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" aria-controls="upload" aria-selected="true">
-                                    <i class="fas fa-file-upload me-2"></i>Upload Documents
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab" aria-controls="manual" aria-selected="false" onclick="showManualQuizCreator()">
-                                    <i class="fas fa-edit me-2"></i>Create Quiz Manually
-                                </button>
-                            </li>
-                        </ul>
 
-                        <!-- Tab Content -->
-                        <div class="tab-content" id="quizCreationTabContent">
-                            <!-- Upload Documents Tab -->
-                            <div class="tab-pane fade show active" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                        <!-- Method Selector -->
+                        <div id="methodSelector">
+                            <div class="method-card" onclick="selectMethod('upload')">
+                                <div class="method-icon-wrap bg-upload">
+                                    <i class="fas fa-file-upload"></i>
+                                </div>
+                                <div class="method-info">
+                                    <h5>Upload Documents</h5>
+                                    <p>AI generates quiz questions from your PDF, Word, or text files automatically</p>
+                                </div>
+                                <i class="fas fa-chevron-right method-arrow"></i>
+                            </div>
+                            <div class="method-card" onclick="selectMethod('manual')">
+                                <div class="method-icon-wrap bg-manual">
+                                    <i class="fas fa-edit"></i>
+                                </div>
+                                <div class="method-info">
+                                    <h5>Create Math Quiz Manually</h5>
+                                    <p>Build your quiz questions step by step with full control over every detail</p>
+                                </div>
+                                <i class="fas fa-chevron-right method-arrow"></i>
+                            </div>
+                            <div class="method-card" onclick="selectMethod('general')">
+                                <div class="method-icon-wrap bg-general">
+                                    <i class="fas fa-book-open"></i>
+                                </div>
+                                <div class="method-info">
+                                    <h5>English, Science &amp; General Subjects Quiz</h5>
+                                    <p>Create quizzes for English, Science, and other general subjects step by step</p>
+                                </div>
+                                <i class="fas fa-chevron-right method-arrow"></i>
+                            </div>
+                            <div class="method-card" onclick="window.location='/create-complex-quiz'">
+                                <div class="method-icon-wrap bg-advanced">
+                                    <i class="fas fa-magic"></i>
+                                </div>
+                                <div class="method-info">
+                                    <h5>Advanced Quiz Builder <span class="badge-pro">PRO</span></h5>
+                                    <p>Sophisticated quizzes with drag-and-drop, charts, and LaTeX support</p>
+                                </div>
+                                <i class="fas fa-external-link-alt method-arrow"></i>
+                            </div>
+                        </div>
+
+                        <!-- Method Content Panels -->
+                        <div id="methodContent" style="display:none;">
+                            <!-- Upload Documents Panel -->
+                            <div class="method-content" id="upload">
+                                <div class="method-back-btn">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="showMethodSelector()">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Methods
+                                    </button>
+                                </div>
                                 <form action="/create-quiz" method="POST" enctype="multipart/form-data" id="quizForm">
                                     <!-- Basic Quiz Information -->
                                     <div class="mb-4">
@@ -703,19 +834,19 @@
                                         <button type="submit" class="btn btn-primary btn-lg">
                                             <i class="fas fa-save me-2"></i>Create Quiz
                                         </button>
-                                        <a href="/teacher/dashboard" class="btn btn-outline-secondary btn-lg ms-2">
-                                            <i class="fas fa-arrow-left me-2"></i>Cancel
-                                        </a>
+                                        <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="showMethodSelector()">
+                                            <i class="fas fa-arrow-left me-2"></i>Back
+                                        </button>
                                     </div>
                                 </form>
                             </div>
 
-                            <!-- Manual Quiz Creator Tab -->
-                            <div class="tab-pane fade" id="manual" role="tabpanel" aria-labelledby="manual-tab">
+                            <!-- Manual Quiz Creator Panel -->
+                            <div class="method-content" id="manual">
                                 <!-- Back Button -->
-                                <div class="mb-3">
-                                    <button type="button" class="btn btn-outline-secondary" onclick="showUploadTab()">
-                                        <i class="fas fa-arrow-left me-2"></i>Back to Upload Documents
+                                <div class="method-back-btn">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="showMethodSelector()">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Methods
                                     </button>
                                 </div>
 
@@ -1102,6 +1233,237 @@
                                 </form>
                             </div>
                             <!-- End Manual Quiz Creator -->
+
+                            <!-- English, Science & General Subjects Panel -->
+                            <div class="method-content" id="general">
+                                <div class="method-back-btn">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="showMethodSelector()">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Methods
+                                    </button>
+                                </div>
+                                <div class="card-header text-center mb-4">
+                                    <h3><i class="fas fa-book-open me-2"></i>English, Science &amp; General Subjects Quiz</h3>
+                                    <p class="mb-0">Build quiz questions for English, Science, and general subjects</p>
+                                </div>
+                                <form id="generalQuizForm">
+                                    <!-- Quiz Info -->
+                                    <div class="mb-4">
+                                        <h5 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>Quiz Information</h5>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Quiz Title *</label>
+                                                <input type="text" class="form-control" id="generalTitle" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Subject *</label>
+                                                <select class="form-select" id="generalSubject" required>
+                                                    <option value="">Select Subject</option>
+                                                    <option value="english">English</option>
+                                                    <option value="science">Science</option>
+                                                    <option value="history">History</option>
+                                                    <option value="geography">Geography</option>
+                                                    <option value="general">General Knowledge</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Grade Level *</label>
+                                                <select class="form-select" id="generalGrade" required>
+                                                    <option value="">Select Grade</option>
+                                                    <option value="1">1st Grade</option>
+                                                    <option value="2">2nd Grade</option>
+                                                    <option value="3">3rd Grade</option>
+                                                    <option value="4">4th Grade</option>
+                                                    <option value="5">5th Grade</option>
+                                                    <option value="6">6th Grade</option>
+                                                    <option value="7">7th Grade</option>
+                                                    <option value="8">8th Grade</option>
+                                                    <option value="9">9th Grade</option>
+                                                    <option value="10">10th Grade</option>
+                                                    <option value="11">11th Grade</option>
+                                                    <option value="12">12th Grade</option>
+                                                    <option value="sat_verbal">SAT Verbal</option>
+                                                    <option value="generic">Generic Questionnaire</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Description</label>
+                                                <textarea class="form-control" id="generalDescription" rows="2"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Question Mode Toggle -->
+                                    <div class="mb-4">
+                                        <h5 class="text-primary mb-3"><i class="fas fa-plus-circle me-2"></i>Add Questions</h5>
+                                        <div class="d-flex gap-3 mb-4">
+                                            <button type="button" class="btn btn-outline-primary px-4 active" id="modeStandaloneBtn" onclick="setGeneralMode('standalone')">
+                                                <i class="fas fa-question-circle me-2"></i>Standalone Question
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info px-4" id="modePassageBtn" onclick="setGeneralMode('passage')">
+                                                <i class="fas fa-paragraph me-2"></i>Passage-Based Questions
+                                            </button>
+                                        </div>
+
+                                        <!-- ── Standalone Question ── -->
+                                        <div id="standaloneSection">
+                                            <h6 class="fw-bold mb-3">Question <span id="generalQuestionNumber">1</span></h6>
+                                            <div class="mb-3">
+                                                <label class="form-label">Question Text *</label>
+                                                <div class="rte-toolbar">
+                                                    <button type="button" class="rte-btn" onclick="rteCmd('generalQuestionText','bold')" title="Bold"><b>B</b></button>
+                                                    <button type="button" class="rte-btn" onclick="rteCmd('generalQuestionText','italic')" title="Italic"><i>I</i></button>
+                                                    <button type="button" class="rte-btn" onclick="rteCmd('generalQuestionText','underline')" title="Underline"><u>U</u></button>
+                                                </div>
+                                                <div class="rte-content form-control" id="generalQuestionText" contenteditable="true" data-placeholder="Enter your question here..."></div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Answer Type</label>
+                                                <div class="radio-group">
+                                                    <div class="radio-item">
+                                                        <input type="radio" name="generalAnswerFormat" id="generalMCQ" value="mcq" checked onchange="toggleGeneralAnswerType()">
+                                                        <label for="generalMCQ">Multiple Choice</label>
+                                                    </div>
+                                                    <div class="radio-item">
+                                                        <input type="radio" name="generalAnswerFormat" id="generalTF" value="truefalse" onchange="toggleGeneralAnswerType()">
+                                                        <label for="generalTF">True / False</label>
+                                                    </div>
+                                                    <div class="radio-item">
+                                                        <input type="radio" name="generalAnswerFormat" id="generalShort" value="short" onchange="toggleGeneralAnswerType()">
+                                                        <label for="generalShort">Short Answer</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- MCQ Options -->
+                                            <div id="generalMCQOptions" class="mb-3">
+                                                <label class="form-label">Options</label>
+                                                <div class="row g-2">
+                                                    <div class="col-md-6"><input type="text" class="form-control" id="generalOpt1" placeholder="Option A"></div>
+                                                    <div class="col-md-6"><input type="text" class="form-control" id="generalOpt2" placeholder="Option B"></div>
+                                                    <div class="col-md-6"><input type="text" class="form-control" id="generalOpt3" placeholder="Option C"></div>
+                                                    <div class="col-md-6"><input type="text" class="form-control" id="generalOpt4" placeholder="Option D"></div>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <label class="form-label">Correct Answer</label>
+                                                    <select class="form-select" id="generalCorrectMCQ">
+                                                        <option value="A">A</option>
+                                                        <option value="B">B</option>
+                                                        <option value="C">C</option>
+                                                        <option value="D">D</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <!-- True/False -->
+                                            <div id="generalTFOptions" class="mb-3" style="display:none;">
+                                                <label class="form-label">Correct Answer</label>
+                                                <select class="form-select" id="generalCorrectTF">
+                                                    <option value="True">True</option>
+                                                    <option value="False">False</option>
+                                                </select>
+                                            </div>
+                                            <!-- Short Answer -->
+                                            <div id="generalShortOptions" class="mb-3" style="display:none;">
+                                                <label class="form-label">Expected Answer</label>
+                                                <input type="text" class="form-control" id="generalCorrectShort" placeholder="Enter expected answer">
+                                            </div>
+                                            <!-- Explanation -->
+                                            <div class="mb-3 mt-3">
+                                                <label class="form-label"><i class="fas fa-lightbulb me-2 text-warning"></i>Explanation <small class="text-muted">(shown to student if they answer incorrectly)</small></label>
+                                                <textarea class="form-control" id="generalExplanation" rows="2" placeholder="Explain why the correct answer is right..."></textarea>
+                                            </div>
+                                            <div class="d-flex gap-2 mt-3">
+                                                <button type="button" class="btn btn-primary" onclick="generalSaveAndNext()">
+                                                    <i class="fas fa-arrow-right me-2"></i>Save &amp; Next
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- ── Passage-Based Questions ── -->
+                                        <div id="passageSection" style="display:none;">
+
+                                            <!-- Step 1: Enter Passage -->
+                                            <div id="passageStep1">
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold"><i class="fas fa-paragraph me-2 text-info"></i>Reading Passage *</label>
+                                                    <textarea class="form-control" id="passageText" rows="7" placeholder="Paste or type the reading passage here..."></textarea>
+                                                    <small class="text-muted">Students will read this passage and answer the questions below it.</small>
+                                                </div>
+                                                <button type="button" class="btn btn-info text-white" onclick="confirmPassage()">
+                                                    <i class="fas fa-check me-2"></i>Confirm Passage &amp; Add Questions
+                                                </button>
+                                            </div>
+
+                                            <!-- Step 2: Add questions for the passage -->
+                                            <div id="passageStep2" style="display:none;">
+                                                <!-- Passage preview -->
+                                                <div class="p-3 mb-4 rounded border border-info bg-light position-relative">
+                                                    <span class="badge bg-info text-white position-absolute top-0 start-0 mt-n2 ms-3" style="margin-top:-10px;">Passage</span>
+                                                    <p id="passagePreview" class="mb-1 mt-2" style="font-size:0.9rem;max-height:100px;overflow-y:auto;white-space:pre-wrap;"></p>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="editPassage()">
+                                                        <i class="fas fa-edit me-1"></i>Edit Passage
+                                                    </button>
+                                                </div>
+
+                                                <!-- Question for passage -->
+                                                <h6 class="fw-bold mb-3">Passage Question <span id="passageQuestionNumber">1</span></h6>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Question Text *</label>
+                                                    <div class="rte-toolbar">
+                                                        <button type="button" class="rte-btn" onclick="rteCmd('passageQuestionText','bold')" title="Bold"><b>B</b></button>
+                                                        <button type="button" class="rte-btn" onclick="rteCmd('passageQuestionText','italic')" title="Italic"><i>I</i></button>
+                                                        <button type="button" class="rte-btn" onclick="rteCmd('passageQuestionText','underline')" title="Underline"><u>U</u></button>
+                                                    </div>
+                                                    <div class="rte-content form-control" id="passageQuestionText" contenteditable="true" data-placeholder="Enter a question about the passage..."></div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Options</label>
+                                                    <div class="row g-2">
+                                                        <div class="col-md-6"><input type="text" class="form-control" id="pOpt1" placeholder="Option A"></div>
+                                                        <div class="col-md-6"><input type="text" class="form-control" id="pOpt2" placeholder="Option B"></div>
+                                                        <div class="col-md-6"><input type="text" class="form-control" id="pOpt3" placeholder="Option C"></div>
+                                                        <div class="col-md-6"><input type="text" class="form-control" id="pOpt4" placeholder="Option D"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Correct Answer</label>
+                                                    <select class="form-select" id="passageCorrect">
+                                                        <option value="A">A</option>
+                                                        <option value="B">B</option>
+                                                        <option value="C">C</option>
+                                                        <option value="D">D</option>
+                                                    </select>
+                                                </div>
+                                                <!-- Explanation -->
+                                                <div class="mb-3">
+                                                    <label class="form-label"><i class="fas fa-lightbulb me-2 text-warning"></i>Explanation <small class="text-muted">(shown to student if they answer incorrectly)</small></label>
+                                                    <textarea class="form-control" id="passageExplanation" rows="2" placeholder="Explain why the correct answer is right..."></textarea>
+                                                </div>
+                                                <div class="d-flex gap-2 flex-wrap">
+                                                    <button type="button" class="btn btn-primary" onclick="passageSaveAndNext()">
+                                                        <i class="fas fa-arrow-right me-2"></i>Save &amp; Add Another Question
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-secondary" onclick="addNewPassage()">
+                                                        <i class="fas fa-plus me-2"></i>New Passage
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Saved Questions List -->
+                                    <div id="generalQuestionsList" style="display:none;" class="mb-4">
+                                        <h5 class="text-success mb-3"><i class="fas fa-list me-2"></i>Saved Questions (<span id="generalQCount">0</span>)</h5>
+                                        <div id="generalQuestionsContainer"></div>
+                                    </div>
+
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button type="button" class="btn btn-success btn-lg" onclick="generalFinishQuiz()">
+                                            <i class="fas fa-check-circle me-2"></i>Finish Quiz
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <!-- End General Subjects Quiz -->
                         </div>
                     </div>
                 </div>
@@ -2089,60 +2451,30 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             setTimeout(addMathToOptions, 100);
         };
 
-        // Show Manual Quiz Creator
-        function showManualQuizCreator() {
-            console.log('Showing Manual Quiz Creator...');
-
-            try {
-                // Use Bootstrap tab system to show manual tab
-                const manualTab = document.getElementById('manual-tab');
-                if (manualTab && typeof bootstrap !== 'undefined') {
-                    // Trigger Bootstrap tab
-                    const tab = new bootstrap.Tab(manualTab);
-                    tab.show();
-                    
-                    // Initialize the form properly after tab is shown
-                    setTimeout(() => {
-                        initializeManualQuizForm();
-                    }, 100);
-                    
-                    console.log('Manual Quiz Creator tab activated via Bootstrap');
-                } else {
-                    console.log('Bootstrap not available or manual tab not found, using fallback');
-                    // Fallback: manually show the manual tab content
-                    showManualTabFallback();
+        // Select a creation method and show its panel
+        function selectMethod(method) {
+            document.getElementById('methodSelector').style.display = 'none';
+            document.getElementById('methodContent').style.display = 'block';
+            document.querySelectorAll('.method-content').forEach(el => el.style.display = 'none');
+            const panel = document.getElementById(method);
+            if (panel) {
+                panel.style.display = 'block';
+                if (method === 'manual') {
+                    setTimeout(() => initializeManualQuizForm(), 50);
                 }
-            } catch (error) {
-                console.error('Error showing manual quiz creator:', error);
-                // Fallback: manually show the manual tab content
-                showManualTabFallback();
             }
         }
 
-        // Fallback function to manually show manual tab
-        function showManualTabFallback() {
-            console.log('Using fallback method to show manual tab...');
-            
-            // Hide upload tab
-            const uploadTab = document.getElementById('upload');
-            if (uploadTab) {
-                uploadTab.style.display = 'none';
-                uploadTab.classList.remove('show', 'active');
-            }
-            
-            // Show manual tab
-            const manualTab = document.getElementById('manual');
-            if (manualTab) {
-                manualTab.style.display = 'block';
-                manualTab.classList.add('show', 'active');
-                
-                // Initialize the form
-                initializeManualQuizForm();
-                console.log('Manual tab shown using fallback method');
-            } else {
-                console.error('Manual tab content not found');
-            }
+        // Show method selector (back button)
+        function showMethodSelector() {
+            document.getElementById('methodContent').style.display = 'none';
+            document.querySelectorAll('.method-content').forEach(el => el.style.display = 'none');
+            document.getElementById('methodSelector').style.display = 'block';
         }
+
+        // Legacy aliases kept for any inline calls
+        function showManualQuizCreator() { selectMethod('manual'); }
+        function showUploadTab() { selectMethod('upload'); }
 
 
 
@@ -2168,22 +2500,241 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             console.log('Manual quiz form initialized');
         }
 
-        // Function to go back to upload tab
-        function showUploadTab() {
-            console.log('Showing Upload Tab...');
 
-            // Use Bootstrap tab system to show upload tab
-            const uploadTab = document.getElementById('upload-tab');
-            if (uploadTab) {
-                // Trigger Bootstrap tab
-                const tab = new bootstrap.Tab(uploadTab);
-                tab.show();
-                console.log('Upload tab activated');
-            } else {
-                console.error('Upload tab not found');
-            }
+        // ── Rich Text Editor helper ──────────────────────────────────────
+        function rteCmd(id, cmd) {
+            document.getElementById(id).focus();
+            document.execCommand(cmd, false, null);
         }
 
+        // Strip everything except <b>, <i>, <u>, <strong>, <em> — fires on paste
+        function rtePasteSanitize(e) {
+            e.preventDefault();
+            const html = (e.clipboardData || window.clipboardData).getData('text/html');
+            const plain = (e.clipboardData || window.clipboardData).getData('text/plain');
+
+            let clean = '';
+            if (html) {
+                // Keep only safe inline tags, strip everything else
+                clean = html
+                    .replace(/<span[^>]*font-weight:\s*700[^>]*>([\s\S]*?)<\/span>/gi, '<b>$1</b>')
+                    .replace(/<span[^>]*font-style:\s*italic[^>]*>([\s\S]*?)<\/span>/gi, '<i>$1</i>')
+                    .replace(/<span[^>]*text-decoration:\s*underline[^>]*>([\s\S]*?)<\/span>/gi, '<u>$1</u>')
+                    .replace(/<(?!\/?(?:b|i|u|strong|em|br)\b)[^>]+>/gi, '')  // strip all other tags
+                    .replace(/&nbsp;/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            } else {
+                clean = plain;
+            }
+            document.execCommand('insertHTML', false, clean);
+        }
+
+        // Attach paste sanitizer to all rte-content divs once DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.rte-content').forEach(el => {
+                el.addEventListener('paste', rtePasteSanitize);
+            });
+        });
+
+        // ── General Subjects Quiz Logic ──────────────────────────────────
+        let generalQuestions = [];
+        let generalQuestionNumber = 1;
+        let currentPassageText = '';
+        let passageQuestionNumber = 1;
+
+        function setGeneralMode(mode) {
+            const isPassage = mode === 'passage';
+            document.getElementById('standaloneSection').style.display = isPassage ? 'none' : 'block';
+            document.getElementById('passageSection').style.display    = isPassage ? 'block' : 'none';
+            document.getElementById('modeStandaloneBtn').classList.toggle('active', !isPassage);
+            document.getElementById('modePassageBtn').classList.toggle('active', isPassage);
+        }
+
+        function toggleGeneralAnswerType() {
+            const type = document.querySelector('input[name="generalAnswerFormat"]:checked').value;
+            document.getElementById('generalMCQOptions').style.display   = type === 'mcq'       ? 'block' : 'none';
+            document.getElementById('generalTFOptions').style.display    = type === 'truefalse'  ? 'block' : 'none';
+            document.getElementById('generalShortOptions').style.display = type === 'short'      ? 'block' : 'none';
+        }
+
+        function appendToQuestionList(q) {
+            const label = q.passage ? `<span class="badge bg-info me-1">Passage Q</span>` : '';
+            document.getElementById('generalQuestionsContainer').innerHTML +=
+                `<div class="alert alert-light border mb-2 py-2">
+                    ${label}<strong>Q${q.number}:</strong> ${q.text}
+                    <span class="badge bg-success ms-2">${q.answer}</span>
+                </div>`;
+            document.getElementById('generalQCount').textContent = generalQuestions.length;
+            document.getElementById('generalQuestionsList').style.display = 'block';
+        }
+
+        function generalSaveAndNext() {
+            const el = document.getElementById('generalQuestionText');
+            const text = el.innerHTML.replace(/&nbsp;/g, ' ').replace(/<br\s*\/?>/gi, '').trim();
+            if (!text) { alert('Please enter a question.'); return; }
+
+            const type = document.querySelector('input[name="generalAnswerFormat"]:checked').value;
+            let answer = '', options = [];
+
+            if (type === 'mcq') {
+                options = ['generalOpt1','generalOpt2','generalOpt3','generalOpt4'].map(id => document.getElementById(id).value.trim());
+                if (options.some(o => !o)) { alert('Please fill in all 4 options.'); return; }
+                answer = document.getElementById('generalCorrectMCQ').value;
+            } else if (type === 'truefalse') {
+                answer = document.getElementById('generalCorrectTF').value;
+            } else {
+                answer = document.getElementById('generalCorrectShort').value.trim();
+                if (!answer) { alert('Please enter the expected answer.'); return; }
+            }
+
+            const explanation = document.getElementById('generalExplanation').value.trim();
+            const q = { number: generalQuestionNumber, text, type, options, answer, explanation };
+            generalQuestions.push(q);
+            appendToQuestionList(q);
+
+            generalQuestionNumber++;
+            document.getElementById('generalQuestionNumber').textContent = generalQuestionNumber;
+            document.getElementById('generalQuestionText').innerHTML = '';
+            document.getElementById('generalExplanation').value = '';
+            ['generalOpt1','generalOpt2','generalOpt3','generalOpt4'].forEach(id => document.getElementById(id).value = '');
+        }
+
+        // ── Passage functions ─────────────────────────────────────────────
+        function confirmPassage() {
+            const text = document.getElementById('passageText').value.trim();
+            if (!text) { alert('Please enter a passage.'); return; }
+            currentPassageText = text;
+            passageQuestionNumber = 1;
+            document.getElementById('passagePreview').textContent = text;
+            document.getElementById('passageQuestionNumber').textContent = passageQuestionNumber;
+            document.getElementById('passageStep1').style.display = 'none';
+            document.getElementById('passageStep2').style.display = 'block';
+        }
+
+        function editPassage() {
+            document.getElementById('passageStep2').style.display = 'none';
+            document.getElementById('passageStep1').style.display = 'block';
+        }
+
+        function addNewPassage() {
+            currentPassageText = '';
+            document.getElementById('passageText').value = '';
+            document.getElementById('passageStep2').style.display = 'none';
+            document.getElementById('passageStep1').style.display = 'block';
+            ['pOpt1','pOpt2','pOpt3','pOpt4'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('passageQuestionText').value = '';
+        }
+
+        function passageSaveAndNext() {
+            const el = document.getElementById('passageQuestionText');
+            const text = el.innerHTML.replace(/&nbsp;/g, ' ').replace(/<br\s*\/?>/gi, '').trim();
+            if (!text) { alert('Please enter a question.'); return; }
+            const options = ['pOpt1','pOpt2','pOpt3','pOpt4'].map(id => document.getElementById(id).value.trim());
+            if (options.some(o => !o)) { alert('Please fill in all 4 options.'); return; }
+            const answer = document.getElementById('passageCorrect').value;
+
+            const explanation = document.getElementById('passageExplanation').value.trim();
+            const q = { number: generalQuestionNumber, text, type: 'mcq', options, answer, explanation, passage: currentPassageText };
+            generalQuestions.push(q);
+            appendToQuestionList(q);
+
+            passageQuestionNumber++;
+            generalQuestionNumber++;
+            document.getElementById('passageQuestionNumber').textContent = passageQuestionNumber;
+            document.getElementById('passageQuestionText').innerHTML = '';
+            document.getElementById('passageExplanation').value = '';
+            ['pOpt1','pOpt2','pOpt3','pOpt4'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('passageCorrect').value = 'A';
+        }
+
+        async function generalFinishQuiz() {
+            const title = document.getElementById('generalTitle').value.trim();
+            const gradeRaw = document.getElementById('generalGrade').value;
+            const subjectRaw = document.getElementById('generalSubject').value;
+
+            if (!title)    { alert('Please enter a quiz title.'); return; }
+            if (!gradeRaw) { alert('Please select a grade level.'); return; }
+            if (!subjectRaw){ alert('Please select a subject.'); return; }
+            if (generalQuestions.length === 0) { alert('Please add at least one question.'); return; }
+
+            // Map grade value to model enum
+            const gradeMap = {
+                '1':'1st grade','2':'2nd grade','3':'3rd grade','4':'4th grade',
+                '5':'5th grade','6':'6th grade','7':'7th grade','8':'8th grade',
+                '9':'9th grade','10':'10th grade','11':'11th grade','12':'12th grade',
+                'sat_verbal':'SAT Verbal','generic':'Generic Questionnaire'
+            };
+            const subjectMap = {
+                'english':'English','science':'Science','history':'History',
+                'geography':'Geography','general':'General Knowledge','other':'Other'
+            };
+            const gradeLevel = gradeMap[gradeRaw] || gradeRaw;
+            const subject    = subjectMap[subjectRaw] || subjectRaw;
+
+            // Transform questions to the format /create-quiz-manual expects
+            const mappedQuestions = generalQuestions.map(q => {
+                if (q.type === 'mcq') {
+                    const answerIndex = ['A','B','C','D'].indexOf(q.answer);
+                    return {
+                        questionText: q.text,
+                        answerFormat: 'multiple',
+                        options: q.options,
+                        correctAnswers: [answerIndex >= 0 ? answerIndex : 0],
+                        selectionType: 'single',
+                        hasImage: false,
+                        explanation: q.explanation || '',
+                        passage: q.passage || ''
+                    };
+                } else if (q.type === 'truefalse') {
+                    return {
+                        questionText: q.text,
+                        answerFormat: 'multiple',
+                        options: ['True', 'False'],
+                        correctAnswers: [q.answer === 'True' ? 0 : 1],
+                        selectionType: 'single',
+                        hasImage: false,
+                        explanation: q.explanation || '',
+                        passage: q.passage || ''
+                    };
+                } else {
+                    return {
+                        questionText: q.text,
+                        answerFormat: 'text',
+                        expectedAnswer: q.answer,
+                        hasImage: false,
+                        explanation: q.explanation || '',
+                        passage: q.passage || ''
+                    };
+                }
+            });
+
+            const description = document.getElementById('generalDescription').value.trim();
+
+            try {
+                const formData = new FormData();
+                formData.append('title', title);
+                formData.append('description', description || 'General subjects quiz');
+                formData.append('gradeLevel', gradeLevel);
+                formData.append('subjects', subject);
+                formData.append('language', 'English');
+                formData.append('quizType', 'regular');
+                formData.append('isManuallyCreated', 'true');
+                formData.append('questions', JSON.stringify(mappedQuestions));
+                formData.append('questionImageIndexes', JSON.stringify([]));
+
+                const res = await fetch('/create-quiz-manual', { method: 'POST', body: formData });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    alert(data.message || 'Quiz created successfully!');
+                    window.location.href = '/teacher/dashboard';
+                } else {
+                    alert('Error: ' + (data.error || data || 'Could not save quiz.'));
+                }
+            } catch (err) {
+                alert('Error saving quiz: ' + err.message);
+            }
+        }
 
 
 

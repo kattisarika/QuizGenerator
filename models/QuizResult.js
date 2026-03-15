@@ -21,6 +21,10 @@ const answerSchema = new mongoose.Schema({
   points: {
     type: Number,
     default: 1
+  },
+  explanation: {
+    type: String,
+    default: ''
   }
 });
 

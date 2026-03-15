@@ -12,58 +12,54 @@
         }
 
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Purple gradient background */
+            background: #fff0f3;
             min-height: 100vh;
             font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 0;
             overflow-x: hidden;
-            color: white; /* Default white text */
+            color: #1e293b;
         }
 
         /* Navigation Bar Styles */
         .navbar-custom {
-            background: rgba(102, 126, 234, 0.95) !important; /* Semi-transparent purple */
+            background: rgba(255, 255, 255, 0.97) !important;
             backdrop-filter: blur(10px);
-            box-shadow: 0 2px 20px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 2px 16px rgba(251, 113, 133, 0.1);
             padding: 1rem 0;
             position: fixed;
             top: 0;
             width: 100%;
             z-index: 1000;
             transition: all 0.3s ease;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(253, 164, 175, 0.2);
         }
 
         .navbar-custom .navbar-brand {
-            color: white !important; /* White brand text */
+            color: #f43f5e !important;
             font-size: 1.8rem;
             font-weight: bold;
             text-decoration: none;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .navbar-custom .navbar-brand:hover {
-            color: #e8eaf6 !important; /* Light purple on hover */
-            transform: scale(1.05);
+            color: #fb7185 !important;
+            transform: scale(1.04);
         }
 
         .navbar-custom .navbar-nav .nav-link {
-            color: white !important; /* White navigation links */
+            color: #374151 !important;
             font-weight: 600;
             margin: 0 0.5rem;
             padding: 0.5rem 1rem !important;
             border-radius: 25px;
             transition: all 0.3s ease;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
         .navbar-custom .navbar-nav .nav-link:hover {
-            color: #667eea !important;
-            background: rgba(255, 255, 255, 0.9);
+            color: #f43f5e !important;
+            background: #fff1f2;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
-            text-shadow: none;
         }
 
         .navbar-custom .btn-nav {
@@ -76,107 +72,97 @@
         }
 
         .btn-nav-primary {
-            background: rgba(255, 255, 255, 0.9);
-            color: #667eea !important;
-            border: 2px solid transparent;
+            background: linear-gradient(135deg, #fda4af, #fb7185);
+            color: white !important;
+            border: none;
             font-weight: 700;
         }
 
         .btn-nav-primary:hover {
-            background: white;
-            color: #5a67d8 !important;
-            border: 2px solid white;
+            background: linear-gradient(135deg, #fb7185, #f43f5e);
+            color: white !important;
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
+            box-shadow: 0 6px 20px rgba(251, 113, 133, 0.4);
         }
 
         .btn-nav-outline {
             background: transparent;
-            color: white !important;
-            border: 2px solid rgba(255, 255, 255, 0.7);
+            color: #f43f5e !important;
+            border: 2px solid #fda4af;
         }
 
         .btn-nav-outline:hover {
-            background: rgba(255, 255, 255, 0.9);
-            color: #667eea !important;
-            border: 2px solid white;
+            background: #fff1f2;
+            color: #e11d48 !important;
+            border-color: #fb7185;
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
         }
 
         .navbar-toggler {
-            border: 2px solid rgba(255, 255, 255, 0.5);
+            border: 2px solid #fda4af;
             padding: 0.25rem 0.5rem;
             border-radius: 8px;
         }
 
         .navbar-toggler:focus {
-            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+            box-shadow: 0 0 0 0.2rem rgba(251, 113, 133, 0.2);
         }
 
         .navbar-toggler-icon {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23f43f5e' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
 
         .hero-section {
-            padding: 8rem 0 4rem 0; /* Added top padding for fixed navbar */
+            padding: 9rem 2rem 5rem 2rem;
             text-align: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #5a67d8 100%); /* Purple gradient */
-            color: white;
+            background: #fff0f3;
+            color: #1e293b;
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+        }
+
+        .hero-inner {
+            max-width: 680px;
+            width: 100%;
+            position: relative;
+            z-index: 2;
         }
 
         .hero-section::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="%23ffffff" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="%23ffffff" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(ellipse, #fecdd3 0%, transparent 70%);
             pointer-events: none;
         }
 
-        .hero-section::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(255,255,255,0.05) 0%, transparent 50%);
-            pointer-events: none;
-        }
+        .hero-section::after { display: none; }
 
         .hero-title {
             font-size: 3.5rem;
-            font-weight: bold;
+            font-weight: 800;
             margin-bottom: 1rem;
-            color: white; /* White text for purple background */
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
-            position: relative;
-            z-index: 2;
+            color: #f43f5e;
         }
 
         .hero-subtitle {
-            font-size: 1.5rem;
-            margin-bottom: 2rem;
-            color: rgba(255, 255, 255, 0.95); /* Slightly transparent white */
-            font-weight: 500;
-            position: relative;
-            z-index: 2;
-            text-shadow: 1px 1px 4px rgba(0,0,0,0.2);
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            color: #4b2333;
+            font-weight: 600;
         }
 
         .lead1 {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
-            position: relative;
-            z-index: 2;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            color: #6b4552;
+            font-size: 1.05rem;
+            margin-bottom: 2.5rem;
         }
 
         .cta-buttons {
@@ -193,55 +179,47 @@
         }
 
         .btn-primary-custom {
-            background: rgba(255, 255, 255, 0.95);
-            color: #667eea;
-            border: 2px solid transparent;
+            background: linear-gradient(135deg, #fb7185, #f43f5e);
+            color: white;
+            border: none;
             position: relative;
             z-index: 2;
             font-weight: 700;
+            box-shadow: 0 4px 16px rgba(244, 63, 94, 0.3);
         }
 
         .btn-primary-custom:hover {
-            background: white;
-            color: #5a67d8;
-            border: 2px solid white;
+            background: linear-gradient(135deg, #f43f5e, #e11d48);
+            color: white;
             transform: translateY(-3px);
-            box-shadow: 0 15px 35px rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 24px rgba(244, 63, 94, 0.4);
         }
 
         .btn-outline-custom {
-            background: transparent;
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.8);
+            background: white;
+            color: #f43f5e;
+            border: 2px solid #fda4af;
             position: relative;
             z-index: 2;
             font-weight: 600;
         }
 
         .btn-outline-custom:hover {
-            background: rgba(255, 255, 255, 0.95);
-            color: #667eea;
-            border: 2px solid white;
+            background: #fff0f3;
+            color: #e11d48;
+            border-color: #fb7185;
             transform: translateY(-3px);
-            box-shadow: 0 15px 35px rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 20px rgba(244, 63, 94, 0.15);
         }
 
         .features-section {
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-            padding: 4rem 0;
+            background: #fff0f3;
+            padding: 3rem 2rem;
             position: relative;
-            color: white;
         }
 
         .features-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(180deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.9) 50%, rgba(90, 103, 216, 0.8) 100%);
-            pointer-events: none;
+            display: none;
         }
 
         .features-section .container {
@@ -253,42 +231,47 @@
             text-align: center;
             padding: 2.5rem;
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 24px rgba(251, 113, 133, 0.08);
             margin-bottom: 2rem;
             height: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: white;
+            border: 1px solid rgba(253, 164, 175, 0.35);
             transition: all 0.3s ease;
-            color: white;
+            color: #374151;
         }
 
         .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-8px);
+            box-shadow: 0 16px 40px rgba(251, 113, 133, 0.16);
+            border-color: #fda4af;
+        }
+
+        .feature-card h4 {
+            color: #1e293b;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
         }
 
         .feature-icon {
-            font-size: 3.5rem;
-            color: white;
+            font-size: 3rem;
+            background: linear-gradient(135deg, #fda4af, #fb7185);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             margin-bottom: 1.5rem;
             display: block;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .debug-info {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.6);
             backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 2rem;
             margin: 2rem 0;
-            color: white;
+            color: #374151;
         }
 
         .organization-info {
-            background: rgba(255,255,255,0.2);
+            background: #fff1f2;
             border-radius: 10px;
             padding: 1rem;
             margin: 1rem 0;
@@ -355,8 +338,8 @@
 
     <!-- Hero Section -->
     <div class="hero-section" id="home">
-        <div class="container">
-            <h1 class="hero-title">
+        <div class="hero-inner">
+        <h1 class="hero-title">
                 <i class="fas fa-graduation-cap me-3"></i>
                 SkillOns
             </h1>
@@ -385,48 +368,70 @@
                 </a>
                 <% } %>
             </div>
+        </div>
+    </div>
 
-            <!-- Debug Information (for testing) -->
-        <!--    <% if (typeof organization !== 'undefined' && organization) { %>
-            <div class="organization-info">
-                <h5><i class="fas fa-info-circle me-2"></i>Organization Detected</h5>
-                <p><strong>Name:</strong> <%= organization.name %></p>
-                <p><strong>Subdomain:</strong> <%= organization.subdomain %></p>
-                <p><strong>Plan:</strong> <%= organization.planType %></p>
-                <p><strong>URL:</strong> <%= organization.fullDomain %></p>
-            </div>
-            <% } %>
+    <!-- Teachers Directory -->
+    <% if (teachers && teachers.length > 0) { %>
+    <div style="padding: 3rem 2rem;">
+        <h2 style="color: #f43f5e; margin-bottom: 0.25rem;">
+            <i class="fas fa-users me-2"></i>Find Your Teacher
+        </h2>
+        <p style="color: #9d4a5a; margin-bottom: 2rem;">Connect with your teacher and join their organization using the code below</p>
 
-            <div class="debug-info">
-                <h5><i class="fas fa-bug me-2"></i>Debug Information (for testing)</h5>
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Current Host:</strong> <%= typeof req !== 'undefined' ? (req.get('host') || 'Unknown') : 'Unknown' %></p>
-                        <p><strong>User Status:</strong> <%= user ? 'Logged In' : 'Not Logged In' %></p>
-                        <% if (user) { %>
-                        <p><strong>User Role:</strong> <%= user.role %></p>
-                        <p><strong>Display Name:</strong> <%= user.displayName %></p>
+        <div class="row g-3">
+            <% teachers.forEach(function(teacher) { %>
+            <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                <div class="card h-100 border-0" style="border-radius: 14px; background: rgba(255,255,255,0.75); box-shadow: 0 2px 12px rgba(251,113,133,0.12); transition: transform 0.2s ease, box-shadow 0.2s ease;"
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(251,113,133,0.2)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(251,113,133,0.12)'">
+                    <div class="card-body text-center p-3">
+                        <div style="width:48px;height:48px;background:linear-gradient(135deg,#fda4af,#fb7185);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 0.6rem;">
+                            <i class="fas fa-chalkboard-teacher text-white" style="font-size:18px;"></i>
+                        </div>
+                        <h6 class="mb-1" style="color:#2c3e50;font-weight:700;font-size:0.85rem;"><%= teacher.displayName %></h6>
+
+                        <% if (teacher.organizationId && teacher.organizationId.name) { %>
+                        <p class="mb-2" style="color:#f43f5e;font-size:0.75rem;font-weight:600;">
+                            <i class="fas fa-school me-1"></i><%= teacher.organizationId.name %>
+                        </p>
+                        <div class="input-group input-group-sm mb-2">
+                            <input type="text" class="form-control text-center fw-bold"
+                                   value="<%= teacher.organizationId.subdomain || 'N/A' %>"
+                                   readonly id="orgCode_<%= teacher._id %>"
+                                   style="font-family:monospace;font-size:0.75rem;background:#fff0f3;border:1.5px solid #fda4af;">
+                            <button class="btn btn-sm" type="button"
+                                    onclick="copyCode('<%= teacher._id %>')"
+                                    style="background:#fb7185;color:white;border:none;">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <% if (teacher.organizationId.subdomain) { %>
+                        <a href="/signup?code=<%= teacher.organizationId.subdomain %>"
+                           class="btn btn-sm w-100"
+                           style="background:linear-gradient(135deg,#fda4af,#fb7185);color:white;border:none;border-radius:20px;font-size:0.78rem;">
+                            <i class="fas fa-user-plus me-1"></i>Join
+                        </a>
                         <% } %>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Organization Context:</strong> <%= typeof organizationId !== 'undefined' && organizationId ? 'Detected' : 'None' %></p>
-                        <p><strong>Node Environment:</strong> <%= process.env.NODE_ENV || 'development' %></p>
-                        <p><strong>Server Status:</strong> <span class="text-success">Running</span></p>
+                        <% } else { %>
+                        <p class="text-muted" style="font-size:0.75rem;">Not configured</p>
+                        <% } %>
                     </div>
                 </div>
             </div>
+            <% }); %>
         </div>
-    </div> -->
+    </div>
+    <% } %>
 
     <!-- Features Section -->
     <div class="features-section" id="features">
-        <div class="container">
-            <div class="row">
-                <div class="col-12 text-center mb-5">
-                    <h2 style="color: white; font-weight: bold; margin-bottom: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Why Choose SkillOns?</h2>
-                    <p class="lead" style="color: rgba(255, 255, 255, 0.9); font-size: 1.2rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">Complete isolation, unlimited possibilities</p>
-                </div>
+        <div class="row">
+            <div class="col-12 mb-5">
+                <h2 style="color: #f43f5e; font-weight: bold; margin-bottom: 0.5rem;">Why Choose SkillOns?</h2>
+                <p class="lead" style="color: #6b7280; font-size: 1.1rem;">Complete isolation, unlimited possibilities</p>
             </div>
+        </div>
 
             <div class="row">
                 <div class="col-md-4">
@@ -471,108 +476,7 @@
                     </div>
                 </div>
             </div>
-        </div>
     </div>
-
-    <!-- Teachers Directory -->
-    <% if (teachers && teachers.length > 0) { %>
-    <div class="features-section" style="background: #f8f9fa;">
-        <div class="container">
-            <div class="row">
-                <div class="col-12 text-center mb-4">
-                    <h2 style="color: #667eea;">
-                        <i class="fas fa-users me-2"></i>
-                        Find Your Teacher
-                    </h2>
-                    <p class="lead text-muted">Connect with your teacher and join their organization using the code below</p>
-                </div>
-            </div>
-
-            <div class="row">
-                <% teachers.forEach(function(teacher) { %>
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100 shadow-sm border-0" style="border-radius: 15px; transition: transform 0.3s ease;">
-                        <div class="card-body text-center p-4">
-                            <div class="mb-3">
-                                <div class="teacher-avatar mx-auto mb-3" style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-chalkboard-teacher text-white" style="font-size: 24px;"></i>
-                                </div>
-                                <h5 class="card-title mb-2" style="color: #2c3e50;"><%= teacher.displayName %></h5>
-                            </div>
-
-                            <% if (teacher.organizationId && teacher.organizationId.name) { %>
-                            <div class="organization-info mb-3">
-                                <h6 class="mb-2" style="color: #667eea;">
-                                    <i class="fas fa-school me-1"></i>
-                                    <%= teacher.organizationId.name %>
-                                </h6>
-                                <div class="org-code-display">
-                                    <label class="form-label small text-muted mb-1">Organization Code:</label>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text"
-                                               class="form-control text-center fw-bold"
-                                               value="<%= teacher.organizationId.subdomain || 'N/A' %>"
-                                               readonly
-                                               id="orgCode_<%= teacher._id %>"
-                                               style="font-family: monospace; background: #f8f9fa; border: 2px solid #e9ecef;">
-                                        <button class="btn btn-outline-primary btn-sm"
-                                                type="button"
-                                                onclick="copyCode('<%= teacher._id %>')"
-                                                title="Copy organization code">
-                                            <i class="fas fa-copy"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <% } else { %>
-                            <div class="organization-info mb-3">
-                                <h6 class="mb-2" style="color: #6c757d;">
-                                    <i class="fas fa-exclamation-triangle me-1"></i>
-                                    Organization not configured
-                                </h6>
-                                <p class="small text-muted">This teacher hasn't set up their organization yet.</p>
-                            </div>
-                            <% } %>
-
-                            <div class="action-buttons">
-                                <% if (teacher.organizationId && teacher.organizationId.subdomain) { %>
-                                <a href="/signup?code=<%= teacher.organizationId.subdomain %>"
-                                   class="btn btn-primary btn-sm rounded-pill px-3 mb-2">
-                                    <i class="fas fa-user-plus me-1"></i>
-                                    Join as Student
-                                </a>
-                                <div class="text-muted small mt-2">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Click to join this teacher's organization
-                                </div>
-                                <% } else { %>
-                                <button class="btn btn-secondary btn-sm rounded-pill px-3 mb-2" disabled>
-                                    <i class="fas fa-times me-1"></i>
-                                    Not Available
-                                </button>
-                                <div class="text-muted small mt-2">
-                                    <i class="fas fa-exclamation-triangle me-1"></i>
-                                    Organization setup required
-                                </div>
-                                <% } %>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <% }); %>
-            </div>
-
-            <div class="row mt-4">
-                <div class="col-12 text-center">
-                    <div class="alert alert-info d-inline-block" style="border-radius: 15px;">
-                        <i class="fas fa-lightbulb me-2"></i>
-                        <strong>How to join:</strong> Click "Join as Student" or copy the organization code and use it during manual signup.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <% } %>
 
     <!-- Testing Instructions -->
   <!--  <div class="hero-section" style="padding: 2rem 0; background: #f8f9fa; color: #2c3e50;">
@@ -721,13 +625,13 @@
         window.addEventListener('scroll', function() {
             const navbar = document.querySelector('.navbar-custom');
             if (window.scrollY > 50) {
-                navbar.style.background = 'rgba(102, 126, 234, 0.98)';
+                navbar.style.background = 'rgba(255, 255, 255, 0.99)';
                 navbar.style.backdropFilter = 'blur(15px)';
-                navbar.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.4)';
+                navbar.style.boxShadow = '0 4px 20px rgba(251, 113, 133, 0.15)';
             } else {
-                navbar.style.background = 'rgba(102, 126, 234, 0.95)';
+                navbar.style.background = 'rgba(255, 255, 255, 0.97)';
                 navbar.style.backdropFilter = 'blur(10px)';
-                navbar.style.boxShadow = '0 2px 20px rgba(102, 126, 234, 0.3)';
+                navbar.style.boxShadow = '0 2px 16px rgba(251, 113, 133, 0.1)';
             }
         });
     </script>

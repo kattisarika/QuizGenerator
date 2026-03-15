@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
   },
   subjects: [{
     type: String,
-    enum: ['English', 'Science', 'Math']
+    enum: ['English', 'Science', 'Math', 'SAT Math', 'SAT English', 'History', 'Geography', 'Art', 'Music', 'Physical Education', 'Computer Science']
   }],
   assignedTeacher: {
     type: mongoose.Schema.Types.ObjectId,
@@ -98,7 +98,7 @@ const userSchema = new mongoose.Schema({
     },
     subjects: [{
       type: String,
-      enum: ['English', 'Science', 'Math']
+      enum: ['English', 'Science', 'Math', 'SAT Math', 'SAT English', 'History', 'Geography', 'Art', 'Music', 'Physical Education', 'Computer Science']
     }],
     joinedAt: {
       type: Date,

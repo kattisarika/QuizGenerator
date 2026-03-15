@@ -703,6 +703,12 @@
                                             <strong>Correct Answer:</strong>
                                             <span class="correct-answer"><%= answer.correctAnswer %></span>
                                         </div>
+                                        <% if (answer.explanation) { %>
+                                        <div class="answer-item mt-2" style="background:#fff8e1;border-left:4px solid #ffc107;padding:10px 14px;border-radius:6px;">
+                                            <strong><i class="fas fa-lightbulb me-2" style="color:#ffc107;"></i>Explanation:</strong>
+                                            <span style="color:#555;"><%= answer.explanation %></span>
+                                        </div>
+                                        <% } %>
                                     <% } %>
 
                                     <div class="answer-item">

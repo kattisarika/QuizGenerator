@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Organization = require('../models/Organization');
 const User = require('../models/User');
 const emailService = require('../services/emailService');
@@ -144,12 +145,13 @@ router.post('/api/initialize-organization', async (req, res) => {
 
     // 1. Create the organization immediately with a placeholder ownerId
     const planLimits = Organization.getPlanLimits(planType);
-    const placeholderOwnerId = new require('mongoose').Types.ObjectId();
+    const placeholderOwnerId = new mongoose.Types.ObjectId();
     const newOrg = new Organization({
       name: organizationName,
       subdomain: normalizedSubdomain,
       ownerId: placeholderOwnerId,
       planType,
+      contact: { email: 'pending@signup' }, // replaced with real email after OAuth
       settings: {
         maxStudents: planLimits.maxStudents,
         maxQuizzes: planLimits.maxQuizzes,

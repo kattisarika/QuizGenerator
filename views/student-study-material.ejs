@@ -7,6 +7,61 @@
     <link rel="stylesheet" href="/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .btn-summarize {
+            background: linear-gradient(135deg, #fda4af, #fb7185);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .btn-summarize:hover {
+            background: linear-gradient(135deg, #fb7185, #f43f5e);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(244,63,94,0.3);
+        }
+        .btn-summarize:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        #summaryModal .modal-content {
+            max-width: 680px;
+            margin: 60px auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        #summaryModal .modal-header {
+            background: linear-gradient(135deg, #fda4af, #fb7185);
+            color: white;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #summaryModal .modal-header h2 { margin: 0; font-size: 1.2rem; }
+        #summaryModal .modal-header .close {
+            background: none; border: none; color: white;
+            font-size: 1.6rem; cursor: pointer; line-height: 1;
+        }
+        #summaryModal .modal-body { padding: 24px; max-height: 65vh; overflow-y: auto; }
+        #summaryContent {
+            white-space: pre-wrap;
+            line-height: 1.7;
+            color: #374151;
+            font-size: 0.95rem;
+        }
+        #summaryContent ul { padding-left: 20px; }
+        .summary-loading {
+            text-align: center;
+            padding: 40px;
+            color: #9d4a5a;
+        }
+        .summary-loading i { font-size: 2rem; margin-bottom: 12px; display: block; }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -131,6 +186,9 @@
                                     <a href="/student/download-content/<%= item._id %>" class="btn btn-secondary" target="_blank" download>
                                         <i class="fas fa-download"></i> Download
                                     </a>
+                                    <button class="btn btn-summarize" onclick="summarizeContent('<%= item._id %>', '<%= item.title.replace(/'/g, "\\'") %>')">
+                                        <i class="fas fa-magic"></i> Summarize
+                                    </button>
                                 </div>
                             </div>
                         <% }); %>
@@ -215,6 +273,19 @@
     </div>
 
 
+
+    <!-- Summary Modal -->
+    <div id="summaryModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-magic me-2"></i><span id="summaryTitle">Summary</span></h2>
+                <button class="close" onclick="closeSummaryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="summaryContent"></div>
+            </div>
+        </div>
+    </div>
 
     <footer class="footer">
         <div class="footer-content">
@@ -429,6 +500,46 @@
                 closeContentModal();
             }
         }
+
+        // Summarize content
+        async function summarizeContent(contentId, title) {
+            const modal = document.getElementById('summaryModal');
+            const summaryTitle = document.getElementById('summaryTitle');
+            const summaryContent = document.getElementById('summaryContent');
+
+            summaryTitle.textContent = title;
+            summaryContent.innerHTML = '<div class="summary-loading"><i class="fas fa-spinner fa-spin"></i>Generating summary with AI...</div>';
+            modal.style.display = 'block';
+
+            try {
+                const res = await fetch(`/api/summarize-content/${contentId}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    // Convert markdown-ish bullet points to HTML
+                    const html = data.summary
+                        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+                        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+                        .replace(/\n\n/g, '<br><br>')
+                        .replace(/\n/g, '<br>');
+                    summaryContent.innerHTML = html;
+                } else {
+                    summaryContent.innerHTML = `<p style="color:#ef4444;">${data.message}</p>`;
+                }
+            } catch (err) {
+                summaryContent.innerHTML = '<p style="color:#ef4444;">Failed to generate summary. Please try again.</p>';
+            }
+        }
+
+        function closeSummaryModal() {
+            document.getElementById('summaryModal').style.display = 'none';
+        }
+
+        window.addEventListener('click', function(e) {
+            const modal = document.getElementById('summaryModal');
+            if (e.target === modal) closeSummaryModal();
+        });
 
         // Student profile modal functions (if they exist)
         function openStudentProfile() {

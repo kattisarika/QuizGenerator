@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const WhiteboardSession = require('../models/WhiteboardSession');
 const User = require('../models/User');
 
@@ -74,7 +75,7 @@ router.post('/create', requireAuth, requireRole(['teacher']), async (req, res) =
       teacherName: req.user.displayName,
       organizationId: req.user.organizationId,
       isPasswordProtected: isPasswordProtected || false,
-      password: isPasswordProtected ? password : undefined,
+      password: isPasswordProtected ? await bcrypt.hash(password, 12) : undefined,
       settings: {
         ...{
           maxParticipants: 50,
@@ -328,14 +329,15 @@ router.post('/join/:sessionId', requireAuth, async (req, res) => {
     }
 
     // Check password if required
-    if (session.isPasswordProtected && session.password !== password) {
-      return res.status(401).json({
-        error: 'Incorrect password'
-      });
+    if (session.isPasswordProtected) {
+      const passwordMatch = await bcrypt.compare(password || '', session.password || '');
+      if (!passwordMatch) {
+        return res.status(401).json({ error: 'Incorrect password' });
+      }
     }
 
     // Check if user is already a participant
-    const existingParticipant = session.participants.find(p => 
+    const existingParticipant = session.participants.find(p =>
       p.userId && p.userId.equals(req.user._id)
     );
 
@@ -429,10 +431,11 @@ router.post('/join-by-code', requireAuth, async (req, res) => {
     }
 
     // Check password if required
-    if (session.isPasswordProtected && session.password !== password) {
-      return res.status(401).json({
-        error: 'Incorrect password'
-      });
+    if (session.isPasswordProtected) {
+      const passwordMatch = await bcrypt.compare(password || '', session.password || '');
+      if (!passwordMatch) {
+        return res.status(401).json({ error: 'Incorrect password' });
+      }
     }
 
     // Check if user is already a participant

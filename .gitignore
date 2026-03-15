@@ -134,4 +134,4 @@ pids
 .yarn-integrity
 
 # dotenv environment variables file
-.env 
+.env logs/

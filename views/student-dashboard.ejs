@@ -176,7 +176,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #e8f0fe 0%, #f3e8ff 50%, #e0f2fe 100%);
             min-height: 100vh;
             color: var(--dark-color);
         }
@@ -194,8 +194,8 @@
         }
 
         .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
+            max-width: 100%;
+            margin: 0;
             padding: 0 20px;
             display: flex;
             justify-content: space-between;
@@ -214,8 +214,7 @@
         }
 
         .nav-logo a::before {
-            content: "🎓";
-            font-size: 28px;
+            content: "";
         }
 
         /* Hamburger Menu */
@@ -342,9 +341,52 @@
         }
 
         .dashboard-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             animation: fadeInUp 0.6s ease;
+        }
+
+        /* Two-column layout */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 24px;
+            align-items: start;
+        }
+        .dashboard-main {
+            min-width: 0;
+        }
+        .dashboard-sidebar {
+            position: sticky;
+            top: 20px;
+        }
+        .dashboard-sidebar .badge-system {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            padding: 20px;
+        }
+        .dashboard-sidebar .section-header {
+            margin-bottom: 16px;
+        }
+        .dashboard-sidebar .section-header h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin: 0 0 4px;
+        }
+        .dashboard-sidebar .section-header p {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin: 0;
+        }
+        @media (max-width: 900px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+            .dashboard-sidebar {
+                position: static;
+            }
         }
 
         @keyframes fadeInUp {
@@ -447,7 +489,7 @@
         }
 
         .stat-card:nth-child(1) .stat-icon {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #6ea8fe, #a78bfa);
             color: white;
         }
 
@@ -1322,7 +1364,7 @@
             }
 
             .nav-logo a::before {
-                font-size: 22px;
+                content: "";
             }
 
             .user-avatar, .user-avatar-placeholder {
@@ -1429,7 +1471,8 @@
                 </div>
             </div>
 
-            <div class="dashboard-content">
+            <div class="dashboard-layout">
+              <div class="dashboard-main">
                 <section class="stats-grid" aria-labelledby="stats-heading">
                     <h2 id="stats-heading" class="sr-only">Dashboard Statistics</h2>
                     <div class="stat-card" role="region" aria-labelledby="quizzes-stat">
@@ -1480,23 +1523,6 @@
                     </div>
                 </section>
 
-                <!-- Badge System Section -->
-                <section class="badge-system" aria-labelledby="badges-heading">
-                    <div class="section-header">
-                        <h2 id="badges-heading">
-                            <i class="fas fa-medal" aria-hidden="true"></i> My Badges
-                        </h2>
-                        <p>Track your achievements and progress across subjects</p>
-                    </div>
-
-                    <div class="badge-summary" id="badgeSummary">
-                        <div class="loading-state">
-                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                            <p>Loading badges...</p>
-                        </div>
-                    </div>
-                </section>
-
                 <section class="action-cards" aria-labelledby="actions-heading">
                     <h2 id="actions-heading" class="sr-only">Quick Actions</h2>
                     <div class="action-card" role="region" aria-labelledby="quiz-action">
@@ -1510,8 +1536,32 @@
                         </a>
                     </div>
 
+                    <!-- SAT Math -->
+                    <div class="action-card" role="region" aria-labelledby="sat-math-action" style="border-top: 4px solid #2563EB;">
+                        <div style="font-size: 48px; margin-bottom: 15px; color: #2563EB;" aria-hidden="true">
+                            <i class="fas fa-square-root-alt"></i>
+                        </div>
+                        <h3 id="sat-math-action">SAT Math</h3>
+                        <p>Practice SAT Math quizzes — algebra, geometry, data analysis and more</p>
+                        <a href="/available-quizzes?subject=Math&grade=SAT+Verbal" class="btn btn-primary" aria-label="Browse SAT Math quizzes">
+                            <i class="fas fa-arrow-right" aria-hidden="true"></i> Start Practicing
+                        </a>
+                    </div>
+
+                    <!-- SAT English -->
+                    <div class="action-card" role="region" aria-labelledby="sat-english-action" style="border-top: 4px solid #7C3AED;">
+                        <div style="font-size: 48px; margin-bottom: 15px; color: #7C3AED;" aria-hidden="true">
+                            <i class="fas fa-spell-check"></i>
+                        </div>
+                        <h3 id="sat-english-action">SAT English</h3>
+                        <p>Practice SAT Verbal quizzes — reading comprehension, grammar and vocabulary</p>
+                        <a href="/available-quizzes?subject=English&grade=SAT+Verbal" class="btn btn-primary" aria-label="Browse SAT English quizzes">
+                            <i class="fas fa-arrow-right" aria-hidden="true"></i> Start Practicing
+                        </a>
+                    </div>
+
                     <div class="action-card" role="region" aria-labelledby="competitive-action">
-                        <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" aria-hidden="true">
+                        <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #6ea8fe, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" aria-hidden="true">
                             <i class="fas fa-trophy"></i>
                         </div>
                         <h3 id="competitive-action">Competitive Quiz</h3>
@@ -1577,7 +1627,7 @@
 
                     <% if (gradedComplexQuizzes && gradedComplexQuizzes.length > 0) { %>
                         <div class="action-card" role="region" aria-labelledby="complex-graded-action" style="border-left: 4px solid #10b981;">
-                            <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" aria-hidden="true">
+                            <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #6ea8fe, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" aria-hidden="true">
                                 <i class="fas fa-clipboard-check"></i>
                             </div>
                             <h3 id="complex-graded-action">New Complex Quiz Results</h3>
@@ -1711,7 +1761,6 @@
 
                 <!-- Whiteboard Section -->
 
-
                 <% if (typeof needsMigration !== 'undefined' && needsMigration) { %>
                 <div class="alert alert-warning">
                     <h5><i class="fas fa-exclamation-triangle me-2"></i>Account Migration Available</h5>
@@ -1787,7 +1836,27 @@
                         </div>
                     <% } %>
                 </div> -->
-            </div>
+              </div><!-- /dashboard-main -->
+
+              <!-- ── Badges Sidebar ── -->
+              <aside class="dashboard-sidebar">
+                <section class="badge-system" aria-labelledby="badges-heading">
+                    <div class="section-header">
+                        <h2 id="badges-heading">
+                            <i class="fas fa-medal" aria-hidden="true"></i> My Badges
+                        </h2>
+                        <p>Your achievements</p>
+                    </div>
+                    <div class="badge-summary" id="badgeSummary">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                            <p>Loading badges...</p>
+                        </div>
+                    </div>
+                </section>
+              </aside>
+
+            </div><!-- /dashboard-layout -->
         </div>
     </main>
 
@@ -1816,6 +1885,7 @@
                             <option value="10th grade">10th Grade</option>
                             <option value="11th grade">11th Grade</option>
                             <option value="12th grade">12th Grade</option>
+                            <option value="SAT Verbal">SAT Verbal</option>
                         </select>
                     </div>
 
@@ -1833,6 +1903,14 @@
                             <div class="checkbox-item">
                                 <input type="checkbox" id="subjectMath" name="subjects" value="Math">
                                 <label for="subjectMath">Math</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="subjectSATMath" name="subjects" value="SAT Math">
+                                <label for="subjectSATMath">SAT Math</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="subjectSATEnglish" name="subjects" value="SAT English">
+                                <label for="subjectSATEnglish">SAT English</label>
                             </div>
                         </div>
                     </div>
