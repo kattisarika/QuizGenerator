@@ -680,24 +680,32 @@
 
         // Create new session
         async function createSession(btnEl) {
+            console.log('createSession called', btnEl);
+
             const errorDiv = document.getElementById('createSessionError');
             const successDiv = document.getElementById('createSessionSuccess');
 
+            const showError = (msg) => {
+                if (errorDiv) { errorDiv.textContent = msg; errorDiv.classList.remove('d-none'); }
+                else { window.alert('Error: ' + msg); }
+            };
+            const showSuccess = (msg) => {
+                if (successDiv) { successDiv.textContent = msg; successDiv.classList.remove('d-none'); }
+            };
+
             // Reset messages
-            errorDiv.classList.add('d-none');
-            successDiv.classList.add('d-none');
+            if (errorDiv) errorDiv.classList.add('d-none');
+            if (successDiv) successDiv.classList.add('d-none');
 
             const title = (document.getElementById('sessionTitle').value || '').trim();
             const gradeLevel = document.getElementById('sessionGrade').value;
 
             if (!title) {
-                errorDiv.textContent = 'Please enter a session title.';
-                errorDiv.classList.remove('d-none');
+                showError('Please enter a session title.');
                 return;
             }
             if (!gradeLevel) {
-                errorDiv.textContent = 'Please select a grade level.';
-                errorDiv.classList.remove('d-none');
+                showError('Please select a grade level.');
                 return;
             }
 
@@ -737,23 +745,20 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    successDiv.textContent = `Session created! Join code: ${data.session.joinCode}`;
-                    successDiv.classList.remove('d-none');
+                    showSuccess(`Session created! Join code: ${data.session.joinCode}`);
                     document.getElementById('createSessionForm').reset();
                     loadSessions();
                     setTimeout(() => {
                         const modal = bootstrap.Modal.getInstance(document.getElementById('createSessionModal'));
                         if (modal) modal.hide();
-                        successDiv.classList.add('d-none');
+                        if (successDiv) successDiv.classList.add('d-none');
                     }, 2500);
                 } else {
-                    errorDiv.textContent = data.error || 'Failed to create session. Please try again.';
-                    errorDiv.classList.remove('d-none');
+                    showError(data.error || 'Failed to create session. Please try again.');
                 }
             } catch (err) {
                 console.error('createSession error:', err);
-                errorDiv.textContent = 'Error: ' + (err.message || 'Could not reach server. Please try again.');
-                errorDiv.classList.remove('d-none');
+                showError('Error: ' + (err.message || 'Could not reach server. Please try again.'));
             } finally {
                 if (btnEl) {
                     btnEl.innerHTML = originalText;
