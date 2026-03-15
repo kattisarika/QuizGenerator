@@ -228,20 +228,26 @@ app.use(helmet({
 }));
 
 // Rate limiting
+// Use real client IP (works with Heroku's trust proxy setting)
+const getClientIp = (req) => req.ip || req.connection.remoteAddress || 'unknown';
+
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: getClientIp,
+  skip: (req) => req.path.startsWith('/css') || req.path.startsWith('/js') || req.path.startsWith('/images') || req.path.startsWith('/uploads'),
   message: { error: 'Too many requests, please try again later.' }
 });
 app.use(generalLimiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: getClientIp,
   message: { error: 'Too many login attempts, please try again later.' }
 });
 app.use('/auth/google', authLimiter);
