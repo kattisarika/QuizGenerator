@@ -8085,11 +8085,18 @@ app.get('/logout', (req, res) => {
     if (err) {
       console.error('Logout error:', err);
     }
-    if (timeout) {
-      res.redirect('/login?timeout=true');
-    } else {
-      res.redirect('/');
-    }
+    // Destroy the session in MongoDB so the cookie cannot be reused
+    req.session.destroy((destroyErr) => {
+      if (destroyErr) {
+        console.error('Session destroy error:', destroyErr);
+      }
+      res.clearCookie('takequiznow.sid');
+      if (timeout) {
+        res.redirect('/login?timeout=true');
+      } else {
+        res.redirect('/');
+      }
+    });
   });
 });
 
