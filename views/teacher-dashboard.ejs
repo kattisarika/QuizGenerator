@@ -10,15 +10,15 @@
     <style>
         /* Enhanced Professional Styles for Teacher Dashboard */
         :root {
-            --primary-color: #f43f5e;
-            --primary-dark: #e11d48;
-            --secondary-color: #fb7185;
+            --primary-color: #8C1515;
+            --primary-dark: #6b0f0f;
+            --secondary-color: #B1740F;
             --success-color: #10B981;
             --warning-color: #F59E0B;
             --danger-color: #EF4444;
-            --info-color: #f87171;
+            --info-color: #B1740F;
             --dark-color: #1F2937;
-            --light-color: #fff0f3;
+            --light-color: #f4f4f4;
             --border-radius: 12px;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
             --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
@@ -34,7 +34,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #fff0f3;
+            background: #fdf5f5;
             min-height: 100vh;
             color: var(--dark-color);
         }
@@ -317,7 +317,7 @@
         .organization-info {
             margin-top: 20px;
             padding: 20px;
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(124, 58, 237, 0.05));
+            background: linear-gradient(135deg, rgba(140, 21, 21, 0.05), rgba(107, 15, 15, 0.05));
             border-radius: var(--border-radius);
             border-left: 4px solid var(--primary-color);
         }
@@ -400,7 +400,7 @@
         }
 
         .stat-card:nth-child(1) .stat-icon {
-            background: linear-gradient(135deg, #fda4af, #fb7185);
+            background: linear-gradient(135deg, #8C1515, #6b0f0f);
             color: white;
         }
 
@@ -753,7 +753,7 @@
         }
 
         .recorrection-status.status-pending {
-            background: #3b82f6;
+            background: #8C1515;
             color: white;
         }
 
@@ -933,14 +933,14 @@
         .grade-tab:hover {
             border-color: var(--primary-color);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+            box-shadow: 0 4px 12px rgba(140, 21, 21, 0.15);
         }
 
         .grade-tab.active {
             border-color: var(--primary-color);
             background: var(--primary-color);
             color: white;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            box-shadow: 0 4px 12px rgba(140, 21, 21, 0.3);
         }
 
         .grade-label {
@@ -999,14 +999,14 @@
         .recorrection-grade-tab:hover {
             border-color: var(--primary-color);
             transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(79, 70, 229, 0.15);
+            box-shadow: 0 3px 8px rgba(140, 21, 21, 0.15);
         }
 
         .recorrection-grade-tab.active {
             border-color: var(--primary-color);
             background: var(--primary-color);
             color: white;
-            box-shadow: 0 3px 8px rgba(79, 70, 229, 0.3);
+            box-shadow: 0 3px 8px rgba(140, 21, 21, 0.3);
         }
 
         .recorrection-grade-tab .grade-label {
@@ -1087,7 +1087,7 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+            box-shadow: 0 10px 20px rgba(140, 21, 21, 0.3);
         }
 
         .btn-secondary {
@@ -1251,7 +1251,7 @@
 
         .question-number {
             font-weight: 600;
-            color: #f43f5e;
+            color: #8C1515;
             min-width: 25px;
         }
 
@@ -1868,7 +1868,7 @@
                 <section class="notifications-section" style="background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); padding: 30px; margin-bottom: 30px;">
                     <div class="section-header" style="margin-bottom: 25px;">
                         <h2 style="color: #374151; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
-                            <i class="fas fa-bell" style="color: #f43f5e;"></i> Recent Notifications
+                            <i class="fas fa-bell" style="color: #8C1515;"></i> Recent Notifications
                         </h2>
                         <p style="color: #6b7280; margin: 0;">Stay updated with student submissions and activities</p>
                     </div>
@@ -3470,11 +3470,11 @@
             let html = '';
             notifications.forEach(notification => {
                 const timeAgo = getTimeAgo(new Date(notification.createdAt));
-                const iconColor = notification.color || '#f43f5e';
+                const iconColor = notification.color || '#8C1515';
 
                 html += `
-                    <div style="display: flex; align-items: flex-start; gap: 15px; padding: 15px; border-radius: 8px; margin-bottom: 10px; transition: all 0.3s ease; border-left: 4px solid ${!notification.isRead ? '#f43f5e' : 'transparent'}; background: ${!notification.isRead ? '#fff0f3' : 'transparent'};"
-                         onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='${!notification.isRead ? '#fff0f3' : 'transparent'}'">
+                    <div style="display: flex; align-items: flex-start; gap: 15px; padding: 15px; border-radius: 8px; margin-bottom: 10px; transition: all 0.3s ease; border-left: 4px solid ${!notification.isRead ? '#8C1515' : 'transparent'}; background: ${!notification.isRead ? '#fdf5f5' : 'transparent'};"
+                         onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='${!notification.isRead ? '#fdf5f5' : 'transparent'}'">
                         <div style="width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; flex-shrink: 0; background-color: ${iconColor};">
                             <i class="${notification.icon || 'fas fa-bell'}"></i>
                         </div>
@@ -3485,7 +3485,7 @@
                             ${notification.actionUrl ? `
                                 <div style="margin-top: 8px;">
                                     <a href="${notification.actionUrl}" onclick="markAsRead('${notification._id}')"
-                                       style="background: #f43f5e; color: white; border: none; padding: 4px 12px; font-size: 11px; border-radius: 4px; text-decoration: none; display: inline-block;">
+                                       style="background: #8C1515; color: white; border: none; padding: 4px 12px; font-size: 11px; border-radius: 4px; text-decoration: none; display: inline-block;">
                                         ${notification.actionText || 'View'}
                                     </a>
                                 </div>
@@ -3497,7 +3497,7 @@
 
             html += `
                 <div style="text-align: center; margin-top: 20px;">
-                    <a href="/notifications" style="background: #f43f5e; color: white; border: none; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px;">
+                    <a href="/notifications" style="background: #8C1515; color: white; border: none; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px;">
                         <i class="fas fa-list"></i> View All Notifications
                     </a>
                 </div>

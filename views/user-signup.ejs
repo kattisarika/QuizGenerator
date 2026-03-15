@@ -8,7 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8C1515 0%, #6b0f0f 100%);
             min-height: 100vh;
             font-family: 'Inter', sans-serif;
         }
@@ -27,7 +27,7 @@
         }
 
         .signup-header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            background: linear-gradient(135deg, #8C1515 0%, #6b0f0f 100%);
             color: white;
             padding: 2rem;
             text-align: center;
@@ -56,7 +56,7 @@
         }
 
         .step.active {
-            background: #4f46e5;
+            background: #8C1515;
             color: white;
         }
 
@@ -89,14 +89,14 @@
         }
 
         .user-type-card:hover {
-            border-color: #4f46e5;
+            border-color: #8C1515;
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.1);
+            box-shadow: 0 10px 30px rgba(140, 21, 21, 0.1);
         }
 
         .user-type-card.selected {
-            border-color: #4f46e5;
-            background-color: #f8faff;
+            border-color: #8C1515;
+            background-color: #fdf5f5;
         }
 
         .user-type-icon {
@@ -105,7 +105,7 @@
         }
 
         .teacher-icon {
-            color: #4f46e5;
+            color: #8C1515;
         }
 
         .student-icon {
@@ -117,12 +117,12 @@
         }
 
         .form-control:focus {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 0.25rem rgba(79, 70, 229, 0.1);
+            border-color: #8C1515;
+            box-shadow: 0 0 0 0.25rem rgba(140, 21, 21, 0.1);
         }
 
         .btn-primary {
-            background: #4f46e5;
+            background: #8C1515;
             border: none;
             padding: 0.75rem 2rem;
             border-radius: 10px;
@@ -141,7 +141,7 @@
             font-size: 0.9rem;
             margin-top: 0.5rem;
             font-family: 'Monaco', 'Consolas', monospace;
-            color: #4f46e5;
+            color: #8C1515;
         }
 
         .hero-section {
@@ -171,13 +171,13 @@
         }
 
         .plan-card:hover {
-            border-color: #4f46e5;
+            border-color: #8C1515;
             transform: translateY(-2px);
         }
 
         .plan-card.selected {
-            border-color: #4f46e5;
-            background-color: #f8faff;
+            border-color: #8C1515;
+            background-color: #fdf5f5;
         }
 
         .plan-name {
@@ -189,7 +189,7 @@
         .plan-price {
             font-size: 1.5rem;
             font-weight: 600;
-            color: #4f46e5;
+            color: #8C1515;
             margin-bottom: 1rem;
         }
 
@@ -429,7 +429,7 @@
 
                                     <!-- Toggle link -->
                                     <div class="mt-2">
-                                        <a href="#" id="orgToggleLink" onclick="switchOrgInput(event)" style="font-size:0.82rem;color:#6366f1;text-decoration:none;">Enter code manually instead</a>
+                                        <a href="#" id="orgToggleLink" onclick="switchOrgInput(event)" style="font-size:0.82rem;color:#8C1515;text-decoration:none;">Enter code manually instead</a>
                                     </div>
                                 </div>
                             </div>
@@ -756,7 +756,7 @@
 
                 const additionalTeachers = getAdditionalTeacherEmails();
                 const teachersHTML = additionalTeachers.length > 0
-                    ? additionalTeachers.map(e => `<span style="display:inline-block;background:#ede9fe;color:#4f46e5;border-radius:20px;padding:2px 10px;font-size:0.82rem;margin:2px;">${e}</span>`).join(' ')
+                    ? additionalTeachers.map(e => `<span style="display:inline-block;background:#f0d5d5;color:#8C1515;border-radius:20px;padding:2px 10px;font-size:0.82rem;margin:2px;">${e}</span>`).join(' ')
                     : '<span class="text-muted">None</span>';
 
                 reviewHTML = `
@@ -817,10 +817,10 @@
             const idx = selectedOrgs.findIndex(o => o.value === value);
             if (idx === -1) {
                 selectedOrgs.push({ value, name });
-                check.style.background = '#4f46e5';
-                check.style.borderColor = '#4f46e5';
+                check.style.background = '#8C1515';
+                check.style.borderColor = '#8C1515';
                 icon.style.display = 'block';
-                el.style.background = '#f5f3ff';
+                el.style.background = '#fdf5f5';
             } else {
                 selectedOrgs.splice(idx, 1);
                 check.style.background = '';
@@ -834,7 +834,7 @@
         function renderOrgBadges() {
             const container = document.getElementById('selectedOrgsBadges');
             container.innerHTML = selectedOrgs.map(o =>
-                `<span style="background:#ede9fe;color:#4f46e5;border-radius:20px;padding:3px 10px;font-size:0.8rem;font-weight:500;">${o.name}</span>`
+                `<span style="background:#f0d5d5;color:#8C1515;border-radius:20px;padding:3px 10px;font-size:0.8rem;font-weight:500;">${o.name}</span>`
             ).join('');
         }
 

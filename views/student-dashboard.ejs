@@ -12,9 +12,9 @@
     <style>
         /* Enhanced Professional Styles - 508 Compliant Colors */
         :root {
-            --primary-color: #2563EB; /* Improved contrast ratio */
-            --primary-dark: #1D4ED8; /* Improved contrast ratio */
-            --secondary-color: #7C3AED;
+            --primary-color: #8C1515; /* Improved contrast ratio */
+            --primary-dark: #6b0f0f; /* Improved contrast ratio */
+            --secondary-color: #B1740F;
             --success-color: #059669; /* Improved contrast ratio */
             --warning-color: #D97706; /* Improved contrast ratio */
             --danger-color: #DC2626; /* Improved contrast ratio */
@@ -78,14 +78,14 @@
         .keyboard-navigation button:focus {
             outline: 3px solid var(--primary-color);
             outline-offset: 3px;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 0 0 3px rgba(140, 21, 21, 0.2);
         }
 
         /* Focus indicator for podcast cards */
         .podcast-card:focus-within {
             outline: 2px solid var(--primary-color);
             outline-offset: 4px;
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+            box-shadow: 0 0 0 4px rgba(140, 21, 21, 0.1);
         }
 
         /* High Contrast Mode Styles */
@@ -176,7 +176,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #e8f0fe 0%, #f3e8ff 50%, #e0f2fe 100%);
+            background: #fdf5f5;
             min-height: 100vh;
             color: var(--dark-color);
         }
@@ -489,7 +489,7 @@
         }
 
         .stat-card:nth-child(1) .stat-icon {
-            background: linear-gradient(135deg, #6ea8fe, #a78bfa);
+            background: linear-gradient(135deg, #8C1515, #6b0f0f);
             color: white;
         }
 
@@ -585,7 +585,7 @@
             font-size: 12px;
         }
 
-        .badge-purple { color: #8B5CF6; }
+        .badge-purple { color: #8C1515; }
         .badge-red { color: #EF4444; }
         .badge-green { color: #10B981; }
 
@@ -663,7 +663,7 @@
         .filter-group select:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            box-shadow: 0 0 0 3px rgba(140, 21, 21, 0.1);
         }
 
         .podcasts-container {
@@ -909,7 +909,7 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+            box-shadow: 0 10px 20px rgba(140, 21, 21, 0.3);
         }
 
         .btn-secondary {
@@ -1040,7 +1040,7 @@
 
         /* Organization Info Styles */
         .organization-info {
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(124, 58, 237, 0.1));
+            background: linear-gradient(135deg, rgba(140, 21, 21, 0.05), rgba(107, 15, 15, 0.05));
             border-radius: var(--border-radius);
             padding: 20px;
             margin-bottom: 30px;
@@ -1119,7 +1119,7 @@
         }
 
         .badge-purple {
-            background: linear-gradient(135deg, #8B5CF6, #A855F7);
+            background: linear-gradient(135deg, #8C1515, #6b0f0f);
         }
 
         .badge-red {
@@ -1159,7 +1159,7 @@
         }
 
         .notification-item.unread {
-            background: #f0f9ff;
+            background: #fdf5f5;
             border-left-color: var(--primary-color);
         }
 
@@ -1561,7 +1561,7 @@
                     </div>
 
                     <div class="action-card" role="region" aria-labelledby="competitive-action">
-                        <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #6ea8fe, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" aria-hidden="true">
+                        <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #8C1515, #6b0f0f); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" aria-hidden="true">
                             <i class="fas fa-trophy"></i>
                         </div>
                         <h3 id="competitive-action">Competitive Quiz</h3>
@@ -1627,7 +1627,7 @@
 
                     <% if (gradedComplexQuizzes && gradedComplexQuizzes.length > 0) { %>
                         <div class="action-card" role="region" aria-labelledby="complex-graded-action" style="border-left: 4px solid #10b981;">
-                            <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #6ea8fe, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" aria-hidden="true">
+                            <div style="font-size: 48px; margin-bottom: 15px; background: linear-gradient(135deg, #8C1515, #6b0f0f); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" aria-hidden="true">
                                 <i class="fas fa-clipboard-check"></i>
                             </div>
                             <h3 id="complex-graded-action">New Complex Quiz Results</h3>
@@ -2569,7 +2569,7 @@
             let html = '';
             notifications.forEach(notification => {
                 const timeAgo = getTimeAgo(new Date(notification.createdAt));
-                const iconColor = notification.color || '#667eea';
+                const iconColor = notification.color || '#8C1515';
 
                 html += `
                     <div class="notification-item ${!notification.isRead ? 'unread' : ''}" data-id="${notification._id}">
