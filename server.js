@@ -449,23 +449,7 @@ async function generatePresignedUrls(s3Keys, expiresIn = 3600) {
   }
 }
 
-// Helper function to make existing S3 objects public
-async function makeS3ObjectPublic(s3Key) {
-  try {
-    const params = {
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: s3Key,
-      ACL: 'public-read'
-    };
-
-    await s3.putObjectAcl(params).promise();
-    console.log(`✅ Made S3 object public: ${s3Key}`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Error making S3 object public: ${s3Key}`, error);
-    return false;
-  }
-}
+// (duplicate removed)
 
 
 
@@ -8464,13 +8448,9 @@ io.on('connection', (socket) => {
 
 // Start server with MongoDB connection check
 const startServer = () => {
+  server.setTimeout(5 * 60 * 1000); // 5 min timeout for large file uploads
   server.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${PORT}`);
-    console.log('✅ Google OAuth is configured and ready!');
-    console.log('🎨 Whiteboard sessions with Socket.IO enabled!');
-
-    console.log('👥 Role-based system: Teachers, Students, and Admins');
-    console.log(`🗄️  MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
+    logger.info(`Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
   });
 };
 
@@ -8487,12 +8467,16 @@ const checkConnectionAndStart = () => {
   }
 };
 
-// Debug environment variables
-console.log('🔍 Environment Variables Debug:');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('MONGO_URI exists:', !!process.env.MONGO_URI);
-console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
-console.log('All env vars with MONGO:', Object.keys(process.env).filter(key => key.includes('MONGO')));
-
 // Start the connection check process after a delay to allow MongoDB to connect
 setTimeout(checkConnectionAndStart, 3000);
+
+// Crash handlers — log and exit cleanly so Heroku restarts the dyno
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Promise Rejection', { reason: reason?.message || reason, stack: reason?.stack });
+  // Don't exit on unhandled rejections in production to keep the server alive
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception — shutting down', { message: err.message, stack: err.stack });
+  server.close(() => process.exit(1));
+});
