@@ -221,7 +221,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "ws:", "wss:", "https://cdn.jsdelivr.net", "https://www.desmos.com", "https://api.desmos.com"],
+      connectSrc: ["'self'", "ws:", "wss:", "https://cdn.jsdelivr.net", "https://www.desmos.com", "https://api.desmos.com", "https://*.s3.amazonaws.com", "https://*.s3.*.amazonaws.com"],
       mediaSrc: ["'self'", "https:"],
       frameSrc: ["'self'", "https://view.officeapps.live.com", "https://docs.google.com", "https://www.desmos.com"],
       workerSrc: ["'self'", "blob:", "https://www.desmos.com"],
