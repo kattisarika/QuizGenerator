@@ -3777,10 +3777,11 @@ app.post('/create-quiz-vision', requireAuth, requireRole(['teacher']), requireAp
       console.log(`📄 PDF Vision: uploaded question paper, size: ${file.size} bytes`);
 
       let answerKey = null;
+      let answerFileUrl = null;
       const answerFile = req.files?.answerPaper?.[0];
       if (answerFile) {
-        const answerUrl = await uploadToS3(answerFile, 'answer-papers');
-        answerKey = extractS3Key(answerUrl);
+        answerFileUrl = await uploadToS3(answerFile, 'answer-papers');
+        answerKey = extractS3Key(answerFileUrl);
         console.log(`📄 PDF Vision: uploaded answer key, size: ${answerFile.size} bytes`);
       }
 
@@ -3790,6 +3791,7 @@ app.post('/create-quiz-vision', requireAuth, requireRole(['teacher']), requireAp
         questionPaperKey: questionKey,
         questionPaperUrl: questionFileUrl,
         answerPaperKey: answerKey,
+        answerPaperUrl: answerFileUrl,
         progressMessage: 'PDF uploaded. Claude AI is reading your questions...',
         quizMeta: {
           title,
@@ -3839,14 +3841,14 @@ async function processPdfVisionJob(job) {
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    // Download PDFs from S3 (or local disk in dev)
-    async function getPdfBuffer(s3Key) {
-      const hasAwsCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
-      if (!hasAwsCredentials) {
-        // Local dev: key is a URL path like /uploads/question-papers/file.pdf
-        const localPath = path.join(__dirname, 'public', s3Key);
+    // Download PDF content — use URL to determine source (local vs S3)
+    async function getPdfBuffer(fileUrl, s3Key) {
+      if (fileUrl && fileUrl.startsWith('/')) {
+        // Local dev: URL is like /uploads/question-papers/file.pdf
+        const localPath = path.join(__dirname, 'public', fileUrl);
         return await fs.readFile(localPath);
       }
+      // S3: download using the key
       const result = await s3.getObject({
         Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
         Key: s3Key
@@ -3854,13 +3856,13 @@ async function processPdfVisionJob(job) {
       return result.Body;
     }
 
-    const questionBuffer = await getPdfBuffer(job.questionPaperKey);
+    const questionBuffer = await getPdfBuffer(job.questionPaperUrl, job.questionPaperKey);
     const pdfBase64 = questionBuffer.toString('base64');
 
     const hasAnswerKey = !!job.answerPaperKey;
     let answerPdfBase64 = null;
     if (hasAnswerKey) {
-      const answerBuffer = await getPdfBuffer(job.answerPaperKey);
+      const answerBuffer = await getPdfBuffer(job.answerPaperUrl, job.answerPaperKey);
       answerPdfBase64 = answerBuffer.toString('base64');
     }
 

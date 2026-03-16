@@ -9,8 +9,9 @@ const pdfJobSchema = new mongoose.Schema({
   // S3 keys for the uploaded PDFs
   questionPaperKey: { type: String, required: true },
   answerPaperKey:   { type: String, default: null },
-  // S3 URL stored on the quiz after creation
+  // Full URLs (S3 https:// or local /uploads/...) — used by worker to fetch file content
   questionPaperUrl: { type: String, required: true },
+  answerPaperUrl:   { type: String, default: null },
   // Quiz metadata needed to create the Quiz document
   quizMeta: {
     title:           { type: String, required: true },
