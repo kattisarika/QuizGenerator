@@ -24,7 +24,6 @@
         }
     };
 </script>
-<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
 
@@ -3003,12 +3002,7 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 observer.observe(optionsContainer, { childList: true, subtree: true });
             }
             
-            // Initialize MathJax when it's ready
-            if (window.MathJax) {
-                MathJax.typesetPromise().catch((e) => console.log('MathJax initialization error:', e));
-            } else {
-                // Wait for MathJax to load
-            }
+            // MathJax loads async — initialization handled by the polling interval below
 
             // Test if manual quiz creator elements exist
             const manualTab = document.getElementById('manual');
@@ -3071,9 +3065,9 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             }, duration);
         }
 
-        // Check MathJax availability
+        // Wait for MathJax async script to fully load before calling typesetPromise
         const checkMathJax = setInterval(() => {
-            if (window.MathJax) {
+            if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                 clearInterval(checkMathJax);
                 MathJax.typesetPromise().catch((e) => console.log('MathJax initialization error:', e));
             }

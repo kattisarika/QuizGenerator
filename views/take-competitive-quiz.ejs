@@ -22,7 +22,6 @@
         }
     };
     </script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         .competitive-header {
@@ -563,7 +562,7 @@
             document.getElementById(`progress-${index}`).classList.add('current');
 
             // Process MathJax for the newly displayed question
-            if (window.MathJax) {
+            if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                 setTimeout(() => {
                     MathJax.typesetPromise([document.getElementById(`question-${index}`)]).catch(function (err) {
                         console.log('MathJax typeset error:', err.message);
@@ -919,7 +918,7 @@
             <% }); %>
 
             // Process MathJax for initial question display
-            if (window.MathJax) {
+            if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                 setTimeout(() => {
                     MathJax.typesetPromise().catch(function (err) {
                         console.log('MathJax typeset error on initial load:', err.message);

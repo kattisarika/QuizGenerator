@@ -22,7 +22,6 @@
         }
     };
     </script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <!-- Chart.js for charts -->
@@ -920,7 +919,7 @@
                                     }
 
                                     // Process LaTeX if MathJax is available
-                                    if (window.MathJax) {
+                                    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                                         MathJax.typesetPromise([canvas]).catch(function (err) {
                                             console.log('MathJax typeset error:', err.message);
                                         });
@@ -1230,7 +1229,7 @@
                                     renderComplexQuiz();
 
                                     // Process LaTeX if MathJax is available
-                                    if (window.MathJax) {
+                                    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                                         setTimeout(() => {
                                             MathJax.typesetPromise().catch(console.error);
                                         }, 500);
@@ -1663,7 +1662,7 @@
                 setupBeforeUnloadProtection();
 
                 // Process MathJax for the initial question display
-                if (window.MathJax) {
+                if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                     setTimeout(() => {
                         MathJax.typesetPromise().catch(function (err) {
                             console.log('MathJax typeset error on initial load:', err.message);
@@ -1961,7 +1960,7 @@
             updateProgress();
 
             // Process MathJax for the newly displayed question
-            if (window.MathJax) {
+            if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                 setTimeout(() => {
                     MathJax.typesetPromise().catch(function (err) {
                         console.log('MathJax typeset error:', err.message);
@@ -2002,7 +2001,7 @@
                 updateProgress();
 
                 // Process MathJax for the newly displayed question
-                if (window.MathJax) {
+                if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                     setTimeout(() => {
                         MathJax.typesetPromise().catch(function (err) {
                             console.log('MathJax typeset error:', err.message);
@@ -2022,7 +2021,7 @@
                 updateProgress();
 
                 // Process MathJax for the newly displayed question
-                if (window.MathJax) {
+                if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                     setTimeout(() => {
                         MathJax.typesetPromise().catch(function (err) {
                             console.log('MathJax typeset error:', err.message);
@@ -2042,7 +2041,7 @@
                 updateProgress();
 
                 // Process MathJax for the newly displayed question
-                if (window.MathJax) {
+                if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                     setTimeout(() => {
                         MathJax.typesetPromise().catch(function (err) {
                             console.log('MathJax typeset error:', err.message);

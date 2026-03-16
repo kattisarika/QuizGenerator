@@ -20,7 +20,6 @@
             }
         };
     </script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <!-- Chart.js for charts -->
@@ -3342,7 +3341,7 @@
                 const latexDiv = document.getElementById(`latex-${elementId}`);
                 if (latexDiv) {
                     latexDiv.innerHTML = `$$${content}$$`;
-                    if (window.MathJax) {
+                    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                         MathJax.typesetPromise([latexDiv]);
                     }
                 }
@@ -3656,7 +3655,7 @@
 
                     // If it's a complex equation, re-render MathJax
                     if (elementData.type === 'math-equation' && elementData.equationType === 'complex') {
-                        if (window.MathJax) {
+                        if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                             MathJax.typesetPromise([element]).catch((err) => console.log(err.message));
                         }
                     }
@@ -4953,7 +4952,7 @@
                 document.body.appendChild(loadingDiv);
 
                 // Ensure MathJax is fully loaded before proceeding
-                if (window.MathJax) {
+                if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                     try {
                         loadingDiv.innerHTML = `
                             <div style="text-align: center;">
@@ -5107,7 +5106,7 @@
                     await new Promise(resolve => setTimeout(resolve, 100));
 
                     // Process MathJax equations with complete control to prevent double rendering
-                    if (window.MathJax) {
+                    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
                         try {
                           // Clean up any old MathJax renderings before re-typeset
                              tempCanvas.querySelectorAll('mjx-container').forEach(el => el.remove());
