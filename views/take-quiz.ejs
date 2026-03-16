@@ -1270,12 +1270,29 @@
 
                                         <!-- Question Image Display -->
                                         <% if (question.image) { %>
-                                            <div class="question-image-container" data-s3-key="<%= question.image %>">
-                                                <div class="question-image-loading" style="text-align: center; padding: 20px;">
-                                                    <i class="fas fa-spinner fa-spin"></i> Loading question image...
+                                            <% if (question.image.startsWith('pdf-page:')) { %>
+                                                <%
+                                                  const pvParts = question.image.split(':');
+                                                  const pvPage = pvParts[1];
+                                                  const pvBounds = pvParts[2] || '';
+                                                %>
+                                                <div class="question-image-container pdf-page-container"
+                                                     data-pdf-page="<%= pvPage %>"
+                                                     data-pdf-bounds="<%= pvBounds %>"
+                                                     data-pdf-url="<%= questionPaperUrl || '' %>">
+                                                    <div class="question-image-loading" style="text-align:center;padding:20px;">
+                                                        <i class="fas fa-spinner fa-spin"></i> Loading diagram...
+                                                    </div>
+                                                    <canvas style="max-width:100%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:none;" class="pdf-page-canvas"></canvas>
                                                 </div>
-                                                <img class="question-image" style="max-width: 100%; max-height: 400px; margin-top: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;" alt="Question Image">
-                                            </div>
+                                            <% } else { %>
+                                                <div class="question-image-container" data-s3-key="<%= question.image %>">
+                                                    <div class="question-image-loading" style="text-align: center; padding: 20px;">
+                                                        <i class="fas fa-spinner fa-spin"></i> Loading question image...
+                                                    </div>
+                                                    <img class="question-image" style="max-width: 100%; max-height: 400px; margin-top: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none;" alt="Question Image">
+                                                </div>
+                                            <% } %>
                                         <% } %>
 
                                         <% if (question.type === 'multiple-choice' && question.options && question.options.length > 0) { %>
@@ -1886,6 +1903,10 @@
                     targetQuestion.classList.add('active');
                 }
                 targetQuestion.style.display = 'block';
+                // Render PDF page diagram lazily when question becomes visible
+                if (typeof renderPdfContainersInQuestion === 'function') {
+                    renderPdfContainersInQuestion(targetQuestion);
+                }
                 console.log(`Question ${index} shown`);
                 console.log(`Question ${index} classes:`, targetQuestion.className);
                 console.log(`Question ${index} style:`, targetQuestion.style.cssText);
@@ -3640,5 +3661,115 @@
     
     <!-- Session timeout management -->
     <script src="/js/session-timeout.js"></script>
+
+    <!-- PDF.js for rendering PDF page diagrams (lazy — renders only when question is shown) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+    // Cache loaded PDF documents keyed by URL
+    const _pdfDocCache = {};
+    const _renderedContainers = new WeakSet();
+
+    function _extractS3Key(url) {
+        if (!url) return '';
+        try {
+            const m = url.match(/amazonaws\.com\/(.+)$/);
+            if (m) return decodeURIComponent(m[1]);
+        } catch(e) {}
+        return url;
+    }
+
+    async function _getPresignedUrl(pdfUrl) {
+        const key = _extractS3Key(pdfUrl);
+        try {
+            const r = await fetch(`/api/image/${encodeURIComponent(key)}?expiresIn=3600`);
+            if (r.ok) { const d = await r.json(); return d.presignedUrl || pdfUrl; }
+        } catch(e) {}
+        return pdfUrl;
+    }
+
+    async function renderPdfContainersInQuestion(questionEl) {
+        if (!questionEl) return;
+        const containers = questionEl.querySelectorAll('.pdf-page-container');
+        if (!containers.length) return;
+        if (!window.pdfjsLib) return;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        for (const container of containers) {
+            if (_renderedContainers.has(container)) continue; // already rendered
+            const pdfUrl = container.dataset.pdfUrl;
+            const pageNum = parseInt(container.dataset.pdfPage) || 1;
+            const loadingDiv = container.querySelector('.question-image-loading');
+            const canvas = container.querySelector('.pdf-page-canvas');
+            if (!pdfUrl || !canvas) continue;
+
+            try {
+                if (!_pdfDocCache[pdfUrl]) {
+                    const loadUrl = await _getPresignedUrl(pdfUrl);
+                    _pdfDocCache[pdfUrl] = await pdfjsLib.getDocument({ url: loadUrl, withCredentials: false }).promise;
+                }
+                const pdfDoc = _pdfDocCache[pdfUrl];
+                const page = await pdfDoc.getPage(pageNum);
+
+                // Parse bounds (x,y,w,h as 0-1 fractions)
+                const boundsStr = container.dataset.pdfBounds || '';
+                const boundsArr = boundsStr.split(',').map(Number);
+                const hasBounds = boundsArr.length === 4 && boundsArr.every(n => !isNaN(n));
+
+                const containerW = container.offsetWidth || 650;
+                const baseViewport = page.getViewport({ scale: 1 });
+
+                if (hasBounds) {
+                    // Render full page to offscreen canvas, then crop to diagram bounds
+                    const PADDING = 0.03; // 3% padding around diagram
+                    let [bx, by, bw, bh] = boundsArr;
+                    bx = Math.max(0, bx - PADDING);
+                    by = Math.max(0, by - PADDING);
+                    bw = Math.min(1 - bx, bw + PADDING * 2);
+                    bh = Math.min(1 - by, bh + PADDING * 2);
+
+                    // Scale so the cropped region fills the container width
+                    const scale = containerW / (bw * baseViewport.width);
+                    const fullViewport = page.getViewport({ scale });
+
+                    // Render to offscreen canvas
+                    const offscreen = document.createElement('canvas');
+                    offscreen.width = fullViewport.width;
+                    offscreen.height = fullViewport.height;
+                    await page.render({ canvasContext: offscreen.getContext('2d'), viewport: fullViewport }).promise;
+
+                    // Crop to diagram region
+                    const srcX = bx * fullViewport.width;
+                    const srcY = by * fullViewport.height;
+                    const srcW = bw * fullViewport.width;
+                    const srcH = bh * fullViewport.height;
+
+                    canvas.width = srcW;
+                    canvas.height = srcH;
+                    canvas.getContext('2d').drawImage(offscreen, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+                } else {
+                    // No bounds — render full page
+                    const scale = Math.min(1.8, containerW / baseViewport.width);
+                    const viewport = page.getViewport({ scale });
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+                }
+
+                if (loadingDiv) loadingDiv.style.display = 'none';
+                canvas.style.display = 'block';
+                _renderedContainers.add(container);
+            } catch(e) {
+                if (loadingDiv) loadingDiv.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-1"></i> Could not load diagram.';
+                console.warn(`PDF page ${pageNum} render error:`, e.message);
+            }
+        }
+    }
+
+    // Render PDF page for the currently visible question on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        const firstActive = document.querySelector('.question-container.active');
+        if (firstActive) renderPdfContainersInQuestion(firstActive);
+    });
+    </script>
 </body>
 </html> 

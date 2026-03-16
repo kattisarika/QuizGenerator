@@ -7,6 +7,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
+    <!-- Math.js for expression evaluation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+
     <!-- MathJax for Math Equation Support -->
     <script>
     window.MathJax = {
@@ -445,6 +448,7 @@
 .bg-general  { background: linear-gradient(135deg, #4facfe, #00f2fe); }
 .bg-advanced { background: linear-gradient(135deg, #f7971e, #ffd200); }
 .bg-advanced i { color: #7c4a00; }
+.bg-vision  { background: linear-gradient(135deg, #e96c8a, #f7797d); }
 .method-info { flex: 1; }
 .method-info h5 {
     margin: 0 0 4px;
@@ -586,6 +590,16 @@
                                 <div class="method-info">
                                     <h5>English, Science &amp; General Subjects Quiz</h5>
                                     <p>Create quizzes for English, Science, and other general subjects step by step</p>
+                                </div>
+                                <i class="fas fa-chevron-right method-arrow"></i>
+                            </div>
+                            <div class="method-card" onclick="selectMethod('pdf-vision')">
+                                <div class="method-icon-wrap bg-vision">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                                <div class="method-info">
+                                    <h5>PDF with Images / Diagrams</h5>
+                                    <p>Upload a question paper that contains diagrams, graphs or figures — Claude AI reads each page visually</p>
                                 </div>
                                 <i class="fas fa-chevron-right method-arrow"></i>
                             </div>
@@ -949,135 +963,113 @@
                                         </h5>
 
                                         <!-- Question Text -->
-                                        <!-- Question Text with Math Support -->
                                         <div class="mb-3">
-                                            <label for="questionText" class="form-label">Enter your question: *</label>
-                                            
-                                            <!-- Rich Text Editor Toggle -->
-                                            <div class="mb-2">
-                                                <div class="btn-group btn-group-sm" role="group">
-                                                    <button type="button" class="btn btn-outline-primary active" id="plainTextBtn" onclick="toggleEditor('plain')">
-                                                        <i class="fas fa-font"></i> Plain Text
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-primary" id="richTextBtn" onclick="toggleEditor('rich')">
-                                                        <i class="fas fa-edit"></i> Rich Text
-                                                    </button>
-                                                </div>
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <label for="questionText" class="form-label fw-semibold mb-0">Question Text *</label>
+                                                <button type="button" onclick="autoFormatQuestion()" id="autoFormatBtn"
+                                                    style="background:linear-gradient(135deg,#8C1515,#6b0f0f); color:white; border:none; padding:5px 14px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;">
+                                                    <i class="fas fa-magic me-1"></i>Auto-Format Math
+                                                </button>
                                             </div>
+                                            <textarea class="form-control" id="questionText" rows="3"
+                                                placeholder="Type in plain English, e.g: Find the slope of the line passing through points (2,3) and (6,11)"
+                                                required oninput="updateMathPreview()"></textarea>
+                                            <small class="text-muted mt-1 d-block">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Type naturally and click <strong>Auto-Format Math</strong> — or wrap manually: <code>$(2,3)$</code>
+                                            </small>
+                                            <div id="mathQuestionPreview" style="display:none; margin-top:8px; padding:10px 14px; background:#f8f9fa; border:1px solid #e5e7eb; border-radius:8px; font-size:15px; color:#1e293b;">
+                                                <span style="font-size:11px; color:#9ca3af; display:block; margin-bottom:4px;">PREVIEW</span>
+                                                <span id="mathQuestionPreviewContent"></span>
+                                            </div>
+                                        </div>
 
-                                            <!-- Math Toolbar -->
-                                            <div class="math-toolbar">
-                                                <div class="btn-group btn-group-sm" role="group">
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\frac{a}{b}')" title="Fraction">
-                                                        <i class="fas fa-divide"></i> Fraction
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\sqrt{x}')" title="Square Root">
-                                                        √ Root
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('x^{2}')" title="Exponent">
-                                                        x² Power
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('x_{n}')" title="Subscript">
-                                                        x₁ Subscript
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\sum_{i=1}^{n}')" title="Sum">
-                                                        Σ Sum
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\int_{a}^{b}')" title="Integral">
-                                                        ∫ Integral
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\pi')" title="Pi">
-                                                        π Pi
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\infty')" title="Infinity">
-                                                        ∞ Infinity
-                                                    </button>
-                                                </div>
-                                                <div class="btn-group btn-group-sm mt-2" role="group">
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\alpha')" title="Alpha">
-                                                        α Alpha
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\beta')" title="Beta">
-                                                        β Beta
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\theta')" title="Theta">
-                                                        θ Theta
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\phi')" title="Phi">
-                                                        φ Phi
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\pm')" title="Plus-Minus">
-                                                        ± Plus-Minus
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\neq')" title="Not Equal">
-                                                        ≠ Not Equal
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\leq')" title="Less or Equal">
-                                                        ≤ Less or Equal
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\geq')" title="Greater or Equal">
-                                                        ≥ Greater or Equal
-                                                    </button>
-                                                </div>
-                                                <div class="btn-group btn-group-sm mt-2" role="group">
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\sin(x)')" title="Sine">
-                                                        sin(x)
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\cos(x)')" title="Cosine">
-                                                        cos(x)
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\tan(x)')" title="Tangent">
-                                                        tan(x)
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\log(x)')" title="Logarithm">
-                                                        log(x)
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('\\ln(x)')" title="Natural Log">
-                                                        ln(x)
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="insertMath('e^{x}')" title="Exponential">
-                                                        eˣ
-                                                    </button>
-                                                </div>
-                                                <div class="math-help">
-                                                    <i class="fas fa-info-circle"></i> Use $ for inline math: $x^2$ or $$ for display math: $$\frac{a}{b}$$
-                                                    <br>
-                                                    <small class="text-muted">Click any button above to insert common math symbols, or type LaTeX directly in the textarea.</small>
+                                        <!-- Desmos Graph Toggle -->
+                                        <div class="mb-3" style="border:2px solid #e5e7eb; border-radius:12px; padding:16px; background:#fafafa;">
+                                            <div class="d-flex align-items-center gap-3 mb-1">
+                                                <span class="fw-semibold" style="color:#374151; font-size:15px;">
+                                                    <i class="fas fa-chart-line me-2" style="color:#8C1515;"></i>Add Graph to this Question
+                                                </span>
+                                                <div class="form-check form-switch mb-0">
+                                                    <input class="form-check-input" type="checkbox" id="toggleGraphSwitch" onchange="toggleDesmosPanel(this.checked)" style="cursor:pointer;">
                                                 </div>
                                             </div>
-                                            
-                                            <!-- Plain Text Input -->
-                                            <textarea class="form-control" id="questionText" rows="4" placeholder="Enter your question here. Use $ for math: $x^2 + y^2 = z^2$" required oninput="updatePreview('questionText', 'questionPreview')"></textarea>
-                                            
-                                            <!-- Rich Text Editor (Hidden by default) -->
-                                            <div id="richTextEditor" style="display: none;">
-                                                <div class="rich-text-toolbar mb-2">
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCommand('bold')" title="Bold">
-                                                        <i class="fas fa-bold"></i>
+                                            <small class="text-muted">Type any equation — Desmos plots it live. Annotate with arrows &amp; labels, then capture as image.</small>
+
+                                            <div id="desmosPanel" style="display:none; margin-top:14px;">
+                                                <!-- Equation input -->
+                                                <div class="d-flex gap-2 mb-2 flex-wrap">
+                                                    <input type="text" class="form-control" id="desmosEqInput" placeholder="e.g.  y=2*x+1  |  x^2+y^2=25  |  (2,3)" style="min-width:0; flex:1;">
+                                                    <button type="button" class="btn btn-primary btn-sm" onclick="addEquationToDesmos()" style="white-space:nowrap;">
+                                                        <i class="fas fa-plus me-1"></i>Plot
                                                     </button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCommand('italic')" title="Italic">
-                                                        <i class="fas fa-italic"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCommand('underline')" title="Underline">
-                                                        <i class="fas fa-underline"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCommand('insertUnorderedList')" title="Bullet List">
-                                                        <i class="fas fa-list-ul"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCommand('insertOrderedList')" title="Numbered List">
-                                                        <i class="fas fa-list-ol"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertMathInRichText('\\frac{a}{b}')" title="Math">
-                                                        <i class="fas fa-square-root-alt"></i>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearDesmosExpressions()" style="white-space:nowrap;">
+                                                        <i class="fas fa-eraser me-1"></i>Clear All
                                                     </button>
                                                 </div>
-                                                <div class="rich-text-content" id="richTextContent" contenteditable="true" style="border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem; min-height: 100px; background: white;" oninput="updateRichTextPreview()"></div>
-                                            </div>
-                                            
-                                            <!-- Live Preview -->
-                                            <div id="questionPreview" class="math-preview">
-                                                <strong>Preview:</strong>
-                                                <div id="questionPreviewContent">Your question will appear here...</div>
+                                                <div id="graphErrorMsg" style="display:none; color:#dc2626; font-size:12px; margin:-6px 0 8px; padding:6px 10px; background:#fef2f2; border-radius:6px; border:1px solid #fecaca;"></div>
+                                                <!-- Quick example buttons -->
+                                                <div class="d-flex gap-2 flex-wrap mb-3" style="font-size:12px;">
+                                                    <span style="color:#6b7280; align-self:center;">Examples:</span>
+                                                    <button type="button" onclick="desmosExample('x^2/9 - y^2/4 = 1')" class="btn btn-sm" style="background:#f3f4f6; border:1px solid #e5e7eb; font-size:11px; padding:3px 8px;">Hyperbola</button>
+                                                    <button type="button" onclick="desmosExample('x^2/16 + y^2/9 = 1')" class="btn btn-sm" style="background:#f3f4f6; border:1px solid #e5e7eb; font-size:11px; padding:3px 8px;">Ellipse</button>
+                                                    <button type="button" onclick="desmosExample('y = x^2 - 4')" class="btn btn-sm" style="background:#f3f4f6; border:1px solid #e5e7eb; font-size:11px; padding:3px 8px;">Parabola</button>
+                                                    <button type="button" onclick="desmosExample('y = sin(x)')" class="btn btn-sm" style="background:#f3f4f6; border:1px solid #e5e7eb; font-size:11px; padding:3px 8px;">sin(x)</button>
+                                                    <button type="button" onclick="desmosExample('y = 2x + 3')" class="btn btn-sm" style="background:#f3f4f6; border:1px solid #e5e7eb; font-size:11px; padding:3px 8px;">Line</button>
+                                                    <button type="button" onclick="desmosExample('x^2 + y^2 = 25')" class="btn btn-sm" style="background:#f3f4f6; border:1px solid #e5e7eb; font-size:11px; padding:3px 8px;">Circle</button>
+                                                </div>
+
+                                                <!-- Desmos + Annotation Canvas stacked -->
+                                                <div id="desmosWrapper" style="position:relative; width:100%; height:420px; border:1px solid #d1d5db; border-radius:8px; overflow:hidden; background:white;">
+                                                    <div id="desmosCalc" style="position:absolute; inset:0; width:100%; height:100%;"></div>
+                                                    <canvas id="annotationCanvas" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none;"></canvas>
+                                                </div>
+
+                                                <!-- Annotation toolbar -->
+                                                <div class="d-flex gap-2 align-items-center mt-3 flex-wrap">
+                                                    <span style="font-weight:600; font-size:13px; color:#6b7280;">Annotate:</span>
+                                                    <button type="button" id="arrowToolBtn" onclick="setAnnotationTool('arrow')"
+                                                        style="background:#e5e7eb; border:1px solid #d1d5db; padding:5px 14px; border-radius:6px; font-size:13px; cursor:pointer;">
+                                                        <i class="fas fa-long-arrow-alt-right me-1"></i>Arrow
+                                                    </button>
+                                                    <button type="button" id="labelToolBtn" onclick="setAnnotationTool('label')"
+                                                        style="background:#e5e7eb; border:1px solid #d1d5db; padding:5px 14px; border-radius:6px; font-size:13px; cursor:pointer;">
+                                                        <i class="fas fa-tag me-1"></i>Label
+                                                    </button>
+                                                    <button type="button" onclick="undoAnnotation()"
+                                                        style="background:#e5e7eb; border:1px solid #d1d5db; padding:5px 14px; border-radius:6px; font-size:13px; cursor:pointer;">
+                                                        <i class="fas fa-undo me-1"></i>Undo
+                                                    </button>
+                                                    <button type="button" onclick="clearAnnotations()"
+                                                        style="background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; padding:5px 14px; border-radius:6px; font-size:13px; cursor:pointer;">
+                                                        <i class="fas fa-times me-1"></i>Clear All
+                                                    </button>
+                                                    <small class="text-muted" id="annotationHint">Select a tool then draw on the graph</small>
+                                                </div>
+
+                                                <!-- Inline label input (hidden until label tool click) -->
+                                                <div id="labelInputRow" style="display:none; margin-top:10px;" class="d-flex gap-2 align-items-center">
+                                                    <input type="text" id="labelTextInput" class="form-control form-control-sm" placeholder="Label text e.g. V(3,0)" style="max-width:220px;">
+                                                    <button type="button" class="btn btn-sm btn-primary" onclick="confirmLabel()">Add Label</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cancelLabel()">Cancel</button>
+                                                </div>
+
+                                                <!-- Capture -->
+                                                <div class="mt-3 d-flex gap-2 align-items-center">
+                                                    <button type="button" class="btn btn-success btn-sm" onclick="captureGraph()">
+                                                        <i class="fas fa-camera me-2"></i>Capture Graph as Image
+                                                    </button>
+                                                    <button type="button" id="removeGraphBtn" onclick="removeCapturedGraph()" style="display:none;"
+                                                        class="btn btn-outline-danger btn-sm">
+                                                        <i class="fas fa-trash me-1"></i>Remove
+                                                    </button>
+                                                </div>
+                                                <div id="capturedGraphPreview" style="display:none; margin-top:10px;">
+                                                    <div style="background:#d1fae5; color:#065f46; padding:7px 12px; border-radius:6px; font-size:13px; margin-bottom:8px;">
+                                                        <i class="fas fa-check-circle me-1"></i>Graph captured — will be attached to this question.
+                                                    </div>
+                                                    <img id="capturedGraphImg" style="max-width:100%; max-height:200px; border:1px solid #e5e7eb; border-radius:6px;">
+                                                </div>
                                             </div>
                                         </div>
 
@@ -1189,26 +1181,6 @@
     </div>
 </div>
 
-                                        <!-- Image Upload -->
-                                        <div class="mb-3">
-                                            <label class="form-label">Image/Drawing (Optional):</label>
-                                            <div class="file-upload-area" onclick="document.getElementById('questionImage').click()">
-                                                <input type="file" id="questionImage" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
-                                                <div id="imageUploadContent">
-                                                    <i class="fas fa-image upload-icon"></i>
-                                                    <p class="mb-2">Click to upload an image or drawing</p>
-                                                    <small class="text-muted">Supports: JPG, PNG, GIF (Max 5MB)</small>
-                                                </div>
-                                                <div id="imagePreview" style="display: none;">
-                                                    <img id="previewImg" style="max-width: 100%; max-height: 200px;">
-                                                    <p class="mt-2">
-                                                        <button type="button" class="btn btn-sm btn-danger" onclick="removeImage(event)">
-                                                            <i class="fas fa-trash me-1"></i>Remove Image
-                                                        </button>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
 
                                     <!-- Questions List -->
@@ -1246,6 +1218,37 @@
                                     <p class="mb-0">Build quiz questions for English, Science, and general subjects</p>
                                 </div>
                                 <form id="generalQuizForm">
+                                    <!-- Quiz Type Selection -->
+                                    <div class="mb-4">
+                                        <h5 class="text-primary mb-3">
+                                            <i class="fas fa-trophy me-2"></i>Quiz Type
+                                        </h5>
+                                        <div class="quiz-type-selector">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="generalQuizType" id="generalRegular" value="regular" checked>
+                                                        <label class="form-check-label" for="generalRegular">
+                                                            <strong><i class="fas fa-book me-2"></i>Regular Quiz</strong>
+                                                            <br>
+                                                            <small class="text-muted">Standard quiz for practice and assessment</small>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="generalQuizType" id="generalCompetitive" value="competitive">
+                                                        <label class="form-check-label" for="generalCompetitive">
+                                                            <strong><i class="fas fa-trophy me-2"></i>Competitive Quiz</strong>
+                                                            <br>
+                                                            <small class="text-muted">Real-time competition with leaderboard</small>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- Quiz Info -->
                                     <div class="mb-4">
                                         <h5 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>Quiz Information</h5>
@@ -1283,6 +1286,8 @@
                                                     <option value="11">11th Grade</option>
                                                     <option value="12">12th Grade</option>
                                                     <option value="sat_verbal">SAT Verbal</option>
+                                                    <option value="sat_math">SAT Math</option>
+                                                    <option value="sat_general">SAT General Questionnaire</option>
                                                     <option value="generic">Generic Questionnaire</option>
                                                 </select>
                                             </div>
@@ -1463,6 +1468,142 @@
                                     </div>
                                 </form>
                             </div>
+                            <!-- PDF with Images / Claude Vision Panel -->
+                            <div class="method-content" id="pdf-vision">
+                                <div class="method-back-btn">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="showMethodSelector()">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Methods
+                                    </button>
+                                </div>
+                                <div class="card-header text-center mb-4">
+                                    <h3><i class="fas fa-image me-2" style="color:#e96c8a;"></i>PDF with Images / Diagrams</h3>
+                                    <p class="mb-0">Claude AI reads each page of your PDF visually — extracts questions, options, and keeps diagrams attached</p>
+                                </div>
+
+                                <form id="pdfVisionForm" enctype="multipart/form-data">
+                                    <!-- Quiz Info -->
+                                    <div class="mb-4">
+                                        <h5 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>Quiz Information</h5>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Quiz Title *</label>
+                                                <input type="text" class="form-control" id="pvTitle" placeholder="e.g. SAT Math Practice Set 1" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Subject *</label>
+                                                <select class="form-select" id="pvSubject" required>
+                                                    <option value="">Select Subject</option>
+                                                    <option value="math">Math</option>
+                                                    <option value="english">English</option>
+                                                    <option value="science">Science</option>
+                                                    <option value="history">History</option>
+                                                    <option value="geography">Geography</option>
+                                                    <option value="general">General Knowledge</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Grade Level *</label>
+                                                <select class="form-select" id="pvGrade" required>
+                                                    <option value="">Select Grade</option>
+                                                    <option value="1">1st Grade</option>
+                                                    <option value="2">2nd Grade</option>
+                                                    <option value="3">3rd Grade</option>
+                                                    <option value="4">4th Grade</option>
+                                                    <option value="5">5th Grade</option>
+                                                    <option value="6">6th Grade</option>
+                                                    <option value="7">7th Grade</option>
+                                                    <option value="8">8th Grade</option>
+                                                    <option value="9">9th Grade</option>
+                                                    <option value="10">10th Grade</option>
+                                                    <option value="11">11th Grade</option>
+                                                    <option value="12">12th Grade</option>
+                                                    <option value="sat_math">SAT Math</option>
+                                                    <option value="sat_verbal">SAT Verbal</option>
+                                                    <option value="sat_general">SAT General Questionnaire</option>
+                                                    <option value="generic">Generic Questionnaire</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Quiz Type</label>
+                                                <div class="d-flex gap-4 mt-1">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="pvQuizType" id="pvRegular" value="regular" checked>
+                                                        <label class="form-check-label" for="pvRegular"><i class="fas fa-book me-1"></i>Regular</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="pvQuizType" id="pvCompetitive" value="competitive">
+                                                        <label class="form-check-label" for="pvCompetitive"><i class="fas fa-trophy me-1"></i>Competitive</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- File Upload -->
+                                    <div class="mb-4">
+                                        <h5 class="text-primary mb-3"><i class="fas fa-file-pdf me-2"></i>Upload PDFs</h5>
+                                        <div class="row g-3">
+                                            <!-- Question Paper -->
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold">Question Paper PDF *</label>
+                                                <div class="upload-area" id="pvDropZone" style="border:2px dashed #e96c8a; border-radius:12px; padding:30px; text-align:center; background:#fff5f7; cursor:pointer;" onclick="document.getElementById('pvFile').click()">
+                                                    <i class="fas fa-file-alt" style="font-size:2rem; color:#e96c8a; margin-bottom:8px; display:block;"></i>
+                                                    <p class="mb-1 fw-semibold" style="font-size:14px;">Click or drag &amp; drop</p>
+                                                    <p class="text-muted mb-0" style="font-size:12px;">Questions PDF · Max 20 MB</p>
+                                                </div>
+                                                <input type="file" id="pvFile" accept=".pdf" style="display:none;" onchange="pvFileSelected(this)">
+                                                <div id="pvFileInfo" style="display:none; margin-top:8px;" class="d-flex align-items-center gap-2">
+                                                    <i class="fas fa-file-pdf text-danger"></i>
+                                                    <span id="pvFileName" class="fw-semibold" style="font-size:13px;"></span>
+                                                    <span id="pvFileSize" class="text-muted" style="font-size:12px;"></span>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger ms-1" onclick="pvClearFile()"><i class="fas fa-times"></i></button>
+                                                </div>
+                                            </div>
+                                            <!-- Answer Key -->
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold">Answer Key PDF <span class="text-muted fw-normal">(optional)</span></label>
+                                                <div class="upload-area" id="pvAnswerDropZone" style="border:2px dashed #6c757d; border-radius:12px; padding:30px; text-align:center; background:#f8f9fa; cursor:pointer;" onclick="document.getElementById('pvAnswerFile').click()">
+                                                    <i class="fas fa-key" style="font-size:2rem; color:#6c757d; margin-bottom:8px; display:block;"></i>
+                                                    <p class="mb-1 fw-semibold" style="font-size:14px;">Click or drag &amp; drop</p>
+                                                    <p class="text-muted mb-0" style="font-size:12px;">Answer key PDF · Max 10 MB</p>
+                                                </div>
+                                                <input type="file" id="pvAnswerFile" accept=".pdf" style="display:none;" onchange="pvAnswerFileSelected(this)">
+                                                <div id="pvAnswerFileInfo" style="display:none; margin-top:8px;" class="d-flex align-items-center gap-2">
+                                                    <i class="fas fa-file-pdf text-success"></i>
+                                                    <span id="pvAnswerFileName" class="fw-semibold" style="font-size:13px;"></span>
+                                                    <span id="pvAnswerFileSize" class="text-muted" style="font-size:12px;"></span>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger ms-1" onclick="pvClearAnswerFile()"><i class="fas fa-times"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Progress -->
+                                    <div id="pvProgress" style="display:none;" class="mb-4">
+                                        <div class="d-flex align-items-center gap-3 mb-2">
+                                            <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+                                            <span id="pvProgressMsg" class="fw-semibold">Uploading PDF...</span>
+                                        </div>
+                                        <div class="progress" style="height:8px;">
+                                            <div id="pvProgressBar" class="progress-bar bg-danger progress-bar-striped progress-bar-animated" style="width:0%"></div>
+                                        </div>
+                                        <small class="text-muted mt-1 d-block">Claude is reading each page — this may take 30–60 seconds for longer papers</small>
+                                    </div>
+
+                                    <!-- Error -->
+                                    <div id="pvError" style="display:none;" class="alert alert-danger mb-4"></div>
+
+                                    <!-- Submit -->
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-lg" style="background:linear-gradient(135deg,#e96c8a,#f7797d);color:#fff;" onclick="pvSubmit()" id="pvSubmitBtn">
+                                            <i class="fas fa-magic me-2"></i>Extract Questions with AI
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <!-- End PDF Vision Panel -->
+
                             <!-- End General Subjects Quiz -->
                         </div>
                     </div>
@@ -2017,7 +2158,6 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
         // Clear question form
         function clearQuestionForm() {
             document.getElementById('questionText').value = '';
-            document.getElementById('richTextContent').innerHTML = '';
             document.getElementById('multipleChoice').checked = true;
             document.getElementById('singleAnswer').checked = true;
             toggleAnswerFormat();
@@ -2055,8 +2195,12 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             // Clear text answer
             document.getElementById('expectedAnswer').value = '';
 
-            // Clear image
-            removeImage({ preventDefault: () => {}, stopPropagation: () => {} });
+            // Reset Desmos panel
+            removeCapturedGraph();
+            document.getElementById('toggleGraphSwitch').checked = false;
+            document.getElementById('desmosPanel').style.display = 'none';
+            clearAnnotations();
+            if (desmosCalculator) { desmosCalculator.setBlank(); }
         }
 
         // Finish quiz creation
@@ -2261,16 +2405,519 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
 
         // Get the final question text regardless of editor mode
         function getQuestionText() {
-            const plainTextBtn = document.getElementById('plainTextBtn');
-            const questionText = document.getElementById('questionText');
-            const richTextContent = document.getElementById('richTextContent');
-            
-            if (plainTextBtn.classList.contains('active')) {
-                return questionText.value;
-            } else {
-                return richTextContent.innerText;
+            return document.getElementById('questionText').value;
+        }
+
+        async function autoFormatQuestion() {
+            const textarea = document.getElementById('questionText');
+            const btn = document.getElementById('autoFormatBtn');
+            const text = textarea.value.trim();
+            if (!text) { alert('Please type a question first.'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Formatting...';
+
+            try {
+                const res = await fetch('/api/format-math-question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    textarea.value = data.formatted;
+                    updateMathPreview();
+                } else {
+                    alert(data.message || 'Could not format question.');
+                }
+            } catch (e) {
+                alert('Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic me-1"></i>Auto-Format Math';
             }
         }
+
+        function updateMathPreview() {
+            const text = document.getElementById('questionText').value;
+            const preview = document.getElementById('mathQuestionPreview');
+            const content = document.getElementById('mathQuestionPreviewContent');
+            if (!text.trim()) { preview.style.display = 'none'; return; }
+            preview.style.display = 'block';
+            content.innerHTML = text;
+            if (window.MathJax) MathJax.typesetPromise([content]).catch(() => {});
+        }
+
+        // ===== DESMOS GRAPH BUILDER =====
+        // ===== CANVAS GRAPHING ENGINE =====
+        let graphCanvas = null, graphCtx = null;
+        let graphExpressions = [];
+        let graphView = { xMin: -8, xMax: 8, yMin: -5, yMax: 5 };
+        const GRAPH_COLORS = ['#2563eb','#dc2626','#16a34a','#9333ea','#d97706','#0891b2'];
+
+        let annotations = [];
+        let currentTool = null;
+        let arrowStart = null;
+        let pendingLabelPos = null;
+        let annotCanvas, annotCtx;
+
+        function toggleDesmosPanel(show) {
+            const panel = document.getElementById('desmosPanel');
+            panel.style.display = show ? 'block' : 'none';
+            if (show) {
+                setTimeout(() => {
+                    if (!graphCanvas) initGrapher();
+                    else { resizeGraphCanvases(); renderGraph(); }
+                }, 80);
+            }
+        }
+
+        function resizeGraphCanvases() {
+            const wrapper = document.getElementById('desmosWrapper');
+            const rect = wrapper.getBoundingClientRect();
+            if (rect.width < 10) return;
+            graphCanvas.width = rect.width;
+            graphCanvas.height = rect.height;
+            annotCanvas.width = rect.width;
+            annotCanvas.height = rect.height;
+            redrawAnnotations();
+        }
+
+        function initGrapher() {
+            const wrapper = document.getElementById('desmosWrapper');
+            // Replace the desmosCalc div with a canvas
+            const placeholder = document.getElementById('desmosCalc');
+            graphCanvas = document.createElement('canvas');
+            graphCanvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;';
+            wrapper.replaceChild(graphCanvas, placeholder);
+            graphCtx = graphCanvas.getContext('2d');
+
+            annotCanvas = document.getElementById('annotationCanvas');
+            annotCtx = annotCanvas.getContext('2d');
+
+            const rect = wrapper.getBoundingClientRect();
+            graphCanvas.width = rect.width || 800;
+            graphCanvas.height = rect.height || 420;
+            annotCanvas.width = graphCanvas.width;
+            annotCanvas.height = graphCanvas.height;
+
+            new ResizeObserver(() => { resizeGraphCanvases(); renderGraph(); }).observe(wrapper);
+            renderGraph();
+            setupAnnotationEvents();
+        }
+
+        function toCanvas(x, y) {
+            const W = graphCanvas.width, H = graphCanvas.height;
+            return {
+                cx: (x - graphView.xMin) / (graphView.xMax - graphView.xMin) * W,
+                cy: H - (y - graphView.yMin) / (graphView.yMax - graphView.yMin) * H
+            };
+        }
+
+        function renderGraph() {
+            if (!graphCtx) return;
+            const W = graphCanvas.width, H = graphCanvas.height;
+            graphCtx.clearRect(0, 0, W, H);
+            graphCtx.fillStyle = 'white';
+            graphCtx.fillRect(0, 0, W, H);
+            drawGrid(); drawAxes();
+            graphExpressions.forEach((e, i) => plotExpr(e.expr, e.color || GRAPH_COLORS[i % GRAPH_COLORS.length]));
+        }
+
+        function drawGrid() {
+            const W = graphCanvas.width, H = graphCanvas.height;
+            graphCtx.strokeStyle = '#e5e7eb'; graphCtx.lineWidth = 1;
+            for (let x = Math.ceil(graphView.xMin); x <= graphView.xMax; x++) {
+                const {cx} = toCanvas(x, 0);
+                graphCtx.beginPath(); graphCtx.moveTo(cx, 0); graphCtx.lineTo(cx, H); graphCtx.stroke();
+            }
+            for (let y = Math.ceil(graphView.yMin); y <= graphView.yMax; y++) {
+                const {cy} = toCanvas(0, y);
+                graphCtx.beginPath(); graphCtx.moveTo(0, cy); graphCtx.lineTo(W, cy); graphCtx.stroke();
+            }
+        }
+
+        function drawAxes() {
+            const W = graphCanvas.width, H = graphCanvas.height;
+            const {cx: ox, cy: oy} = toCanvas(0, 0);
+            const axX = Math.max(2, Math.min(W - 2, ox));
+            const axY = Math.max(2, Math.min(H - 2, oy));
+            graphCtx.strokeStyle = '#374151'; graphCtx.lineWidth = 2;
+            graphCtx.beginPath(); graphCtx.moveTo(0, axY); graphCtx.lineTo(W, axY); graphCtx.stroke();
+            graphCtx.beginPath(); graphCtx.moveTo(axX, 0); graphCtx.lineTo(axX, H); graphCtx.stroke();
+            graphCtx.fillStyle = '#6b7280'; graphCtx.font = '11px Inter,sans-serif';
+            graphCtx.textAlign = 'center';
+            for (let x = Math.ceil(graphView.xMin); x <= graphView.xMax; x++) {
+                if (x === 0) continue;
+                const {cx} = toCanvas(x, 0);
+                graphCtx.fillText(x, cx, Math.min(axY + 14, H - 3));
+            }
+            graphCtx.textAlign = 'right';
+            for (let y = Math.ceil(graphView.yMin); y <= graphView.yMax; y++) {
+                if (y === 0) continue;
+                const {cy} = toCanvas(0, y);
+                graphCtx.fillText(y, Math.max(axX - 5, 22), cy + 4);
+            }
+        }
+
+        // Convert common LaTeX notation to math.js syntax
+        function latexToMathJs(expr) {
+            let s = expr;
+            // \frac{a}{b} → (a)/(b)  — handle nested braces by repeated replacement
+            for (let i = 0; i < 5; i++) {
+                s = s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, '($1)/($2)');
+            }
+            s = s.replace(/\\sqrt\{([^{}]*)\}/g, 'sqrt($1)');
+            s = s.replace(/\\sqrt/g, 'sqrt');
+            s = s.replace(/\^{([^{}]*)}/g, '^($1)');
+            s = s.replace(/\\left\(/g, '(').replace(/\\right\)/g, ')');
+            s = s.replace(/\\left\[/g, '[').replace(/\\right\]/g, ']');
+            s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
+            s = s.replace(/\\pi/g, 'pi');
+            s = s.replace(/\\sin/g, 'sin').replace(/\\cos/g, 'cos').replace(/\\tan/g, 'tan');
+            s = s.replace(/\\ln/g, 'log').replace(/\\log/g, 'log10');
+            // x_1 → x1, y_2 → y2 (subscripts can't be free vars in 2D)
+            s = s.replace(/([a-zA-Z])_\{?(\w+)\}?/g, '$1$2');
+            // Remove remaining backslash commands
+            s = s.replace(/\\[a-zA-Z]+/g, '');
+            // Remove LaTeX braces that aren't part of functions
+            s = s.replace(/\{/g, '(').replace(/\}/g, ')');
+            return s.trim();
+        }
+
+        function showGraphError(msg) {
+            const el = document.getElementById('graphErrorMsg');
+            if (!el) return;
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+
+        function plotPoint(px, py, color) {
+            const { cx, cy } = toCanvas(px, py);
+            graphCtx.beginPath();
+            graphCtx.arc(cx, cy, 5, 0, 2 * Math.PI);
+            graphCtx.fillStyle = color;
+            graphCtx.fill();
+            graphCtx.strokeStyle = '#fff';
+            graphCtx.lineWidth = 1.5;
+            graphCtx.stroke();
+            // Label
+            graphCtx.fillStyle = color;
+            graphCtx.font = 'bold 12px sans-serif';
+            graphCtx.fillText(`(${px},${py})`, cx + 8, cy - 6);
+        }
+
+        function plotExpr(expr, color) {
+            if (!expr || !window.math) return;
+            // Convert LaTeX if needed
+            const converted = latexToMathJs(expr);
+            const s = converted.replace(/\s/g, '');
+
+            // Point: (2,3)
+            const ptMatch = s.match(/^\((-?\d+\.?\d*),(-?\d+\.?\d*)\)$/);
+            if (ptMatch) { plotPoint(+ptMatch[1], +ptMatch[2], color); return; }
+
+            try {
+                if (/^y=/i.test(s)) { plotYEq(s.slice(2), color); return; }
+                if (/^x=/i.test(s)) { plotXEq(s.slice(2), color); return; }
+                if (!s.includes('=')) { plotYEq(s, color); return; }
+                // Implicit — detect common forms
+                const lower = s.toLowerCase();
+                // Circle: x^2+y^2=N
+                let m = lower.match(/^x\^2\+y\^2=(\d+\.?\d*)$/);
+                if (m) { const r = Math.sqrt(+m[1]); plotParam(t => r*Math.cos(t), t => r*Math.sin(t), 0, 2*Math.PI, 300, color); return; }
+                // Ellipse: x^2/A+y^2/B=1
+                m = lower.match(/^x\^2\/(\d+\.?\d*)\+y\^2\/(\d+\.?\d*)=1$/);
+                if (m) { const a=Math.sqrt(+m[1]), b=Math.sqrt(+m[2]); plotParam(t=>a*Math.cos(t), t=>b*Math.sin(t), 0, 2*Math.PI, 300, color); return; }
+                // Hyperbola horiz: x^2/A-y^2/B=1
+                m = lower.match(/^x\^2\/(\d+\.?\d*)-y\^2\/(\d+\.?\d*)=1$/);
+                if (m) {
+                    const a=Math.sqrt(+m[1]), b=Math.sqrt(+m[2]);
+                    plotParam(t=>a/Math.cos(t), t=>b*Math.tan(t), -1.45, 1.45, 400, color);
+                    plotParam(t=>-a/Math.cos(t), t=>-b*Math.tan(t), -1.45, 1.45, 400, color);
+                    return;
+                }
+                // Hyperbola vert: y^2/A-x^2/B=1
+                m = lower.match(/^y\^2\/(\d+\.?\d*)-x\^2\/(\d+\.?\d*)=1$/);
+                if (m) {
+                    const a=Math.sqrt(+m[1]), b=Math.sqrt(+m[2]);
+                    plotParam(t=>b*Math.tan(t), t=>a/Math.cos(t), -1.45, 1.45, 400, color);
+                    plotParam(t=>-b*Math.tan(t), t=>-a/Math.cos(t), -1.45, 1.45, 400, color);
+                    return;
+                }
+                // Check it only has x and y as free variables before implicit fallback
+                const freeVars = new Set();
+                try {
+                    const node = math.parse(`(${s.split('=')[0]}) - (${s.split('=')[1]})`);
+                    node.filter(n => n.isSymbolNode).forEach(n => freeVars.add(n.name));
+                } catch {}
+                const nonXY = [...freeVars].filter(v => v !== 'x' && v !== 'y' && v !== 'pi' && v !== 'e');
+                if (nonXY.length > 0) {
+                    showGraphError(`Cannot plot: equation has unknown variables (${nonXY.join(', ')}). Use only x and y. Example: y = 2*x + 1`);
+                    return;
+                }
+                // General implicit fallback
+                plotImplicit(s, color);
+            } catch(e) {
+                showGraphError(`Could not parse: "${expr}". Use plain math syntax, e.g.  y = 2*x + 1`);
+                console.warn('Plot error:', expr, e.message);
+            }
+        }
+
+        function plotYEq(rhs, color) {
+            const W = graphCanvas.width, compiled = math.compile(rhs);
+            graphCtx.strokeStyle = color; graphCtx.lineWidth = 2.5; graphCtx.lineJoin = 'round';
+            graphCtx.beginPath(); let started = false;
+            for (let px = 0; px <= W; px++) {
+                const x = graphView.xMin + (px / W) * (graphView.xMax - graphView.xMin);
+                try {
+                    const y = compiled.evaluate({ x });
+                    if (!isFinite(y)) { started = false; continue; }
+                    const {cy} = toCanvas(x, y);
+                    if (!started) { graphCtx.moveTo(px, cy); started = true; } else graphCtx.lineTo(px, cy);
+                } catch { started = false; }
+            }
+            graphCtx.stroke();
+        }
+
+        function plotXEq(rhs, color) {
+            const H = graphCanvas.height, compiled = math.compile(rhs);
+            graphCtx.strokeStyle = color; graphCtx.lineWidth = 2.5;
+            graphCtx.beginPath(); let started = false;
+            for (let py = 0; py <= H; py++) {
+                const y = graphView.yMin + ((H - py) / H) * (graphView.yMax - graphView.yMin);
+                try {
+                    const x = compiled.evaluate({ y });
+                    if (!isFinite(x)) { started = false; continue; }
+                    const {cx} = toCanvas(x, y);
+                    if (!started) { graphCtx.moveTo(cx, py); started = true; } else graphCtx.lineTo(cx, py);
+                } catch { started = false; }
+            }
+            graphCtx.stroke();
+        }
+
+        function plotParam(xFn, yFn, tMin, tMax, steps, color) {
+            graphCtx.strokeStyle = color; graphCtx.lineWidth = 2.5;
+            graphCtx.beginPath(); let started = false;
+            for (let i = 0; i <= steps; i++) {
+                const t = tMin + (i / steps) * (tMax - tMin);
+                try {
+                    const x = xFn(t), y = yFn(t);
+                    if (!isFinite(x) || !isFinite(y)) { started = false; continue; }
+                    const {cx, cy} = toCanvas(x, y);
+                    if (!started) { graphCtx.moveTo(cx, cy); started = true; } else graphCtx.lineTo(cx, cy);
+                } catch { started = false; }
+            }
+            graphCtx.stroke();
+        }
+
+        function plotImplicit(expr, color) {
+            const parts = expr.split('=');
+            if (parts.length !== 2) return;
+            let compiled;
+            try { compiled = math.compile(`(${parts[0]}) - (${parts[1]})`); } catch { return; }
+            const W = graphCanvas.width, H = graphCanvas.height, S = 3;
+            const dx = (graphView.xMax - graphView.xMin) / W * S;
+            const dy = (graphView.yMax - graphView.yMin) / H * S;
+            graphCtx.fillStyle = color;
+            for (let px = 0; px < W; px += S) {
+                for (let py = 0; py < H; py += S) {
+                    const x = graphView.xMin + (px / W) * (graphView.xMax - graphView.xMin);
+                    const y = graphView.yMin + ((H - py) / H) * (graphView.yMax - graphView.yMin);
+                    try {
+                        const f0 = compiled.evaluate({x, y});
+                        const f1 = compiled.evaluate({x: x+dx, y});
+                        const f2 = compiled.evaluate({x, y: y+dy});
+                        if ((f0*f1 < 0) || (f0*f2 < 0)) graphCtx.fillRect(px, py, 2, 2);
+                    } catch {}
+                }
+            }
+        }
+
+        function addEquationToDesmos() {
+            const input = document.getElementById('desmosEqInput');
+            const eq = input.value.trim();
+            if (!eq) { input.focus(); return; }
+            if (!graphCanvas) { alert('Please toggle "Add Graph" on first.'); return; }
+            // Clear old error
+            const errEl = document.getElementById('graphErrorMsg');
+            if (errEl) errEl.style.display = 'none';
+            graphExpressions.push({ expr: eq });
+            renderGraph();
+            // If error was shown by plotExpr, keep the input so user can fix it
+            if (!errEl || errEl.style.display === 'none') {
+                input.value = '';
+            }
+            input.focus();
+        }
+
+        function clearDesmosExpressions() {
+            graphExpressions = [];
+            if (graphCanvas) renderGraph();
+        }
+
+        function desmosExample(eq) {
+            document.getElementById('desmosEqInput').value = eq;
+            const sw = document.getElementById('toggleGraphSwitch');
+            if (!sw.checked) { sw.checked = true; toggleDesmosPanel(true); setTimeout(addEquationToDesmos, 200); }
+            else addEquationToDesmos();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const eqInput = document.getElementById('desmosEqInput');
+            if (eqInput) eqInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addEquationToDesmos(); } });
+        });
+
+        function setAnnotationTool(tool) {
+            currentTool = tool;
+            document.getElementById('arrowToolBtn').style.background = tool === 'arrow' ? '#8C1515' : '#e5e7eb';
+            document.getElementById('arrowToolBtn').style.color = tool === 'arrow' ? 'white' : '';
+            document.getElementById('labelToolBtn').style.background = tool === 'label' ? '#8C1515' : '#e5e7eb';
+            document.getElementById('labelToolBtn').style.color = tool === 'label' ? 'white' : '';
+            annotCanvas.style.pointerEvents = tool ? 'auto' : 'none';
+            annotCanvas.style.cursor = tool === 'arrow' ? 'crosshair' : 'cell';
+            document.getElementById('annotationHint').textContent =
+                tool === 'arrow' ? 'Click and drag to draw an arrow' :
+                tool === 'label' ? 'Click on the graph where you want to place the label' : 'Select a tool';
+        }
+
+        function setupAnnotationEvents() {
+            annotCanvas.addEventListener('mousedown', e => {
+                if (currentTool === 'arrow') {
+                    const r = annotCanvas.getBoundingClientRect();
+                    arrowStart = { x: e.clientX - r.left, y: e.clientY - r.top };
+                }
+            });
+            annotCanvas.addEventListener('mousemove', e => {
+                if (currentTool === 'arrow' && arrowStart) {
+                    const r = annotCanvas.getBoundingClientRect();
+                    redrawAnnotations();
+                    drawArrow(annotCtx, arrowStart.x, arrowStart.y, e.clientX - r.left, e.clientY - r.top, '#e53e3e', true);
+                }
+            });
+            annotCanvas.addEventListener('mouseup', e => {
+                if (currentTool === 'arrow' && arrowStart) {
+                    const r = annotCanvas.getBoundingClientRect();
+                    const x2 = e.clientX - r.left, y2 = e.clientY - r.top;
+                    if (Math.hypot(x2 - arrowStart.x, y2 - arrowStart.y) > 10) {
+                        annotations.push({ type: 'arrow', x1: arrowStart.x, y1: arrowStart.y, x2, y2, color: '#e53e3e' });
+                        redrawAnnotations();
+                    }
+                    arrowStart = null;
+                }
+                if (currentTool === 'label') {
+                    const r = annotCanvas.getBoundingClientRect();
+                    pendingLabelPos = { x: e.clientX - r.left, y: e.clientY - r.top };
+                    document.getElementById('labelInputRow').style.display = 'flex';
+                    document.getElementById('labelTextInput').focus();
+                }
+            });
+        }
+
+        function confirmLabel() {
+            const text = document.getElementById('labelTextInput').value.trim();
+            if (text && pendingLabelPos) {
+                annotations.push({ type: 'label', x: pendingLabelPos.x, y: pendingLabelPos.y, text, color: '#1a56db' });
+                redrawAnnotations();
+            }
+            document.getElementById('labelTextInput').value = '';
+            document.getElementById('labelInputRow').style.display = 'none';
+            pendingLabelPos = null;
+        }
+
+        function cancelLabel() {
+            document.getElementById('labelTextInput').value = '';
+            document.getElementById('labelInputRow').style.display = 'none';
+            pendingLabelPos = null;
+        }
+
+        function redrawAnnotations() {
+            if (!annotCtx) return;
+            annotCtx.clearRect(0, 0, annotCanvas.width, annotCanvas.height);
+            annotations.forEach(a => {
+                if (a.type === 'arrow') drawArrow(annotCtx, a.x1, a.y1, a.x2, a.y2, a.color, false);
+                if (a.type === 'label') drawLabel(annotCtx, a.x, a.y, a.text, a.color);
+            });
+        }
+
+        function drawArrow(ctx, x1, y1, x2, y2, color, preview) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = preview ? 2 : 2.5;
+            ctx.setLineDash(preview ? [5, 4] : []);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            // Arrowhead
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const headLen = 14;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawLabel(ctx, x, y, text, color) {
+            ctx.save();
+            ctx.font = 'bold 13px Inter, sans-serif';
+            const metrics = ctx.measureText(text);
+            const pad = 5;
+            ctx.fillStyle = 'rgba(255,255,255,0.88)';
+            ctx.fillRect(x - pad, y - 16, metrics.width + pad * 2, 22);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(x - pad, y - 16, metrics.width + pad * 2, 22);
+            ctx.fillStyle = color;
+            ctx.fillText(text, x, y);
+            ctx.restore();
+        }
+
+        function undoAnnotation() {
+            annotations.pop();
+            redrawAnnotations();
+        }
+
+        function clearAnnotations() {
+            annotations = [];
+            if (annotCtx) annotCtx.clearRect(0, 0, annotCanvas.width, annotCanvas.height);
+        }
+
+        async function captureGraph() {
+            if (!graphCanvas) { alert('Please open the graph panel first.'); return; }
+            const W = graphCanvas.width, H = graphCanvas.height;
+            const offscreen = document.createElement('canvas');
+            offscreen.width = W; offscreen.height = H;
+            const ctx = offscreen.getContext('2d');
+            ctx.drawImage(graphCanvas, 0, 0, W, H);
+            // Draw annotations (annotCanvas matches graphCanvas dimensions)
+            const scaleX = W / annotCanvas.width;
+            const scaleY = H / annotCanvas.height;
+            annotations.forEach(a => {
+                if (a.type === 'arrow') drawArrow(ctx, a.x1 * scaleX, a.y1 * scaleY, a.x2 * scaleX, a.y2 * scaleY, a.color, false);
+                if (a.type === 'label') drawLabel(ctx, a.x * scaleX, a.y * scaleY, a.text, a.color);
+            });
+            offscreen.toBlob(blob => {
+                const file = new File([blob], 'graph.png', { type: 'image/png' });
+                currentQuestionImage = file;
+                document.getElementById('capturedGraphImg').src = offscreen.toDataURL();
+                document.getElementById('capturedGraphPreview').style.display = 'block';
+                document.getElementById('removeGraphBtn').style.display = 'inline-block';
+            }, 'image/png');
+        }
+
+        function removeCapturedGraph() {
+            currentQuestionImage = null;
+            document.getElementById('capturedGraphPreview').style.display = 'none';
+            document.getElementById('removeGraphBtn').style.display = 'none';
+        }
+        // ===== END DESMOS GRAPH BUILDER =====
 
         // Rich text editor commands
         function execCommand(command) {
@@ -2663,7 +3310,7 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 '1':'1st grade','2':'2nd grade','3':'3rd grade','4':'4th grade',
                 '5':'5th grade','6':'6th grade','7':'7th grade','8':'8th grade',
                 '9':'9th grade','10':'10th grade','11':'11th grade','12':'12th grade',
-                'sat_verbal':'SAT Verbal','generic':'Generic Questionnaire'
+                'sat_verbal':'SAT Verbal','sat_math':'SAT Math','sat_general':'SAT General Questionnaire','generic':'Generic Questionnaire'
             };
             const subjectMap = {
                 'english':'English','science':'Science','history':'History',
@@ -2718,7 +3365,7 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
                 formData.append('gradeLevel', gradeLevel);
                 formData.append('subjects', subject);
                 formData.append('language', 'English');
-                formData.append('quizType', 'regular');
+                formData.append('quizType', document.querySelector('input[name="generalQuizType"]:checked').value);
                 formData.append('isManuallyCreated', 'true');
                 formData.append('questions', JSON.stringify(mappedQuestions));
                 formData.append('questionImageIndexes', JSON.stringify([]));
@@ -2737,6 +3384,155 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
         }
 
 
+
+        // ===== PDF VISION UPLOADER =====
+        function pvFileSelected(input) {
+            const file = input.files[0];
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                document.getElementById('pvError').textContent = 'Only PDF files are supported.';
+                document.getElementById('pvError').style.display = 'block';
+                input.value = '';
+                return;
+            }
+            if (file.size > 20 * 1024 * 1024) {
+                document.getElementById('pvError').textContent = 'File is too large. Maximum size is 20 MB.';
+                document.getElementById('pvError').style.display = 'block';
+                input.value = '';
+                return;
+            }
+            document.getElementById('pvError').style.display = 'none';
+            document.getElementById('pvFileName').textContent = file.name;
+            document.getElementById('pvFileSize').textContent = '(' + (file.size / 1024).toFixed(0) + ' KB)';
+            document.getElementById('pvFileInfo').style.display = 'flex';
+        }
+
+        function pvClearFile() {
+            document.getElementById('pvFile').value = '';
+            document.getElementById('pvFileInfo').style.display = 'none';
+        }
+
+        function pvAnswerFileSelected(input) {
+            const file = input.files[0];
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                document.getElementById('pvError').textContent = 'Answer key must be a PDF file.';
+                document.getElementById('pvError').style.display = 'block';
+                input.value = '';
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                document.getElementById('pvError').textContent = 'Answer key is too large. Maximum size is 10 MB.';
+                document.getElementById('pvError').style.display = 'block';
+                input.value = '';
+                return;
+            }
+            document.getElementById('pvError').style.display = 'none';
+            document.getElementById('pvAnswerFileName').textContent = file.name;
+            document.getElementById('pvAnswerFileSize').textContent = '(' + (file.size / 1024).toFixed(0) + ' KB)';
+            document.getElementById('pvAnswerFileInfo').style.display = 'flex';
+        }
+
+        function pvClearAnswerFile() {
+            document.getElementById('pvAnswerFile').value = '';
+            document.getElementById('pvAnswerFileInfo').style.display = 'none';
+        }
+
+        // Drag-and-drop for both zones
+        document.addEventListener('DOMContentLoaded', () => {
+            function setupDrop(zoneId, inputId, handlerFn, bgDefault, bgOver) {
+                const zone = document.getElementById(zoneId);
+                if (!zone) return;
+                zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.background = bgOver; });
+                zone.addEventListener('dragleave', () => { zone.style.background = bgDefault; });
+                zone.addEventListener('drop', e => {
+                    e.preventDefault();
+                    zone.style.background = bgDefault;
+                    const file = e.dataTransfer.files[0];
+                    if (file) {
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        document.getElementById(inputId).files = dt.files;
+                        handlerFn(document.getElementById(inputId));
+                    }
+                });
+            }
+            setupDrop('pvDropZone', 'pvFile', pvFileSelected, '#fff5f7', '#ffe0e8');
+            setupDrop('pvAnswerDropZone', 'pvAnswerFile', pvAnswerFileSelected, '#f8f9fa', '#e8f5e9');
+        });
+
+        async function pvSubmit() {
+            const title   = document.getElementById('pvTitle').value.trim();
+            const subject = document.getElementById('pvSubject').value;
+            const grade   = document.getElementById('pvGrade').value;
+            const quizType = document.querySelector('input[name="pvQuizType"]:checked').value;
+            const file    = document.getElementById('pvFile').files[0];
+            const errEl   = document.getElementById('pvError');
+
+            errEl.style.display = 'none';
+            if (!title)   { errEl.textContent = 'Please enter a quiz title.'; errEl.style.display = 'block'; return; }
+            if (!subject) { errEl.textContent = 'Please select a subject.'; errEl.style.display = 'block'; return; }
+            if (!grade)   { errEl.textContent = 'Please select a grade level.'; errEl.style.display = 'block'; return; }
+            if (!file)    { errEl.textContent = 'Please select a PDF file.'; errEl.style.display = 'block'; return; }
+
+            const answerFile = document.getElementById('pvAnswerFile').files[0];
+            const fd = new FormData();
+            fd.append('title', title);
+            fd.append('subject', subject);
+            fd.append('gradeLevel', grade);
+            fd.append('quizType', quizType);
+            fd.append('questionPaper', file);
+            if (answerFile) fd.append('answerPaper', answerFile);
+
+            document.getElementById('pvSubmitBtn').disabled = true;
+            document.getElementById('pvProgress').style.display = 'block';
+
+            const steps = [
+                { pct: 15, msg: 'Uploading PDF...' },
+                { pct: 35, msg: 'Converting pages to images...' },
+                { pct: 60, msg: 'Claude AI reading questions and diagrams...' },
+                { pct: 85, msg: 'Structuring questions...' },
+                { pct: 95, msg: 'Saving quiz...' }
+            ];
+            let stepIdx = 0;
+            const bar = document.getElementById('pvProgressBar');
+            const msg = document.getElementById('pvProgressMsg');
+            const progressInterval = setInterval(() => {
+                if (stepIdx < steps.length) {
+                    bar.style.width = steps[stepIdx].pct + '%';
+                    msg.textContent = steps[stepIdx].msg;
+                    stepIdx++;
+                }
+            }, 4000);
+
+            try {
+                const res = await fetch('/create-quiz-vision', { method: 'POST', body: fd });
+                clearInterval(progressInterval);
+                if (res.redirected) { window.location.href = res.url; return; }
+                let data = null;
+                const rawText = await res.text().catch(() => '');
+                try { data = JSON.parse(rawText); } catch(e) {}
+                if (!res.ok) {
+                    bar.style.width = '0%';
+                    document.getElementById('pvProgress').style.display = 'none';
+                    const serverMsg = (data && data.message) || rawText.slice(0, 200) || 'Failed to extract questions. Please try again.';
+                    errEl.textContent = `Error (${res.status}): ${serverMsg}`;
+                    errEl.style.display = 'block';
+                    document.getElementById('pvSubmitBtn').disabled = false;
+                    return;
+                }
+                bar.style.width = '100%';
+                msg.textContent = 'Done! Redirecting...';
+                setTimeout(() => { window.location.href = '/teacher/dashboard'; }, 800);
+            } catch (err) {
+                clearInterval(progressInterval);
+                document.getElementById('pvProgress').style.display = 'none';
+                errEl.textContent = 'Network error. Please check your connection and try again.';
+                errEl.style.display = 'block';
+                document.getElementById('pvSubmitBtn').disabled = false;
+            }
+        }
+        // ===== END PDF VISION UPLOADER =====
 
     </script>
 </body>

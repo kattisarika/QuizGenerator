@@ -3482,7 +3482,18 @@
                             <div style="font-weight: 600; color: #374151; margin-bottom: 5px; font-size: 14px;">${notification.title}</div>
                             <div style="color: #6b7280; font-size: 13px; line-height: 1.4; margin-bottom: 5px;">${notification.message}</div>
                             <div style="color: #9ca3af; font-size: 11px;">${timeAgo}</div>
-                            ${notification.actionUrl ? `
+                            ${notification.type === 'student_join_request' ? `
+                                <div style="margin-top: 8px; display: flex; gap: 8px;">
+                                    <button onclick="approveJoinRequest('${notification.relatedId}', '${notification._id}')"
+                                        style="background: #10b981; color: white; border: none; padding: 4px 12px; font-size: 11px; border-radius: 4px; cursor: pointer;">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                    <button onclick="rejectJoinRequest('${notification.relatedId}', '${notification._id}')"
+                                        style="background: #ef4444; color: white; border: none; padding: 4px 12px; font-size: 11px; border-radius: 4px; cursor: pointer;">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </div>
+                            ` : notification.actionUrl ? `
                                 <div style="margin-top: 8px;">
                                     <a href="${notification.actionUrl}" onclick="markAsRead('${notification._id}')"
                                        style="background: #8C1515; color: white; border: none; padding: 4px 12px; font-size: 11px; border-radius: 4px; text-decoration: none; display: inline-block;">
@@ -3526,6 +3537,37 @@
                 loadNotifications();
             } catch (error) {
                 console.error('Error marking notification as read:', error);
+            }
+        }
+
+        async function approveJoinRequest(requestId, notificationId) {
+            try {
+                const res = await fetch(`/api/teacher/join-request/${requestId}/approve`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    await markAsRead(notificationId);
+                    alert('Student approved and added to your organization.');
+                } else {
+                    alert(data.message || 'Failed to approve request.');
+                }
+            } catch (e) {
+                alert('Error approving request.');
+            }
+        }
+
+        async function rejectJoinRequest(requestId, notificationId) {
+            if (!confirm('Are you sure you want to reject this join request?')) return;
+            try {
+                const res = await fetch(`/api/teacher/join-request/${requestId}/reject`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    await markAsRead(notificationId);
+                    alert('Join request rejected.');
+                } else {
+                    alert(data.message || 'Failed to reject request.');
+                }
+            } catch (e) {
+                alert('Error rejecting request.');
             }
         }
 

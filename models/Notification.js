@@ -34,6 +34,8 @@ const notificationSchema = new mongoose.Schema({
       'quiz_graded',
       'new_quiz_available',
       'system_announcement',
+      'student_joined',
+      'student_join_request',
       'general'
     ],
     required: true
@@ -56,7 +58,7 @@ const notificationSchema = new mongoose.Schema({
   },
   relatedType: {
     type: String,
-    enum: ['assignment', 'quiz', 'quiz_result', 'user', 'announcement'],
+    enum: ['assignment', 'quiz', 'quiz_result', 'user', 'announcement', 'join_request'],
     default: null
   },
   

@@ -1702,8 +1702,47 @@
                         </button>
                     </div>
 
+                    <div class="action-card" role="region" aria-labelledby="join-class-action" style="border-top: 4px solid #8C1515;">
+                        <div style="font-size: 48px; margin-bottom: 15px; color: #8C1515;" aria-hidden="true">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h3 id="join-class-action">Request to Join a Class</h3>
+                        <p>Enter your teacher's organization code to send a join request</p>
+                        <button onclick="document.getElementById('joinRequestModal').style.display='flex'" class="btn btn-primary" aria-label="Request to join another teacher's class">
+                            <i class="fas fa-paper-plane" aria-hidden="true"></i> Send Request
+                        </button>
+                    </div>
 
                 </section>
+
+                <!-- Join Request Modal -->
+                <div id="joinRequestModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+                    <div style="background:white; border-radius:12px; padding:30px; max-width:420px; width:90%; box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+                        <h3 style="color:#8C1515; margin-bottom:8px;"><i class="fas fa-user-plus"></i> Request to Join a Class</h3>
+                        <p style="color:#6b7280; font-size:14px; margin-bottom:20px;">Enter your teacher's organization code to send a join request. Your teacher will be notified and can approve or reject it.</p>
+                        <div style="margin-bottom:16px;">
+                            <label style="font-weight:600; color:#374151; font-size:14px; display:block; margin-bottom:6px;">Organization Code</label>
+                            <input type="text" id="joinOrgCode" placeholder="e.g. myschool"
+                                style="width:100%; padding:10px 14px; border:2px solid #e5e7eb; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                        </div>
+                        <div style="margin-bottom:20px;">
+                            <label style="font-weight:600; color:#374151; font-size:14px; display:block; margin-bottom:6px;">Message (optional)</label>
+                            <textarea id="joinMessage" placeholder="Introduce yourself to your teacher..." rows="2"
+                                style="width:100%; padding:10px 14px; border:2px solid #e5e7eb; border-radius:8px; font-size:14px; resize:none; box-sizing:border-box;"></textarea>
+                        </div>
+                        <div id="joinRequestStatus" style="display:none; margin-bottom:14px; padding:10px 14px; border-radius:8px; font-size:13px;"></div>
+                        <div style="display:flex; gap:10px; justify-content:flex-end;">
+                            <button onclick="document.getElementById('joinRequestModal').style.display='none'"
+                                style="background:#f3f4f6; color:#374151; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer;">
+                                Cancel
+                            </button>
+                            <button onclick="submitJoinRequest()"
+                                style="background:#8C1515; color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer;">
+                                <i class="fas fa-paper-plane"></i> Send Request
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Podcasts Section -->
                 <section id="podcastsSection" class="podcasts-section" style="display: none;" aria-labelledby="podcasts-heading">
@@ -2632,6 +2671,47 @@
             loadStudentBadges();
             loadNotifications();
         });
+
+        async function submitJoinRequest() {
+            const orgCode = document.getElementById('joinOrgCode').value.trim();
+            const message = document.getElementById('joinMessage').value.trim();
+            const statusEl = document.getElementById('joinRequestStatus');
+
+            if (!orgCode) {
+                statusEl.style.display = 'block';
+                statusEl.style.background = '#fee2e2';
+                statusEl.style.color = '#991b1b';
+                statusEl.textContent = 'Please enter an organization code.';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/student/join-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orgCode, message })
+                });
+                const data = await res.json();
+                statusEl.style.display = 'block';
+                if (data.success) {
+                    statusEl.style.background = '#d1fae5';
+                    statusEl.style.color = '#065f46';
+                    statusEl.textContent = data.message;
+                    document.getElementById('joinOrgCode').value = '';
+                    document.getElementById('joinMessage').value = '';
+                    setTimeout(() => { document.getElementById('joinRequestModal').style.display = 'none'; statusEl.style.display = 'none'; }, 2500);
+                } else {
+                    statusEl.style.background = '#fee2e2';
+                    statusEl.style.color = '#991b1b';
+                    statusEl.textContent = data.message || 'Failed to send request.';
+                }
+            } catch (e) {
+                statusEl.style.display = 'block';
+                statusEl.style.background = '#fee2e2';
+                statusEl.style.color = '#991b1b';
+                statusEl.textContent = 'Network error. Please try again.';
+            }
+        }
     </script>
 </body>
 </html>

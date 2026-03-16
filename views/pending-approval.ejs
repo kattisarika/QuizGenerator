@@ -27,9 +27,36 @@
                     <i class="fas fa-clock"></i>
                 </div>
                 
-                <h1 class="pending-title">Account Pending Approval</h1>
+                <h1 class="pending-title">Waiting for Teacher Approval</h1>
+                <% if (user.role === 'student') { %>
+                <p class="pending-subtitle">Hello <%= user.displayName %>, your account is waiting for your teacher to assign you.</p>
+
+                <div class="pending-details">
+                    <div class="detail-item">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        <span>Your teacher has been notified and will assign you shortly</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-lock"></i>
+                        <span>Quizzes and study materials will be unlocked once assigned</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Refresh this page after your teacher assigns you</span>
+                    </div>
+                </div>
+
+                <div class="pending-actions">
+                    <a href="/dashboard" class="btn btn-secondary" onclick="location.reload(); return false;">Refresh</a>
+                    <a href="/logout" class="btn btn-primary">Logout</a>
+                </div>
+
+                <div class="pending-note">
+                    <p><strong>Note:</strong> Once your teacher assigns you, you'll have full access to quizzes and study materials.</p>
+                </div>
+                <% } else { %>
                 <p class="pending-subtitle">Hello <%= user.displayName %>, your teacher account is currently under review.</p>
-                
+
                 <div class="pending-details">
                     <div class="detail-item">
                         <i class="fas fa-info-circle"></i>
@@ -53,6 +80,7 @@
                 <div class="pending-note">
                     <p><strong>Note:</strong> Once approved, you'll be able to create and manage quizzes for your students.</p>
                 </div>
+                <% } %>
             </div>
         </div>
     </main>

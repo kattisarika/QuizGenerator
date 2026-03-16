@@ -89,12 +89,12 @@ const quizSchema = new mongoose.Schema({
   },
   gradeLevel: {
     type: String,
-    enum: ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade', 'Young Adult Education', 'SAT Verbal', 'Generic Questionnaire'],
+    enum: ['1st grade', '2nd grade', '3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade', 'Young Adult Education', 'SAT Verbal', 'Generic Questionnaire', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'sat_verbal', 'sat_math', 'sat_general', 'generic'],
     required: true
   },
   subjects: [{
     type: String,
-    enum: ['English', 'Science', 'Math', 'Python', 'Tableau', 'Power BI', 'History', 'Geography', 'General Knowledge', 'Other']
+    enum: ['English', 'Science', 'Math', 'Python', 'Tableau', 'Power BI', 'History', 'Geography', 'General Knowledge', 'Other', 'english', 'science', 'math', 'history', 'geography', 'general', 'other']
   }],
   language: {
     type: String,

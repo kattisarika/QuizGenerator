@@ -215,14 +215,15 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://cdn.socket.io"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://cdn.socket.io", "https://www.desmos.com"],
       scriptSrcAttr: ["'unsafe-inline'"],  // Allow onclick= and other inline event handlers
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "ws:", "wss:", "https://cdn.jsdelivr.net"],
+      connectSrc: ["'self'", "ws:", "wss:", "https://cdn.jsdelivr.net", "https://www.desmos.com", "https://api.desmos.com"],
       mediaSrc: ["'self'", "https:"],
-      frameSrc: ["'self'", "https://view.officeapps.live.com", "https://docs.google.com"],
+      frameSrc: ["'self'", "https://view.officeapps.live.com", "https://docs.google.com", "https://www.desmos.com"],
+      workerSrc: ["'self'", "blob:", "https://www.desmos.com"],
     }
   },
   crossOriginResourcePolicy: { policy: "cross-origin" }
@@ -1106,7 +1107,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                     organizationRole: 'student',
                     gradeLevel: ps.gradeLevel,
                     subjects: ps.subjects || [],
-                    isApproved: true,
+                    isApproved: false,
                     invitationStatus: 'accepted'
                   });
                   await primaryUser.save();
@@ -1129,6 +1130,34 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
               user = primaryUser;
               delete req.session.pendingStudent;
               console.log(`New student '${userEmail}' joined ${orgs.length} organization(s)`);
+
+              // Notify each org's teacher that a new student has joined and needs to be assigned
+              try {
+                const Notification = require('./models/Notification');
+                for (const org of orgs) {
+                  if (org.ownerId) {
+                    await Notification.createNotification({
+                      recipient: org.ownerId,
+                      recipientRole: 'teacher',
+                      title: 'New Student Joined',
+                      message: `${primaryUser.displayName || userEmail} has joined your organization. Please assign them.`,
+                      type: 'student_joined',
+                      relatedId: primaryUser._id,
+                      relatedType: 'user',
+                      actionUrl: '/teacher/assign-students',
+                      actionText: 'Assign Student',
+                      organizationId: org._id,
+                      sender: primaryUser._id,
+                      senderName: primaryUser.displayName || userEmail,
+                      priority: 'high',
+                      icon: 'fas fa-user-plus',
+                      color: '#8C1515'
+                    });
+                  }
+                }
+              } catch (notifErr) {
+                console.error('Failed to create student joined notification:', notifErr);
+              }
             } else {
               // Regular new user - needs to go through organization signup or be invited
               console.log('New user without organization context, redirecting to signup');
@@ -1823,6 +1852,9 @@ app.get('/dashboard', requireAuth, (req, res) => {
 
   // Auto-redirect based on role
   if (req.user.role === 'student') {
+    if (!req.user.isApproved) {
+      return res.render('pending-approval', { user: req.user });
+    }
     return res.redirect('/student/dashboard');
   } else if (req.user.role === 'teacher') {
     if (req.user.isApproved) {
@@ -2678,6 +2710,9 @@ app.get('/whiteboard/session/:sessionId', requireAuth, async (req, res) => {
 });
 
 app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req, res) => {
+  if (!req.user.isApproved) {
+    return res.render('pending-approval', { user: req.user });
+  }
   try {
     console.log(`\n=== STUDENT DASHBOARD DEBUG for ${req.user.email} ===`);
     console.log('User organizationId:', req.user.organizationId);
@@ -2729,17 +2764,21 @@ app.get('/student/dashboard', requireAuth, requireRole(['student']), async (req,
       ]
     };
 
-    // Filter by student's grade level, also include SAT Verbal if student has SAT subjects
+    // Filter by student's grade level, also include SAT grade levels if student has SAT subjects
     if (req.user.gradeLevel) {
-      const hasSATSubjects = req.user.subjects &&
-        req.user.subjects.some(s => s === 'SAT Math' || s === 'SAT English');
-      if (hasSATSubjects) {
-        quizQuery.gradeLevel = { $in: [req.user.gradeLevel, 'SAT Verbal'] };
-        console.log(`🎓 Grade filter: ${req.user.gradeLevel} + SAT Verbal (student has SAT subjects)`);
-      } else {
-        quizQuery.gradeLevel = req.user.gradeLevel;
-        console.log(`🎓 Filtering quizzes for student ${req.user.displayName} (${req.user.gradeLevel})`);
+      const studentSubjects = req.user.subjects || [];
+      const gradeLevels = [req.user.gradeLevel];
+      if (studentSubjects.some(s => ['SAT Math', 'sat_math'].includes(s))) {
+        gradeLevels.push('SAT Math', 'sat_math');
       }
+      if (studentSubjects.some(s => ['SAT English', 'SAT Verbal', 'sat_verbal'].includes(s))) {
+        gradeLevels.push('SAT Verbal', 'sat_verbal');
+      }
+      if (studentSubjects.some(s => ['SAT General', 'sat_general'].includes(s))) {
+        gradeLevels.push('SAT General Questionnaire', 'sat_general');
+      }
+      quizQuery.gradeLevel = gradeLevels.length > 1 ? { $in: gradeLevels } : req.user.gradeLevel;
+      console.log(`🎓 Grade filter for ${req.user.displayName}:`, gradeLevels);
     } else {
       console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all quizzes`);
     }
@@ -3710,6 +3749,233 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
     res.status(500).send(`Error creating quiz: ${error.message}`);
   }
 });
+
+// ── PDF Vision Quiz Creation (Claude reads PDF natively — no ImageMagick needed) ──
+app.post('/create-quiz-vision', requireAuth, requireRole(['teacher']), requireApprovedTeacher,
+  upload.fields([{ name: 'questionPaper', maxCount: 1 }, { name: 'answerPaper', maxCount: 1 }]),
+  async (req, res) => {
+    try {
+      const { title, subject, gradeLevel, quizType } = req.body;
+      if (!title || !subject || !gradeLevel) {
+        return res.status(400).json({ message: 'Title, subject and grade level are required.' });
+      }
+      if (!req.files?.questionPaper?.[0]) {
+        return res.status(400).json({ message: 'A PDF file is required.' });
+      }
+
+      const file = req.files.questionPaper[0];
+      if (!file.originalname.toLowerCase().endsWith('.pdf')) {
+        return res.status(400).json({ message: 'Only PDF files are supported.' });
+      }
+
+      // 1. Upload original PDF to S3
+      const questionFileUrl = await uploadToS3(file, 'question-papers');
+      console.log(`📄 PDF Vision: uploaded PDF to S3, size: ${file.size} bytes`);
+
+      // 2. Send PDF directly to Claude — Claude reads PDFs natively (no ImageMagick needed)
+      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const pdfBase64 = file.buffer.toString('base64');
+
+      // Check for optional answer key PDF
+      const answerFile = req.files?.answerPaper?.[0];
+      const answerPdfBase64 = answerFile ? answerFile.buffer.toString('base64') : null;
+      if (answerFile) {
+        console.log(`📄 Answer key PDF uploaded: ${answerFile.size} bytes`);
+      }
+
+      const hasAnswerKey = !!answerPdfBase64;
+      const answerKeyInstruction = hasAnswerKey
+        ? `The SECOND document is the answer key PDF. Use it to fill in the "correctAnswer" field for each question by matching question numbers. The correctAnswer should be the exact text of the correct option as it appears in the question paper (not just the letter like "A" or "B" — use the full option text).`
+        : `There is no separate answer key. Set "correctAnswer" to empty string "" for all questions unless the answer is clearly visible in the question paper itself.`;
+
+      // Build content array — question paper first, then answer key if provided
+      const contentParts = [
+        {
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 }
+        }
+      ];
+      if (hasAnswerKey) {
+        contentParts.push({
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: answerPdfBase64 }
+        });
+      }
+      contentParts.push({
+        type: 'text',
+        text: `You are extracting questions from a quiz/exam PDF. Go through every page of the FIRST document (question paper) carefully.
+${hasAnswerKey ? '\nThe SECOND document is the answer key — use it to populate the correctAnswer field.' : ''}
+
+For each numbered question (Q1, Q2, 1., 2., etc.) extract the following and return as a JSON array.
+
+Return ONLY valid JSON — no markdown fences, no explanation, no extra text. Just the raw JSON array:
+[
+  {
+    "questionNumber": 1,
+    "question": "full question text exactly as written (without the question number prefix)",
+    "pageNumber": 1,
+    "hasImage": false,
+    "imageDescription": "",
+    "options": ["option A text", "option B text", "option C text", "option D text"],
+    "correctAnswer": "exact option text if answer key is visible, otherwise empty string",
+    "explanation": ""
+  }
+]
+
+Rules for each field:
+- "questionNumber": the number printed on the question (1, 2, 3 ...)
+- "question": full question text, no numbering prefix, preserve math symbols exactly
+- "pageNumber": which PDF page (1-based) the question appears on in the FIRST document
+- "hasImage": set true ONLY if the question has an actual visual element — a diagram, graph, figure, geometric shape, chart, or table directly attached to it. Do NOT set true just because the question mentions numbers or words.
+- "imageDescription": if hasImage is true, briefly describe what the visual shows e.g. "Circle with centre O, radius 5cm, chord AB drawn". Embed this in [brackets] inside the question text too.
+- "imageBounds": if hasImage is true, estimate the bounding box of JUST the diagram/figure on the page as fractions (0.0 to 1.0) of the page dimensions: { "x": 0.1, "y": 0.4, "width": 0.8, "height": 0.3 }. x and y are the top-left corner. Be as tight as possible around just the diagram. If hasImage is false, set to null.
+- "options": array of option texts (A, B, C, D) from the question paper. If True/False, return ["True", "False"]. If short answer, return [].
+- "correctAnswer": ${hasAnswerKey ? 'look up the correct answer in the answer key (second document) and provide the FULL text of the correct option, not just the letter. Match by question number.' : 'exact text of correct option if visible in the PDF, else empty string'}
+- "explanation": any explanation or working shown in the PDF for this question, else empty string
+
+${answerKeyInstruction}
+
+Important:
+- Extract questions from the FIRST document only
+- Skip cover pages, instructions, or pages with no questions
+- If a question spans multiple pages, use the page where it starts
+- Do not fabricate options — only include what is printed in the question paper`
+      });
+
+      console.log(`🤖 Claude Vision: reading PDF${hasAnswerKey ? ' + answer key' : ''}...`);
+      let claudeReply;
+      try {
+        const msg = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8192,
+          messages: [{
+            role: 'user',
+            content: contentParts
+          }]
+        });
+        claudeReply = msg.content[0].text.trim();
+      } catch (aiErr) {
+        console.error('Claude PDF Vision error:', aiErr.message);
+        const isKeyErr = aiErr.message?.toLowerCase().includes('api key') || aiErr.status === 401;
+        return res.status(500).json({
+          message: isKeyErr
+            ? 'Anthropic API key is missing or invalid. Please set ANTHROPIC_API_KEY in .env'
+            : `Claude AI error: ${aiErr.message}`
+        });
+      }
+
+      // 3. Parse Claude's JSON response
+      let allQuestions = [];
+      try {
+        // Strip markdown fences
+        let cleaned = claudeReply
+          .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+
+        // Sometimes Claude wraps the array in an object like { "questions": [...] }
+        let parsed = JSON.parse(cleaned);
+        if (Array.isArray(parsed)) {
+          allQuestions = parsed;
+        } else if (parsed && Array.isArray(parsed.questions)) {
+          allQuestions = parsed.questions;
+        } else if (parsed && typeof parsed === 'object') {
+          // Find the first array value in the object
+          const firstArr = Object.values(parsed).find(v => Array.isArray(v));
+          allQuestions = firstArr || [];
+        }
+      } catch (parseErr) {
+        // Try extracting a JSON array from anywhere in the response
+        const arrayMatch = claudeReply.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+        if (arrayMatch) {
+          try {
+            allQuestions = JSON.parse(arrayMatch[0]);
+          } catch(e2) {
+            console.error('Claude response (first 500 chars):', claudeReply.slice(0, 500));
+            return res.status(500).json({ message: 'Claude returned an unexpected format. Please try again.' });
+          }
+        } else {
+          // Last resort: try to salvage a truncated array by closing it
+          try {
+            const partial = claudeReply.trim();
+            const startIdx = partial.indexOf('[');
+            if (startIdx !== -1) {
+              const lastBrace = partial.lastIndexOf('}');
+              if (lastBrace !== -1) {
+                const salvaged = partial.slice(startIdx, lastBrace + 1) + ']';
+                allQuestions = JSON.parse(salvaged);
+                console.warn(`⚠️ Salvaged ${allQuestions.length} questions from truncated response`);
+              }
+            }
+            if (!allQuestions.length) throw new Error('empty');
+          } catch(e3) {
+            console.error('Claude response (first 500 chars):', claudeReply.slice(0, 500));
+            return res.status(500).json({ message: 'Claude returned an unexpected format. Please try again.' });
+          }
+        }
+      }
+
+      console.log(`✅ Claude extracted ${allQuestions.length} questions from PDF`);
+
+      if (allQuestions.length === 0) {
+        return res.status(400).json({ message: 'Claude could not find any questions in this PDF. Please check the document is a question paper.' });
+      }
+
+      // 4. Normalise options and save
+      const finalQuestions = allQuestions.map((q, i) => {
+        const opts = Array.isArray(q.options) ? q.options : [];
+        // Only pad to 4 if it's MCQ (not short answer or T/F)
+        if (opts.length > 0 && opts.length < 4 && opts.length !== 2) {
+          while (opts.length < 4) opts.push(`Option ${String.fromCharCode(65 + opts.length)}`);
+        }
+        // Only attach page image if question actually has a visual diagram
+        let imageRef = null;
+        if (q.hasImage && q.pageNumber) {
+          const b = q.imageBounds;
+          if (b && b.x != null && b.y != null && b.width != null && b.height != null) {
+            // Store as pdf-page:N:x,y,w,h (all 0-1 fractions)
+            imageRef = `pdf-page:${q.pageNumber}:${b.x},${b.y},${b.width},${b.height}`;
+          } else {
+            imageRef = `pdf-page:${q.pageNumber}`;
+          }
+        }
+        const qNum = q.questionNumber || (i + 1);
+        console.log(`Q${qNum}: hasImage=${q.hasImage}, page=${q.pageNumber}, imageRef=${imageRef}`);
+        return {
+          question: q.question || `Question ${qNum}`,
+          type: opts.length === 0 ? 'short-answer' : opts.length === 2 ? 'true-false' : 'multiple-choice',
+          options: opts.slice(0, 4),
+          correctAnswer: q.correctAnswer || '',
+          explanation: q.explanation || '',
+          image: imageRef,
+          points: 1
+        };
+      });
+
+      const quiz = new Quiz({
+        title,
+        description: `PDF Vision quiz — ${finalQuestions.length} questions extracted by Claude AI`,
+        gradeLevel,
+        subjects: [subject],
+        language: 'English',
+        quizType: quizType || 'regular',
+        questions: finalQuestions,
+        createdBy: req.user._id,
+        createdByName: req.user.displayName,
+        organizationId: req.user.organizationId,
+        isApproved: true,
+        questionPaperUrl: questionFileUrl
+      });
+
+      await quiz.save();
+      console.log(`✅ PDF Vision quiz saved: ${quiz._id} (${finalQuestions.length} questions)`);
+
+      return res.json({ success: true, quizId: quiz._id });
+
+    } catch (err) {
+      console.error('PDF Vision route error:', err);
+      return res.status(500).json({ message: `Server error: ${err.message}` });
+    }
+  }
+);
 
 // Manual quiz creation route
 app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireApprovedTeacher, quizImageUpload.array('questionImages', 50), async (req, res) => {
@@ -4744,7 +5010,8 @@ app.post('/teacher/assign-students', requireAuth, requireRole(['teacher']), requ
         },
         {
           assignedTeacher: req.user._id,
-          gradeLevel: assignment.gradeLevel
+          gradeLevel: assignment.gradeLevel,
+          isApproved: true
         },
         { new: true }
       )
@@ -4796,6 +5063,260 @@ app.post('/teacher/unassign-students', requireAuth, requireRole(['teacher']), re
 });
 
 // ===== END TEACHER ASSIGN STUDENTS ROUTES =====
+
+// ===== JOIN REQUEST ROUTES =====
+
+// Student submits a join request to an organization by subdomain
+app.post('/api/student/join-request', requireAuth, requireRole(['student']), async (req, res) => {
+  try {
+    const JoinRequest = require('./models/JoinRequest');
+    const Notification = require('./models/Notification');
+    const { orgCode, message } = req.body;
+
+    if (!orgCode) {
+      return res.status(400).json({ success: false, message: 'Organization code is required.' });
+    }
+
+    const org = await Organization.findOne({ subdomain: orgCode.trim().toLowerCase() });
+    if (!org) {
+      return res.status(404).json({ success: false, message: 'Organization not found. Please check the code.' });
+    }
+
+    // Check if student already belongs to this org
+    const alreadyMember = req.user.organizationId?.toString() === org._id.toString() ||
+      (req.user.organizationMemberships || []).some(m => m.organizationId?.toString() === org._id.toString());
+    if (alreadyMember) {
+      return res.status(400).json({ success: false, message: 'You are already a member of this organization.' });
+    }
+
+    // Check for existing pending request
+    const existing = await JoinRequest.findOne({ student: req.user._id, organization: org._id });
+    if (existing) {
+      if (existing.status === 'pending') {
+        return res.status(400).json({ success: false, message: 'You already have a pending request for this organization.' });
+      }
+      if (existing.status === 'approved') {
+        return res.status(400).json({ success: false, message: 'Your request was already approved.' });
+      }
+      // If rejected, allow re-request by updating
+      existing.status = 'pending';
+      existing.message = message || '';
+      existing.resolvedAt = null;
+      existing.resolvedBy = null;
+      await existing.save();
+
+      if (org.ownerId) {
+        await Notification.createNotification({
+          recipient: org.ownerId,
+          recipientRole: 'teacher',
+          title: 'Student Join Request',
+          message: `${req.user.displayName || req.user.email} has requested to join your organization.`,
+          type: 'student_join_request',
+          relatedId: existing._id,
+          relatedType: 'join_request',
+          actionUrl: '/teacher/assign-students',
+          actionText: 'Review Request',
+          organizationId: org._id,
+          sender: req.user._id,
+          senderName: req.user.displayName || req.user.email,
+          priority: 'high',
+          icon: 'fas fa-user-clock',
+          color: '#f59e0b'
+        });
+      }
+      return res.json({ success: true, message: 'Join request re-submitted successfully.' });
+    }
+
+    const joinRequest = await JoinRequest.create({
+      student: req.user._id,
+      organization: org._id,
+      message: message || ''
+    });
+
+    if (org.ownerId) {
+      await Notification.createNotification({
+        recipient: org.ownerId,
+        recipientRole: 'teacher',
+        title: 'Student Join Request',
+        message: `${req.user.displayName || req.user.email} has requested to join your organization.`,
+        type: 'student_join_request',
+        relatedId: joinRequest._id,
+        relatedType: 'join_request',
+        actionUrl: '/teacher/assign-students',
+        actionText: 'Review Request',
+        organizationId: org._id,
+        sender: req.user._id,
+        senderName: req.user.displayName || req.user.email,
+        priority: 'high',
+        icon: 'fas fa-user-clock',
+        color: '#f59e0b'
+      });
+    }
+
+    res.json({ success: true, message: 'Join request sent! Your teacher will be notified.' });
+  } catch (error) {
+    console.error('Error creating join request:', error);
+    res.status(500).json({ success: false, message: 'Failed to send join request.' });
+  }
+});
+
+// Teacher approves a join request
+app.post('/api/teacher/join-request/:requestId/approve', requireAuth, requireRole(['teacher']), async (req, res) => {
+  try {
+    const JoinRequest = require('./models/JoinRequest');
+    const Notification = require('./models/Notification');
+
+    const joinRequest = await JoinRequest.findById(req.params.requestId).populate('student').populate('organization');
+    if (!joinRequest) {
+      return res.status(404).json({ success: false, message: 'Join request not found.' });
+    }
+    if (joinRequest.organization.ownerId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
+    }
+    if (joinRequest.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'Request already resolved.' });
+    }
+
+    joinRequest.status = 'approved';
+    joinRequest.resolvedAt = new Date();
+    joinRequest.resolvedBy = req.user._id;
+    await joinRequest.save();
+
+    // Add student to the organization
+    const student = joinRequest.student;
+    if (student.organizationId?.toString() === joinRequest.organization._id.toString()) {
+      // Already primary org - nothing to do
+    } else {
+      const alreadyMember = (student.organizationMemberships || []).some(
+        m => m.organizationId?.toString() === joinRequest.organization._id.toString()
+      );
+      if (!alreadyMember) {
+        student.organizationMemberships = student.organizationMemberships || [];
+        student.organizationMemberships.push({
+          organizationId: joinRequest.organization._id,
+          role: 'student',
+          joinedAt: new Date(),
+          isActive: true
+        });
+        student.isApproved = true;
+        await student.save();
+      }
+    }
+
+    // Notify the student
+    await Notification.createNotification({
+      recipient: student._id,
+      recipientRole: 'student',
+      title: 'Join Request Approved',
+      message: `Your request to join ${joinRequest.organization.name} has been approved!`,
+      type: 'general',
+      relatedId: joinRequest._id,
+      relatedType: 'join_request',
+      actionUrl: '/dashboard',
+      actionText: 'Go to Dashboard',
+      organizationId: joinRequest.organization._id,
+      sender: req.user._id,
+      senderName: req.user.displayName || req.user.email,
+      priority: 'high',
+      icon: 'fas fa-check-circle',
+      color: '#10b981'
+    });
+
+    res.json({ success: true, message: 'Student approved and added to organization.' });
+  } catch (error) {
+    console.error('Error approving join request:', error);
+    res.status(500).json({ success: false, message: 'Failed to approve request.' });
+  }
+});
+
+// Teacher rejects a join request
+app.post('/api/teacher/join-request/:requestId/reject', requireAuth, requireRole(['teacher']), async (req, res) => {
+  try {
+    const JoinRequest = require('./models/JoinRequest');
+    const Notification = require('./models/Notification');
+
+    const joinRequest = await JoinRequest.findById(req.params.requestId).populate('student').populate('organization');
+    if (!joinRequest) {
+      return res.status(404).json({ success: false, message: 'Join request not found.' });
+    }
+    if (joinRequest.organization.ownerId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
+    }
+    if (joinRequest.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'Request already resolved.' });
+    }
+
+    joinRequest.status = 'rejected';
+    joinRequest.resolvedAt = new Date();
+    joinRequest.resolvedBy = req.user._id;
+    await joinRequest.save();
+
+    // Notify the student
+    await Notification.createNotification({
+      recipient: joinRequest.student._id,
+      recipientRole: 'student',
+      title: 'Join Request Declined',
+      message: `Your request to join ${joinRequest.organization.name} was not approved at this time.`,
+      type: 'general',
+      relatedId: joinRequest._id,
+      relatedType: 'join_request',
+      actionUrl: '/dashboard',
+      actionText: 'Go to Dashboard',
+      organizationId: joinRequest.organization._id,
+      sender: req.user._id,
+      senderName: req.user.displayName || req.user.email,
+      priority: 'medium',
+      icon: 'fas fa-times-circle',
+      color: '#ef4444'
+    });
+
+    res.json({ success: true, message: 'Join request rejected.' });
+  } catch (error) {
+    console.error('Error rejecting join request:', error);
+    res.status(500).json({ success: false, message: 'Failed to reject request.' });
+  }
+});
+
+// ===== END JOIN REQUEST ROUTES =====
+
+// Auto-format plain English math question to LaTeX notation
+app.post('/api/format-math-question', requireAuth, requireRole(['teacher']), async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, message: 'No text provided.' });
+    }
+
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: `You are a math formatter. Convert the following plain English math question into properly formatted text using LaTeX notation wrapped in $ for inline math and $$ for display math.
+
+Rules:
+- Wrap ALL mathematical expressions, numbers used as math (coordinates, values, variables), and equations in $...$
+- Coordinates like (2,3) → $(2,3)$
+- Fractions like 3/4 → $\\frac{3}{4}$
+- Exponents like x^2 → $x^2$
+- Equations like x^2/9 - y^2/4 = 1 → $\\frac{x^2}{9} - \\frac{y^2}{4} = 1$
+- Keep the question text in plain English, only wrap math parts
+- Do NOT add any explanation, just return the formatted question text only
+
+Input: ${text}
+
+Output:`
+      }]
+    });
+
+    const formatted = message.content[0].text.trim();
+    res.json({ success: true, formatted });
+  } catch (error) {
+    console.error('Error formatting math question:', error);
+    res.status(500).json({ success: false, message: 'Failed to format question.' });
+  }
+});
 
 // Route to auto-approve all teacher content (for fixing existing unapproved content)
 app.post('/admin/approve-all-teacher-content', requireAuth, requireRole(['admin', 'super_admin']), async (req, res) => {
@@ -5718,21 +6239,23 @@ app.get('/available-quizzes', requireAuth, requireRole(['student']), async (req,
     const subjectParam = req.query.subject;
     const gradeParam   = req.query.grade;
 
-    const hasSATSubjects = req.user.subjects &&
-      req.user.subjects.some(s => s === 'SAT Math' || s === 'SAT English');
-
     if (gradeParam) {
       filter.gradeLevel = gradeParam;
       console.log(`🎓 Grade filter from query param: ${gradeParam}`);
     } else if (req.user.gradeLevel) {
-      // If student has SAT subjects, also include SAT Verbal quizzes alongside their grade
-      if (hasSATSubjects) {
-        filter.gradeLevel = { $in: [req.user.gradeLevel, 'SAT Verbal'] };
-        console.log(`🎓 Grade filter: ${req.user.gradeLevel} + SAT Verbal (student has SAT subjects)`);
-      } else {
-        filter.gradeLevel = req.user.gradeLevel;
-        console.log(`🎓 Filtering quizzes for student ${req.user.displayName} (${req.user.gradeLevel})`);
+      const studentSubjects = req.user.subjects || [];
+      const gradeLevels = [req.user.gradeLevel];
+      if (studentSubjects.some(s => ['SAT Math', 'sat_math'].includes(s))) {
+        gradeLevels.push('SAT Math', 'sat_math');
       }
+      if (studentSubjects.some(s => ['SAT English', 'SAT Verbal', 'sat_verbal'].includes(s))) {
+        gradeLevels.push('SAT Verbal', 'sat_verbal');
+      }
+      if (studentSubjects.some(s => ['SAT General', 'sat_general'].includes(s))) {
+        gradeLevels.push('SAT General Questionnaire', 'sat_general');
+      }
+      filter.gradeLevel = gradeLevels.length > 1 ? { $in: gradeLevels } : req.user.gradeLevel;
+      console.log(`🎓 Grade filter for ${req.user.displayName}:`, gradeLevels);
     } else {
       console.log(`⚠️  Student ${req.user.displayName} has no grade level set - showing all quizzes`);
     }
@@ -6307,7 +6830,8 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
     res.render('take-quiz', {
       quiz: quizObject,
       user: req.user,
-      s3BucketName: process.env.AWS_BUCKET_NAME
+      s3BucketName: process.env.AWS_BUCKET_NAME,
+      questionPaperUrl: quizObject.questionPaperUrl || null
     });
   } catch (error) {
     console.error('Error starting quiz:', error);
