@@ -9,8 +9,8 @@ const pdfJobSchema = new mongoose.Schema({
   // S3 keys for the uploaded PDFs
   questionPaperKey: { type: String, required: true },
   answerPaperKey:   { type: String, default: null },
-  // Full URLs stored on the quiz record (for student access)
-  questionPaperUrl: { type: String, required: true },
+  // Full URLs stored on the quiz record (for student access — may be empty if S3 not configured)
+  questionPaperUrl: { type: String, default: '' },
   answerPaperUrl:   { type: String, default: null },
   // PDF content stored as base64 — worker uses this directly (no filesystem/S3 download needed)
   questionPaperData: { type: String, default: null },
