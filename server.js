@@ -3771,27 +3771,46 @@ app.post('/create-quiz-vision', requireAuth, requireRole(['teacher']), requireAp
         return res.status(400).json({ message: 'Only PDF files are supported.' });
       }
 
-      // 1. Upload PDFs to S3 (fast — just file transfer, no AI)
-      const questionFileUrl = await uploadToS3(file, 'question-papers');
-      const questionKey = extractS3Key(questionFileUrl);
-      console.log(`📄 PDF Vision: uploaded question paper, size: ${file.size} bytes`);
+      // 1. Encode PDFs as base64 for the job (worker uses this directly — no filesystem)
+      const questionPaperData = file.buffer.toString('base64');
+      console.log(`📄 PDF Vision: question paper in memory, size: ${file.size} bytes`);
 
-      let answerKey = null;
-      let answerFileUrl = null;
+      let answerPaperData = null;
       const answerFile = req.files?.answerPaper?.[0];
       if (answerFile) {
-        answerFileUrl = await uploadToS3(answerFile, 'answer-papers');
-        answerKey = extractS3Key(answerFileUrl);
-        console.log(`📄 PDF Vision: uploaded answer key, size: ${answerFile.size} bytes`);
+        answerPaperData = answerFile.buffer.toString('base64');
+        console.log(`📄 PDF Vision: answer key in memory, size: ${answerFile.size} bytes`);
       }
 
-      // 2. Create a job document — worker will call Claude in the background
+      // 2. Upload to S3 in the background for the quiz record (students need to access the PDF)
+      //    Do this async — don't await, store URL once done
+      let questionFileUrl = null;
+      let answerFileUrl = null;
+      try {
+        questionFileUrl = await uploadToS3(file, 'question-papers');
+      } catch (s3Err) {
+        console.warn('S3 upload failed (will store without PDF URL):', s3Err.message);
+      }
+      if (answerFile) {
+        try {
+          answerFileUrl = await uploadToS3(answerFile, 'answer-papers');
+        } catch (s3Err) {
+          console.warn('S3 answer upload failed:', s3Err.message);
+        }
+      }
+
+      const questionKey = questionFileUrl ? extractS3Key(questionFileUrl) : 'local';
+      const answerKey = answerFileUrl ? extractS3Key(answerFileUrl) : null;
+
+      // 3. Create a job document — worker will call Claude in the background
       const job = new PdfJob({
         status: 'pending',
         questionPaperKey: questionKey,
-        questionPaperUrl: questionFileUrl,
+        questionPaperUrl: questionFileUrl || '',
         answerPaperKey: answerKey,
         answerPaperUrl: answerFileUrl,
+        questionPaperData,
+        answerPaperData,
         progressMessage: 'PDF uploaded. Claude AI is reading your questions...',
         quizMeta: {
           title,
@@ -3841,30 +3860,12 @@ async function processPdfVisionJob(job) {
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    // Download PDF content — use URL to determine source (local vs S3)
-    async function getPdfBuffer(fileUrl, s3Key) {
-      if (fileUrl && fileUrl.startsWith('/')) {
-        // Local dev: URL is like /uploads/question-papers/file.pdf
-        const localPath = path.join(__dirname, 'public', fileUrl);
-        return await fs.readFile(localPath);
-      }
-      // S3: download using the key
-      const result = await s3.getObject({
-        Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
-        Key: s3Key
-      }).promise();
-      return result.Body;
-    }
+    // PDF data stored as base64 in the job — no filesystem or S3 download needed
+    const pdfBase64 = job.questionPaperData;
+    if (!pdfBase64) throw new Error('PDF data missing from job. Please re-upload.');
 
-    const questionBuffer = await getPdfBuffer(job.questionPaperUrl, job.questionPaperKey);
-    const pdfBase64 = questionBuffer.toString('base64');
-
-    const hasAnswerKey = !!job.answerPaperKey;
-    let answerPdfBase64 = null;
-    if (hasAnswerKey) {
-      const answerBuffer = await getPdfBuffer(job.answerPaperUrl, job.answerPaperKey);
-      answerPdfBase64 = answerBuffer.toString('base64');
-    }
+    const hasAnswerKey = !!(job.answerPaperKey && job.answerPaperData);
+    const answerPdfBase64 = hasAnswerKey ? job.answerPaperData : null;
 
     // Build Claude content
     const contentParts = [
@@ -4009,7 +4010,10 @@ Important:
     await PdfJob.findByIdAndUpdate(job._id, {
       status: 'done',
       quizId: quiz._id,
-      progressMessage: `Done! ${finalQuestions.length} questions extracted.`
+      progressMessage: `Done! ${finalQuestions.length} questions extracted.`,
+      // Clear PDF data now that the quiz is saved — frees MongoDB space
+      questionPaperData: null,
+      answerPaperData: null
     });
     console.log(`✅ PDF Vision job ${job._id} complete: quiz ${quiz._id} (${finalQuestions.length} questions)`);
 
