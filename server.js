@@ -42,10 +42,11 @@ const s3Config = {
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: process.env.AWS_REGION || 'auto'
 };
-// R2 requires a custom endpoint; AWS S3 does not
+// R2 requires a custom endpoint and path-style URLs; AWS S3 does not
 if (process.env.R2_ENDPOINT) {
   s3Config.endpoint = process.env.R2_ENDPOINT;
   s3Config.signatureVersion = 'v4';
+  s3Config.s3ForcePathStyle = true;
 }
 const s3 = new AWS.S3(s3Config);
 
@@ -3802,7 +3803,7 @@ app.post('/create-quiz-vision', requireAuth, requireRole(['teacher']), requireAp
       try {
         questionFileUrl = await uploadToS3(file, 'question-papers');
       } catch (s3Err) {
-        console.warn('S3 upload failed (will store without PDF URL):', s3Err.message);
+        console.error('❌ R2/S3 upload failed:', s3Err.message, '| endpoint:', process.env.R2_ENDPOINT, '| bucket:', process.env.AWS_BUCKET_NAME);
       }
       if (answerFile) {
         try {
