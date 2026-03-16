@@ -6911,7 +6911,7 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
     if (questionPaperUrl && questionPaperUrl.includes('amazonaws.com')) {
       try {
         const pdfKey = extractS3Key(questionPaperUrl);
-        questionPaperUrl = await generatePresignedUrl(pdfKey, 7200); // 2-hour expiry
+        questionPaperUrl = await generatePresignedUrl(pdfKey, 604800); // 7-day expiry (S3 maximum)
       } catch (e) {
         console.warn('Could not generate presigned URL for question paper:', e.message);
       }
