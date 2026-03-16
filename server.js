@@ -367,8 +367,14 @@ async function uploadToS3(file, folder = 'uploads') {
 
   try {
     await s3.upload(params).promise();
-    const fullUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
-    console.log(`✅ File uploaded to S3: ${fullUrl}`);
+    let fullUrl;
+    if (process.env.R2_ENDPOINT) {
+      // R2 path-style URL: {endpoint}/{bucket}/{key}
+      fullUrl = `${process.env.R2_ENDPOINT.replace(/\/$/, '')}/${bucketName}/${s3Key}`;
+    } else {
+      fullUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
+    }
+    console.log(`✅ File uploaded: ${fullUrl}`);
     return fullUrl;
   } catch (error) {
     console.error('❌ Error uploading to S3:', error);
@@ -6919,10 +6925,18 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
 
     // Generate a presigned URL for the question paper PDF (S3/R2 bucket is private)
     let questionPaperUrl = quizObject.questionPaperUrl || null;
+
+    // Fallback: look up PdfJob if quiz has no stored URL (e.g. upload failed at creation time)
+    if (!questionPaperUrl) {
+      const job = await PdfJob.findOne({ quizId: quiz._id });
+      if (job && job.questionPaperUrl) questionPaperUrl = job.questionPaperUrl;
+    }
+
     if (questionPaperUrl) {
       try {
         const pdfKey = extractS3Key(questionPaperUrl);
-        questionPaperUrl = await generatePresignedUrl(pdfKey, 604800); // 7-day expiry (S3 maximum)
+        const presigned = await generatePresignedUrl(pdfKey, 604800); // 7-day expiry (S3 maximum)
+        if (presigned) questionPaperUrl = presigned; // keep original URL if presigning fails
       } catch (e) {
         console.warn('Could not generate presigned URL for question paper:', e.message);
       }
