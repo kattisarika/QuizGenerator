@@ -6906,11 +6906,22 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
     }
     console.log('=== END TAKE QUIZ DEBUG ===');
 
+    // Generate a presigned URL for the question paper PDF (S3 bucket is private)
+    let questionPaperUrl = quizObject.questionPaperUrl || null;
+    if (questionPaperUrl && questionPaperUrl.includes('amazonaws.com')) {
+      try {
+        const pdfKey = extractS3Key(questionPaperUrl);
+        questionPaperUrl = await generatePresignedUrl(pdfKey, 7200); // 2-hour expiry
+      } catch (e) {
+        console.warn('Could not generate presigned URL for question paper:', e.message);
+      }
+    }
+
     res.render('take-quiz', {
       quiz: quizObject,
       user: req.user,
       s3BucketName: process.env.AWS_BUCKET_NAME,
-      questionPaperUrl: quizObject.questionPaperUrl || null
+      questionPaperUrl
     });
   } catch (error) {
     console.error('Error starting quiz:', error);
