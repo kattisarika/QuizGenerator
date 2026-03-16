@@ -221,8 +221,9 @@ const requireApprovedTeacher = (req, res, next) => {
 // Build storage domain for CSP (AWS S3 or Cloudflare R2 public domain)
 const _s3Bucket = process.env.AWS_BUCKET_NAME || 'skillon-test';
 const _s3Region = process.env.AWS_REGION || 'us-west-1';
-const _s3Domain = process.env.R2_PUBLIC_DOMAIN
-  ? `https://${process.env.R2_PUBLIC_DOMAIN}`
+const _r2PublicDomain = (process.env.R2_PUBLIC_DOMAIN || '').replace(/^https?:\/\//, '');
+const _s3Domain = _r2PublicDomain
+  ? `https://${_r2PublicDomain}`
   : `https://${_s3Bucket}.s3.${_s3Region}.amazonaws.com`;
 
 // Security headers
@@ -6953,7 +6954,7 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
       console.log('[take-quiz] using MongoDB PDF data endpoint as questionPaperUrl');
     }
 
-    if (questionPaperUrl) {
+    if (questionPaperUrl && !questionPaperUrl.startsWith('/')) {
       try {
         const pdfKey = extractS3Key(questionPaperUrl);
         console.log('[take-quiz] extracted key:', pdfKey);
