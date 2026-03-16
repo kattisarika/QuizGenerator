@@ -466,6 +466,24 @@ async function generatePresignedUrls(s3Keys, expiresIn = 3600) {
 
 
 
+// Serve question paper PDF stored in MongoDB (fallback when no S3/R2 configured)
+app.get('/api/quiz/:quizId/paper', requireAuth, async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId).select('questionPaperData questionPaperUrl createdBy');
+    if (!quiz) return res.status(404).send('Quiz not found');
+    if (quiz.questionPaperData) {
+      const buf = Buffer.from(quiz.questionPaperData, 'base64');
+      res.set('Content-Type', 'application/pdf');
+      res.set('Content-Length', buf.length);
+      return res.send(buf);
+    }
+    if (quiz.questionPaperUrl) return res.redirect(quiz.questionPaperUrl);
+    return res.status(404).send('No question paper available');
+  } catch (e) {
+    res.status(500).send('Error serving question paper');
+  }
+});
+
 // API endpoint to get a single pre-signed URL for an image
 app.get('/api/image/:s3Key(*)', requireAuth, async (req, res) => {
   try {
@@ -4025,7 +4043,9 @@ Important:
       createdByName,
       organizationId,
       isApproved: true,
-      questionPaperUrl: job.questionPaperUrl
+      questionPaperUrl: job.questionPaperUrl || null,
+      // Store PDF data in quiz if no URL (e.g. no S3/R2 on Heroku) — serves via /api/quiz/:id/paper
+      questionPaperData: job.questionPaperUrl ? null : job.questionPaperData
     });
     await quiz.save();
 
@@ -6925,22 +6945,26 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
 
     // Generate a presigned URL for the question paper PDF (S3/R2 bucket is private)
     let questionPaperUrl = quizObject.questionPaperUrl || null;
+    console.log('[take-quiz] quiz.questionPaperUrl from DB:', questionPaperUrl);
 
-    // Fallback: look up PdfJob if quiz has no stored URL (e.g. upload failed at creation time)
-    if (!questionPaperUrl) {
-      const job = await PdfJob.findOne({ quizId: quiz._id });
-      if (job && job.questionPaperUrl) questionPaperUrl = job.questionPaperUrl;
+    // Fallback: use /api/quiz/:id/paper endpoint if quiz has PDF data in MongoDB
+    if (!questionPaperUrl && quizObject.questionPaperData) {
+      questionPaperUrl = `/api/quiz/${quiz._id}/paper`;
+      console.log('[take-quiz] using MongoDB PDF data endpoint as questionPaperUrl');
     }
 
     if (questionPaperUrl) {
       try {
         const pdfKey = extractS3Key(questionPaperUrl);
+        console.log('[take-quiz] extracted key:', pdfKey);
         const presigned = await generatePresignedUrl(pdfKey, 604800); // 7-day expiry (S3 maximum)
+        console.log('[take-quiz] presigned URL generated:', presigned ? 'yes' : 'null');
         if (presigned) questionPaperUrl = presigned; // keep original URL if presigning fails
       } catch (e) {
         console.warn('Could not generate presigned URL for question paper:', e.message);
       }
     }
+    console.log('[take-quiz] final questionPaperUrl passed to view:', questionPaperUrl ? 'set' : 'null/empty');
 
     res.render('take-quiz', {
       quiz: quizObject,

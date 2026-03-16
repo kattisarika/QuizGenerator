@@ -110,6 +110,11 @@ const quizSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // Base64 PDF stored directly in MongoDB — fallback when S3/R2 is not configured (e.g. Heroku)
+  questionPaperData: {
+    type: String,
+    default: null
+  },
 
   // Complex quiz data stored directly in MongoDB (using Mixed type for flexibility)
   complexQuizData: {
