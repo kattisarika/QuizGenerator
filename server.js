@@ -467,7 +467,7 @@ async function generatePresignedUrls(s3Keys, expiresIn = 3600) {
 
 
 // Serve question paper PDF stored in MongoDB (fallback when no S3/R2 configured)
-app.get('/api/quiz/:quizId/paper', requireAuth, async (req, res) => {
+app.get('/api/quiz/:quizId/paper', async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId).select('questionPaperData questionPaperUrl createdBy');
     if (!quiz) return res.status(404).send('Quiz not found');

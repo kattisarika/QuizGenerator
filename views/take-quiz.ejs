@@ -3707,7 +3707,8 @@
             try {
                 if (!_pdfDocCache[pdfUrl]) {
                     const loadUrl = await _getPresignedUrl(pdfUrl);
-                    _pdfDocCache[pdfUrl] = await pdfjsLib.getDocument({ url: loadUrl, withCredentials: false }).promise;
+                    const isLocalUrl = loadUrl.startsWith('/');
+_pdfDocCache[pdfUrl] = await pdfjsLib.getDocument({ url: loadUrl, withCredentials: isLocalUrl }).promise;
                 }
                 const pdfDoc = _pdfDocCache[pdfUrl];
                 const page = await pdfDoc.getPage(pageNum);
