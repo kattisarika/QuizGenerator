@@ -3699,7 +3699,10 @@
             const pageNum = parseInt(container.dataset.pdfPage) || 1;
             const loadingDiv = container.querySelector('.question-image-loading');
             const canvas = container.querySelector('.pdf-page-canvas');
-            if (!pdfUrl || !canvas) continue;
+            if (!pdfUrl || !canvas) {
+                if (loadingDiv) loadingDiv.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-1"></i> Diagram not available.';
+                continue;
+            }
 
             try {
                 if (!_pdfDocCache[pdfUrl]) {

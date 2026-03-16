@@ -791,17 +791,19 @@ function extractS3Key(fileUrl) {
       const key = url.pathname.substring(1); // Remove leading slash
       console.log('Extracted key (amazonaws.com):', key);
       return decodeURIComponent(key);
-    } else if (fileUrl.includes('s3.amazonaws.com')) {
-      // Alternative S3 URL format: https://s3.amazonaws.com/bucket/key
-      const urlParts = fileUrl.split('/');
-      const bucketIndex = urlParts.findIndex(part => part.includes('s3.amazonaws.com')) + 2; // Skip bucket name
-      const key = urlParts.slice(bucketIndex).join('/');
-      console.log('Extracted key (s3.amazonaws.com):', key);
+    } else if (process.env.R2_ENDPOINT && fileUrl.startsWith(process.env.R2_ENDPOINT)) {
+      // R2 path-style URL: https://{R2_ENDPOINT}/{bucket}/{key}
+      const withoutEndpoint = fileUrl.slice(process.env.R2_ENDPOINT.replace(/\/$/, '').length);
+      const parts = withoutEndpoint.replace(/^\//, '').split('/');
+      const key = parts.slice(1).join('/'); // skip bucket name
+      console.log('Extracted key (R2):', key);
       return decodeURIComponent(key);
     } else {
-      // Fallback: assume last parts are the key (uploads/filename)
-      const urlParts = fileUrl.split('/');
-      const key = urlParts.slice(-2).join('/');
+      // Fallback: strip protocol+host+bucket, return full path key
+      const url = new URL(fileUrl);
+      const parts = url.pathname.substring(1).split('/');
+      // If path-style (first segment is bucket name), skip it
+      const key = parts.length > 1 ? parts.slice(1).join('/') : parts[0];
       console.log('Extracted key (fallback):', key);
       return decodeURIComponent(key);
     }
@@ -6915,9 +6917,9 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
     }
     console.log('=== END TAKE QUIZ DEBUG ===');
 
-    // Generate a presigned URL for the question paper PDF (S3 bucket is private)
+    // Generate a presigned URL for the question paper PDF (S3/R2 bucket is private)
     let questionPaperUrl = quizObject.questionPaperUrl || null;
-    if (questionPaperUrl && questionPaperUrl.includes('amazonaws.com')) {
+    if (questionPaperUrl) {
       try {
         const pdfKey = extractS3Key(questionPaperUrl);
         questionPaperUrl = await generatePresignedUrl(pdfKey, 604800); // 7-day expiry (S3 maximum)
