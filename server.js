@@ -211,6 +211,11 @@ const requireApprovedTeacher = (req, res, next) => {
   next();
 };
 
+// Build S3 domain for CSP — wildcard subdomains don't work in CSP so use the specific domain
+const _s3Bucket = process.env.AWS_BUCKET_NAME || 'skillon-test';
+const _s3Region = process.env.AWS_REGION || 'us-west-1';
+const _s3Domain = `https://${_s3Bucket}.s3.${_s3Region}.amazonaws.com`;
+
 // Security headers
 app.use(helmet({
   contentSecurityPolicy: {
@@ -221,7 +226,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "ws:", "wss:", "https://cdn.jsdelivr.net", "https://www.desmos.com", "https://api.desmos.com", "https://*.s3.amazonaws.com", "https://*.s3.*.amazonaws.com"],
+      connectSrc: ["'self'", "ws:", "wss:", "https://cdn.jsdelivr.net", "https://www.desmos.com", "https://api.desmos.com", _s3Domain],
       mediaSrc: ["'self'", "https:"],
       frameSrc: ["'self'", "https://view.officeapps.live.com", "https://docs.google.com", "https://www.desmos.com"],
       workerSrc: ["'self'", "blob:", "https://www.desmos.com"],
