@@ -155,6 +155,7 @@ connectDB();
 const User = require('./models/User');
 const Quiz = require('./models/Quiz');
 const QuizResult = require('./models/QuizResult');
+const PdfJob = require('./models/PdfJob');
 const Content = require('./models/Content');
 const Organization = require('./models/Organization');
 
@@ -3751,6 +3752,8 @@ app.post('/create-quiz', requireAuth, requireRole(['teacher']), requireApprovedT
 });
 
 // ── PDF Vision Quiz Creation (Claude reads PDF natively — no ImageMagick needed) ──
+// This route returns a jobId immediately to avoid Heroku's 30-second timeout.
+// The actual Claude processing happens in the background worker below.
 app.post('/create-quiz-vision', requireAuth, requireRole(['teacher']), requireApprovedTeacher,
   upload.fields([{ name: 'questionPaper', maxCount: 1 }, { name: 'answerPaper', maxCount: 1 }]),
   async (req, res) => {
@@ -3768,42 +3771,109 @@ app.post('/create-quiz-vision', requireAuth, requireRole(['teacher']), requireAp
         return res.status(400).json({ message: 'Only PDF files are supported.' });
       }
 
-      // 1. Upload original PDF to S3
+      // 1. Upload PDFs to S3 (fast — just file transfer, no AI)
       const questionFileUrl = await uploadToS3(file, 'question-papers');
-      console.log(`📄 PDF Vision: uploaded PDF to S3, size: ${file.size} bytes`);
+      const questionKey = extractS3Key(questionFileUrl);
+      console.log(`📄 PDF Vision: uploaded question paper, size: ${file.size} bytes`);
 
-      // 2. Send PDF directly to Claude — Claude reads PDFs natively (no ImageMagick needed)
-      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const pdfBase64 = file.buffer.toString('base64');
-
-      // Check for optional answer key PDF
+      let answerKey = null;
       const answerFile = req.files?.answerPaper?.[0];
-      const answerPdfBase64 = answerFile ? answerFile.buffer.toString('base64') : null;
       if (answerFile) {
-        console.log(`📄 Answer key PDF uploaded: ${answerFile.size} bytes`);
+        const answerUrl = await uploadToS3(answerFile, 'answer-papers');
+        answerKey = extractS3Key(answerUrl);
+        console.log(`📄 PDF Vision: uploaded answer key, size: ${answerFile.size} bytes`);
       }
 
-      const hasAnswerKey = !!answerPdfBase64;
-      const answerKeyInstruction = hasAnswerKey
-        ? `The SECOND document is the answer key PDF. Use it to fill in the "correctAnswer" field for each question by matching question numbers. The correctAnswer should be the exact text of the correct option as it appears in the question paper (not just the letter like "A" or "B" — use the full option text).`
-        : `There is no separate answer key. Set "correctAnswer" to empty string "" for all questions unless the answer is clearly visible in the question paper itself.`;
-
-      // Build content array — question paper first, then answer key if provided
-      const contentParts = [
-        {
-          type: 'document',
-          source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 }
+      // 2. Create a job document — worker will call Claude in the background
+      const job = new PdfJob({
+        status: 'pending',
+        questionPaperKey: questionKey,
+        questionPaperUrl: questionFileUrl,
+        answerPaperKey: answerKey,
+        progressMessage: 'PDF uploaded. Claude AI is reading your questions...',
+        quizMeta: {
+          title,
+          subject,
+          gradeLevel,
+          quizType: quizType || 'regular',
+          createdBy: req.user._id,
+          createdByName: req.user.displayName,
+          organizationId: req.user.organizationId
         }
-      ];
-      if (hasAnswerKey) {
-        contentParts.push({
-          type: 'document',
-          source: { type: 'base64', media_type: 'application/pdf', data: answerPdfBase64 }
-        });
+      });
+      await job.save();
+      console.log(`📋 PDF Vision job created: ${job._id}`);
+
+      // 3. Return immediately — frontend will poll /api/quiz-job/:id
+      return res.json({ jobId: job._id });
+
+    } catch (err) {
+      console.error('PDF Vision route error:', err);
+      return res.status(500).json({ message: `Server error: ${err.message}` });
+    }
+  }
+);
+
+// ── Poll endpoint for PDF Vision job status ──
+app.get('/api/quiz-job/:jobId', requireAuth, async (req, res) => {
+  try {
+    const job = await PdfJob.findById(req.params.jobId).lean();
+    if (!job) return res.status(404).json({ message: 'Job not found.' });
+    return res.json({
+      status: job.status,
+      progressMessage: job.progressMessage,
+      quizId: job.quizId || null,
+      errorMessage: job.errorMessage || null
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// ── Background worker: processes pending PDF Vision jobs ──
+// Runs every 8 seconds; picks one job at a time to avoid memory spikes.
+async function processPdfVisionJob(job) {
+  console.log(`🔄 Processing PDF Vision job ${job._id}...`);
+  try {
+    await PdfJob.findByIdAndUpdate(job._id, { status: 'processing', progressMessage: 'Claude AI is reading your questions...' });
+
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    // Download PDFs from S3 (or local disk in dev)
+    async function getPdfBuffer(s3Key) {
+      const hasAwsCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
+      if (!hasAwsCredentials) {
+        // Local dev: key is a URL path like /uploads/question-papers/file.pdf
+        const localPath = path.join(__dirname, 'public', s3Key);
+        return await fs.readFile(localPath);
       }
-      contentParts.push({
-        type: 'text',
-        text: `You are extracting questions from a quiz/exam PDF. Go through every page of the FIRST document (question paper) carefully.
+      const result = await s3.getObject({
+        Bucket: process.env.AWS_BUCKET_NAME || 'skillon-test',
+        Key: s3Key
+      }).promise();
+      return result.Body;
+    }
+
+    const questionBuffer = await getPdfBuffer(job.questionPaperKey);
+    const pdfBase64 = questionBuffer.toString('base64');
+
+    const hasAnswerKey = !!job.answerPaperKey;
+    let answerPdfBase64 = null;
+    if (hasAnswerKey) {
+      const answerBuffer = await getPdfBuffer(job.answerPaperKey);
+      answerPdfBase64 = answerBuffer.toString('base64');
+    }
+
+    // Build Claude content
+    const contentParts = [
+      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } }
+    ];
+    if (hasAnswerKey) {
+      contentParts.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: answerPdfBase64 } });
+    }
+    contentParts.push({
+      type: 'text',
+      text: `You are extracting questions from a quiz/exam PDF. Go through every page of the FIRST document (question paper) carefully.
 ${hasAnswerKey ? '\nThe SECOND document is the answer key — use it to populate the correctAnswer field.' : ''}
 
 For each numbered question (Q1, Q2, 1., 2., etc.) extract the following and return as a JSON array.
@@ -3833,149 +3903,147 @@ Rules for each field:
 - "correctAnswer": ${hasAnswerKey ? 'look up the correct answer in the answer key (second document) and provide the FULL text of the correct option, not just the letter. Match by question number.' : 'exact text of correct option if visible in the PDF, else empty string'}
 - "explanation": any explanation or working shown in the PDF for this question, else empty string
 
-${answerKeyInstruction}
-
 Important:
 - Extract questions from the FIRST document only
 - Skip cover pages, instructions, or pages with no questions
 - If a question spans multiple pages, use the page where it starts
 - Do not fabricate options — only include what is printed in the question paper`
-      });
+    });
 
-      console.log(`🤖 Claude Vision: reading PDF${hasAnswerKey ? ' + answer key' : ''}...`);
-      let claudeReply;
-      try {
-        const msg = await anthropic.messages.create({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 8192,
-          messages: [{
-            role: 'user',
-            content: contentParts
-          }]
-        });
-        claudeReply = msg.content[0].text.trim();
-      } catch (aiErr) {
-        console.error('Claude PDF Vision error:', aiErr.message);
-        const isKeyErr = aiErr.message?.toLowerCase().includes('api key') || aiErr.status === 401;
-        return res.status(500).json({
-          message: isKeyErr
-            ? 'Anthropic API key is missing or invalid. Please set ANTHROPIC_API_KEY in .env'
-            : `Claude AI error: ${aiErr.message}`
-        });
+    await PdfJob.findByIdAndUpdate(job._id, { progressMessage: 'Claude AI is analysing questions and diagrams...' });
+
+    const msg = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 8192,
+      messages: [{ role: 'user', content: contentParts }]
+    });
+    const claudeReply = msg.content[0].text.trim();
+
+    // Parse response
+    let allQuestions = [];
+    let cleaned = claudeReply
+      .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) allQuestions = parsed;
+      else if (parsed && Array.isArray(parsed.questions)) allQuestions = parsed.questions;
+      else if (parsed && typeof parsed === 'object') {
+        const firstArr = Object.values(parsed).find(v => Array.isArray(v));
+        allQuestions = firstArr || [];
       }
-
-      // 3. Parse Claude's JSON response
-      let allQuestions = [];
-      try {
-        // Strip markdown fences
-        let cleaned = claudeReply
-          .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-
-        // Sometimes Claude wraps the array in an object like { "questions": [...] }
-        let parsed = JSON.parse(cleaned);
-        if (Array.isArray(parsed)) {
-          allQuestions = parsed;
-        } else if (parsed && Array.isArray(parsed.questions)) {
-          allQuestions = parsed.questions;
-        } else if (parsed && typeof parsed === 'object') {
-          // Find the first array value in the object
-          const firstArr = Object.values(parsed).find(v => Array.isArray(v));
-          allQuestions = firstArr || [];
-        }
-      } catch (parseErr) {
-        // Try extracting a JSON array from anywhere in the response
-        const arrayMatch = claudeReply.match(/\[\s*\{[\s\S]*?\}\s*\]/);
-        if (arrayMatch) {
-          try {
-            allQuestions = JSON.parse(arrayMatch[0]);
-          } catch(e2) {
-            console.error('Claude response (first 500 chars):', claudeReply.slice(0, 500));
-            return res.status(500).json({ message: 'Claude returned an unexpected format. Please try again.' });
-          }
-        } else {
-          // Last resort: try to salvage a truncated array by closing it
-          try {
-            const partial = claudeReply.trim();
-            const startIdx = partial.indexOf('[');
-            if (startIdx !== -1) {
-              const lastBrace = partial.lastIndexOf('}');
-              if (lastBrace !== -1) {
-                const salvaged = partial.slice(startIdx, lastBrace + 1) + ']';
-                allQuestions = JSON.parse(salvaged);
-                console.warn(`⚠️ Salvaged ${allQuestions.length} questions from truncated response`);
-              }
-            }
-            if (!allQuestions.length) throw new Error('empty');
-          } catch(e3) {
-            console.error('Claude response (first 500 chars):', claudeReply.slice(0, 500));
-            return res.status(500).json({ message: 'Claude returned an unexpected format. Please try again.' });
+    } catch (parseErr) {
+      const arrayMatch = claudeReply.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+      if (arrayMatch) {
+        try { allQuestions = JSON.parse(arrayMatch[0]); } catch(e) {}
+      }
+      if (!allQuestions.length) {
+        // Try salvaging truncated array
+        const startIdx = claudeReply.indexOf('[');
+        if (startIdx !== -1) {
+          const lastBrace = claudeReply.lastIndexOf('}');
+          if (lastBrace !== -1) {
+            try {
+              const salvaged = claudeReply.slice(startIdx, lastBrace + 1) + ']';
+              allQuestions = JSON.parse(salvaged);
+              console.warn(`⚠️ Salvaged ${allQuestions.length} questions from truncated response`);
+            } catch(e) {}
           }
         }
       }
-
-      console.log(`✅ Claude extracted ${allQuestions.length} questions from PDF`);
-
-      if (allQuestions.length === 0) {
-        return res.status(400).json({ message: 'Claude could not find any questions in this PDF. Please check the document is a question paper.' });
+      if (!allQuestions.length) {
+        throw new Error('Claude returned an unexpected format. Please try again with a clearer PDF.');
       }
-
-      // 4. Normalise options and save
-      const finalQuestions = allQuestions.map((q, i) => {
-        const opts = Array.isArray(q.options) ? q.options : [];
-        // Only pad to 4 if it's MCQ (not short answer or T/F)
-        if (opts.length > 0 && opts.length < 4 && opts.length !== 2) {
-          while (opts.length < 4) opts.push(`Option ${String.fromCharCode(65 + opts.length)}`);
-        }
-        // Only attach page image if question actually has a visual diagram
-        let imageRef = null;
-        if (q.hasImage && q.pageNumber) {
-          const b = q.imageBounds;
-          if (b && b.x != null && b.y != null && b.width != null && b.height != null) {
-            // Store as pdf-page:N:x,y,w,h (all 0-1 fractions)
-            imageRef = `pdf-page:${q.pageNumber}:${b.x},${b.y},${b.width},${b.height}`;
-          } else {
-            imageRef = `pdf-page:${q.pageNumber}`;
-          }
-        }
-        const qNum = q.questionNumber || (i + 1);
-        console.log(`Q${qNum}: hasImage=${q.hasImage}, page=${q.pageNumber}, imageRef=${imageRef}`);
-        return {
-          question: q.question || `Question ${qNum}`,
-          type: opts.length === 0 ? 'short-answer' : opts.length === 2 ? 'true-false' : 'multiple-choice',
-          options: opts.slice(0, 4),
-          correctAnswer: q.correctAnswer || '',
-          explanation: q.explanation || '',
-          image: imageRef,
-          points: 1
-        };
-      });
-
-      const quiz = new Quiz({
-        title,
-        description: `PDF Vision quiz — ${finalQuestions.length} questions extracted by Claude AI`,
-        gradeLevel,
-        subjects: [subject],
-        language: 'English',
-        quizType: quizType || 'regular',
-        questions: finalQuestions,
-        createdBy: req.user._id,
-        createdByName: req.user.displayName,
-        organizationId: req.user.organizationId,
-        isApproved: true,
-        questionPaperUrl: questionFileUrl
-      });
-
-      await quiz.save();
-      console.log(`✅ PDF Vision quiz saved: ${quiz._id} (${finalQuestions.length} questions)`);
-
-      return res.json({ success: true, quizId: quiz._id });
-
-    } catch (err) {
-      console.error('PDF Vision route error:', err);
-      return res.status(500).json({ message: `Server error: ${err.message}` });
     }
+
+    if (allQuestions.length === 0) {
+      throw new Error('Claude could not find any questions in this PDF. Please check the document is a question paper.');
+    }
+
+    // Normalise questions
+    const { title, subject, gradeLevel, quizType, createdBy, createdByName, organizationId } = job.quizMeta;
+    const finalQuestions = allQuestions.map((q, i) => {
+      const opts = Array.isArray(q.options) ? q.options : [];
+      if (opts.length > 0 && opts.length < 4 && opts.length !== 2) {
+        while (opts.length < 4) opts.push(`Option ${String.fromCharCode(65 + opts.length)}`);
+      }
+      let imageRef = null;
+      if (q.hasImage && q.pageNumber) {
+        const b = q.imageBounds;
+        if (b && b.x != null && b.y != null && b.width != null && b.height != null) {
+          imageRef = `pdf-page:${q.pageNumber}:${b.x},${b.y},${b.width},${b.height}`;
+        } else {
+          imageRef = `pdf-page:${q.pageNumber}`;
+        }
+      }
+      return {
+        question: q.question || `Question ${q.questionNumber || (i + 1)}`,
+        type: opts.length === 0 ? 'short-answer' : opts.length === 2 ? 'true-false' : 'multiple-choice',
+        options: opts.slice(0, 4),
+        correctAnswer: q.correctAnswer || '',
+        explanation: q.explanation || '',
+        image: imageRef,
+        points: 1
+      };
+    });
+
+    await PdfJob.findByIdAndUpdate(job._id, { progressMessage: 'Saving quiz...' });
+
+    const quiz = new Quiz({
+      title,
+      description: `PDF Vision quiz — ${finalQuestions.length} questions extracted by Claude AI`,
+      gradeLevel,
+      subjects: [subject],
+      language: 'English',
+      quizType: quizType || 'regular',
+      questions: finalQuestions,
+      createdBy,
+      createdByName,
+      organizationId,
+      isApproved: true,
+      questionPaperUrl: job.questionPaperUrl
+    });
+    await quiz.save();
+
+    await PdfJob.findByIdAndUpdate(job._id, {
+      status: 'done',
+      quizId: quiz._id,
+      progressMessage: `Done! ${finalQuestions.length} questions extracted.`
+    });
+    console.log(`✅ PDF Vision job ${job._id} complete: quiz ${quiz._id} (${finalQuestions.length} questions)`);
+
+  } catch (err) {
+    console.error(`❌ PDF Vision job ${job._id} failed:`, err.message);
+    await PdfJob.findByIdAndUpdate(job._id, {
+      status: 'error',
+      errorMessage: err.message,
+      progressMessage: 'Failed.'
+    });
   }
-);
+}
+
+// Start the worker loop after MongoDB connects
+let _pdfWorkerRunning = false;
+function startPdfVisionWorker() {
+  setInterval(async () => {
+    if (_pdfWorkerRunning) return; // skip if previous tick is still running
+    _pdfWorkerRunning = true;
+    try {
+      const job = await PdfJob.findOneAndUpdate(
+        { status: 'pending' },
+        { status: 'processing' },
+        { new: true, sort: { createdAt: 1 } }
+      );
+      if (job) await processPdfVisionJob(job);
+    } catch (err) {
+      console.error('PDF Vision worker error:', err.message);
+    } finally {
+      _pdfWorkerRunning = false;
+    }
+  }, 8000);
+  console.log('🔄 PDF Vision background worker started (polling every 8s)');
+}
+
+// ── end PDF Vision ──
 
 // Manual quiz creation route
 app.post('/create-quiz-manual', requireAuth, requireRole(['teacher']), requireApprovedTeacher, quizImageUpload.array('questionImages', 50), async (req, res) => {
@@ -8974,6 +9042,7 @@ const checkConnectionAndStart = () => {
   if (mongoose.connection.readyState === 1) {
     console.log('✅ MongoDB connected, starting server...');
     startServer();
+    startPdfVisionWorker();
   } else {
     console.log('⏳ Waiting for MongoDB connection...');
     console.log('Current MongoDB state:', mongoose.connection.readyState);

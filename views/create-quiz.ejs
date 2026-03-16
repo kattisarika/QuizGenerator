@@ -3506,24 +3506,60 @@ Perfect for creating complex assessments, math problems, science diagrams, and i
             }, 4000);
 
             try {
-                const res = await fetch('/create-quiz-vision', { method: 'POST', body: fd });
+                // Step 1: upload PDFs and create background job (returns immediately)
+                const uploadRes = await fetch('/create-quiz-vision', { method: 'POST', body: fd });
                 clearInterval(progressInterval);
-                if (res.redirected) { window.location.href = res.url; return; }
-                let data = null;
-                const rawText = await res.text().catch(() => '');
-                try { data = JSON.parse(rawText); } catch(e) {}
-                if (!res.ok) {
+                let uploadData = null;
+                const rawText = await uploadRes.text().catch(() => '');
+                try { uploadData = JSON.parse(rawText); } catch(e) {}
+                if (!uploadRes.ok) {
                     bar.style.width = '0%';
                     document.getElementById('pvProgress').style.display = 'none';
-                    const serverMsg = (data && data.message) || rawText.slice(0, 200) || 'Failed to extract questions. Please try again.';
-                    errEl.textContent = `Error (${res.status}): ${serverMsg}`;
+                    const serverMsg = (uploadData && uploadData.message) || rawText.slice(0, 200) || 'Upload failed. Please try again.';
+                    errEl.textContent = `Error (${uploadRes.status}): ${serverMsg}`;
                     errEl.style.display = 'block';
                     document.getElementById('pvSubmitBtn').disabled = false;
                     return;
                 }
-                bar.style.width = '100%';
-                msg.textContent = 'Done! Redirecting...';
-                setTimeout(() => { window.location.href = '/teacher/dashboard'; }, 800);
+
+                const jobId = uploadData && uploadData.jobId;
+                if (!jobId) {
+                    errEl.textContent = 'Server did not return a job ID. Please try again.';
+                    errEl.style.display = 'block';
+                    document.getElementById('pvSubmitBtn').disabled = false;
+                    return;
+                }
+
+                // Step 2: poll job status every 5 seconds
+                bar.style.width = '40%';
+                msg.textContent = 'PDF uploaded. Claude AI is reading your questions...';
+
+                const pollInterval = setInterval(async () => {
+                    try {
+                        const pollRes = await fetch(`/api/quiz-job/${jobId}`);
+                        const pollData = await pollRes.json().catch(() => null);
+                        if (!pollData) return;
+
+                        if (pollData.status === 'processing' || pollData.status === 'pending') {
+                            if (pollData.progressMessage) msg.textContent = pollData.progressMessage;
+                            // Animate bar between 40-90%
+                            const current = parseFloat(bar.style.width) || 40;
+                            if (current < 90) bar.style.width = Math.min(current + 5, 90) + '%';
+                        } else if (pollData.status === 'done') {
+                            clearInterval(pollInterval);
+                            bar.style.width = '100%';
+                            msg.textContent = 'Done! Redirecting...';
+                            setTimeout(() => { window.location.href = '/teacher/dashboard'; }, 800);
+                        } else if (pollData.status === 'error') {
+                            clearInterval(pollInterval);
+                            document.getElementById('pvProgress').style.display = 'none';
+                            errEl.textContent = pollData.errorMessage || 'Failed to extract questions. Please try again.';
+                            errEl.style.display = 'block';
+                            document.getElementById('pvSubmitBtn').disabled = false;
+                        }
+                    } catch(e) { /* network blip — keep polling */ }
+                }, 5000);
+
             } catch (err) {
                 clearInterval(progressInterval);
                 document.getElementById('pvProgress').style.display = 'none';
