@@ -35,13 +35,19 @@ const quizSessionRoutes = require('./routes/quizSession');
 const whiteboardRoutes = require('./routes/whiteboard');
 
 
-// AWS S3 configuration
+// S3-compatible storage configuration (works with AWS S3 and Cloudflare R2)
 const AWS = require('aws-sdk');
-const s3 = new AWS.S3({
+const s3Config = {
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION || 'us-west-1' // Fixed: bucket is in us-west-1
-});
+  region: process.env.AWS_REGION || 'auto'
+};
+// R2 requires a custom endpoint; AWS S3 does not
+if (process.env.R2_ENDPOINT) {
+  s3Config.endpoint = process.env.R2_ENDPOINT;
+  s3Config.signatureVersion = 'v4';
+}
+const s3 = new AWS.S3(s3Config);
 
 const app = express();
 
@@ -211,10 +217,12 @@ const requireApprovedTeacher = (req, res, next) => {
   next();
 };
 
-// Build S3 domain for CSP — wildcard subdomains don't work in CSP so use the specific domain
+// Build storage domain for CSP (AWS S3 or Cloudflare R2 public domain)
 const _s3Bucket = process.env.AWS_BUCKET_NAME || 'skillon-test';
 const _s3Region = process.env.AWS_REGION || 'us-west-1';
-const _s3Domain = `https://${_s3Bucket}.s3.${_s3Region}.amazonaws.com`;
+const _s3Domain = process.env.R2_PUBLIC_DOMAIN
+  ? `https://${process.env.R2_PUBLIC_DOMAIN}`
+  : `https://${_s3Bucket}.s3.${_s3Region}.amazonaws.com`;
 
 // Security headers
 app.use(helmet({
