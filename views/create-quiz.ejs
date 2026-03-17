@@ -28,22 +28,24 @@
 
 
 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #fdf5f5;
             min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
         }
         .navbar-brand {
             font-weight: bold;
-            color: #fff !important;
+            color: #8C1515 !important;
         }
         .nav-link {
-            color: rgba(255,255,255,0.8) !important;
+            color: #374151 !important;
             transition: color 0.3s ease;
         }
         .nav-link:hover {
-            color: #fff !important;
+            color: #8C1515 !important;
         }
         .card {
             border: none;
@@ -53,13 +55,13 @@
             backdrop-filter: blur(10px);
         }
         .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8C1515 0%, #6b0f0f 100%);
             color: white;
             border-radius: 15px 15px 0 0 !important;
             padding: 1.5rem;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8C1515 0%, #6b0f0f 100%);
             border: none;
             border-radius: 25px;
             padding: 10px 30px;
@@ -77,29 +79,29 @@
             transition: border-color 0.3s ease;
         }
         .form-control:focus, .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: #8C1515;
+            box-shadow: 0 0 0 0.2rem rgba(140, 21, 21, 0.25);
         }
         .file-upload-area {
-            border: 2px dashed #667eea;
+            border: 2px dashed #8C1515;
             border-radius: 15px;
             padding: 2rem;
             text-align: center;
-            background: rgba(102, 126, 234, 0.05);
+            background: rgba(140, 21, 21, 0.05);
             transition: all 0.3s ease;
             cursor: pointer;
         }
         .file-upload-area:hover {
-            border-color: #764ba2;
-            background: rgba(118, 75, 162, 0.05);
+            border-color: #6b0f0f;
+            background: rgba(107, 15, 15, 0.05);
         }
         .file-upload-area.dragover {
-            border-color: #764ba2;
-            background: rgba(118, 75, 162, 0.1);
+            border-color: #6b0f0f;
+            background: rgba(107, 15, 15, 0.1);
         }
         .upload-icon {
             font-size: 3rem;
-            color: #667eea;
+            color: #8C1515;
             margin-bottom: 1rem;
         }
         
@@ -124,9 +126,9 @@
         }
         
         #upload-images .quiz-type-content.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8C1515 0%, #6b0f0f 100%);
             color: white;
-            border-color: #667eea;
+            border-color: #8C1515;
         }
         
         #upload-images .quiz-type-icon {
@@ -170,12 +172,12 @@
             transition: background-color 0.2s ease;
         }
         .radio-item:hover {
-            background-color: rgba(102, 126, 234, 0.1);
+            background-color: rgba(140, 21, 21, 0.1);
         }
         .radio-item input[type="radio"] {
             width: 20px;
             height: 20px;
-            accent-color: #667eea;
+            accent-color: #8C1515;
             cursor: pointer;
             margin-right: 8px;
         }
@@ -205,22 +207,22 @@
             justify-content: center;
         }
         .quiz-type-content:hover {
-            border-color: #667eea;
+            border-color: #8C1515;
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
         }
         .quiz-type-content.active {
-            border-color: #667eea;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.15);
+            border-color: #8C1515;
+            background: linear-gradient(135deg, rgba(140, 21, 21, 0.05) 0%, rgba(107, 15, 15, 0.05) 100%);
+            box-shadow: 0 5px 20px rgba(140, 21, 21, 0.15);
         }
         .quiz-type-icon {
             font-size: 3rem;
             margin-bottom: 15px;
-            color: #667eea;
+            color: #8C1515;
         }
         .quiz-type-content.active .quiz-type-icon {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8C1515 0%, #6b0f0f 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -282,7 +284,7 @@
 
 .math-btn:hover {
     background: #e9ecef;
-    border-color: #667eea;
+    border-color: #8C1515;
 }
 
 .math-preview {
@@ -325,8 +327,8 @@
 
 .rich-text-content:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    border-color: #8C1515;
+    box-shadow: 0 0 0 0.2rem rgba(140, 21, 21, 0.25);
 }
 
 .rich-text-content ul, .rich-text-content ol {
@@ -384,7 +386,7 @@
     padding: 8px 12px;
     margin-top: 5px;
     margin-bottom: 10px;
-    border-left: 3px solid #667eea;
+    border-left: 3px solid #8C1515;
 }
 
 .option-preview small {
@@ -400,16 +402,16 @@
 
 /* Editor Toggle Buttons */
 .btn-group .btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #8C1515 0%, #6b0f0f 100%);
+    border-color: #8C1515;
     color: white;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 8px rgba(140, 21, 21, 0.3);
 }
 
 .btn-group .btn:not(.active):hover {
     background: #e9ecef;
-    border-color: #667eea;
-    color: #667eea;
+    border-color: #8C1515;
+    color: #8C1515;
 }
 
 /* Method Selector Cards */
@@ -427,7 +429,7 @@
 }
 .method-card:last-child { margin-bottom: 0; }
 .method-card:hover {
-    border-color: #667eea;
+    border-color: #8C1515;
     box-shadow: 0 6px 20px rgba(102,126,234,0.15);
     transform: translateY(-2px);
 }
@@ -442,7 +444,7 @@
     flex-shrink: 0;
     color: #fff;
 }
-.bg-upload  { background: linear-gradient(135deg, #667eea, #764ba2); }
+.bg-upload  { background: linear-gradient(135deg, #c8a8a8, #8C1515); }
 .bg-manual  { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; }
 .bg-general  { background: linear-gradient(135deg, #4facfe, #00f2fe); }
 .bg-advanced { background: linear-gradient(135deg, #f7971e, #ffd200); }
@@ -467,7 +469,7 @@
     flex-shrink: 0;
     transition: transform 0.2s;
 }
-.method-card:hover .method-arrow { transform: translateX(4px); color: #667eea; }
+.method-card:hover .method-arrow { transform: translateX(4px); color: #8C1515; }
 .badge-pro {
     display: inline-block;
     background: linear-gradient(135deg, #f7971e, #ffd200);
@@ -505,8 +507,8 @@
     line-height: 1;
     transition: background 0.15s;
 }
-.rte-btn:hover { background: #e9ecef; border-color: #667eea; }
-.rte-btn:active { background: #667eea; color: #fff; }
+.rte-btn:hover { background: #e9ecef; border-color: #8C1515; }
+.rte-btn:active { background: #8C1515; color: #fff; }
 .rte-content {
     min-height: 80px;
     border-radius: 0 0 10px 10px !important;
@@ -523,7 +525,7 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg" style="background: rgba(255,255,255,0.97); backdrop-filter: blur(10px); box-shadow: 0 2px 12px rgba(140,21,21,0.08)">
         <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-graduation-cap me-2"></i>
