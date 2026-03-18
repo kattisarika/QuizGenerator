@@ -2798,11 +2798,15 @@
                 const questionElement = document.getElementById(`question-${i}`);
                 let selectedAnswer = '';
 
+                let selectedOptionIndex = null;
+
                 if (questionElement) {
                     // Check for multiple choice answers
                     const checkedRadio = questionElement.querySelector('input[type="radio"]:checked');
                     if (checkedRadio) {
                         selectedAnswer = checkedRadio.value;
+                        selectedOptionIndex = checkedRadio.dataset.option !== undefined
+                            ? parseInt(checkedRadio.dataset.option) : null;
                     } else {
                         // Check for text answers
                         const textInput = questionElement.querySelector('input[type="text"], textarea');
@@ -2820,7 +2824,8 @@
 
                 answersArray.push({
                     questionIndex: i,
-                    selectedAnswer: selectedAnswer
+                    selectedAnswer: selectedAnswer,
+                    selectedOptionIndex: selectedOptionIndex  // 0-based index, null for short answer
                 });
             }
             

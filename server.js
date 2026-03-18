@@ -7169,22 +7169,29 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
 
       const trimmedSelectedAnswer = selectedAnswer.trim();
       const trimmedCorrectAnswer = (question.correctAnswer || '').trim();
-
-      // Smart comparison: resolve both to option index, fall back to exact string match
       const options = question.options || [];
-      const selectedIdx = resolveOptionIndex(trimmedSelectedAnswer, options);
-      const correctIdx  = resolveOptionIndex(trimmedCorrectAnswer, options);
+
+      // selectedOptionIndex sent from frontend (0-based DOM position — most reliable)
+      const selectedOptionIndex = (answersArray[index] && answersArray[index].selectedOptionIndex != null)
+        ? parseInt(answersArray[index].selectedOptionIndex) : null;
 
       let isCorrect;
-      if (options.length > 0 && selectedIdx !== -1 && correctIdx !== -1) {
-        // Multiple-choice / true-false: compare by index
-        isCorrect = selectedIdx === correctIdx;
-      } else {
-        // Short answer or unresolvable: exact trimmed string match
+      if (options.length > 0 && selectedOptionIndex !== null && !isNaN(selectedOptionIndex)) {
+        // Multiple-choice: frontend sent exact option index — resolve correctAnswer to index and compare
+        const correctIdx = resolveOptionIndex(trimmedCorrectAnswer, options);
+        isCorrect = correctIdx !== -1 && selectedOptionIndex === correctIdx;
+        console.log(`Q${index}: selectedOptionIndex=${selectedOptionIndex} correctIdx=${correctIdx} → ${isCorrect ? '✅' : '❌'}`);
+      } else if (options.length === 0) {
+        // Short answer: exact trimmed string match
         isCorrect = trimmedSelectedAnswer !== '' && trimmedSelectedAnswer === trimmedCorrectAnswer;
+        console.log(`Q${index}: short-answer "${trimmedSelectedAnswer}" vs "${trimmedCorrectAnswer}" → ${isCorrect ? '✅' : '❌'}`);
+      } else {
+        // Fallback: resolve both to index
+        const selectedIdx = resolveOptionIndex(trimmedSelectedAnswer, options);
+        const correctIdx  = resolveOptionIndex(trimmedCorrectAnswer, options);
+        isCorrect = selectedIdx !== -1 && correctIdx !== -1 && selectedIdx === correctIdx;
+        console.log(`Q${index}: fallback selectedIdx=${selectedIdx} correctIdx=${correctIdx} → ${isCorrect ? '✅' : '❌'}`);
       }
-
-      console.log(`Question ${index}: selected="${trimmedSelectedAnswer}" (idx=${selectedIdx}) correct="${trimmedCorrectAnswer}" (idx=${correctIdx}) → ${isCorrect ? '✅' : '❌'}`);
 
       if (isCorrect) {
         correctAnswers++;
