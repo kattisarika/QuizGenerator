@@ -7098,6 +7098,31 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
     // Debug: Log received answers
     console.log('Received answers from frontend:', JSON.stringify(answersArray, null, 2));
 
+    // Resolve an answer string to an option index (0-3).
+    // Handles: "A"/"B"/"C"/"D", "1"/"2"/"3"/"4", or full option text.
+    // Returns -1 if unresolvable.
+    function resolveOptionIndex(answer, options) {
+      if (!answer || !options || !options.length) return -1;
+      const t = answer.trim();
+
+      // Letter: A, B, C, D (with optional punctuation)
+      const letter = t.match(/^([A-Da-d])[.):]?$/);
+      if (letter) return 'abcd'.indexOf(letter[1].toLowerCase());
+
+      // Number: 1, 2, 3, 4
+      const num = t.match(/^([1-4])[.):]?$/);
+      if (num) return parseInt(num[1]) - 1;
+
+      // Full option text — case-insensitive exact match first
+      const lower = t.toLowerCase();
+      let idx = options.findIndex(o => o.trim().toLowerCase() === lower);
+      if (idx !== -1) return idx;
+
+      // Fallback: option text starts with the answer or vice versa (handles "A. text" prefixes)
+      idx = options.findIndex(o => o.trim().toLowerCase().startsWith(lower) || lower.startsWith(o.trim().toLowerCase()));
+      return idx; // -1 if still not found
+    }
+
     // Calculate results
     let correctAnswers = 0;
     let totalPoints = 0;
@@ -7112,17 +7137,24 @@ app.post('/submit-quiz/:quizId', requireAuth, requireRole(['student']), async (r
         selectedAnswer = answersArray[index];
       }
 
-      // Trim whitespace from both student answer and correct answer for comparison
       const trimmedSelectedAnswer = selectedAnswer.trim();
-      const trimmedCorrectAnswer = question.correctAnswer.trim();
+      const trimmedCorrectAnswer = (question.correctAnswer || '').trim();
 
-      // Debug: Log answer extraction and trimming
-      console.log(`Question ${index}: received answer object:`, answersArray[index]);
-      console.log(`Question ${index}: extracted answer: "${selectedAnswer}"`);
-      console.log(`Question ${index}: trimmed student answer: "${trimmedSelectedAnswer}"`);
-      console.log(`Question ${index}: trimmed correct answer: "${trimmedCorrectAnswer}"`);
+      // Smart comparison: resolve both to option index, fall back to exact string match
+      const options = question.options || [];
+      const selectedIdx = resolveOptionIndex(trimmedSelectedAnswer, options);
+      const correctIdx  = resolveOptionIndex(trimmedCorrectAnswer, options);
 
-      const isCorrect = trimmedSelectedAnswer === trimmedCorrectAnswer;
+      let isCorrect;
+      if (options.length > 0 && selectedIdx !== -1 && correctIdx !== -1) {
+        // Multiple-choice / true-false: compare by index
+        isCorrect = selectedIdx === correctIdx;
+      } else {
+        // Short answer or unresolvable: exact trimmed string match
+        isCorrect = trimmedSelectedAnswer !== '' && trimmedSelectedAnswer === trimmedCorrectAnswer;
+      }
+
+      console.log(`Question ${index}: selected="${trimmedSelectedAnswer}" (idx=${selectedIdx}) correct="${trimmedCorrectAnswer}" (idx=${correctIdx}) → ${isCorrect ? '✅' : '❌'}`);
 
       if (isCorrect) {
         correctAnswers++;
