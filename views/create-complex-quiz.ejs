@@ -101,6 +101,22 @@
     }
     .btn-del:hover { background: #ef4444; color: white; }
 
+    /* Diagram upload */
+    .diagram-zone {
+      border: 2px dashed #c8a8a8; border-radius: 10px; padding: 14px;
+      background: #fdf5f5; cursor: pointer; text-align: center;
+      transition: all 0.2s; position: relative; margin-top: 10px;
+    }
+    .diagram-zone:hover { border-color: #8C1515; background: #faeaea; }
+    .diagram-zone.has-image { border-style: solid; border-color: #c8a8a8; padding: 6px; }
+    .diagram-zone img { max-width: 100%; max-height: 260px; border-radius: 6px; display: block; margin: 0 auto; }
+    .diagram-remove {
+      position: absolute; top: 6px; right: 6px;
+      background: #ef4444; color: white; border: none; border-radius: 50%;
+      width: 26px; height: 26px; font-size: 0.75rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
     /* Tabs */
     .nav-tabs .nav-link { color: #6b7280; border: none; border-bottom: 2px solid transparent; }
     .nav-tabs .nav-link.active { color: #8C1515; border-bottom-color: #8C1515; font-weight: 600; background: none; }
@@ -254,7 +270,7 @@
     // ── Add a new question ─────────────────────────────────────────────────────
     function addQuestion(type) {
       const id = ++questionIdCounter;
-      const q = { id, type, text: '', options: ['', '', '', ''], correctIndex: 0, points: parseInt(document.getElementById('defaultPoints').value) || 1 };
+      const q = { id, type, text: '', options: ['', '', '', ''], correctIndex: 0, points: parseInt(document.getElementById('defaultPoints').value) || 1, image: null };
       questions.push(q);
       renderQuestion(q);
       updateCount();
@@ -310,7 +326,18 @@
         </div>`;
       }
 
+      const diagramHTML = q.image
+        ? `<div class="diagram-zone has-image" id="dzone-${q.id}">
+             <img src="${q.image}" alt="Diagram">
+             <button class="diagram-remove" onclick="removeImage(${q.id})" title="Remove diagram"><i class="fas fa-times"></i></button>
+           </div>`
+        : `<div class="diagram-zone" id="dzone-${q.id}" onclick="triggerImageUpload(${q.id})" title="Click to upload a diagram or graph">
+             <i class="fas fa-image" style="font-size:1.4rem;color:#c8a8a8;"></i>
+             <div style="font-size:0.82rem;color:#6b7280;margin-top:4px;">Click to add diagram / graph image <span style="font-size:0.75rem;">(optional)</span></div>
+           </div>`;
+
       return `
+      <input type="file" id="img-input-${q.id}" accept="image/*" style="display:none" onchange="handleImageUpload(${q.id},this)">
       <div class="d-flex gap-3 align-items-start mb-3">
         <div class="q-number">${num}</div>
         <div class="flex-grow-1">
@@ -328,6 +355,7 @@
           <textarea class="form-control" rows="2" id="qtext-${q.id}"
                     placeholder="Enter question text. Use $...$ for math equations, e.g: Solve: $-6x + 5y = 19$ and $-4x - 5y = -29$"
                     oninput="updateText(${q.id},this.value)">${escHtml(q.text)}</textarea>
+          ${diagramHTML}
           ${optionsHTML}
         </div>
       </div>`;
@@ -382,6 +410,53 @@
       document.getElementById('questionCount').textContent = questions.length;
     }
 
+    // ── Image / Diagram upload ─────────────────────────────────────────────────
+    function triggerImageUpload(id) {
+      const input = document.getElementById('img-input-' + id);
+      if (input) input.click();
+    }
+
+    function handleImageUpload(id, input) {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image is too large. Please use an image under 5 MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const q = questions.find(q => q.id === id);
+        if (q) {
+          q.image = e.target.result;
+          // Re-render just this card's diagram zone
+          const zone = document.getElementById('dzone-' + id);
+          if (zone) {
+            zone.className = 'diagram-zone has-image';
+            zone.onclick = null;
+            zone.innerHTML = `<img src="${q.image}" alt="Diagram"><button class="diagram-remove" onclick="removeImage(${id})" title="Remove diagram"><i class="fas fa-times"></i></button>`;
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeImage(id) {
+      const q = questions.find(q => q.id === id);
+      if (q) {
+        q.image = null;
+        const zone = document.getElementById('dzone-' + id);
+        if (zone) {
+          zone.className = 'diagram-zone';
+          zone.onclick = () => triggerImageUpload(id);
+          zone.innerHTML = `<i class="fas fa-image" style="font-size:1.4rem;color:#c8a8a8;"></i>
+            <div style="font-size:0.82rem;color:#6b7280;margin-top:4px;">Click to add diagram / graph image <span style="font-size:0.75rem;">(optional)</span></div>`;
+        }
+        // Reset file input
+        const input = document.getElementById('img-input-' + id);
+        if (input) input.value = '';
+      }
+    }
+
     // ── Sync current textarea values into questions array ──────────────────────
     function syncFromDOM() {
       questions.forEach(q => {
@@ -422,11 +497,16 @@
                Student writes answer here
              </div>`;
 
+        const diagramHtml = q.image
+          ? `<img src="${q.image}" style="max-width:100%;max-height:260px;border-radius:8px;margin:10px 0;display:block;" alt="Diagram">`
+          : '';
+
         html += `<div class="preview-question">
           <div style="display:flex;gap:12px;align-items:flex-start;">
             <span style="font-weight:700;color:#8C1515;font-size:1rem;min-width:28px;">${i+1}.</span>
             <div style="flex:1;">
               <div class="math-render">${q.text || '<em style="color:#94a3b8;">No question text</em>'}</div>
+              ${diagramHtml}
               <div style="margin-top:10px;">${optionsHtml}</div>
             </div>
             <span style="font-size:0.78rem;color:#94a3b8;">${q.points} pt${q.points !== 1 ? 's' : ''}</span>
@@ -475,7 +555,8 @@
           content: q.text,
           questionType: q.type,
           points: q.points,
-          x: 0, y: 0, width: 800, height: 120
+          image: q.image || null,
+          x: 0, y: 0, width: 800, height: q.image ? 280 : 120
         });
 
         if (q.type === 'mcq') {

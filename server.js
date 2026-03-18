@@ -3196,6 +3196,10 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
         if (element.mcqOptions) processed.mcqOptions = element.mcqOptions;
         if (element.correctIndex !== undefined) processed.correctIndex = Number(element.correctIndex);
         if (element.correctAnswer !== undefined) processed.correctAnswer = String(element.correctAnswer);
+        // Preserve diagram image (base64 data URL)
+        if (element.image && element.image.startsWith('data:image/')) {
+          processed.image = element.image;
+        }
 
         return processed;
       } catch (error) {
