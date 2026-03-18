@@ -3369,6 +3369,36 @@ app.get('/complex-quiz-data/:quizId', requireAuth, async (req, res) => {
   }
 });
 
+// ── Answer Key Editor ──
+app.get('/teacher/quiz/:quizId/answers', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const quiz = await Quiz.findOne({ _id: req.params.quizId, createdBy: req.user._id });
+    if (!quiz) return res.status(404).send('Quiz not found');
+    res.render('edit-quiz-answers', { quiz, user: req.user });
+  } catch (e) {
+    res.status(500).send('Error loading quiz');
+  }
+});
+
+app.post('/teacher/quiz/:quizId/answers', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
+  try {
+    const quiz = await Quiz.findOne({ _id: req.params.quizId, createdBy: req.user._id });
+    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
+
+    const { answers } = req.body; // { "0": "option text", "1": "option text", ... }
+    if (answers && typeof answers === 'object') {
+      quiz.questions.forEach((q, i) => {
+        if (answers[i] !== undefined) q.correctAnswer = answers[i];
+      });
+      quiz.markModified('questions');
+      await quiz.save();
+    }
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // Route for teachers to view pending complex quiz submissions
 app.get('/teacher/complex-quiz-grading', requireAuth, requireRole(['teacher']), requireApprovedTeacher, async (req, res) => {
   try {

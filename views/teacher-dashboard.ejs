@@ -1988,6 +1988,9 @@
                                         <a href="/quiz-results/<%= quiz._id %>" class="btn btn-sm btn-info" title="View Results">
                                             <i class="fas fa-chart-bar"></i>
                                         </a>
+                                        <a href="/teacher/quiz/<%= quiz._id %>/answers" class="btn btn-sm btn-success" title="Edit Answer Key">
+                                            <i class="fas fa-key"></i>
+                                        </a>
                                         <% if (quiz.quizType === 'competitive') { %>
                                             <a href="/competitive-quiz" class="btn btn-sm btn-success" title="Manage Sessions">
                                                 <i class="fas fa-trophy"></i>
