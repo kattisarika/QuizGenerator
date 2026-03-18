@@ -3176,12 +3176,6 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
     console.log('Starting element processing...');
 
     const processedElements = elements.map((element, index) => {
-      console.log(`Processing element ${index + 1}:`, {
-        id: element.id,
-        type: element.type,
-        contentLength: element.content ? element.content.length : 0
-      });
-
       try {
         const processed = {
           id: String(element.id || ''),
@@ -3191,21 +3185,25 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
           width: Number(element.width) || 200,
           height: Number(element.height) || 100,
           content: sanitizeContent(element.content),
-          style: element.style || {}
+          style: element.style || {},
+          pageNumber: element.pageNumber || 1,
+          questionNumber: element.questionNumber || 1
         };
 
-        console.log(`Element ${index + 1} processed successfully`);
+        // Preserve new form-builder fields
+        if (element.questionType) processed.questionType = element.questionType;
+        if (element.points) processed.points = Number(element.points) || 1;
+        if (element.mcqOptions) processed.mcqOptions = element.mcqOptions;
+        if (element.correctIndex !== undefined) processed.correctIndex = Number(element.correctIndex);
+        if (element.correctAnswer !== undefined) processed.correctAnswer = String(element.correctAnswer);
+
         return processed;
       } catch (error) {
         console.error(`Error processing element ${element.id}:`, error);
-        // Return a safe default element
         return {
           id: String(element.id || `element-${index}`),
           type: String(element.type || 'textbox'),
-          x: 0,
-          y: 0,
-          width: 200,
-          height: 100,
+          x: 0, y: 0, width: 200, height: 100,
           content: 'Error processing content',
           style: {}
         };
@@ -3223,31 +3221,29 @@ app.post('/create-complex-quiz', requireAuth, requireRole(['teacher']), requireA
     };
 
     // Convert elements to questions format for MongoDB
+    // Match question elements with their corresponding answer-area elements
     const questions = [];
-    let questionCounter = 1;
+    const questionElements = processedElements.filter(e => e.type === 'question' || e.type === 'sub-question');
+    const answerElements = processedElements.filter(e => e.type === 'answer-area');
 
-    processedElements.forEach(element => {
-      if (element.type === 'question' || element.type === 'sub-question') {
-        // Clean the content for question text
-        let questionText = element.content || 'Question ' + questionCounter;
+    questionElements.forEach((element, idx) => {
+      let questionText = element.content || 'Question ' + (idx + 1);
+      questionText = questionText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (questionText.length > 2000) questionText = questionText.substring(0, 2000) + '...';
 
-        // Strip HTML tags for question text but keep basic formatting
-        questionText = questionText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      // Find the matching answer-area element (same questionNumber or next in array)
+      const answerEl = answerElements.find(a => a.questionNumber === element.questionNumber) || answerElements[idx];
 
-        if (questionText.length > 500) {
-          questionText = questionText.substring(0, 500) + '...';
-        }
+      const isMcq = element.questionType === 'mcq' || (answerEl && answerEl.mcqOptions && answerEl.mcqOptions.length > 0);
 
-        questions.push({
-          question: questionText,
-          type: 'short-answer',
-          options: [],
-          correctAnswer: '',
-          points: 1,
-          isTextAnswer: true
-        });
-        questionCounter++;
-      }
+      questions.push({
+        question: questionText,
+        type: isMcq ? 'multiple-choice' : 'short-answer',
+        options: isMcq && answerEl ? (answerEl.mcqOptions || []) : [],
+        correctAnswer: answerEl ? (answerEl.correctAnswer || '') : '',
+        points: element.points || 1,
+        isTextAnswer: !isMcq
+      });
     });
 
     // If no questions found, create a default one
