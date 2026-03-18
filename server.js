@@ -4075,8 +4075,8 @@ Important:
       organizationId,
       isApproved: true,
       questionPaperUrl: job.questionPaperUrl || null,
-      // Store PDF data in quiz if no URL (e.g. no S3/R2 on Heroku) — serves via /api/quiz/:id/paper
-      questionPaperData: job.questionPaperUrl ? null : job.questionPaperData
+      // Store PDF data unless we have a real remote URL (local disk paths are ephemeral on Heroku)
+      questionPaperData: (job.questionPaperUrl && job.questionPaperUrl.startsWith('http')) ? null : job.questionPaperData
     });
     await quiz.save();
 
@@ -6976,6 +6976,11 @@ app.get('/take-quiz/:quizId', requireAuth, requireRole(['student']), async (req,
 
     // Generate a presigned URL for the question paper PDF (S3/R2 bucket is private)
     let questionPaperUrl = quizObject.questionPaperUrl || null;
+
+    // Local disk paths (no S3/R2) are ephemeral on Heroku — treat as missing
+    if (questionPaperUrl && !questionPaperUrl.startsWith('http')) {
+      questionPaperUrl = null;
+    }
     console.log('[take-quiz] quiz.questionPaperUrl from DB:', questionPaperUrl);
 
     // Fallback: use /api/quiz/:id/paper endpoint if quiz has PDF data in MongoDB
